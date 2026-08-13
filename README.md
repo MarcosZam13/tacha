@@ -26,3 +26,7 @@ Ver [sección 10 del documento de proyecto](docs/documento-proyecto.md#10-pendie
 ## Cómo contribuir
 
 Ver [CONTRIBUTING.md](CONTRIBUTING.md) antes de tu primer PR: branching, formato de commits, labels y la plantilla de PR.
+
+## Convenciones de código (para vos y para tu agente de IA)
+
+Este repo define sus reglas en [AGENTS.md](AGENTS.md) — arquitectura de componentes, constantes, testing, patrones de Next.js, código limpio. Si usás Claude Code, Cursor o Copilot, cada uno ya tiene su puente (`CLAUDE.md`, `.cursor/rules/skills.mdc`, `.github/copilot-instructions.md`) apuntando ahí, así que las convenciones se aplican solas sin que tengas que copiarlas a mano. Leelo antes de tu primera feature — evita que cada quien de los 6 resuelva lo mismo distinto.
