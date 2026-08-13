@@ -2,19 +2,31 @@
 
 ## 1. Branching
 
-Un branch por ticket, corta duración (1-2 días), nunca directo sobre `main`.
+Modelo exigido por el profesor para el proyecto del curso, en kebab-case y con código de ticket para trazabilidad:
 
 ```
-main                                 → producción / lo que se entrega
-feature/TACHA-{n}-descripcion-corta
-fix/TACHA-{n}-descripcion-corta
-qa/TACHA-{n}-descripcion-corta
+main                              → producción (equivalente a "Master" del diagrama del profesor)
+develop                           → integración de desarrollo, nace de main
+ticket/TACHA-{n}-descripcion      → tarea puntual, nace de develop, vuelve a develop
+entregable-{n}                    → una entrega formal del curso (entregable-1, entregable-2...), nace de develop
+qa-fix/TACHA-{n}-descripcion      → corrige hallazgos de QA sobre un entregable, nace de entregable-{n}, vuelve a entregable-{n}
+hotfix/TACHA-{n}-descripcion      → corrección urgente sobre producción, nace de main, vuelve a main
 ```
+
+Flujo:
+1. `develop` nace de `main`.
+2. Cada tarea se trabaja en `ticket/TACHA-{n}-...`, creada desde `develop`; al terminar, se fusiona de vuelta a `develop`.
+3. Al preparar una entrega del curso, `develop` da origen a `entregable-{n}`.
+4. Si QA encuentra problemas en `entregable-{n}`, se crea `qa-fix/TACHA-{n}-...` desde esa rama; al corregir, se fusiona de vuelta a `entregable-{n}`.
+5. `entregable-{n}` ya corregido y aprobado se fusiona a `main`.
+6. Problema urgente en producción: `hotfix/TACHA-{n}-...` desde `main`; al corregirlo, se fusiona de vuelta a `main`.
+
+Nunca se trabaja directo sobre `main` o `develop`.
 
 ## 2. Commits
 
 ```
-{type}({TACHA-n}): descripción corta en imperativo
+{type}(TACHA-{n}): descripción corta en imperativo
 
 [cuerpo opcional: el porqué, no el qué]
 ```
@@ -49,4 +61,4 @@ Columnas: `To Do → In Progress → Waiting QA → (QA Denied → vuelve a In P
 
 ## 5. QA
 
-Bug encontrado durante QA → ticket nuevo (`fix/TACHA-{n}`), no un parche silencioso sobre la rama original ya mergeada.
+Bug encontrado durante QA sobre un entregable → `qa-fix/TACHA-{n}-...` desde ese `entregable-{n}` (ver sección 1), no un parche silencioso sobre la rama original ya mergeada.
