@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mockup Web — Tacha</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Public Sans', sans-serif;
+    background: #d9d2c3;
+    padding: 32px 16px;
+  }
+
+  .toggle-bar { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .toggle-bar button {
+    font-family: 'Public Sans', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #8A7F70;
+    background: #FBF6EE;
+    color: #2B2420;
+    cursor: pointer;
+  }
+  .toggle-bar button.active { background: #0E7C7B; color: #FBF6EE; border-color: #0E7C7B; }
+
+  .frame-label { text-align: center; font-size: 12px; font-weight: 700; color: #5c5346; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* ---------- LIGHT / DARK THEME TOKENS ---------- */
+  .light { --bg:#FBF6EE; --surface:#FFFFFF; --border:#E8DFD0; --teal:#0E7C7B; --terracotta:#D97B4F; --chipbg:#FBEADF; --chipborder:#E9C4A5; --text:#2B2420; --textsec:#8A7F70; }
+  .dark  { --bg:#1C1815; --surface:#26211C; --border:#332C25; --teal:#3EC6C1; --terracotta:#E89A6C; --chipbg:#3A2A1E; --chipborder:#4A362A; --text:#F5EFE6; --textsec:#B5A997; }
+
+  /* ---------- DESKTOP FRAME ---------- */
+  .desktop-frame {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto 40px;
+    height: 720px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+    display: flex;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .sidebar-logo { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; margin-bottom: 24px; padding: 0 8px; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+    color: var(--textsec); cursor: pointer;
+  }
+  .sidebar-item.active { background: var(--chipbg); color: var(--teal); }
+  .sidebar-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    padding: 18px 28px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; }
+  .store-pill {
+    background: var(--teal); color: white; font-size: 12px; font-weight: 600;
+    padding: 7px 14px; border-radius: 20px; display: flex; align-items: center; gap: 6px;
+  }
+  .content-scroll { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  .category-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--textsec); margin: 18px 0 10px; }
+  .category-label:first-child { margin-top: 0; }
+
+  .item-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px;
+  }
+  .checkbox {
+    width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--teal);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;
+  }
+  .checkbox.checked { background: var(--teal); }
+  .checkbox svg { width: 12px; height: 12px; color: white; opacity: 0; }
+  .checkbox.checked svg { opacity: 1; }
+  .item-name { font-size: 14.5px; font-weight: 600; }
+  .item-meta { font-size: 12px; color: var(--textsec); margin-top: 2px; }
+  .badge { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--chipbg); color: var(--terracotta); border: 1px solid var(--chipborder); margin-left: 6px; }
+
+  /* Dashboard */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .stat-label { font-size: 11.5px; color: var(--textsec); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 700; margin-top: 4px; }
+  .stat-sub { font-size: 11.5px; color: var(--teal); font-weight: 600; margin-top: 4px; }
+
+  .bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 130px; padding: 12px 4px 0; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar { width: 100%; border-radius: 6px 6px 0 0; background: var(--teal); }
+  .bar-label { font-size: 10px; color: var(--textsec); font-weight: 600; }
+
+  .store-list { display: flex; flex-direction: column; gap: 8px; }
+  .store-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+  .store-row .amount { font-weight: 700; color: var(--terracotta); }
+
+  /* Calendar for private/date lists */
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
+  .cal-cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); font-size: 11px; padding: 4px; position: relative; background: var(--surface); }
+  .cal-cell.has-event::after { content: ''; position: absolute; bottom: 4px; left: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--terracotta); }
+  .cal-cell.today { border-color: var(--teal); border-width: 2px; }
+
+  .list-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px;
+    margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .list-card-name { font-weight: 700; font-size: 14px; }
+  .list-card-meta { font-size: 11.5px; color: var(--textsec); margin-top: 3px; }
+  .status-pill { font-size: 10.5px; font-weight: 700; padding: 4px 10px; border-radius: 10px; }
+  .status-pending { background: var(--chipbg); color: var(--terracotta); }
+  .status-completed { background: var(--teal); color: white; }
+  .status-cancelled { background: var(--border); color: var(--textsec); }
+
+  .avatars { display: flex; margin-left: -6px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--surface); background: var(--teal); color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-left: -6px; }
+
+  /* ---------- MOBILE FRAME ---------- */
+  .mobile-frame {
+    width: 320px;
+    height: 660px;
+    margin: 0 auto 40px;
+    border-radius: 36px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    position: relative;
+  }
+  .m-status { height: 26px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 10.5px; font-weight: 700; }
+  .m-header { padding: 10px 18px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .m-header h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; }
+  .m-content { flex: 1; overflow-y: auto; padding: 0 14px 90px; }
+  .m-tabs { display: flex; justify-content: space-around; padding: 8px 0 14px; border-top: 1px solid var(--border); position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg); }
+  .m-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 700; color: var(--textsec); }
+  .m-tab.active { color: var(--teal); }
+  .m-tab svg { width: 18px; height: 18px; }
+
+  .row-flex { display: flex; align-items: center; gap: 12px; }
+  .icon-16 svg { width: 16px; height: 16px; }
+  .icon-14 svg { width: 14px; height: 14px; }
+
+  .wrap-desktop-mobile { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+
+  /* Weekly meal planner — desktop */
+  .week-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 24px; }
+  .week-col { display: flex; flex-direction: column; gap: 8px; }
+  .week-day-label { font-size: 12px; font-weight: 700; color: var(--textsec); text-align: center; padding-bottom: 4px; border-bottom: 2px solid var(--border); margin-bottom: 4px; }
+  .week-day-label.today { color: var(--teal); border-color: var(--teal); }
+  .meal-slot { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+  .meal-slot.empty { border-style: dashed; color: var(--textsec); font-size: 11.5px; font-weight: 600; text-align: center; padding: 14px 8px; background: transparent; }
+  .meal-type { font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--teal); letter-spacing: 0.04em; }
+  .meal-recipe { font-size: 12.5px; font-weight: 700; margin-top: 3px; }
+  .meal-cook { font-size: 10.5px; color: var(--textsec); margin-top: 2px; }
+
+  /* Weekly meal planner — mobile (stacked days instead of grid) */
+  .week-day-mobile { margin-bottom: 18px; }
+  .week-day-mobile-label { font-size: 12.5px; font-weight: 700; color: var(--textsec); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid var(--border); }
+  .week-day-mobile-label.today { color: var(--teal); border-color: var(--teal); }
+  .week-day-mobile .meal-slot { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<div class="toggle-bar">
+  <button class="active" onclick="setMode('light')">Modo claro</button>
+  <button onclick="setMode('dark')">Modo oscuro</button>
+</div>
+
+<!-- ============ DESKTOP: Lista general con dashboard ============ -->
+<div class="frame-label">Desktop — Lista general + dashboard financiero</div>
+<div class="desktop-frame light" id="d1">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item active" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item" data-icon="chart">Finanzas</div>
+    <div class="sidebar-item" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="history">Historial</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar">
+      <h1>General</h1>
+      <div class="store-pill" data-icon-inline="pin">Walmart</div>
+    </div>
+    <div class="content-scroll">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Gasto este mes</div>
+          <div class="stat-value">₡184,500</div>
+          <div class="stat-sub">↓ 8% vs mes pasado</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Súper más usado</div>
+          <div class="stat-value" style="font-size:20px;">Walmart</div>
+          <div class="stat-sub">6 visitas este mes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Categoría top</div>
+          <div class="stat-value" style="font-size:20px;">Despensa</div>
+          <div class="stat-sub">₡52,300 este mes</div>
+        </div>
+      </div>
+
+      <div class="category-label">Lácteos</div>
+      <div class="item-row">
+        <div class="checkbox" onclick="this.classList.toggle('checked')" data-icon="check"></div>
+        <div><div class="item-name">Leche</div><div class="item-meta">1L · Mamá</div></div>
+      </div>
+      <div class="category-label">Repetidos en ambas listas</div>
+      <div class="item-row">
+        <div class="checkbox" onclick="this.classList.toggle('checked')" data-icon="check"></div>
+        <div><div class="item-name">Huevos<span class="badge">Playa</span></div><div class="item-meta">6 unidades</div></div>
+      </div>
+      <div class="item-row">
+        <div class="checkbox" onclick="this.classList.toggle('checked')" data-icon="check"></div>
+        <div><div class="item-name">Huevos<span class="badge">General</span></div><div class="item-meta">11 unidades</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DESKTOP: Dashboard financiero completo ============ -->
+<div class="frame-label">Desktop — Finanzas</div>
+<div class="desktop-frame light" id="d2">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item active" data-icon="chart">Finanzas</div>
+    <div class="sidebar-item" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="history">Historial</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar"><h1>Finanzas</h1></div>
+    <div class="content-scroll">
+      <div class="category-label">Gasto por semana</div>
+      <div class="bar-chart">
+        <div class="bar-col"><div class="bar" style="height:60px;"></div><div class="bar-label">S1</div></div>
+        <div class="bar-col"><div class="bar" style="height:95px;"></div><div class="bar-label">S2</div></div>
+        <div class="bar-col"><div class="bar" style="height:40px;"></div><div class="bar-label">S3</div></div>
+        <div class="bar-col"><div class="bar" style="height:110px; background:var(--terracotta);"></div><div class="bar-label">S4</div></div>
+      </div>
+
+      <div class="category-label">Gasto por supermercado (este mes)</div>
+      <div class="store-list">
+        <div class="store-row"><span>Walmart</span><span class="amount">₡98,200</span></div>
+        <div class="store-row"><span>Automercado</span><span class="amount">₡61,000</span></div>
+        <div class="store-row"><span>Mas x Menos</span><span class="amount">₡25,300</span></div>
+      </div>
+
+      <div class="category-label">Sugerencia de dónde comprar</div>
+      <div class="item-row">
+        <div style="width:22px;height:22px;flex-shrink:0;" data-icon="lightbulb"></div>
+        <div>
+          <div class="item-name">Arroz 2kg</div>
+          <div class="item-meta">Más barato en Automercado (₡1,450) vs tu promedio habitual (₡1,690)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DESKTOP: Listas privadas con calendario ============ -->
+<div class="frame-label">Desktop — Listas privadas (viajes con amigos)</div>
+<div class="desktop-frame light" id="d3">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item active" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item" data-icon="chart">Finanzas</div>
+    <div class="sidebar-item" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="history">Historial</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar">
+      <h1>Listas privadas</h1>
+      <div class="store-pill" style="background:transparent;border:1px solid var(--teal);color:var(--teal);" data-icon-inline="plus">Nueva lista</div>
+    </div>
+    <div class="content-scroll">
+      <div class="category-label">Próximas</div>
+
+      <div class="list-card">
+        <div>
+          <div class="list-card-name">Fin de semana Jacó</div>
+          <div class="list-card-meta">15 ago · 8/12 comprado</div>
+        </div>
+        <div class="row-flex">
+          <div class="avatars">
+            <div class="avatar">JP</div>
+            <div class="avatar">MC</div>
+            <div class="avatar">+2</div>
+          </div>
+          <span class="status-pill status-pending">Pendiente</span>
+        </div>
+      </div>
+
+      <div class="list-card">
+        <div>
+          <div class="list-card-name">Asado sábado</div>
+          <div class="list-card-meta">9 ago · 10/10 comprado</div>
+        </div>
+        <div class="row-flex">
+          <div class="avatars"><div class="avatar">DR</div></div>
+          <span class="status-pill status-completed">Completada</span>
+        </div>
+      </div>
+
+      <div class="list-card">
+        <div>
+          <div class="list-card-name">Cumpleaños Ana (cancelado)</div>
+          <div class="list-card-meta">2 ago</div>
+        </div>
+        <span class="status-pill status-cancelled">Cancelada</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MOBILE: General + Finanzas + Privadas ============ -->
+<div class="frame-label">Mobile web — General / Finanzas / Listas privadas</div>
+<div class="wrap-desktop-mobile">
+
+<div class="mobile-frame light" id="m1">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>General</h1><div class="store-pill" data-icon-inline="pin" style="padding:5px 10px;">Walmart</div></div>
+  <div class="m-content">
+    <div class="stats-grid" style="grid-template-columns:1fr 1fr; gap:8px;">
+      <div class="stat-card"><div class="stat-label">Este mes</div><div class="stat-value" style="font-size:20px;">₡184,500</div></div>
+      <div class="stat-card"><div class="stat-label">Top súper</div><div class="stat-value" style="font-size:16px;">Walmart</div></div>
+    </div>
+    <div class="category-label">Lácteos</div>
+    <div class="item-row"><div class="checkbox" onclick="this.classList.toggle('checked')" data-icon="check"></div><div><div class="item-name">Leche</div><div class="item-meta">1L · Mamá</div></div></div>
+    <div class="category-label">Despensa</div>
+    <div class="item-row"><div class="checkbox" onclick="this.classList.toggle('checked')" data-icon="check"></div><div><div class="item-name">Arroz</div><div class="item-meta">2kg · Papá</div></div></div>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab active" data-icon="home">General</div>
+    <div class="m-tab" data-icon="calendar">Fechas</div>
+    <div class="m-tab" data-icon="users">Privadas</div>
+    <div class="m-tab" data-icon="chart">Finanzas</div>
+  </div>
+</div>
+
+<div class="mobile-frame light" id="m2">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>Finanzas</h1></div>
+  <div class="m-content">
+    <div class="category-label">Gasto por semana</div>
+    <div class="bar-chart" style="height:100px;">
+      <div class="bar-col"><div class="bar" style="height:50px;"></div><div class="bar-label">S1</div></div>
+      <div class="bar-col"><div class="bar" style="height:80px;"></div><div class="bar-label">S2</div></div>
+      <div class="bar-col"><div class="bar" style="height:34px;"></div><div class="bar-label">S3</div></div>
+      <div class="bar-col"><div class="bar" style="height:95px;background:var(--terracotta);"></div><div class="bar-label">S4</div></div>
+    </div>
+    <div class="category-label">Por supermercado</div>
+    <div class="store-list">
+      <div class="store-row"><span>Walmart</span><span class="amount">₡98,200</span></div>
+      <div class="store-row"><span>Automercado</span><span class="amount">₡61,000</span></div>
+    </div>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab" data-icon="home">General</div>
+    <div class="m-tab" data-icon="calendar">Fechas</div>
+    <div class="m-tab" data-icon="users">Privadas</div>
+    <div class="m-tab active" data-icon="chart">Finanzas</div>
+  </div>
+</div>
+
+<div class="mobile-frame light" id="m3">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>Privadas</h1><div class="store-pill" style="background:transparent;border:1px solid var(--teal);color:var(--teal); padding:5px 10px;" data-icon-inline="plus">Nueva</div></div>
+  <div class="m-content">
+    <div class="list-card">
+      <div><div class="list-card-name">Jacó</div><div class="list-card-meta">15 ago · 8/12</div></div>
+      <span class="status-pill status-pending">Pendiente</span>
+    </div>
+    <div class="list-card">
+      <div><div class="list-card-name">Asado sábado</div><div class="list-card-meta">9 ago · 10/10</div></div>
+      <span class="status-pill status-completed">Completada</span>
+    </div>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab" data-icon="home">General</div>
+    <div class="m-tab" data-icon="calendar">Fechas</div>
+    <div class="m-tab active" data-icon="users">Privadas</div>
+    <div class="m-tab" data-icon="chart">Finanzas</div>
+  </div>
+</div>
+
+</div>
+
+<!-- ============ DESKTOP: Planificador semanal de comidas ============ -->
+<div class="frame-label">Desktop — Planificador semanal de comidas</div>
+<div class="desktop-frame light" id="d4">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item" data-icon="chart">Finanzas</div>
+    <div class="sidebar-item active" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="history">Historial</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar">
+      <h1>Semana del 11-17 ago</h1>
+      <div class="store-pill" data-icon-inline="plus">Agregar semana a lista</div>
+    </div>
+    <div class="content-scroll">
+      <div class="week-grid">
+        <div class="week-col">
+          <div class="week-day-label">Lun 11</div>
+          <div class="meal-slot"><span class="meal-type">Almuerzo</span><div class="meal-recipe">Arroz con pollo</div><div class="meal-cook">Mamá</div></div>
+          <div class="meal-slot"><span class="meal-type">Cena</span><div class="meal-recipe">Sopa de frijoles</div><div class="meal-cook">Papá</div></div>
+        </div>
+        <div class="week-col">
+          <div class="week-day-label">Mar 12</div>
+          <div class="meal-slot"><span class="meal-type">Almuerzo</span><div class="meal-recipe">Pasta al pesto</div><div class="meal-cook">Marcos</div></div>
+          <div class="meal-slot empty">+ Cena</div>
+        </div>
+        <div class="week-col">
+          <div class="week-day-label today">Mié 13</div>
+          <div class="meal-slot"><span class="meal-type">Almuerzo</span><div class="meal-recipe">Casado de pollo</div><div class="meal-cook">Mamá</div></div>
+          <div class="meal-slot"><span class="meal-type">Cena</span><div class="meal-recipe">Quesadillas</div><div class="meal-cook">Marcos</div></div>
+        </div>
+        <div class="week-col">
+          <div class="week-day-label">Jue 14</div>
+          <div class="meal-slot empty">+ Almuerzo</div>
+          <div class="meal-slot empty">+ Cena</div>
+        </div>
+        <div class="week-col">
+          <div class="week-day-label">Vie 15</div>
+          <div class="meal-slot"><span class="meal-type">Cena</span><div class="meal-recipe">Pizza casera</div><div class="meal-cook">Papá</div></div>
+        </div>
+      </div>
+
+      <div class="category-label">Ingredientes de la semana — faltantes</div>
+      <div class="item-row">
+        <div class="checkbox" onclick="this.classList.toggle('checked')" data-icon="check"></div>
+        <div><div class="item-name">Pollo</div><div class="item-meta">Usado en 2 recetas · 1.5kg total</div></div>
+      </div>
+      <div class="item-row">
+        <div class="checkbox checked" data-icon="check"></div>
+        <div><div class="item-name" style="text-decoration:line-through;opacity:0.55;">Cebolla</div><div class="item-meta" style="opacity:0.55;">Ya en despensa</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MOBILE: Planificador semanal ============ -->
+<div class="frame-label">Mobile web — Planificador semanal</div>
+<div class="wrap-desktop-mobile">
+<div class="mobile-frame light" id="m4">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>Esta semana</h1></div>
+  <div class="m-content">
+    <div class="week-day-mobile">
+      <div class="week-day-mobile-label">Lunes 11</div>
+      <div class="meal-slot"><span class="meal-type">Almuerzo</span><div class="meal-recipe">Arroz con pollo</div><div class="meal-cook">Mamá</div></div>
+      <div class="meal-slot"><span class="meal-type">Cena</span><div class="meal-recipe">Sopa de frijoles</div><div class="meal-cook">Papá</div></div>
+    </div>
+    <div class="week-day-mobile">
+      <div class="week-day-mobile-label today">Miércoles 13</div>
+      <div class="meal-slot"><span class="meal-type">Almuerzo</span><div class="meal-recipe">Casado de pollo</div><div class="meal-cook">Mamá</div></div>
+      <div class="meal-slot empty">+ Cena</div>
+    </div>
+    <div class="week-day-mobile">
+      <div class="week-day-mobile-label">Jueves 14</div>
+      <div class="meal-slot empty">+ Almuerzo</div>
+      <div class="meal-slot empty">+ Cena</div>
+    </div>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab" data-icon="home">General</div>
+    <div class="m-tab active" data-icon="book">Recetas</div>
+    <div class="m-tab" data-icon="users">Privadas</div>
+    <div class="m-tab" data-icon="chart">Finanzas</div>
+  </div>
+</div>
+</div>
+
+<script>
+const ICONS = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  lightbulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--terracotta)"><path d="M9 18h6M10 22h4M15.09 14c.5-1 1.91-2 1.91-4.5A5 5 0 0 0 7 9.5c0 2.5 1.41 3.5 1.91 4.5"/></svg>',
+};
+
+function setMode(mode) {
+  document.querySelectorAll('.desktop-frame, .mobile-frame').forEach(p => {
+    p.classList.remove('light', 'dark');
+    p.classList.add(mode);
+  });
+  document.querySelectorAll('.toggle-bar button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+document.querySelectorAll('[data-icon]').forEach(el => {
+  el.innerHTML = ICONS[el.getAttribute('data-icon')] || '';
+});
+document.querySelectorAll('[data-icon-inline]').forEach(el => {
+  const name = el.getAttribute('data-icon-inline');
+  el.innerHTML = `<span style="width:14px;height:14px;display:inline-flex;">${ICONS[name]}</span>` + el.innerHTML;
+});
+</script>
+
+</body>
+</html>
