@@ -7,26 +7,26 @@ Modelo exigido por el profesor para el proyecto del curso, en kebab-case y con c
 ```
 main                              → producción (equivalente a "Master" del diagrama del profesor)
 develop                           → integración de desarrollo, nace de main
-ticket/TACHA-{n}-descripcion      → tarea puntual, nace de develop, vuelve a develop
+ticket/SCRUM-{n}-descripcion      → tarea puntual, nace de develop, vuelve a develop
 entregable-{n}                    → una entrega formal del curso (entregable-1, entregable-2...), nace de develop
-qa-fix/TACHA-{n}-descripcion      → corrige hallazgos de QA sobre un entregable, nace de entregable-{n}, vuelve a entregable-{n}
-hotfix/TACHA-{n}-descripcion      → corrección urgente sobre producción, nace de main, vuelve a main
+qa-fix/SCRUM-{n}-descripcion      → corrige hallazgos de QA sobre un entregable, nace de entregable-{n}, vuelve a entregable-{n}
+hotfix/SCRUM-{n}-descripcion      → corrección urgente sobre producción, nace de main, vuelve a main
 ```
 
 Flujo:
 1. `develop` nace de `main`.
-2. Cada tarea se trabaja en `ticket/TACHA-{n}-...`, creada desde `develop`; al terminar, se fusiona de vuelta a `develop`.
+2. Cada tarea se trabaja en `ticket/SCRUM-{n}-...`, creada desde `develop`; al terminar, se fusiona de vuelta a `develop`.
 3. Al preparar una entrega del curso, `develop` da origen a `entregable-{n}`.
-4. Si QA encuentra problemas en `entregable-{n}`, se crea `qa-fix/TACHA-{n}-...` desde esa rama; al corregir, se fusiona de vuelta a `entregable-{n}`.
+4. Si QA encuentra problemas en `entregable-{n}`, se crea `qa-fix/SCRUM-{n}-...` desde esa rama; al corregir, se fusiona de vuelta a `entregable-{n}`.
 5. `entregable-{n}` ya corregido y aprobado se fusiona a `main`.
-6. Problema urgente en producción: `hotfix/TACHA-{n}-...` desde `main`; al corregirlo, se fusiona de vuelta a `main`.
+6. Problema urgente en producción: `hotfix/SCRUM-{n}-...` desde `main`; al corregirlo, se fusiona de vuelta a `main`.
 
 Nunca se trabaja directo sobre `main` o `develop`.
 
 ## 2. Commits
 
 ```
-{type}(TACHA-{n}): descripción corta en imperativo
+{type}(SCRUM-{n}): descripción corta en imperativo
 
 [cuerpo opcional: el porqué, no el qué]
 ```
@@ -35,7 +35,7 @@ Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
 
 ## 3. Pull Requests
 
-- Título con el mismo formato: `feat(TACHA-14): descripción corta`.
+- Título con el mismo formato: `feat(SCRUM-14): descripción corta`.
 - Se abre siempre, incluso trabajando solo — es el checkpoint de revisión antes de mergear.
 - Nunca mergear una rama de trabajo en progreso sobre otra rama de trabajo en progreso.
 
@@ -53,7 +53,7 @@ Flujo: `in progress` → `waiting qa` → (`qa accepted` → merge) o (`qa denie
 
 ### Plantilla de PR
 
-Se autocompleta al abrir el PR (`.github/pull_request_template.md`). Completar siempre **Ticket** (clave de Jira o de `TACHA-{n}`), **Assignee** (quien hizo el trabajo) y **Reviewer** (a quién le toca revisar — rotar entre el equipo).
+Se autocompleta al abrir el PR (`.github/pull_request_template.md`). Completar siempre **Ticket** (clave del issue de Jira, ej. `SCRUM-14`), **Assignee** (quien hizo el trabajo) y **Reviewer** (a quién le toca revisar — rotar entre el equipo).
 
 ## 4. Tablero (Jira)
 
@@ -61,4 +61,4 @@ Columnas: `To Do → In Progress → Waiting QA → (QA Denied → vuelve a In P
 
 ## 5. QA
 
-Bug encontrado durante QA sobre un entregable → `qa-fix/TACHA-{n}-...` desde ese `entregable-{n}` (ver sección 1), no un parche silencioso sobre la rama original ya mergeada.
+Bug encontrado durante QA sobre un entregable → `qa-fix/SCRUM-{n}-...` desde ese `entregable-{n}` (ver sección 1), no un parche silencioso sobre la rama original ya mergeada.
