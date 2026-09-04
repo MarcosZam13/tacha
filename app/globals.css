@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — DESIGN.md secciones 1-2 (personalidad cálida/hogareña,
+ * paleta crema/terracota/teal). Fuente única de verdad de estos valores;
+ * ningún componente hardcodea un hex propio, todos consumen las clases
+ * `bg-tacha-*` / `text-tacha-*` / `border-tacha-*` generadas por @theme.
+ */
+:root {
+  --tacha-bg: #fbf6ee;
+  --tacha-surface: #ffffff;
+  --tacha-border: #e8dfd0;
+  --tacha-teal: #0e7c7b;
+  --tacha-terracotta: #d97b4f;
+  --tacha-chipbg: #fbeadf;
+  --tacha-chipborder: #e9c4a5;
+  --tacha-text: #2b2420;
+  --tacha-textsec: #8a7f70;
+}
+
+:root[data-theme="dark"] {
+  --tacha-bg: #1c1815;
+  --tacha-surface: #26211c;
+  --tacha-border: #332c25;
+  --tacha-teal: #3ec6c1;
+  --tacha-terracotta: #e89a6c;
+  --tacha-chipbg: #3a2a1e;
+  --tacha-chipborder: #4a362a;
+  --tacha-text: #f5efe6;
+  --tacha-textsec: #b5a997;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --tacha-bg: #1c1815;
+    --tacha-surface: #26211c;
+    --tacha-border: #332c25;
+    --tacha-teal: #3ec6c1;
+    --tacha-terracotta: #e89a6c;
+    --tacha-chipbg: #3a2a1e;
+    --tacha-chipborder: #4a362a;
+    --tacha-text: #f5efe6;
+    --tacha-textsec: #b5a997;
+  }
+}
+
+@theme inline {
+  --color-tacha-bg: var(--tacha-bg);
+  --color-tacha-surface: var(--tacha-surface);
+  --color-tacha-border: var(--tacha-border);
+  --color-tacha-teal: var(--tacha-teal);
+  --color-tacha-terracotta: var(--tacha-terracotta);
+  --color-tacha-chipbg: var(--tacha-chipbg);
+  --color-tacha-chipborder: var(--tacha-chipborder);
+  --color-tacha-text: var(--tacha-text);
+  --color-tacha-textsec: var(--tacha-textsec);
+
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-public-sans);
+
+  /* Radios — DESIGN.md 2.4: checkbox ~7px, card ~14px, chip pill */
+  --radius-tacha-checkbox: 7px;
+  --radius-tacha-card: 14px;
+  --radius-tacha-chip: 999px;
+  --radius-tacha-badge: 8px;
+}
+
+body {
+  background: var(--tacha-bg);
+  color: var(--tacha-text);
+  font-family: var(--font-body);
+}
