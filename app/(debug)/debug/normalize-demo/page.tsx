@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUPABASE_REST } from "@/app/constants";
 
 interface NormalizeResult {
   processed: number;
@@ -20,8 +21,9 @@ export default function NormalizeDemoPage(): JSX.Element {
     setResult(null);
 
     try {
+      // FIX QA bug #5 (2026-09-04): URL hardcodeada -> SUPABASE_REST.BASE_URL
       const response = await fetch(
-        "https://ifvwumejbfpowxlkjfiu.supabase.co/rest/v1/rpc/normalize_pending_staging",
+        `${SUPABASE_REST.BASE_URL}/rpc/normalize_pending_staging`,
         {
           method: "POST",
           headers: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUPABASE_REST } from "@/app/constants";
 
 interface SearchResult {
   product_catalog_id: string;
@@ -33,8 +34,9 @@ export default function SearchDemoPage(): JSX.Element {
     setError(null);
 
     try {
+      // FIX QA bug #5 (2026-09-04): URL hardcodeada -> SUPABASE_REST.BASE_URL
       const response = await fetch(
-        "https://ifvwumejbfpowxlkjfiu.supabase.co/rest/v1/rpc/search_catalog",
+        `${SUPABASE_REST.BASE_URL}/rpc/search_catalog`,
         {
           method: "POST",
           headers: {

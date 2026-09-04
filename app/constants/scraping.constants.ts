@@ -16,8 +16,21 @@ export const SCRAPING_SOURCE_COLOR = {
   "stale-cache": "bg-yellow-100 text-yellow-900 border-yellow-300",
 } as const;
 
+// FIX QA bug #5 (2026-09-04): la URL estaba hardcodeada acá y en otros 2
+// archivos (useHouseholdStorePreferences.ts, y el GET directo a staging que
+// ahora ya no existe, ver bug #4) en vez de usar la env var —
+// contradice constants-standards ("zero magic strings"). Se centraliza en
+// SUPABASE_URL, derivada de NEXT_PUBLIC_SUPABASE_URL, y las otras 2
+// ubicaciones deben importar desde acá, no repetir el valor.
+export const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ifvwumejbfpowxlkjfiu.supabase.co";
+
 export const EDGE_FUNCTION = {
-  BASE_URL: "https://ifvwumejbfpowxlkjfiu.supabase.co/functions/v1",
+  BASE_URL: `${SUPABASE_URL}/functions/v1`,
+} as const;
+
+export const SUPABASE_REST = {
+  BASE_URL: `${SUPABASE_URL}/rest/v1`,
 } as const;
 
 export const SCRAPING_DEMO = {

@@ -12,6 +12,14 @@
 -- ============================================================================
 -- Función auxiliar: parsear scraped_size_text a base_unit y base_quantity
 -- ============================================================================
+-- FIX QA bug #2 (2026-09-04): las regex originales estaban ancladas (^...$),
+-- esperando un token puro tipo "1 litro". Pero scraped_size_text viene de
+-- item.nameComplete de VTEX (ver supabase/functions/_shared/catalogRepository.ts,
+-- stageProducts), que es el NOMBRE COMPLETO del producto, ej.
+-- "Leche Entera Dos Pinos 1 Litro" — nunca un tamaño aislado. Con datos reales
+-- de scraping, el ancla ^...$ nunca matchea y toda fila se rechaza.
+-- Fix: quitar el ancla ^...$ y buscar el patrón de tamaño en cualquier parte
+-- del texto (regex de búsqueda, no de igualdad completa).
 create or replace function parse_size_text(size_text text)
 returns table (
   base_unit text,
@@ -20,6 +28,7 @@ returns table (
 declare
   normalized text;
   quantity numeric;
+  match_groups text[];
 begin
   if size_text is null or trim(size_text) = '' then
     return;  -- null result si no se puede parsear
@@ -27,54 +36,69 @@ begin
 
   normalized := trim(lower(size_text));
 
-  -- Patrones comunes en español costarricense de supermercado
-  -- Formato: cantidad unit
+  -- Patrones comunes en español costarricense de supermercado.
+  -- Sin anclas: el tamaño puede aparecer en cualquier parte del nombre
+  -- completo del producto (ej. "Leche Entera Dos Pinos 1 Litro").
 
-  -- LITROS: "1 l", "1l", "1.5 l", "1500ml" → ml + quantity*1000
-  if normalized ~ '^\d+\.?\d*\s*(l|litro|litros)$' then
-    quantity := (regexp_matches(normalized, '(\d+\.?\d*)', 'g'))[1]::numeric;
+  -- LITROS: "1 l", "1l", "1.5 l", "1 litro" → ml + quantity*1000
+  match_groups := regexp_match(normalized, '(\d+\.?\d*)\s*(l|litro|litros)\M');
+  if match_groups is not null then
+    quantity := match_groups[1]::numeric;
     return query select 'ml'::text, (quantity * 1000)::numeric;
     return;
   end if;
 
-  if normalized ~ '^\d+\s*(ml|mililitro|mililitros)$' then
-    quantity := (regexp_matches(normalized, '(\d+)', 'g'))[1]::numeric;
+  -- MILILITROS: "500 ml", "500ml", "1500 mililitros"
+  match_groups := regexp_match(normalized, '(\d+\.?\d*)\s*(ml|mililitro|mililitros)\M');
+  if match_groups is not null then
+    quantity := match_groups[1]::numeric;
     return query select 'ml'::text, quantity;
     return;
   end if;
 
-  -- GRAMOS: "500 g", "500g", "1 kg" → g + quantity (convertir kg a g)
-  if normalized ~ '^\d+\.?\d*\s*(g|gramo|gramos)$' then
-    quantity := (regexp_matches(normalized, '(\d+\.?\d*)', 'g'))[1]::numeric;
-    return query select 'g'::text, quantity;
-    return;
-  end if;
-
-  if normalized ~ '^\d+\.?\d*\s*(kg|kilogramo|kilogramos)$' then
-    quantity := (regexp_matches(normalized, '(\d+\.?\d*)', 'g'))[1]::numeric;
+  -- KILOGRAMOS: "1 kg", "1.5 kilogramos" → g (convertido)
+  match_groups := regexp_match(normalized, '(\d+\.?\d*)\s*(kg|kilogramo|kilogramos)\M');
+  if match_groups is not null then
+    quantity := match_groups[1]::numeric;
     return query select 'g'::text, (quantity * 1000)::numeric;
     return;
   end if;
 
-  -- UNIDADES: "paquete x6", "pack x12", "unidad", "6 unidades"
-  if normalized ~ 'paquete\s*x\s*\d+' or normalized ~ 'pack\s*x\s*\d+' then
-    quantity := (regexp_matches(normalized, '(\d+)', 'g'))[1]::numeric;
-    return query select 'unidad'::text, quantity;
+  -- GRAMOS: "500 g", "500g", "500 gramos" (después de kg para no matchear "kg" como "g")
+  match_groups := regexp_match(normalized, '(\d+\.?\d*)\s*(g|gramo|gramos)\M');
+  if match_groups is not null then
+    quantity := match_groups[1]::numeric;
+    return query select 'g'::text, quantity;
     return;
   end if;
 
-  if normalized ~ '^\d+\s*(unidades?|u|und)$' then
-    quantity := (regexp_matches(normalized, '(\d+)', 'g'))[1]::numeric;
-    return query select 'unidad'::text, quantity;
+  -- UNIDADES: "paquete x6", "pack x12"
+  match_groups := regexp_match(normalized, 'paquete\s*x\s*(\d+)');
+  if match_groups is not null then
+    return query select 'unidad'::text, match_groups[1]::numeric;
     return;
   end if;
 
-  if normalized = 'unidad' or normalized = 'u' or normalized = 'und' then
+  match_groups := regexp_match(normalized, 'pack\s*x\s*(\d+)');
+  if match_groups is not null then
+    return query select 'unidad'::text, match_groups[1]::numeric;
+    return;
+  end if;
+
+  -- "6 unidades", "6 u", "6 und"
+  match_groups := regexp_match(normalized, '(\d+)\s*(unidades?|u|und)\M');
+  if match_groups is not null then
+    return query select 'unidad'::text, match_groups[1]::numeric;
+    return;
+  end if;
+
+  -- "unidad" sola, sin cantidad explícita
+  if normalized ~ '\munidad\M' or normalized ~ '\mu\M' or normalized ~ '\mund\M' then
     return query select 'unidad'::text, 1::numeric;
     return;
   end if;
 
-  -- Si no reconoce el patrón: no devuelve nada (fila se rechaza)
+  -- Si no reconoce ningún patrón: no devuelve nada (fila se rechaza)
 end;
 $$ language plpgsql immutable;
 
@@ -152,11 +176,18 @@ begin
     end if;
 
     -- Buscar o crear variant
-    select id into v_variant_id
-    from product_catalog_variants
-    where product_catalog_id = v_product_id
-      and base_unit = v_base_unit
-      and base_quantity = v_base_quantity
+    -- FIX (2026-09-04, encontrado al validar los fixes del QA con datos reales):
+    -- "product_catalog_id" sin calificar es ambiguo — colisiona con la columna
+    -- de salida "product_catalog_id" que declara "returns table (...)" de esta
+    -- misma función. Sin el alias "pcv.", Postgres no sabe si te referís a la
+    -- columna de la tabla o a la variable de retorno, y falla en tiempo de
+    -- ejecución con "column reference is ambiguous" — nunca se detectó antes
+    -- porque nadie había corrido esta función contra datos reales de scraping.
+    select pcv.id into v_variant_id
+    from product_catalog_variants pcv
+    where pcv.product_catalog_id = v_product_id
+      and pcv.base_unit = v_base_unit
+      and pcv.base_quantity = v_base_quantity
     limit 1;
 
     if v_variant_id is null then
@@ -169,11 +200,12 @@ begin
     -- Manejar brand (si es null o vacío, usar "Genérica")
     v_brand_name := coalesce(trim(v_staging.scraped_brand), 'Genérica');
 
-    -- Buscar o crear brand
-    select id into v_brand_id
-    from product_brands
-    where product_catalog_variant_id = v_variant_id
-      and name = v_brand_name
+    -- Buscar o crear brand (alias explícito "pb." por el mismo motivo que la
+    -- variante arriba: product_brand_id es columna de salida de esta función).
+    select pb.id into v_brand_id
+    from product_brands pb
+    where pb.product_catalog_variant_id = v_variant_id
+      and pb.name = v_brand_name
     limit 1;
 
     if v_brand_id is null then
@@ -182,12 +214,19 @@ begin
       returning id into v_brand_id;
     end if;
 
-    -- Extraer precio del raw_json (asume estructura VTEX: offer.spotPrice)
-    v_price := (v_staging.raw_json -> 'offer' ->> 'spotPrice')::numeric;
+    -- FIX QA bug #1 (2026-09-04): el campo real del commertialOffer de VTEX es
+    -- "Price" (con mayúscula, sin "spotPrice") — confirmado en
+    -- supabase/functions/_shared/types.ts (VtexOffer.Price), que ya documenta
+    -- haberlo verificado contra la API real. raw_json.offer es exactamente el
+    -- resultado de pickBestOffer(item), es decir el commertialOffer elegido
+    -- (ver catalogRepository.ts, stageProducts) — el path correcto es
+    -- raw_json -> 'offer' ->> 'Price', no 'spotPrice'.
+    v_price := (v_staging.raw_json -> 'offer' ->> 'Price')::numeric;
 
     if v_price is null then
-      -- Fallback: intentar otros paths comunes
-      v_price := (v_staging.raw_json ->> 'price')::numeric;
+      -- Fallback: por si algún día raw_json.offer usa otra forma (defensivo,
+      -- no se espera que se use con el shape actual de stageProducts).
+      v_price := (v_staging.raw_json ->> 'Price')::numeric;
     end if;
 
     if v_price is null then

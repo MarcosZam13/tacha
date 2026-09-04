@@ -9,6 +9,7 @@ import {
   EDGE_FUNCTION,
   SCRAPING_DEMO,
   STORE_NAMES,
+  SUPABASE_REST,
   type StoreSlug,
 } from "@/app/constants";
 
@@ -134,17 +135,30 @@ export const useScrapingDemoViewModel = (): UseScrapingDemoViewModelReturn => {
         throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY no configurado");
       }
 
-      const response = await fetch(
-        `https://ifvwumejbfpowxlkjfiu.supabase.co/rest/v1/product_catalog_staging?store_id=eq.${state.result.store}&order=scraped_at.desc&limit=${SCRAPING_DEMO.STAGING_TABLE_ROWS_LIMIT}`,
-        {
-          method: "GET",
-          headers: {
-            apikey: ANON_KEY,
-            Authorization: `Bearer ${ANON_KEY}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // FIX QA bugs #4 y #5 (2026-09-04): antes se hacía GET directo a
+      // product_catalog_staging con la anon key — esa tabla es intencionalmente
+      // privada (sin policy de SELECT, ver schema.sql), así que esa llamada
+      // nunca podía funcionar. Ahora se usa la RPC get_recent_staging
+      // (supabase/migrations/003_add_get_recent_staging_rpc.sql), que expone
+      // solo las columnas necesarias para este demo sin abrir RLS de la tabla
+      // ni exponer raw_json. De paso, la URL ya no está hardcodeada
+      // (SUPABASE_REST.BASE_URL viene de NEXT_PUBLIC_SUPABASE_URL).
+      // Nota: también corrige un bug de filtro — antes se comparaba
+      // "store_id=eq.<slug>" (comparando un uuid contra un slug de texto,
+      // que nunca hubiera matcheado ninguna fila); get_recent_staging recibe
+      // el slug directamente y resuelve el join internamente.
+      const response = await fetch(`${SUPABASE_REST.BASE_URL}/rpc/get_recent_staging`, {
+        method: "POST",
+        headers: {
+          apikey: ANON_KEY,
+          Authorization: `Bearer ${ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          store_slug: state.result.store,
+          row_limit: SCRAPING_DEMO.STAGING_TABLE_ROWS_LIMIT,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`Error ${response.status} al consultar staging`);

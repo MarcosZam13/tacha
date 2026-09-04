@@ -5,10 +5,12 @@ import type {
   StorePreferenceUpdate,
 } from "@/app/types/household-preferences.types";
 import type { StoreSlug } from "@/app/constants";
-import { STORE_NAMES } from "@/app/constants";
+import { STORE_NAMES, SUPABASE_REST } from "@/app/constants";
 
+// FIX QA bug #5 (2026-09-04): la URL estaba hardcodeada acá — ahora se
+// reusa SUPABASE_REST.BASE_URL (derivada de NEXT_PUBLIC_SUPABASE_URL),
+// centralizada en app/constants/scraping.constants.ts.
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const SUPABASE_URL = "https://ifvwumejbfpowxlkjfiu.supabase.co";
 
 interface UseHouseholdStorePreferencesReturn {
   state: HouseholdStorePreferencesState;
@@ -50,7 +52,7 @@ export const useHouseholdStorePreferences = (
     try {
       // Cargar todas las tiendas + preferencias del household
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/stores?select=id,slug,display_name`,
+        `${SUPABASE_REST.BASE_URL}/stores?select=id,slug,display_name`,
         {
           method: "GET",
           headers: {
@@ -73,7 +75,7 @@ export const useHouseholdStorePreferences = (
 
       // Cargar preferencias específicas del household
       const prefsResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/household_store_preferences?household_id=eq.${householdId}&select=store_id,visible`,
+        `${SUPABASE_REST.BASE_URL}/household_store_preferences?household_id=eq.${householdId}&select=store_id,visible`,
         {
           method: "GET",
           headers: {
@@ -147,7 +149,7 @@ export const useHouseholdStorePreferences = (
     try {
       // Upsert: insert or update en household_store_preferences
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/household_store_preferences`,
+        `${SUPABASE_REST.BASE_URL}/household_store_preferences`,
         {
           method: "POST",
           headers: {
