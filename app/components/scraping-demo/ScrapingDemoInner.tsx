@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import { useScrapingDemoViewModel } from "./hooks/useScrapingDemoViewModel";
 import { SearchForm } from "./components/SearchForm";
 import { ResultsDisplay } from "./components/ResultsDisplay";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { HouseholdStorePreferences } from "@/app/components/household-store-preferences/HouseholdStorePreferences";
 
 export default function PreferencesDemoPage(): JSX.Element {
@@ -105,7 +105,7 @@ export default function PreferencesDemoPage(): JSX.Element {
           </p>
           <code className="block bg-white p-3 rounded text-xs text-gray-800 overflow-x-auto">
             select * from household_store_preferences <br />
-            where household_id = '{householdId}';
+            where household_id = &apos;{householdId}&apos;;
           </code>
         </div>
       </div>

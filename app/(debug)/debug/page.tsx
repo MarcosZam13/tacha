@@ -1,3 +1,5 @@
+import type { JSX } from "react";
+
 export const metadata = {
   title: "Panel de Debug",
   description: "Herramientas de desarrollo y testing del pipeline de scraping",
@@ -128,9 +130,9 @@ export default function DebugPage(): JSX.Element {
             <div>
               <p className="font-semibold text-gray-900 mb-2">Qué probar:</p>
               <ul className="space-y-1">
-                <li>✅ Busca "leche" → live, luego cache</li>
+                <li>✅ Busca &quot;leche&quot; → live, luego cache</li>
                 <li>✅ Normaliza → ve productos creados</li>
-                <li>✅ Busca "leche" en catálogo normalizado</li>
+                <li>✅ Busca &quot;leche&quot; en catálogo normalizado</li>
                 <li>✅ Oculta Walmart → rango cambia</li>
               </ul>
             </div>

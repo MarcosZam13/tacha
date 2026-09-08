@@ -1,18 +1,18 @@
--- SQL Query para lectura de preferencias de household
--- Reutilizable por cualquier módulo (catálogo, listas, dashboard, etc.)
---
--- Patrón: LEFT JOIN + coalesce(visible, true)
--- Garantiza que: tiendas sin fila en household_store_preferences se muestran como visibles (true)
---
--- SELECT s.*,
---   coalesce(hsp.visible, true) as visible
--- FROM stores s
--- LEFT JOIN household_store_preferences hsp
---   ON hsp.store_id = s.id AND hsp.household_id = $1
--- WHERE coalesce(hsp.visible, true) = true;
---
--- Parámetro: $1 = household_id (uuid)
--- Devuelve: todas las tiendas que este household debe ver (filtradas por visible=true)
+// SQL Query para lectura de preferencias de household
+// Reutilizable por cualquier módulo (catálogo, listas, dashboard, etc.)
+//
+// Patrón: LEFT JOIN + coalesce(visible, true)
+// Garantiza que: tiendas sin fila en household_store_preferences se muestran como visibles (true)
+//
+// SELECT s.*,
+//   coalesce(hsp.visible, true) as visible
+// FROM stores s
+// LEFT JOIN household_store_preferences hsp
+//   ON hsp.store_id = s.id AND hsp.household_id = $1
+// WHERE coalesce(hsp.visible, true) = true;
+//
+// Parámetro: $1 = household_id (uuid)
+// Devuelve: todas las tiendas que este household debe ver (filtradas por visible=true)
 
 export const HOUSEHOLD_PREFERENCES_SQL_QUERY = `
 select s.id as store_id,

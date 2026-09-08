@@ -30,5 +30,11 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // Deno runtime (Edge Functions) — imports remotos y globals (`Deno`) que
+    // no existen en el programa TS de Next.js/Node. Se despliegan vía
+    // `supabase functions deploy`, no se compilan con este tsconfig.
+    "supabase/functions/**"
+  ]
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import type { StoreSlug } from "@/app/constants";
 import { STORE_DISPLAY, STORE_NAMES } from "@/app/constants";
 
