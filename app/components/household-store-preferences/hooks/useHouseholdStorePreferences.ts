@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type {
   HouseholdStorePreference,
   HouseholdStorePreferencesState,
-  StorePreferenceUpdate,
 } from "@/app/types/household-preferences.types";
 import type { StoreSlug } from "@/app/constants";
-import { STORE_NAMES, SUPABASE_REST } from "@/app/constants";
+import { SUPABASE_REST } from "@/app/constants";
 
 // FIX QA bug #5 (2026-09-04): la URL estaba hardcodeada acá — ahora se
 // reusa SUPABASE_REST.BASE_URL (derivada de NEXT_PUBLIC_SUPABASE_URL),
@@ -26,8 +25,7 @@ export const useHouseholdStorePreferences = (
     error: null,
   });
 
-  // Cargar preferencias al montar o si cambia householdId
-  useEffect(() => {
+  const loadPreferences = useCallback(async (): Promise<void> => {
     if (!householdId) {
       setState({
         preferences: [],
@@ -36,12 +34,6 @@ export const useHouseholdStorePreferences = (
       });
       return;
     }
-
-    loadPreferences();
-  }, [householdId]);
-
-  const loadPreferences = async (): Promise<void> => {
-    if (!householdId) return;
 
     setState((prev) => ({
       ...prev,
@@ -124,7 +116,17 @@ export const useHouseholdStorePreferences = (
         error: errorMessage,
       }));
     }
-  };
+  }, [householdId]);
+
+  // Cargar preferencias al montar o si cambia householdId.
+  // Fetch-en-effect clásico: la regla react-hooks/set-state-in-effect lo
+  // marca porque el fix real es migrar a TanStack Query (ya decidido para
+  // estado de servidor, ver .agents/skills/nextjs-enterprise-patterns/SKILL.md
+  // §3), migración todavía pendiente para este hook — no forzarla acá.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadPreferences();
+  }, [loadPreferences]);
 
   const toggleStoreVisibility = async (
     storeSlug: StoreSlug,
