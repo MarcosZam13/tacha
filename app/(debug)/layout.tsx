@@ -1,7 +1,9 @@
+import type { JSX, ReactNode } from "react";
+
 export default function DebugLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }): JSX.Element {
   return (
     <div className="min-h-screen bg-gray-100 py-12">

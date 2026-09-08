@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { ScrapingDemo } from "@/app/components/scraping-demo/ScrapingDemo";
 
 export const metadata = {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import { useHouseholdStorePreferences } from "./hooks/useHouseholdStorePreferences";
 
 interface HouseholdStorePreferencesProps {

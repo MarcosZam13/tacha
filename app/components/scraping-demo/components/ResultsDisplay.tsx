@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import type { EdgeFunctionIngestResponse } from "@/app/types/scraping.types";
 import {
   SCRAPING_SOURCE_COLOR,

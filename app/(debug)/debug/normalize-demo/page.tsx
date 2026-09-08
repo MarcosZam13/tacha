@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { SUPABASE_REST } from "@/app/constants";
 
 interface NormalizeResult {
@@ -140,7 +140,7 @@ export default function NormalizeDemoPage(): JSX.Element {
           </p>
           <ol className="text-sm text-gray-700 space-y-2">
             <li>1. Toma filas de product_catalog_staging con status=pending</li>
-            <li>2. Parsea scraped_size_text ("1L" → ml, 1000)</li>
+            <li>2. Parsea scraped_size_text (&quot;1L&quot; → ml, 1000)</li>
             <li>3. Busca/crea product_catalog con similitud pg_trgm</li>
             <li>4. Busca/crea variante y marca</li>
             <li>5. Extrae precio y lo inserta en product_prices</li>

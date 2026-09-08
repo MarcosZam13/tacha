@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import type { StagingProduct } from "@/app/types/scraping.types";
 
 interface StagingTableProps {
@@ -87,7 +88,7 @@ export const StagingTable = ({
 
       <p className="text-xs text-gray-600">
         Nota: Los datos mostrados son el resultado crudo del scraping a VTEX,
-        sin normalización. El status "pending" es normal — la conversión a
+        sin normalización. El status &quot;pending&quot; es normal — la conversión a
         catálogo normalizado es parte de spec-03.
       </p>
     </div>
