@@ -7,6 +7,9 @@ on:
     types: [opened, reopened, edited, synchronize, labeled, unlabeled]
     branches: [develop, main, "entregable-*"]
 
+permissions:
+  pull-requests: read
+
 jobs:
   gitflow:
     runs-on: ubuntu-latest
@@ -16,8 +19,12 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
+          # Labels leídos en vivo (no del payload del evento) para que un re-run vea el estado actual.
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '[.labels[].name]')
           errors=0
           fail() { echo "::error::$1"; errors=$((errors+1)); }
 
@@ -50,8 +57,11 @@ jobs:
     steps:
       - name: Requiere label qa accepted
         env:
-          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
+          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels -q '[.labels[].name]')
           if echo "$LABELS" | jq -e 'index("qa accepted")' > /dev/null; then
             echo "QA aprobado, se puede mergear."
           else
