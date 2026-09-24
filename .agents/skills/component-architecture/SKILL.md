@@ -6,7 +6,7 @@ Ver también: [constants-standards](../constants-standards/SKILL.md) · [unit-te
 
 ## 1. Una feature, una carpeta
 
-Cada feature de UI vive en su propia carpeta en kebab-case bajo `app/components/`:
+Cada feature de UI vive en su propia carpeta en kebab-case bajo `components/`:
 
 ```
 <feature-name>/

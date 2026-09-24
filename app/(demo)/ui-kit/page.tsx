@@ -1,6 +1,6 @@
 "use client";
 
-import { BUTTON_VARIANT, CHIP_TONE } from "@/app/constants";
+import { BUTTON_VARIANT, CHIP_TONE } from "@/constants";
 import {
   Button,
   CategoryLabel,
@@ -11,7 +11,7 @@ import {
   Modal,
   Spinner,
   StatCard,
-} from "@/app/components/ui";
+} from "@/components/ui";
 import { useUiKitViewModel } from "./hooks/useUiKitViewModel";
 
 /**

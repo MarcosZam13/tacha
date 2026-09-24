@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type JSX } from "react";
-import { HouseholdStorePreferences } from "@/app/components/household-store-preferences/HouseholdStorePreferences";
+import { HouseholdStorePreferences } from "@/components/household-store-preferences/HouseholdStorePreferences";
 
 export default function PreferencesDemoPage(): JSX.Element {
   const [householdId, setHouseholdId] = useState("test-household-123");
