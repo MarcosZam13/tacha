@@ -18,7 +18,7 @@ const debounceMs = 300;
 **Correcto:**
 
 ```ts
-import { LIST_STATUS, TIMEOUT_MS } from "@/app/constants";
+import { LIST_STATUS, TIMEOUT_MS } from "@/constants";
 
 if (status === LIST_STATUS.PENDING) { ... }
 const debounceMs = TIMEOUT_MS.DEBOUNCE.SEARCH;
@@ -87,7 +87,7 @@ export const TIMEOUT_MS = {
 
 ## 6. Exportar desde un solo barrel
 
-Toda constante se re-exporta desde un único `app/constants/index.ts`. Nunca dejar un valor de dominio compartido como un `const x = 300` local dentro de un componente — si se usa más de una vez, o si un typo ahí sería un bug real, pertenece a `constants/`.
+Toda constante se re-exporta desde un único `constants/index.ts`. Nunca dejar un valor de dominio compartido como un `const x = 300` local dentro de un componente — si se usa más de una vez, o si un typo ahí sería un bug real, pertenece a `constants/`.
 
 ## 7. Derivar tipos con `typeof` + `keyof`, nunca escribir una unión a mano
 

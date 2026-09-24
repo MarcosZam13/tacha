@@ -1,6 +1,6 @@
 # Supabase — Catálogo y scraping
 
-Ver [`AI-Generated Report/reporte-catalogo-scraping.md`](../AI-Generated%20Report/reporte-catalogo-scraping.md) para el detalle completo del modelo de datos y las justificaciones técnicas de cada desviación respecto al documento del equipo.
+Ver [`docs/catalogo-scraping/reporte-catalogo-scraping.md`](../docs/catalogo-scraping/reporte-catalogo-scraping.md) para el detalle completo del modelo de datos y las justificaciones técnicas de cada desviación respecto al documento del equipo.
 
 ## Qué hace este pipeline
 

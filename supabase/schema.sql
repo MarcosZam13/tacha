@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Tacha — Catálogo + Web Scraping
 -- Alineado a documentacion-v1_for claude.md (v2.1, sección 6) + reporte
--- AI-Generated Report/reporte-catalogo-scraping.md
+-- docs/catalogo-scraping/reporte-catalogo-scraping.md
 --
 -- Reemplaza por completo el schema anterior (products/skus/price_snapshots).
 -- Este script es idempotente: usa "drop ... if exists" antes de recrear,

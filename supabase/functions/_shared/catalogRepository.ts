@@ -7,7 +7,7 @@
 // llena product_catalog_staging (dato crudo, sin normalizar). La
 // normalización hacia product_catalog/product_catalog_variants/product_brands
 // es un proceso aparte, fuera del alcance de esta Edge Function (ver reporte
-// AI-Generated Report/reporte-catalogo-scraping.md, sección 5.5 y 7).
+// docs/catalogo-scraping/reporte-catalogo-scraping.md, sección 5.5 y 7).
 
 // deno-lint-ignore no-explicit-any
 type SupabaseClient = any;

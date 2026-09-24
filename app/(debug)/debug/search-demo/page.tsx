@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type JSX } from "react";
-import { SUPABASE_REST } from "@/app/constants";
+import { SUPABASE_REST } from "@/constants";
 
 interface SearchResult {
   product_catalog_id: string;
