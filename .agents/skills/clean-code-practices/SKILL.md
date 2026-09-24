@@ -51,22 +51,21 @@ Regla general: **no introducir un patrón para verse sofisticado.** Introducirlo
 
 ## 4. Estructura del repositorio — lo que determina si alguien "se pierde"
 
-Un desconocido debería poder predecir dónde vive un archivo sin buscar:
+Un desconocido debería poder predecir dónde vive un archivo sin buscar. El layout exacto (`app/` solo rutas, carpetas compartidas como hermanas de `app/`, alias de imports, cómo escribir rutas en docs) está en [project-structure](../project-structure/SKILL.md); abrirlo cada vez que la ubicación de un archivo esté en duda. Resumen:
 
 ```
 tacha/
-├── README.md                 ← qué es esto, cómo correrlo, cómo desplegarlo. Lo primero que abre cualquiera.
-├── docs/                      ← documento de proyecto, decisiones de arquitectura, modelo de datos
-├── app/
-│   ├── (rutas)/                ← solo rutas, delgadas — sin lógica de negocio acá
-│   ├── components/             ← features de UI, una carpeta por feature (ver component-architecture)
-│   ├── lib/ o services/        ← clientes de API, wrappers de terceros, funciones utilitarias puras
-│   ├── constants/               ← constantes (ver constants-standards)
-│   └── types/                   ← tipos TypeScript compartidos
+├── README.md        ← qué es esto, cómo correrlo, cómo desplegarlo. Lo primero que abre cualquiera.
+├── docs/            ← documento de proyecto, historias de usuario, sprints, docs por módulo
+├── app/             ← solo rutas, delgadas — sin lógica de negocio ni carpetas compartidas adentro
+├── components/      ← features de UI, una carpeta por feature (ver component-architecture)
+├── constants/       ← constantes (ver constants-standards)
+├── types/           ← tipos TypeScript compartidos
+├── services/        ← (cuando haga falta) clientes de API, wrappers de terceros
 ├── supabase/
-│   ├── migrations/            ← numeradas, una migración = un cambio revisable
-│   └── seed.sql
-└── .github/workflows/          ← CI/CD
+│   ├── migrations/  ← solo .sql, numeradas, una migración = un cambio revisable
+│   └── functions/   ← Edge Functions (Deno)
+└── .github/workflows/ ← CI
 ```
 
 Reglas estructurales clave:
@@ -92,6 +91,6 @@ Reglas estructurales clave:
 ## 7. Aplicando esto en la práctica
 
 1. Revisar naming y tamaño de función primero — son los arreglos más baratos con mayor retorno en legibilidad.
-2. Revisar si el archivo está en el lugar correcto según la estructura de arriba; sugerir moverlo si no.
+2. Revisar si el archivo está en el lugar correcto según [project-structure](../project-structure/SKILL.md); sugerir moverlo si no.
 3. Solo sugerir un patrón de diseño si hay un problema concreto de duplicación/complejidad que resuelve — nombrar el problema, no solo el patrón.
 4. Al revisar un repo existente, señalar problemas estructurales antes que nitpicks a nivel de línea — la estructura es lo que determina si alguien se pierde.

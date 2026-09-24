@@ -11,7 +11,7 @@ estado: Implementado y verificado en la base real. Falta: función de normalizac
 
 Este documento describe, con el detalle suficiente para que cualquier IA o dev del equipo lo use como contexto, todo lo que existe hoy en el core de scraping/catálogo: qué tablas hay, qué hace cada Edge Function, cómo probarlas, y qué NO está construido todavía. Está pensado para pegarse como contexto en otra herramienta de IA (Cursor, Copilot Chat, otro Claude, etc.) sin que esa herramienta necesite ver el resto de esta conversación.
 
-Referencia cruzada: las decisiones de diseño y su justificación técnica están en `AI-Generated Report/reporte-catalogo-scraping.md`. Este documento es el complementario "cómo funciona y cómo probarlo", no repite las justificaciones ya escritas ahí.
+Referencia cruzada: las decisiones de diseño y su justificación técnica están en `docs/catalogo-scraping/reporte-catalogo-scraping.md`. Este documento es el complementario "cómo funciona y cómo probarlo", no repite las justificaciones ya escritas ahí.
 
 ## 1. Qué problema resuelve este módulo
 

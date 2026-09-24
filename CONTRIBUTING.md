@@ -62,3 +62,21 @@ Columnas: `To Do → In Progress → Waiting QA → (QA Denied → vuelve a In P
 ## 5. QA
 
 Bug encontrado durante QA sobre un entregable → `qa-fix/SCRUM-{n}-...` desde ese `entregable-{n}` (ver sección 1), no un parche silencioso sobre la rama original ya mergeada.
+
+Formato de casos de prueba, reportes de bug y planes de prueba: [qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md).
+
+## 6. Sprints
+
+Sprints de una semana, de lunes a lunes; la revisión es el lunes en que cierra cada sprint. El primero arrancó el lunes 21 de septiembre. Calendario y reparto de historias en [docs/sprints.md](docs/sprints.md) (Jira manda si no coinciden).
+
+## 7. Definition of Done
+
+Una historia pasa a `Done` solo si:
+
+- [ ] El código sigue los skills de [AGENTS.md](AGENTS.md), incluida la estructura de carpetas (`app/` solo rutas)
+- [ ] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan (el CI corre lint y build en cada PR)
+- [ ] Tiene tests del camino feliz + al menos un caso negativo o límite ([qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md))
+- [ ] Si toca auth, household, RLS, formularios o variables de entorno: se revisó con [security-practices](.agents/skills/security-practices/SKILL.md) (o el subagente `security-reviewer`)
+- [ ] El PR usa la plantilla, con pasos de prueba manual, y otra persona del equipo lo aprobó
+- [ ] QA lo probó sobre la rama y quedó en `qa accepted`
+- [ ] Si cambió una decisión de producto o del modelo de datos, se actualizó `docs/documento-proyecto.md` en el mismo PR

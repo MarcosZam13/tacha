@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mockup Web v3 — Tacha (9 pantallas prioridad Alta)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Public Sans', sans-serif;
+    background: #d9d2c3;
+    padding: 32px 16px 80px;
+  }
+
+  h1, h2, h3 { font-family: 'Fraunces', serif; }
+
+  /* ---------- INDEX / TOGGLE ---------- */
+  .page-title { text-align: center; color: #2B2420; margin-bottom: 6px; font-size: 22px; font-weight: 700; }
+  .page-sub { text-align: center; color: #5c5346; font-size: 13px; margin-bottom: 20px; }
+  .index-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 900px; margin: 0 auto 20px; }
+  .index-nav a {
+    font-size: 11.5px; font-weight: 600; color: #5c5346; text-decoration: none;
+    padding: 6px 12px; border-radius: 20px; background: #FBF6EE; border: 1px solid #E8DFD0;
+  }
+  .index-nav a:hover { border-color: #0E7C7B; color: #0E7C7B; }
+
+  .toggle-bar { display: flex; justify-content: center; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; }
+  .toggle-bar button {
+    font-family: 'Public Sans', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #8A7F70;
+    background: #FBF6EE;
+    color: #2B2420;
+    cursor: pointer;
+  }
+  .toggle-bar button.active { background: #0E7C7B; color: #FBF6EE; border-color: #0E7C7B; }
+
+  .frame-label { text-align: center; font-size: 12px; font-weight: 700; color: #5c5346; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; scroll-margin-top: 20px; }
+  .frame-note { text-align: center; font-size: 11.5px; color: #7a7060; margin: -4px auto 12px; max-width: 640px; }
+
+  /* ---------- LIGHT / DARK THEME TOKENS ---------- */
+  .light { --bg:#FBF6EE; --surface:#FFFFFF; --border:#E8DFD0; --teal:#0E7C7B; --terracotta:#D97B4F; --chipbg:#FBEADF; --chipborder:#E9C4A5; --text:#2B2420; --textsec:#8A7F70; }
+  .dark  { --bg:#1C1815; --surface:#26211C; --border:#332C25; --teal:#3EC6C1; --terracotta:#E89A6C; --chipbg:#3A2A1E; --chipborder:#4A362A; --text:#F5EFE6; --textsec:#B5A997; }
+
+  /* ---------- SHARED APP-SHELL FRAMES ---------- */
+  .desktop-frame {
+    width: 100%; max-width: 1180px; margin: 0 auto 56px; height: 760px;
+    border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+    display: flex; background: var(--bg); color: var(--text);
+  }
+  .page-frame {
+    width: 100%; max-width: 1180px; margin: 0 auto 56px;
+    border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+    background: var(--bg); color: var(--text);
+  }
+  .mobile-frame {
+    width: 320px; height: 680px; margin: 0 auto 56px; border-radius: 36px; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25); display: flex; flex-direction: column;
+    background: var(--bg); color: var(--text); position: relative;
+  }
+  .wrap-row { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; align-items: flex-start; margin-bottom: 56px; }
+
+  .sidebar {
+    width: 220px; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
+  }
+  .sidebar-logo { font-weight: 700; font-size: 22px; margin-bottom: 24px; padding: 0 8px; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 600; color: var(--textsec); cursor: pointer; }
+  .sidebar-item.active { background: var(--chipbg); color: var(--teal); }
+  .sidebar-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .topbar { padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .topbar h1 { font-weight: 600; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+  .back-arrow { width: 20px; height: 20px; cursor: pointer; color: var(--textsec); }
+  .content-scroll { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  .category-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--textsec); margin: 18px 0 10px; }
+  .category-label:first-child { margin-top: 0; }
+
+  /* ---------- BUTTONS ---------- */
+  .btn { font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 13px; padding: 10px 18px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: none; white-space: nowrap; }
+  .btn svg { width: 14px; height: 14px; }
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-outline { background: transparent; border: 1px solid var(--teal); color: var(--teal); }
+  .btn-ghost { background: transparent; color: var(--textsec); border: 1px solid var(--border); }
+
+  /* ---------- ITEM ROW (lista de compras) ---------- */
+  .item-row { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 8px; }
+  .item-row-main { display: flex; align-items: center; gap: 14px; }
+  .checkbox { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--teal); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  .checkbox.checked { background: var(--teal); }
+  .checkbox svg { width: 12px; height: 12px; color: white; opacity: 0; }
+  .checkbox.checked svg { opacity: 1; }
+  .item-body { flex: 1; min-width: 0; }
+  .item-name { font-size: 14.5px; font-weight: 600; }
+  .item-name.struck { text-decoration: line-through; opacity: 0.55; }
+  .item-meta { font-size: 12px; color: var(--textsec); margin-top: 2px; }
+  .item-price { font-size: 13px; font-weight: 700; color: var(--terracotta); flex-shrink: 0; }
+  .badge { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--chipbg); color: var(--terracotta); border: 1px solid var(--chipborder); margin-left: 6px; }
+  .recipe-tag { font-size: 11px; color: var(--terracotta); font-weight: 600; margin: 6px 0 2px 36px; }
+  .item-row.expandable { cursor: pointer; }
+
+  /* ---------- QUANTITY STEPPER ---------- */
+  .qty-stepper { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 6px; }
+  .qty-stepper button { width: 22px; height: 22px; border-radius: 50%; border: none; background: var(--surface); color: var(--text); font-weight: 700; font-size: 13px; cursor: pointer; }
+  .qty-stepper span { font-weight: 700; font-size: 13px; min-width: 14px; text-align: center; }
+
+  /* ---------- EXPANDED EDIT PANEL (list-item-edit-sheet inline) ---------- */
+  .edit-panel { margin-top: 10px; padding-top: 12px; border-top: 1px dashed var(--border); display: flex; flex-direction: column; gap: 10px; }
+  .edit-row-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--textsec); }
+  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-size: 12px; font-weight: 600; padding: 7px 13px; border-radius: 20px; background: var(--chipbg); color: var(--text); border: 1px solid var(--chipborder); cursor: pointer; }
+  .chip.active { background: var(--teal); color: white; border-color: var(--teal); }
+  .delete-link { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--textsec); cursor: pointer; margin-top: 2px; }
+  .delete-link svg { width: 14px; height: 14px; }
+  .confirm-note { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--teal); }
+  .confirm-note svg { width: 14px; height: 14px; }
+
+  /* ---------- SHEET OVERLAY (mobile bottom sheet) ---------- */
+  .sheet-backdrop { position: absolute; inset: 0; background: rgba(20,16,12,0.45); display: flex; align-items: flex-end; z-index: 5; }
+  .sheet { width: 100%; background: var(--surface); border-radius: 24px 24px 0 0; padding: 20px 18px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .sheet-title { font-size: 16px; font-weight: 700; }
+  .sheet-sub { font-size: 12px; color: var(--textsec); margin-top: -6px; }
+  .action-chip { width: 100%; text-align: left; padding: 13px 16px; border-radius: 14px; background: var(--chipbg); border: 1px solid var(--chipborder); font-weight: 600; font-size: 13.5px; color: var(--text); cursor: pointer; }
+  .action-chip.primary { background: var(--teal); color: white; border-color: var(--teal); }
+
+  /* ---------- STAT CARDS / BUDGET ---------- */
+  .header-row { display: flex; gap: 14px; align-items: stretch; margin-bottom: 20px; flex-wrap: wrap; }
+  .budget-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; flex: 1.4; min-width: 220px; }
+  .budget-label { font-size: 11.5px; color: var(--textsec); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .budget-value { font-size: 28px; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+  .budget-value svg { width: 15px; height: 15px; color: var(--textsec); cursor: pointer; }
+  .stats-grid { display: flex; gap: 14px; flex: 2; flex-wrap: wrap; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; flex: 1; min-width: 120px; }
+  .stat-label { font-size: 11.5px; color: var(--textsec); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .stat-sub { font-size: 11.5px; color: var(--teal); font-weight: 600; margin-top: 4px; }
+
+  /* ---------- SEARCH + FILTER CHIPS ---------- */
+  .search-bar { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 11px 16px; margin-bottom: 14px; }
+  .search-bar svg { width: 16px; height: 16px; color: var(--textsec); flex-shrink: 0; }
+  .search-bar input { border: none; background: transparent; font-family: 'Public Sans', sans-serif; font-size: 13.5px; color: var(--text); outline: none; width: 100%; }
+  .filter-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 18px; }
+  .filter-chip { font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); color: var(--textsec); white-space: nowrap; cursor: pointer; }
+  .filter-chip.active { background: var(--teal); color: white; border-color: var(--teal); }
+
+  /* ---------- SUBTABS (Catalogo Buscar / Mis productos, etc.) ---------- */
+  .subtabs { display: flex; gap: 6px; padding: 0 28px 14px; }
+  .subtab { font-size: 12.5px; font-weight: 700; padding: 8px 16px; border-radius: 20px; background: var(--bg); color: var(--textsec); border: 1px solid var(--border); cursor: pointer; }
+  .subtab.active { background: var(--teal); color: white; border-color: var(--teal); }
+
+  /* ---------- CATALOG ---------- */
+  .catalog-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .catalog-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .catalog-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; cursor: pointer; }
+  .catalog-img { aspect-ratio: 1.1; background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--border); }
+  .catalog-img svg { width: 34px; height: 34px; }
+  .catalog-body { padding: 10px 12px 14px; }
+  .catalog-name { font-size: 13px; font-weight: 700; }
+  .catalog-meta { font-size: 11px; color: var(--textsec); margin-top: 2px; }
+  .catalog-price { font-size: 12.5px; font-weight: 700; color: var(--terracotta); margin-top: 6px; }
+  .custom-badge { position: absolute; top: 8px; left: 8px; font-size: 9.5px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: var(--teal); color: white; }
+
+  /* ---------- PRODUCT DETAIL ---------- */
+  .detail-wrap { display: flex; gap: 0; min-height: 560px; }
+  .detail-media { flex: 1; background: var(--chipbg); display: flex; align-items: center; justify-content: center; color: var(--chipborder); }
+  .detail-media svg { width: 64px; height: 64px; }
+  .detail-info { flex: 1.1; padding: 28px 30px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+  .detail-title { font-size: 26px; font-weight: 700; line-height: 1.3; }
+  .detail-size { font-size: 13px; color: var(--textsec); margin-top: 2px; }
+  .brand-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .brand-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .brand-logo { width: 42px; height: 42px; border-radius: 50%; background: var(--chipbg); border: 1px solid var(--chipborder); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--terracotta); }
+  .brand-name { font-size: 10.5px; color: var(--textsec); font-weight: 600; }
+  .price-store-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+  .price-store-row.cheapest { border-color: var(--teal); background: var(--chipbg); }
+  .price-store-left { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+  .price-store-left svg { width: 16px; height: 16px; color: var(--textsec); }
+  .price-store-amount { font-weight: 700; color: var(--terracotta); font-size: 13px; }
+  .detail-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border); }
+
+  /* ---------- GROUPS ---------- */
+  .groups-list { display: flex; flex-direction: column; gap: 10px; }
+  .group-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .group-name { font-weight: 700; font-size: 14.5px; }
+  .group-meta { font-size: 11.5px; color: var(--textsec); margin-top: 3px; }
+
+  /* ---------- INVENTORY SUGGESTIONS ---------- */
+  .suggestion-title { font-size: 12.5px; font-weight: 700; color: var(--textsec); margin-bottom: 10px; }
+  .suggestion-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 22px; }
+  .suggestion-chip { display: flex; align-items: center; gap: 10px; background: var(--chipbg); border: 1px solid var(--chipborder); border-radius: 20px; padding: 8px 8px 8px 14px; white-space: nowrap; font-size: 12.5px; font-weight: 600; flex-shrink: 0; }
+  .suggestion-chip .icon-btn { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .suggestion-chip .icon-btn.yes { background: var(--teal); color: white; }
+  .suggestion-chip .icon-btn.no { background: transparent; color: var(--textsec); border: 1px solid var(--chipborder); }
+  .suggestion-chip svg { width: 11px; height: 11px; }
+
+  /* ---------- ONBOARDING ---------- */
+  .onboarding-wrap { padding: 60px 40px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .onboarding-wrap h1 { font-size: 30px; font-weight: 700; text-align: center; }
+  .onboarding-wrap .sub { font-size: 13.5px; color: var(--textsec); text-align: center; margin-bottom: 30px; }
+  .onboarding-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 100%; }
+  .onboarding-card { flex: 1; min-width: 240px; max-width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 22px; text-align: center; cursor: pointer; }
+  .onboarding-card:hover { border-color: var(--teal); }
+  .onboarding-icon { width: 48px; height: 48px; margin: 0 auto 16px; border-radius: 50%; background: var(--chipbg); color: var(--teal); display: flex; align-items: center; justify-content: center; }
+  .onboarding-icon svg { width: 22px; height: 22px; }
+  .onboarding-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .onboarding-card p { font-size: 12px; color: var(--textsec); line-height: 1.5; }
+
+  /* ---------- PUBLIC NAVBAR / LANDING ---------- */
+  .navbar-public { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; border-bottom: 1px solid var(--border); }
+  .nav-links { display: flex; align-items: center; gap: 26px; font-size: 13px; font-weight: 600; color: var(--textsec); }
+  .nav-actions { display: flex; gap: 10px; }
+  .hero { padding: 64px 40px 56px; text-align: center; max-width: 720px; margin: 0 auto; }
+  .hero h1 { font-size: 38px; font-weight: 700; line-height: 1.15; margin-bottom: 14px; }
+  .hero p { font-size: 14.5px; color: var(--textsec); margin-bottom: 26px; }
+  .hero-preview { max-width: 360px; margin: 40px auto 0; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; text-align: left; box-shadow: 0 16px 32px rgba(0,0,0,0.12); }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 0 40px 50px; max-width: 1000px; margin: 0 auto; }
+  .feature-item { text-align: center; padding: 22px 14px; }
+  .feature-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--chipbg); color: var(--teal); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .feature-icon svg { width: 18px; height: 18px; }
+  .feature-item h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .feature-item p { font-size: 12px; color: var(--textsec); line-height: 1.5; }
+  .read-more { display: block; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--teal); margin: -30px 0 50px; }
+  .demo-section { padding: 0 40px 56px; text-align: center; }
+  .demo-frame { max-width: 640px; height: 300px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+  .play-btn { width: 56px; height: 56px; border-radius: 50%; background: var(--teal); color: white; display: flex; align-items: center; justify-content: center; }
+  .play-btn svg { width: 20px; height: 20px; }
+  .testimonial-section { padding: 0 40px 56px; }
+  .testimonial-header { text-align: center; margin-bottom: 26px; }
+  .testimonial-row { display: flex; align-items: center; gap: 16px; max-width: 900px; margin: 0 auto; }
+  .carousel-arrow { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .carousel-arrow svg { width: 14px; height: 14px; }
+  .testimonial-cards { display: flex; gap: 16px; flex: 1; overflow: hidden; }
+  .testimonial-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .testimonial-quote { font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
+  .testimonial-person { display: flex; align-items: center; gap: 10px; }
+  .avatar-initials { width: 32px; height: 32px; border-radius: 50%; background: var(--chipbg); color: var(--terracotta); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .testimonial-name { font-size: 12.5px; font-weight: 700; }
+  .contact-section { background: var(--surface); padding: 50px 40px; }
+  .contact-form { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  .form-field label { font-size: 12px; font-weight: 700; color: var(--textsec); display: block; margin-bottom: 6px; }
+  .form-field input, .form-field textarea { width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); font-family: 'Public Sans', sans-serif; font-size: 13px; color: var(--text); outline: none; }
+  .form-field textarea { resize: none; height: 80px; }
+  .recaptcha-chip { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--textsec); background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .recaptcha-chip svg { width: 14px; height: 14px; }
+  .footer-public { padding: 32px 40px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .footer-links { display: flex; gap: 18px; font-size: 12px; color: var(--textsec); }
+  .footer-social { display: flex; gap: 10px; }
+  .footer-social span { width: 30px; height: 30px; border-radius: 50%; background: var(--chipbg); display: flex; align-items: center; justify-content: center; color: var(--teal); }
+  .footer-social svg { width: 14px; height: 14px; }
+
+  /* ---------- AUTH-style OAuth buttons (used nowhere else but kept for consistency) ---------- */
+  .field-eye { position: relative; }
+  .field-eye svg { position: absolute; right: 12px; top: 34px; width: 16px; height: 16px; color: var(--textsec); cursor: pointer; }
+
+  /* ---------- PRICE DISCLAIMER ---------- */
+  .price-disclaimer { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--textsec); background: var(--chipbg); border: 1px solid var(--chipborder); border-radius: 10px; padding: 8px 12px; margin-bottom: 16px; }
+  .price-disclaimer svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  /* ---------- MOBILE FRAME INTERNALS ---------- */
+  .m-status { height: 26px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 10.5px; font-weight: 700; }
+  .m-header { padding: 10px 18px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .m-header h1 { font-weight: 600; font-size: 19px; }
+  .m-content { flex: 1; overflow-y: auto; padding: 0 14px 90px; position: relative; }
+  .m-tabs { display: flex; justify-content: space-around; padding: 8px 0 14px; border-top: 1px solid var(--border); position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg); }
+  .m-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 700; color: var(--textsec); }
+  .m-tab.active { color: var(--teal); }
+  .m-tab svg { width: 18px; height: 18px; }
+  .m-store-pill { background: var(--teal); color: white; font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Tacha — Mockup guía v3</div>
+<div class="page-sub">Las 9 pantallas de prioridad Alta de DESIGN.md, con los tokens y componentes ya definidos. Esto es la referencia visual antes de generar en Stitch, no el resultado final.</div>
+
+<div class="index-nav">
+  <a href="#landing">Landing</a>
+  <a href="#onboarding">Onboarding</a>
+  <a href="#catalogo-desktop">Catálogo (desktop)</a>
+  <a href="#catalogo-mobile">Catálogo (mobile)</a>
+  <a href="#detalle-producto">Detalle de producto</a>
+  <a href="#mis-productos">Mis productos</a>
+  <a href="#que-hiciste">"¿Qué hiciste?"</a>
+  <a href="#edicion-pre">Edición pre-compra</a>
+  <a href="#edicion-post">Edición post-compra</a>
+  <a href="#mis-grupos">Mis grupos</a>
+  <a href="#lista-general-desktop">Lista general (desktop)</a>
+  <a href="#lista-general-mobile">Lista general (mobile)</a>
+</div>
+
+<div class="toggle-bar">
+  <button class="active" onclick="setMode('light')">Modo claro</button>
+  <button onclick="setMode('dark')">Modo oscuro</button>
+</div>
+
+<!-- ============ 7.16 LANDING PÚBLICA ============ -->
+<div class="frame-label" id="landing">7.16 — Landing pública (Mirones)</div>
+<div class="page-frame light">
+  <div class="navbar-public">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="nav-links">
+      <span>Producto</span><span>Cómo funciona</span><span>Nosotros</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-outline">Iniciar sesión</button>
+      <button class="btn btn-primary">Registrarse</button>
+    </div>
+  </div>
+  <div class="hero">
+    <h1>Compras compartidas, sin líos</h1>
+    <p>Tacha organiza la lista de tu casa, reparte lo que falta comprar y te muestra dónde te conviene más — todo en un solo lugar, sin grupos de WhatsApp perdidos.</p>
+    <button class="btn btn-primary" style="padding:13px 26px; font-size:14px;">Empezar gratis</button>
+    <div class="hero-preview">
+      <div class="category-label" style="margin-top:0;">Lácteos</div>
+      <div class="item-row"><div class="item-row-main">
+        <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="item-body"><div class="item-name">Leche</div><div class="item-meta">1L · Mamá</div></div>
+      </div></div>
+      <div class="item-row"><div class="item-row-main">
+        <div class="checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="item-body"><div class="item-name struck">Queso</div><div class="item-meta">400g · Papá</div></div>
+      </div></div>
+    </div>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-item">
+      <div class="feature-icon" data-icon="users"></div>
+      <h3>Compartí con tu familia</h3>
+      <p>Una lista general para todos, sublistas y listas privadas para lo tuyo.</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon" data-icon="chart"></div>
+      <h3>El mejor precio por súper</h3>
+      <p>Precios aproximados por supermercado, para saber dónde te conviene más.</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon" data-icon="home"></div>
+      <h3>Nunca se te acaba nada</h3>
+      <p>Tu inventario doméstico te avisa cuando algo se está por terminar.</p>
+    </div>
+  </div>
+  <a class="read-more" href="#">Leer más sobre Tacha ↓</a>
+  <div class="demo-section">
+    <h2 style="font-size:20px; margin-bottom:20px;">Mirá cómo funciona</h2>
+    <div class="demo-frame"><div class="play-btn" data-icon="play"></div></div>
+  </div>
+  <div class="testimonial-section">
+    <div class="testimonial-header"><h2 style="font-size:20px;">Lo que dicen quienes ya la usan</h2></div>
+    <div class="testimonial-row">
+      <div class="carousel-arrow" data-icon="arrowLeft"></div>
+      <div class="testimonial-cards">
+        <div class="testimonial-card">
+          <div class="testimonial-quote">"Se acabaron las notas de voz preguntando si ya compraron la leche."</div>
+          <div class="testimonial-person"><div class="avatar-initials">MZ</div><div class="testimonial-name">Marcos Z.</div></div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-quote">"El presupuesto editable me ayudó a no pasarme del mandado quincenal."</div>
+          <div class="testimonial-person"><div class="avatar-initials">DP</div><div class="testimonial-name">Daniela P.</div></div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-quote">"Uso las listas privadas hasta para viajes con amigos, no solo la casa."</div>
+          <div class="testimonial-person"><div class="avatar-initials">JR</div><div class="testimonial-name">Josué R.</div></div>
+        </div>
+      </div>
+      <div class="carousel-arrow" data-icon="arrowRight"></div>
+    </div>
+  </div>
+  <div class="contact-section">
+    <div class="contact-form">
+      <h2 style="font-size:20px; text-align:center; margin-bottom:6px;">¿Tenés preguntas?</h2>
+      <div class="form-field"><label>Nombre</label><input placeholder="Tu nombre"></div>
+      <div class="form-field"><label>Correo</label><input placeholder="vos@correo.com"></div>
+      <div class="form-field"><label>Mensaje</label><textarea placeholder="Contanos qué necesitás"></textarea></div>
+      <div class="recaptcha-chip" data-icon-inline="shield">Verificación reCAPTCHA</div>
+      <button class="btn btn-primary" style="justify-content:center;">Enviar mensaje</button>
+    </div>
+  </div>
+  <div class="footer-public">
+    <div class="sidebar-logo" style="font-size:18px;">Tacha</div>
+    <div class="footer-links"><span>Términos y condiciones</span><span>About</span></div>
+    <div class="footer-social">
+      <span data-icon="mail"></span>
+      <span data-icon="globe"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.7 ONBOARDING ============ -->
+<div class="frame-label" id="onboarding">7.7 — Onboarding: con o sin household</div>
+<div class="page-frame light">
+  <div class="onboarding-wrap">
+    <h1>¿Cómo querés empezar?</h1>
+    <div class="sub">Esto no es definitivo — lo podés cambiar después desde tu perfil.</div>
+    <div class="onboarding-cards">
+      <div class="onboarding-card">
+        <div class="onboarding-icon" data-icon="person"></div>
+        <h3>Usar Tacha solo/a</h3>
+        <p>Tenés tu lista general, sublistas y listas privadas, todo para vos.</p>
+      </div>
+      <div class="onboarding-card">
+        <div class="onboarding-icon" data-icon="users"></div>
+        <h3>Crear o unirme a un household</h3>
+        <p>Compartí listas familiares con las personas que viven con vos.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.1 CATÁLOGO — DESKTOP ============ -->
+<div class="frame-label" id="catalogo-desktop">7.1 — Catálogo (Buscar), desktop</div>
+<div class="desktop-frame light">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item active" data-icon="search">Catálogo</div>
+    <div class="sidebar-item" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="chart">Finanzas</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar"><h1>Catálogo</h1></div>
+    <div class="subtabs">
+      <div class="subtab active">Buscar</div>
+      <div class="subtab">Mis productos</div>
+    </div>
+    <div class="content-scroll">
+      <div class="search-bar" data-icon="search"><input placeholder="Buscar producto, ej. leche"></div>
+      <div class="filter-row">
+        <div class="filter-chip active">Lácteos</div>
+        <div class="filter-chip">Panadería</div>
+        <div class="filter-chip">Limpieza</div>
+        <div class="filter-chip">Frutas y verduras</div>
+        <div class="filter-chip">Carnes</div>
+      </div>
+      <div class="catalog-grid">
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Leche</div><div class="catalog-meta">1L</div><div class="catalog-price">₡800–₡1200</div></div></div>
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Queso fresco</div><div class="catalog-meta">400g</div><div class="catalog-price">₡1800–₡2400</div></div></div>
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Yogurt natural</div><div class="catalog-meta">1L</div><div class="catalog-price">₡1300–₡1600</div></div></div>
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Mantequilla</div><div class="catalog-meta">200g</div><div class="catalog-price">₡1500–₡1900</div></div></div>
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Natilla</div><div class="catalog-meta">250g</div><div class="catalog-price">₡900–₡1100</div></div></div>
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Crema dulce</div><div class="catalog-meta">200g</div><div class="catalog-price">₡700–₡950</div></div></div>
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Queso crema</div><div class="catalog-meta">227g</div><div class="catalog-price">₡1600–₡2000</div></div></div>
+        <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Leche deslactosada</div><div class="catalog-meta">1L</div><div class="catalog-price">₡950–₡1300</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.1 CATÁLOGO — MOBILE ============ -->
+<div class="frame-label" id="catalogo-mobile">7.1 — Catálogo (Buscar), mobile</div>
+<div class="mobile-frame light">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>Catálogo</h1></div>
+  <div class="subtabs" style="padding: 0 14px 12px;">
+    <div class="subtab active">Buscar</div>
+    <div class="subtab">Mis productos</div>
+  </div>
+  <div class="m-content">
+    <div class="search-bar" data-icon="search"><input placeholder="Buscar producto"></div>
+    <div class="filter-row">
+      <div class="filter-chip active">Lácteos</div>
+      <div class="filter-chip">Panadería</div>
+      <div class="filter-chip">Limpieza</div>
+    </div>
+    <div class="catalog-grid cols-2">
+      <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Leche</div><div class="catalog-meta">1L</div><div class="catalog-price">₡800–₡1200</div></div></div>
+      <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Queso fresco</div><div class="catalog-meta">400g</div><div class="catalog-price">₡1800–₡2400</div></div></div>
+      <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Yogurt natural</div><div class="catalog-meta">1L</div><div class="catalog-price">₡1300–₡1600</div></div></div>
+      <div class="catalog-card"><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Mantequilla</div><div class="catalog-meta">200g</div><div class="catalog-price">₡1500–₡1900</div></div></div>
+    </div>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab" data-icon="home">General</div>
+    <div class="m-tab" data-icon="calendar">Fechas</div>
+    <div class="m-tab active" data-icon="search">Catálogo</div>
+    <div class="m-tab" data-icon="chart">Finanzas</div>
+    <div class="m-tab" data-icon="dots">Más</div>
+  </div>
+</div>
+
+<!-- ============ 7.1b DETALLE DE PRODUCTO ============ -->
+<div class="frame-label" id="detalle-producto">7.1b — Detalle de producto: marcas y precio por supermercado</div>
+<div class="page-frame light">
+  <div class="detail-wrap">
+    <div class="detail-media" data-icon="image"></div>
+    <div class="detail-info">
+      <div>
+        <div class="detail-title">Leche</div>
+        <div class="detail-size">1L</div>
+      </div>
+      <div>
+        <div class="category-label" style="margin-top:0;">Marcas disponibles</div>
+        <div class="brand-row">
+          <div class="brand-item"><div class="brand-logo">DP</div><div class="brand-name">Dos Pinos</div></div>
+          <div class="brand-item"><div class="brand-logo">GA</div><div class="brand-name">Gallito</div></div>
+          <div class="brand-item"><div class="brand-logo">SC</div><div class="brand-name">Sula</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="category-label" style="margin-top:0;">Precio aproximado por supermercado</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="price-store-row cheapest"><div class="price-store-left" data-icon="store">Walmart</div><div class="price-store-amount">₡800–₡950</div></div>
+          <div class="price-store-row"><div class="price-store-left" data-icon="store">Mas x Menos</div><div class="price-store-amount">₡900–₡1050</div></div>
+          <div class="price-store-row"><div class="price-store-left" data-icon="store">Automercado</div><div class="price-store-amount">₡1050–₡1200</div></div>
+        </div>
+      </div>
+      <div class="detail-footer">
+        <div class="qty-stepper"><button>−</button><span>1</span><button>+</button></div>
+        <button class="btn btn-primary" style="flex:1; justify-content:center;">Agregar a mi lista</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.2 MIS PRODUCTOS PERSONALIZADOS ============ -->
+<div class="frame-label" id="mis-productos">7.2 — Mis productos personalizados</div>
+<div class="desktop-frame light">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item active" data-icon="search">Catálogo</div>
+    <div class="sidebar-item" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="chart">Finanzas</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar">
+      <h1>Catálogo</h1>
+      <button class="btn btn-primary" data-icon="plus">Agregar producto</button>
+    </div>
+    <div class="subtabs">
+      <div class="subtab">Buscar</div>
+      <div class="subtab active">Mis productos</div>
+    </div>
+    <div class="content-scroll">
+      <div class="catalog-grid">
+        <div class="catalog-card"><div class="custom-badge">Agregado por mí</div><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Pan artesanal</div><div class="catalog-meta">Panadería Los Ángeles</div><div class="catalog-price">₡1500</div></div></div>
+        <div class="catalog-card"><div class="custom-badge">Agregado por mí</div><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Carne molida especial</div><div class="catalog-meta">Carnicería Los Ángeles</div><div class="catalog-price">₡3200</div></div></div>
+        <div class="catalog-card"><div class="custom-badge">Agregado por mí</div><div class="catalog-img" data-icon="image"></div><div class="catalog-body"><div class="catalog-name">Tamales de mi tía</div><div class="catalog-meta">Sin tienda asociada</div><div class="catalog-price">₡800</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.3 "¿QUÉ HICISTE?" ============ -->
+<div class="frame-label" id="que-hiciste">7.3 — "¿Qué hiciste?" al tachar un faltante de receta</div>
+<div class="frame-note">Paso 1 (pasivo, en la lista): el <code>recipe-status-tag</code> bajo el item. Paso 2 (al tachar): se abre la hoja con las 3 acciones de un toque.</div>
+<div class="mobile-frame light" style="position:relative;">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>General</h1></div>
+  <div class="m-content">
+    <div class="category-label">Lácteos</div>
+    <div class="item-row">
+      <div class="item-row-main">
+        <div class="checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="item-body"><div class="item-name struck">Leche</div><div class="item-meta">1L · Mamá</div></div>
+      </div>
+      <div class="recipe-tag">+ 500ml necesarios para Receta X</div>
+    </div>
+    <div class="category-label">Despensa</div>
+    <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Arroz</div><div class="item-meta">2kg · Papá</div></div></div></div>
+  </div>
+  <div class="sheet-backdrop">
+    <div class="sheet">
+      <div class="sheet-title">¿Qué hiciste?</div>
+      <div class="sheet-sub">Marcaste "Leche" y la receta necesitaba 500ml más.</div>
+      <div class="action-chip primary">Agregué otra igual</div>
+      <div class="action-chip">Cambié a otra presentación</div>
+      <div class="action-chip">Ya tenía suficiente</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.4 EDICIÓN RÁPIDA PRE-COMPRA ============ -->
+<div class="frame-label" id="edicion-pre">7.4 — Edición rápida de item (antes de comprar)</div>
+<div class="mobile-frame light">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>General</h1></div>
+  <div class="m-content">
+    <div class="category-label">Lácteos</div>
+    <div class="item-row expandable">
+      <div class="item-row-main">
+        <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="item-body"><div class="item-name">Leche</div><div class="item-meta">1L · Mamá</div></div>
+        <div class="item-price">₡950</div>
+      </div>
+      <div class="edit-panel">
+        <div class="edit-row-label">Cantidad</div>
+        <div class="qty-stepper" style="width:fit-content;"><button>−</button><span>2</span><button>+</button></div>
+        <div class="edit-row-label">Presentación</div>
+        <div class="chip-row">
+          <div class="chip">500ml</div>
+          <div class="chip active">1L</div>
+          <div class="chip">2L</div>
+        </div>
+        <div class="delete-link" data-icon="trash">Eliminar producto</div>
+      </div>
+    </div>
+    <div class="category-label">Despensa</div>
+    <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Arroz</div><div class="item-meta">2kg · Papá</div></div></div></div>
+  </div>
+</div>
+
+<!-- ============ 7.5 EDICIÓN RÁPIDA POST-COMPRA ============ -->
+<div class="frame-label" id="edicion-post">7.5 — Edición rápida de item comprado (al tachar)</div>
+<div class="mobile-frame light">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>Modo compra</h1><div class="m-store-pill" data-icon-inline="store">Walmart</div></div>
+  <div class="m-content">
+    <div class="category-label">Lácteos</div>
+    <div class="item-row expandable">
+      <div class="item-row-main">
+        <div class="checkbox checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="item-body"><div class="item-name struck">Leche</div><div class="item-meta">1L · Mamá</div></div>
+      </div>
+      <div class="edit-panel">
+        <div class="edit-row-label">Cantidad comprada</div>
+        <div class="chip-row">
+          <div class="chip active">1 caja pequeña</div>
+          <div class="chip">1 galón</div>
+          <div class="chip">Otra</div>
+        </div>
+        <div class="edit-row-label">¿Dónde lo compraste?</div>
+        <div class="chip-row">
+          <div class="chip active">Walmart</div>
+          <div class="chip">Automercado</div>
+        </div>
+        <div class="confirm-note" data-icon-inline="check">Guardado</div>
+      </div>
+    </div>
+    <div class="category-label">Despensa</div>
+    <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Arroz</div><div class="item-meta">2kg · Papá</div></div></div></div>
+  </div>
+</div>
+
+<!-- ============ 7.6 MIS GRUPOS ============ -->
+<div class="frame-label" id="mis-grupos">7.6 — Mis grupos: listar, crear y editar</div>
+<div class="frame-note">Se abre desde "Gestionar mis grupos" en General — por eso el sidebar sigue mostrando General activo.</div>
+<div class="desktop-frame light">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item active" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item" data-icon="search">Catálogo</div>
+    <div class="sidebar-item" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="chart">Finanzas</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar">
+      <h1><span class="back-arrow" data-icon="arrowLeft"></span>Mis grupos</h1>
+      <button class="btn btn-primary" data-icon="plus">Crear grupo</button>
+    </div>
+    <div class="content-scroll">
+      <div class="groups-list">
+        <div class="group-card">
+          <div><div class="group-name">Mercado quincenal</div><div class="group-meta">8 productos</div></div>
+          <button class="btn btn-outline">Agregar a lista</button>
+        </div>
+        <div class="group-card">
+          <div><div class="group-name">Desayuno de la semana</div><div class="group-meta">5 productos</div></div>
+          <button class="btn btn-outline">Agregar a lista</button>
+        </div>
+        <div class="group-card">
+          <div><div class="group-name">Limpieza del baño</div><div class="group-meta">4 productos</div></div>
+          <button class="btn btn-outline">Agregar a lista</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.8 LISTA GENERAL — DESKTOP ============ -->
+<div class="frame-label" id="lista-general-desktop">7.8 — Lista general + resumen financiero, desktop</div>
+<div class="desktop-frame light">
+  <div class="sidebar">
+    <div class="sidebar-logo">Tacha</div>
+    <div class="sidebar-item active" data-icon="home">General</div>
+    <div class="sidebar-item" data-icon="calendar">Fechas</div>
+    <div class="sidebar-item" data-icon="users">Listas privadas</div>
+    <div class="sidebar-item" data-icon="search">Catálogo</div>
+    <div class="sidebar-item" data-icon="book">Recetas</div>
+    <div class="sidebar-item" data-icon="chart">Finanzas</div>
+  </div>
+  <div class="main-area">
+    <div class="topbar">
+      <h1>General</h1>
+      <button class="btn btn-primary">Iniciar compra</button>
+    </div>
+    <div class="content-scroll">
+      <div class="header-row">
+        <div class="budget-box">
+          <div class="budget-label">Presupuesto estimado</div>
+          <div class="budget-value">₡50,000 esta semana <span data-icon="pencil"></span></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Gasto este mes</div><div class="stat-value">₡184,500</div><div class="stat-sub">↓ 8% vs mes pasado</div></div>
+          <div class="stat-card"><div class="stat-label">Súper más usado</div><div class="stat-value">Walmart</div></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom: 18px; flex-wrap: wrap;">
+        <button class="btn btn-outline" data-icon="plus">Agregar desde grupo</button>
+        <div class="search-bar" style="flex:1; min-width:200px; margin-bottom:0;" data-icon="search"><input placeholder="Buscar y agregar producto"></div>
+      </div>
+      <div class="suggestion-title">¿Se te está acabando algo?</div>
+      <div class="suggestion-row">
+        <div class="suggestion-chip">Leche<div class="icon-btn yes" data-icon="check"></div><div class="icon-btn no" data-icon="x"></div></div>
+        <div class="suggestion-chip">Papel higiénico<div class="icon-btn yes" data-icon="check"></div><div class="icon-btn no" data-icon="x"></div></div>
+        <div class="suggestion-chip">Café<div class="icon-btn yes" data-icon="check"></div><div class="icon-btn no" data-icon="x"></div></div>
+      </div>
+
+      <div class="category-label">Lácteos</div>
+      <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Leche</div><div class="item-meta">1L · Mamá</div></div><div class="item-price">₡950</div></div></div>
+      <div class="category-label">Repetidos en ambas listas</div>
+      <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Huevos<span class="badge">Playa</span></div><div class="item-meta">6 unidades</div></div></div></div>
+      <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Huevos<span class="badge">General</span></div><div class="item-meta">11 unidades</div></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7.8 LISTA GENERAL — MOBILE ============ -->
+<div class="frame-label" id="lista-general-mobile">7.8 — Lista general + resumen financiero, mobile</div>
+<div class="mobile-frame light">
+  <div class="m-status"><span>9:41</span><span>●●●●</span></div>
+  <div class="m-header"><h1>General</h1><button class="btn btn-primary" style="padding:7px 12px; font-size:11px;">Iniciar compra</button></div>
+  <div class="m-content">
+    <div class="budget-box" style="margin-bottom:12px;">
+      <div class="budget-label">Presupuesto estimado</div>
+      <div class="budget-value" style="font-size:22px;">₡50,000 <span data-icon="pencil"></span></div>
+    </div>
+    <div class="suggestion-title">¿Se te está acabando algo?</div>
+    <div class="suggestion-row">
+      <div class="suggestion-chip">Leche<div class="icon-btn yes" data-icon="check"></div><div class="icon-btn no" data-icon="x"></div></div>
+      <div class="suggestion-chip">Café<div class="icon-btn yes" data-icon="check"></div><div class="icon-btn no" data-icon="x"></div></div>
+    </div>
+    <div class="category-label">Lácteos</div>
+    <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Leche</div><div class="item-meta">1L · Mamá</div></div></div></div>
+    <div class="category-label">Despensa</div>
+    <div class="item-row"><div class="item-row-main"><div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div class="item-body"><div class="item-name">Arroz</div><div class="item-meta">2kg · Papá</div></div></div></div>
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab active" data-icon="home">General</div>
+    <div class="m-tab" data-icon="calendar">Fechas</div>
+    <div class="m-tab" data-icon="search">Catálogo</div>
+    <div class="m-tab" data-icon="chart">Finanzas</div>
+    <div class="m-tab" data-icon="dots">Más</div>
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>',
+  arrowLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+  arrowRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  store: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 21V13h6v8"/></svg>',
+  person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+};
+
+function setMode(mode) {
+  document.querySelectorAll('.desktop-frame, .mobile-frame, .page-frame').forEach(p => {
+    p.classList.remove('light', 'dark');
+    p.classList.add(mode);
+  });
+  document.querySelectorAll('.toggle-bar button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+document.querySelectorAll('[data-icon]').forEach(el => {
+  el.innerHTML = (ICONS[el.getAttribute('data-icon')] || '') + el.innerHTML;
+});
+document.querySelectorAll('[data-icon-inline]').forEach(el => {
+  const name = el.getAttribute('data-icon-inline');
+  el.innerHTML = `<span style="width:14px;height:14px;display:inline-flex;">${ICONS[name] || ''}</span>` + el.innerHTML;
+});
+</script>
+
+</body>
+</html>

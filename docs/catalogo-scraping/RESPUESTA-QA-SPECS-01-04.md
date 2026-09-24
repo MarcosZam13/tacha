@@ -52,7 +52,7 @@ Esto responde directamente a tu objeción central: el pipeline ahora cumple sus 
 - `app/components/household-store-preferences/hooks/useHouseholdStorePreferences.ts` (bug 5)
 - `app/components/scraping-demo/hooks/useScrapingDemoViewModel.ts` (bug 4 + bug 5)
 - `app/(debug)/debug/search-demo/page.tsx`, `app/(debug)/debug/normalize-demo/page.tsx` (bug 5)
-- `AI-Generated Report/TICKET-seguridad-household-store-preferences.md` (nuevo — tu punto 6, deuda técnica de RLS abierto en `household_store_preferences`, documentado como no bloqueante para este PR pero sí para producción, bloqueado por el módulo de auth/households de Esteban)
+- `docs/catalogo-scraping/TICKET-seguridad-household-store-preferences.md` (nuevo — tu punto 6, deuda técnica de RLS abierto en `household_store_preferences`, documentado como no bloqueante para este PR pero sí para producción, bloqueado por el módulo de auth/households de Esteban)
 
 Todas las migraciones ya están aplicadas en el proyecto real de Supabase (`scrap-bd`), no solo en los archivos locales. Los datos de esta verificación (staging + catálogo normalizado real) se dejaron en la base como evidencia y para que el equipo pueda probar las specs 1-4 sin tener que re-ingestar.
 

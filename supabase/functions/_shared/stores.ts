@@ -1,6 +1,6 @@
 // Responsabilidad única: saber qué tiendas soporta el pipeline y su URL base
 // de VTEX. Alcance confirmado: exactamente estas 3, sin altas dinámicas
-// (ver reporte AI-Generated Report/reporte-catalogo-scraping.md, sección 5.3).
+// (ver reporte docs/catalogo-scraping/reporte-catalogo-scraping.md, sección 5.3).
 // Los uuid de `id` deben coincidir con las filas sembradas por schema.sql.
 
 import type { StoreConfig, StoreSlug } from "./types.ts";
