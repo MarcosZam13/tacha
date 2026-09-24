@@ -28,6 +28,7 @@ Actuar como ingeniero senior Next.js/React/TypeScript. Nunca volver a patrones j
 | [project-structure](.agents/skills/project-structure/SKILL.md) | Crear una carpeta o archivo nuevo, decidir dónde vive algo, importar entre carpetas, o escribir una ruta en un doc/skill |
 | [security-practices](.agents/skills/security-practices/SKILL.md) | Auth, sesión, household, políticas RLS, Edge Functions, formularios, variables de entorno |
 | [qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md) | Casos de prueba, reportes de bug, planes de prueba de un entregable |
+| [gitflow](.agents/skills/gitflow/SKILL.md) | **Siempre** antes de crear una rama, commitear, pushear, abrir/editar un PR, cambiar un label, mergear o cerrar un sprint |
 
 ## Estructura del repositorio
 
@@ -60,7 +61,7 @@ Antes de una feature nueva o un cambio de comportamiento no trivial (no aplica a
 
 ## Git y Pull Requests
 
-Ver [CONTRIBUTING.md](CONTRIBUTING.md) en la raíz — modelo de ramas, formato de commits, labels de estado de PR, plantilla.
+**Obligatorio, sin excepciones:** leer [gitflow](.agents/skills/gitflow/SKILL.md) antes de cualquier operación de git o GitHub. Resumen: ramas `ticket/SCRUM-{n}-...` desde `develop`; al cierre de cada sprint `entregable-{n}` desde `develop`, con `qa-fix/SCRUM-{n}-...` hacia él y después a `main`; todo PR con **exactamente un** label de estado desde que se abre (`gh pr create --label "in progress"`); solo se mergea con `qa accepted`. El check `gitflow` del CI rechaza lo que no cumpla. Versión para personas en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Producto
 

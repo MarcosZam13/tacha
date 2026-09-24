@@ -6,17 +6,17 @@ Ver también: [documento-proyecto.md](documento-proyecto.md) · [historias-usuar
 
 ## Calendario
 
-Sprints de una semana, de lunes a lunes. La revisión de cada sprint es el lunes en que termina, y ese mismo día arranca el siguiente.
+Sprints de una semana, de lunes a lunes. La revisión de cada sprint es el lunes en que termina, y ese mismo día arranca el siguiente. Ese lunes se crea la rama `entregable-{n}` desde `develop`, QA la prueba (con `qa-fix/` si hace falta) y después se mergea a `main` (ver [CONTRIBUTING.md §1](../CONTRIBUTING.md#1-branching)).
 
-| Sprint | Del | Al (revisión) | Historias | Puntos |
-|---|---|---|---|---|
-| Sprint 1 | lun 21 sep | lun 28 sep | 16 | 43 |
-| Sprint 2 | lun 28 sep | lun 5 oct | 24 | 74 |
-| Sprint 3 | lun 5 oct | lun 12 oct | 14 | 56 |
-| Sprint 4 | lun 12 oct | lun 19 oct | 18 | 61 |
-| Sprint 5 | lun 19 oct | lun 26 oct | 9 | 35 |
-| Sprint 6 | lun 26 oct | lun 2 nov | 9 | 29 |
-| Sprint 7 | lun 2 nov | lun 9 nov | 3 | 9 |
+| Sprint | Del | Al (revisión) | Rama de cierre | Historias | Puntos |
+|---|---|---|---|---|---|
+| Sprint 1 | lun 21 sep | lun 28 sep | `entregable-1` | 16 | 43 |
+| Sprint 2 | lun 28 sep | lun 5 oct | `entregable-2` | 24 | 74 |
+| Sprint 3 | lun 5 oct | lun 12 oct | `entregable-3` | 14 | 56 |
+| Sprint 4 | lun 12 oct | lun 19 oct | `entregable-4` | 18 | 61 |
+| Sprint 5 | lun 19 oct | lun 26 oct | `entregable-5` | 9 | 35 |
+| Sprint 6 | lun 26 oct | lun 2 nov | `entregable-6` | 9 | 29 |
+| Sprint 7 | lun 2 nov | lun 9 nov | `entregable-7` | 3 | 9 |
 
 Después del Sprint 7 (a partir del lunes 9 nov) quedan las semanas de colchón, integración entre módulos y testing/deploy del plan original: no tienen historias asignadas a propósito. Si algo se atrasa, se recupera ahí antes de recortar alcance.
 

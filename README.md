@@ -60,7 +60,7 @@ Justificación de cada decisión en la [sección 7 del documento de proyecto](do
 
 ## Cómo contribuir
 
-Leé [CONTRIBUTING.md](CONTRIBUTING.md) antes de tu primer PR: ramas `ticket/SCRUM-{n}-...`, formato de commits, labels de estado, plantilla de PR y Definition of Done. Cada rama sale de una historia o tarea de Jira.
+Leé [CONTRIBUTING.md](CONTRIBUTING.md) antes de tu primer PR. Lo mínimo: cada historia se trabaja en `ticket/SCRUM-{n}-...` desde `develop`; al cierre de cada sprint se crea `entregable-{n}`, pasa por QA (`qa-fix/...`) y se mergea a `main`. Todo PR lleva **exactamente un** label de estado desde que se abre, y solo se mergea con `qa accepted`. El CI (check `gitflow`) rechaza los PRs que no cumplan.
 
 ## Convenciones de código (para vos y para tu agente de IA)
 

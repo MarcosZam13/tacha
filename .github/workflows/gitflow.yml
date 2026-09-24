@@ -1,0 +1,60 @@
+name: Gitflow
+
+# Hace cumplir CONTRIBUTING.md §1 y §3 (ver también .agents/skills/gitflow/SKILL.md):
+# combinación rama origen/destino, formato del título y exactamente un label de estado.
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize, labeled, unlabeled]
+    branches: [develop, main, "entregable-*"]
+
+jobs:
+  gitflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar ramas, título y label
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          errors=0
+          fail() { echo "::error::$1"; errors=$((errors+1)); }
+
+          slug='SCRUM-[0-9]+-[a-z0-9]+(-[a-z0-9]+)*'
+          case "$BASE_REF" in
+            develop)
+              [[ "$HEAD_REF" =~ ^ticket/$slug$ || "$HEAD_REF" == "main" ]] \
+                || fail "Hacia develop solo entran ticket/SCRUM-{n}-descripcion (o main para sincronizar). Rama: $HEAD_REF" ;;
+            entregable-*)
+              [[ "$HEAD_REF" =~ ^qa-fix/$slug$ ]] \
+                || fail "Hacia $BASE_REF solo entran qa-fix/SCRUM-{n}-descripcion. Rama: $HEAD_REF" ;;
+            main)
+              [[ "$HEAD_REF" =~ ^entregable-[0-9]+$ || "$HEAD_REF" =~ ^hotfix/$slug$ ]] \
+                || fail "Hacia main solo entran entregable-{n} o hotfix/SCRUM-{n}-descripcion. Rama: $HEAD_REF" ;;
+          esac
+
+          [[ "$PR_TITLE" =~ ^(feat|fix|docs|refactor|test|chore|style|perf)\((SCRUM-[0-9]+|sprint-[0-9]+)\):\ .+ ]] \
+            || fail "Título inválido. Formato: {tipo}(SCRUM-{n}): descripción  (o chore(sprint-{n}): ... para PRs de cierre de sprint)"
+
+          count=$(echo "$LABELS" | jq '[.[] | select(. == "in progress" or . == "waiting qa" or . == "qa accepted" or . == "qa denied" or . == "on hold")] | length')
+          [[ "$count" -eq 1 ]] \
+            || fail "El PR tiene que tener exactamente un label de estado (in progress, waiting qa, qa accepted, qa denied, on hold). Tiene $count."
+
+          [[ $errors -eq 0 ]] || exit 1
+          echo "Gitflow OK: $HEAD_REF -> $BASE_REF"
+
+  qa-gate:
+    # En rojo hasta que QA ponga "qa accepted": no mergear mientras este check falle.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Requiere label qa accepted
+        env:
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          if echo "$LABELS" | jq -e 'index("qa accepted")' > /dev/null; then
+            echo "QA aprobado, se puede mergear."
+          else
+            echo "::error::Todavía no tiene label 'qa accepted'. No mergear (CONTRIBUTING.md §3)."
+            exit 1
+          fi
