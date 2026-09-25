@@ -4,7 +4,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-62: buscar y añadir
 
-- [ ] 1. Constantes de la feature (`constants/shopping-list.constants.ts`).
+- [x] 1. Constantes de la feature (`constants/shopping-list.constants.ts`).
 - [ ] 2. Modelos: item, resultado de búsqueda aplanado, acciones del reducer.
 - [ ] 3. Migración `004_create_lists.sql` (tablas, RLS, RPC) y aplicarla. *Bloqueado: acceso a la base.*
 - [ ] 4. Cliente de Supabase + sesión anónima (`services/supabase.client.ts`). *Bloqueado: sesiones anónimas habilitadas.*
