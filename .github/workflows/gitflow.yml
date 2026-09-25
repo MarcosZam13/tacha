@@ -1,7 +1,8 @@
 name: Gitflow
 
 # Hace cumplir CONTRIBUTING.md §1 y §3 (ver también .agents/skills/gitflow/SKILL.md):
-# combinación rama origen/destino, formato del título y exactamente un label de estado.
+# combinación rama origen/destino, formato del título, exactamente un label de estado
+# y una sola PR en "in progress" por autor.
 on:
   pull_request:
     types: [opened, reopened, edited, synchronize, labeled, unlabeled]
@@ -21,6 +22,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           REPO: ${{ github.repository }}
         run: |
           # Labels leídos en vivo (no del payload del evento) para que un re-run vea el estado actual.
@@ -47,6 +49,14 @@ jobs:
           count=$(echo "$LABELS" | jq '[.[] | select(. == "in progress" or . == "waiting qa" or . == "qa accepted" or . == "qa denied" or . == "on hold")] | length')
           [[ "$count" -eq 1 ]] \
             || fail "El PR tiene que tener exactamente un label de estado (in progress, waiting qa, qa accepted, qa denied, on hold). Tiene $count."
+
+          # Una sola PR en "in progress" por autor: las demás van en on hold / waiting qa / qa accepted / qa denied.
+          if echo "$LABELS" | jq -e 'index("in progress")' > /dev/null; then
+            others=$(gh pr list --repo "$REPO" --author "$PR_AUTHOR" --state open --label "in progress" \
+              --json number --jq "[.[] | select(.number != $PR_NUMBER) | \"#\\(.number)\"] | join(\", \")")
+            [[ -z "$others" ]] \
+              || fail "$PR_AUTHOR ya tiene otra PR en 'in progress' ($others). Solo puede haber una por persona: pasá la otra a 'on hold' o 'waiting qa' antes."
+          fi
 
           [[ $errors -eq 0 ]] || exit 1
           echo "Gitflow OK: $HEAD_REF -> $BASE_REF"
