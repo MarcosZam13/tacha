@@ -30,7 +30,7 @@ Antes de planear, preguntar (una sola vez por sesión, en un mensaje corto) lo q
 4. Dónde guardar su guía de estudio. Por defecto: fuera del repo compartido (notas personales). Solo va al repo si la persona lo pide.
 5. Cómo quiere construir: la IA escribe y explica paso a paso / la persona escribe y la IA guía / mixto (la persona escribe las partes que más le van a preguntar).
 
-Leer del repo, no preguntar: estructura de carpetas, stack, skills o reglas del proyecto (`AGENTS.md`, `.agents/skills/`, `CONTRIBUTING.md`), flujo de git. **Seguir las reglas del repo por encima de esta skill** cuando choquen.
+Leer del repo, no preguntar: estructura de carpetas, stack, skills o reglas del proyecto (`AGENTS.md`, `.agents/skills/`, `CONTRIBUTING.md`), flujo de git. **Seguir las reglas del repo por encima de esta skill** cuando choquen. Si el archivo de contrato declara algo (una librería, un patrón) que el código todavía no usa, señalarlo antes de construir sobre cualquiera de las dos versiones.
 
 ## 2. Planear las historias
 
@@ -97,4 +97,5 @@ Si no aplican al código del sprint, preguntarlas igual y ver si la persona dete
 - "¿Por qué la constante vive en su archivo y no arriba del componente?"
 - "¿Por qué export con nombre y no `export default`?"
 - "¿Por qué el fetch no está en el componente?"
+- "¿Por qué es un problema un botón dentro de otro botón?" (HTML inválido, y el click del de adentro también dispara la acción del de afuera)
 - "Si el input es controlado, ¿quién es la fuente de verdad del texto?"
