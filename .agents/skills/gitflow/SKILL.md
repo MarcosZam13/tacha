@@ -20,15 +20,22 @@ Nunca commitear ni pushear directo a `main`, `develop` ni `entregable-{n}`. Todo
 
 ## 2. Abrir un PR: el label va en el mismo comando
 
+**La PR se abre al empezar la historia, no al terminarla.** Cada historia del sprint que te toca tiene su PR abierta desde el primer momento, para que todo el equipo vea en GitHub en qué está trabajando cada quien. Se abre aunque todavía no haya código: con la SPEC de la feature, o con un commit vacío si ni eso existe todavía. Después la PR avanza de label hasta el merge.
+
 Todo PR lleva **exactamente un** label de estado desde que se abre. No existe "lo abro y después le pongo el label".
 
 ```bash
 git checkout develop && git pull
 git checkout -b ticket/SCRUM-{n}-descripcion
-# ... commits: {tipo}(SCRUM-{n}): descripción en imperativo
+# primer commit: la SPEC, o vacío si todavía no hay nada
+git commit --allow-empty -m "chore(SCRUM-{n}): abrir PR de la historia"
 git push -u origin ticket/SCRUM-{n}-descripcion
 gh pr create --base develop --label "in progress" --title "{tipo}(SCRUM-{n}): ..." --body "..."
+# ... commits siguientes: {tipo}(SCRUM-{n}): descripción en imperativo
 ```
+
+- Label al abrir: `in progress` si es la historia en la que estás trabajando ahora; `on hold` si todavía no la podés empezar (depende de otra sin mergear, o ya tenés otra en `in progress`).
+- El body se llena con lo que se sabe al abrir (qué va a hacer, ticket, assignee) y se completa antes de pasar a `waiting qa`.
 
 - `--base` sale de la tabla de la sección 1, nunca del default a ciegas.
 - Label inicial: `in progress` si falta algo; `waiting qa` si el código está completo y `tsc`/lint/build pasan.

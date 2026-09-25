@@ -58,6 +58,7 @@ Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
 
 - Título con el mismo formato: `feat(SCRUM-14): descripción corta`. Los PRs de ciclo (`entregable-{n}` → `main`, `main` → `develop`) usan `chore(sprint-{n}): ...`.
 - Se abre siempre, incluso trabajando solo: es el checkpoint de revisión antes de mergear.
+- **Se abre al empezar la historia, no al terminarla.** Cada historia del sprint que te toca tiene su PR desde el primer momento (con la SPEC, o con un commit vacío si todavía no hay nada), para que el equipo vea en GitHub quién trabaja en qué. Con `in progress` si es la que estás haciendo ahora, con `on hold` si todavía no la podés empezar. Se completa la descripción y se pasa a `waiting qa` cuando está lista.
 - Nunca mergear una rama de trabajo en progreso sobre otra rama de trabajo en progreso.
 
 ### Labels de estado: exactamente uno, siempre

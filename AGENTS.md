@@ -62,7 +62,7 @@ Antes de una feature nueva o un cambio de comportamiento no trivial (no aplica a
 
 ## Git y Pull Requests
 
-**Obligatorio, sin excepciones:** leer [gitflow](.agents/skills/gitflow/SKILL.md) antes de cualquier operación de git o GitHub. Resumen: ramas `ticket/SCRUM-{n}-...` desde `develop`; al cierre de cada sprint `entregable-{n}` desde `develop`, con `qa-fix/SCRUM-{n}-...` hacia él y después a `main`; todo PR con **exactamente un** label de estado desde que se abre (`gh pr create --label "in progress"`); **una sola PR en `in progress` por persona** (las demás en `on hold`, `waiting qa`, `qa accepted` o `qa denied`); una historia que depende de otra sin mergear queda en `on hold`, sin apilar ramas; solo se mergea con `qa accepted`. El check `gitflow` del CI rechaza lo que no cumpla. Versión para personas en [CONTRIBUTING.md](CONTRIBUTING.md).
+**Obligatorio, sin excepciones:** leer [gitflow](.agents/skills/gitflow/SKILL.md) antes de cualquier operación de git o GitHub. Resumen: ramas `ticket/SCRUM-{n}-...` desde `develop`; al cierre de cada sprint `entregable-{n}` desde `develop`, con `qa-fix/SCRUM-{n}-...` hacia él y después a `main`; cada historia tiene su PR abierta **desde que se empieza** (aunque sea con la SPEC o un commit vacío), con **exactamente un** label de estado desde que se abre (`gh pr create --label "in progress"`); **una sola PR en `in progress` por persona** (las demás en `on hold`, `waiting qa`, `qa accepted` o `qa denied`); una historia que depende de otra sin mergear queda en `on hold`, sin apilar ramas; solo se mergea con `qa accepted`. El check `gitflow` del CI rechaza lo que no cumpla. Versión para personas en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Producto
 
