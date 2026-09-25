@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { ScrapingDemo } from "@/components/scraping-demo/ScrapingDemo";
+import { ScrapingDemo } from "@/features/scraping-demo/ScrapingDemo";
 
 export const metadata = {
   title: "Demo: Scraping Ingesta",

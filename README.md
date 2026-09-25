@@ -30,7 +30,8 @@ La base de datos y las Edge Functions de scraping se despliegan aparte, ver [sup
 
 ```
 app/              Solo rutas (page.tsx, layout.tsx, grupos (debug)/ y (demo)/)
-components/       Una carpeta por feature + ui/ con los componentes base
+features/         Una carpeta por feature, con todo lo que solo usa esa feature
+components/       Solo lo compartido entre features: ui/ con los componentes base
 constants/        Constantes por dominio, exportadas desde constants/index.ts
 types/            Tipos compartidos entre features
 supabase/         schema.sql, migrations/ y functions/ (Edge Functions de scraping)

@@ -7,7 +7,7 @@ Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md).
 ## Archivos
 
 ```
-components/shopping-list/
+features/shopping-list/
   ShoppingList.tsx                     entrada: compone buscador + lista (solo presentación)
   components/
     ProductSearch.tsx                  input + lista de resultados

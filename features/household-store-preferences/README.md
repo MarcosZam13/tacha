@@ -5,7 +5,7 @@ Componente que permite al usuario elegir cuáles de las 3 tiendas (MaxiPali, Wal
 ## Uso
 
 ```tsx
-import { HouseholdStorePreferences } from "@/components/household-store-preferences/HouseholdStorePreferences";
+import { HouseholdStorePreferences } from "@/features/household-store-preferences/HouseholdStorePreferences";
 
 export const MyPage = () => {
   const householdId = "..."; // desde auth/context

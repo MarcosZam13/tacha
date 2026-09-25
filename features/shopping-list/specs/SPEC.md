@@ -19,7 +19,7 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 - Tachar, eliminar, ver detalle: son HU-36c/d/e, Sprint 2.
 - Listas de household: los households se construyen este mismo sprint (otra persona); por ahora `household_id` siempre es `null`.
 - Registro e inicio de sesión: los construye otra persona. Mientras tanto se usa una sesión anónima de Supabase para tener un `auth.uid()` real y que RLS funcione.
-- Buscador compartido con otras features: se promueve a `components/` compartido cuando exista el segundo consumidor real (ej. "Mis grupos").
+- Buscador compartido con otras features: se promueve a `components/` (compartido) cuando exista el segundo consumidor real (ej. "Mis grupos").
 
 ## Requerimientos
 

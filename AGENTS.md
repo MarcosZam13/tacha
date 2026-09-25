@@ -34,7 +34,8 @@ Actuar como ingeniero senior Next.js/React/TypeScript. Nunca volver a patrones j
 
 ```
 app/              Solo rutas: page.tsx, layout.tsx, grupos (debug)/ y (demo)/
-components/       Una carpeta por feature (component-architecture) + ui/ con los primitivos
+features/         Una carpeta por feature/historia con todo lo suyo (component-architecture)
+components/       Solo lo compartido entre features: ui/ con los primitivos
 constants/        Constantes por dominio + barrel constants/index.ts
 types/            Tipos compartidos entre features
 supabase/         schema.sql, migrations/ (solo .sql), functions/ (Edge Functions, Deno)
@@ -43,7 +44,7 @@ docs/             Documento de proyecto, historias de usuario, sprints, diseño,
 .claude/agents/   Subagentes de revisión
 ```
 
-`app/` contiene solo rutas; nunca crear `components/`, `constants/`, `types/`, `services/`, `hooks/` ni similares adentro. Imports entre carpetas por alias (`@/components/...`, `@/constants`, `@/types/...`), nunca `@/app/<carpeta>`. **Toda ruta escrita en docs y skills es relativa a la raíz del proyecto y con `/`.** Detalle en [project-structure](.agents/skills/project-structure/SKILL.md).
+`app/` contiene solo rutas; nunca crear `features/`, `components/`, `constants/`, `types/`, `services/`, `hooks/` ni similares adentro. Imports entre carpetas por alias (`@/features/...`, `@/components/ui`, `@/constants`, `@/types/...`), nunca `@/app/<carpeta>`. **Toda ruta escrita en docs y skills es relativa a la raíz del proyecto y con `/`.** Detalle en [project-structure](.agents/skills/project-structure/SKILL.md).
 
 ## Subagentes de revisión (Claude Code)
 
