@@ -48,7 +48,7 @@ gh pr edit {número} --remove-label "in progress" --add-label "waiting qa"
 | `waiting qa` | Waiting QA |
 | `qa accepted` | QA Accepted |
 | `qa denied` | QA Denied |
-| `on hold` | Flag sobre la tarjeta (no se mueve de columna) |
+| `on hold` | On Hold (estado propio, no un flag) |
 
 Cada cambio de label va con la transición equivalente de la tarjeta en Jira en el mismo momento. Label y tarjeta nunca dicen cosas distintas.
 
@@ -67,7 +67,7 @@ Si ya hay una, primero cambiarla a `waiting qa` (si está completa) o `on hold` 
 No se apilan ramas (`ticket/B` saliendo de `ticket/A`): toda rama de ticket nace de `develop`. Si la historia B necesita código de la historia A que todavía no está en `develop`:
 
 1. A sigue su camino: `waiting qa` → QA de otra persona → `qa accepted` → merge a `develop`.
-2. B queda en `on hold`: flag en su tarjeta de Jira, y label `on hold` en su PR si ya existía.
+2. B queda en `on hold`: su tarjeta de Jira pasa al estado On Hold, y su PR al label `on hold` si ya existía.
 3. Mientras tanto se trabaja en otra historia o tarea.
 4. Con A mergeada: `git checkout develop && git pull`, se crea (o se rebasea) la rama de B desde ahí y B pasa a `in progress`, respetando la regla de una sola PR en curso.
 

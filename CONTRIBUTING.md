@@ -70,7 +70,7 @@ Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
 | `waiting qa` | Código completo, CI en verde, esperando que QA lo tome | El autor | Waiting QA |
 | `qa accepted` | QA probó y aprobó: listo para merge | Quien hizo QA | QA Accepted |
 | `qa denied` | QA encontró problemas: vuelve al autor | Quien hizo QA | QA Denied |
-| `on hold` | Bloqueado por algo externo | Cualquiera | Flag sobre la tarjeta |
+| `on hold` | Bloqueado por algo externo, o esperando que se mergee otra historia de la que depende | Cualquiera | On Hold |
 
 Flujo: `in progress` → `waiting qa` → (`qa accepted` → merge) o (`qa denied` → vuelve a `in progress`). `on hold` puede aplicarse desde cualquier estado (se quita el anterior).
 
@@ -79,7 +79,7 @@ Reglas:
 - Quien hace QA no es el autor del PR.
 - Al cambiar el label, mover la tarjeta de Jira a la columna equivalente. Label y tarjeta siempre dicen lo mismo.
 - **Una sola PR en `in progress` por persona.** Todas las demás PRs abiertas de esa persona tienen que estar en `on hold`, `waiting qa`, `qa accepted` o `qa denied`. Para retomar una PR que está en `on hold`, primero se pasa la actual a otro estado. El check `gitflow` del CI marca en rojo la PR que rompa esta regla.
-- **Historia que depende de otra todavía no mergeada:** no se apila una rama sobre otra. La historia dependiente queda en `on hold` (label de su PR si ya existe, flag en su tarjeta de Jira) hasta que la otra reciba `qa accepted` y se mergee a `develop`; recién ahí su rama nace de `develop` actualizado. Mientras tanto se avanza en otra cosa.
+- **Historia que depende de otra todavía no mergeada:** no se apila una rama sobre otra. La historia dependiente queda en `on hold` (label de su PR si ya existe, y su tarjeta de Jira en el estado On Hold) hasta que la otra reciba `qa accepted` y se mergee a `develop`; recién ahí su rama nace de `develop` actualizado. Mientras tanto se avanza en otra cosa.
 
 ### Plantilla de PR
 
@@ -87,7 +87,7 @@ Se autocompleta al abrir el PR (`.github/pull_request_template.md`). Completar s
 
 ## 4. Tablero (Jira)
 
-Columnas: `To Do → In Progress → Waiting QA → (QA Denied → vuelve a In Progress) → QA Accepted → Done`. `On Hold` es un flag sobre la tarjeta, no una columna. Cada historia enlaza al PR correspondiente vía el campo **Ticket** de la plantilla.
+Columnas: `To Do → In Progress ⇄ On Hold → Waiting QA → (QA Denied → vuelve a In Progress) → QA Accepted → Done`. `On Hold` es un estado propio (se llega desde cualquier columna con la transición "On Hold" y se vuelve con la que corresponda al retomar). Cada historia enlaza al PR correspondiente vía el campo **Ticket** de la plantilla.
 
 ## 5. QA
 
