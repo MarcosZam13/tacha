@@ -29,6 +29,7 @@ Actuar como ingeniero senior Next.js/React/TypeScript. Nunca volver a patrones j
 | [security-practices](.agents/skills/security-practices/SKILL.md) | Auth, sesión, household, políticas RLS, Edge Functions, formularios, variables de entorno |
 | [qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md) | Casos de prueba, reportes de bug, planes de prueba de un entregable |
 | [gitflow](.agents/skills/gitflow/SKILL.md) | **Siempre** antes de crear una rama, commitear, pushear, abrir/editar un PR, cambiar un label, mergear o cerrar un sprint |
+| [defensa-de-codigo](.agents/skills/defensa-de-codigo/SKILL.md) | Planear las historias propias de un sprint, construirlas en pasos explicables, armar la guía de estudio, o practicar la defensa del código ("modo profe", simulacro) |
 
 ## Estructura del repositorio
 
@@ -57,11 +58,11 @@ Definidos en `.claude/agents/`. Usarlos antes de pasar un PR a `waiting qa`:
 
 ## Flujo de trabajo — Spec-Driven Development
 
-Antes de una feature nueva o un cambio de comportamiento no trivial (no aplica a retoques puramente visuales): escribir `specs/SPEC.md` dentro de la carpeta de la feature. Flujo: **Especificar → Planear → Tareas → Implementar → Validar** contra los criterios de aceptación del spec, no contra lo que se creyó entender del pedido. Detalle completo en [component-architecture §2](.agents/skills/component-architecture/SKILL.md#2-spec-driven-development--specify-before-you-code).
+Antes de una feature nueva o un cambio de comportamiento no trivial (no aplica a retoques puramente visuales): escribir `specs/SPEC.md` (qué y por qué), `specs/plan.md` (cómo) y `specs/tasks.md` (pasos) dentro de la carpeta de la feature. Flujo: **Especificar → Planear → Tareas → Implementar → Validar** contra los criterios de aceptación del spec, no contra lo que se creyó entender del pedido. Detalle completo en [component-architecture §2](.agents/skills/component-architecture/SKILL.md#2-spec-driven-development--specify-before-you-code).
 
 ## Git y Pull Requests
 
-**Obligatorio, sin excepciones:** leer [gitflow](.agents/skills/gitflow/SKILL.md) antes de cualquier operación de git o GitHub. Resumen: ramas `ticket/SCRUM-{n}-...` desde `develop`; al cierre de cada sprint `entregable-{n}` desde `develop`, con `qa-fix/SCRUM-{n}-...` hacia él y después a `main`; todo PR con **exactamente un** label de estado desde que se abre (`gh pr create --label "in progress"`); solo se mergea con `qa accepted`. El check `gitflow` del CI rechaza lo que no cumpla. Versión para personas en [CONTRIBUTING.md](CONTRIBUTING.md).
+**Obligatorio, sin excepciones:** leer [gitflow](.agents/skills/gitflow/SKILL.md) antes de cualquier operación de git o GitHub. Resumen: ramas `ticket/SCRUM-{n}-...` desde `develop`; al cierre de cada sprint `entregable-{n}` desde `develop`, con `qa-fix/SCRUM-{n}-...` hacia él y después a `main`; cada historia tiene su PR abierta **desde que se empieza** (aunque sea con la SPEC o un commit vacío), con **exactamente un** label de estado desde que se abre (`gh pr create --label "in progress"`); **una sola PR en `in progress` por persona** (las demás en `on hold`, `waiting qa`, `qa accepted` o `qa denied`); una historia que depende de otra sin mergear queda en `on hold`, sin apilar ramas; solo se mergea con `qa accepted`. El check `gitflow` del CI rechaza lo que no cumpla. Versión para personas en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Producto
 

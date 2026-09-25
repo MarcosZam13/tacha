@@ -58,6 +58,7 @@ Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
 
 - Título con el mismo formato: `feat(SCRUM-14): descripción corta`. Los PRs de ciclo (`entregable-{n}` → `main`, `main` → `develop`) usan `chore(sprint-{n}): ...`.
 - Se abre siempre, incluso trabajando solo: es el checkpoint de revisión antes de mergear.
+- **Se abre al empezar la historia, no al terminarla.** Cada historia del sprint que te toca tiene su PR desde el primer momento (con la SPEC, o con un commit vacío si todavía no hay nada), para que el equipo vea en GitHub quién trabaja en qué. Con `in progress` si es la que estás haciendo ahora, con `on hold` si todavía no la podés empezar. Se completa la descripción y se pasa a `waiting qa` cuando está lista.
 - Nunca mergear una rama de trabajo en progreso sobre otra rama de trabajo en progreso.
 
 ### Labels de estado: exactamente uno, siempre
@@ -70,7 +71,7 @@ Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
 | `waiting qa` | Código completo, CI en verde, esperando que QA lo tome | El autor | Waiting QA |
 | `qa accepted` | QA probó y aprobó: listo para merge | Quien hizo QA | QA Accepted |
 | `qa denied` | QA encontró problemas: vuelve al autor | Quien hizo QA | QA Denied |
-| `on hold` | Bloqueado por algo externo | Cualquiera | Flag sobre la tarjeta |
+| `on hold` | Bloqueado por algo externo, o esperando que se mergee otra historia de la que depende | Cualquiera | On Hold |
 
 Flujo: `in progress` → `waiting qa` → (`qa accepted` → merge) o (`qa denied` → vuelve a `in progress`). `on hold` puede aplicarse desde cualquier estado (se quita el anterior).
 
@@ -78,6 +79,8 @@ Reglas:
 - **Solo se mergea con `qa accepted`.** Un PR con `waiting qa` no se mergea aunque esté aprobado en GitHub.
 - Quien hace QA no es el autor del PR.
 - Al cambiar el label, mover la tarjeta de Jira a la columna equivalente. Label y tarjeta siempre dicen lo mismo.
+- **Una sola PR en `in progress` por persona.** Todas las demás PRs abiertas de esa persona tienen que estar en `on hold`, `waiting qa`, `qa accepted` o `qa denied`. Para retomar una PR que está en `on hold`, primero se pasa la actual a otro estado. El check `gitflow` del CI marca en rojo la PR que rompa esta regla.
+- **Historia que depende de otra todavía no mergeada:** no se apila una rama sobre otra. La historia dependiente queda en `on hold` (label de su PR si ya existe, y su tarjeta de Jira en el estado On Hold) hasta que la otra reciba `qa accepted` y se mergee a `develop`; recién ahí su rama nace de `develop` actualizado. Mientras tanto se avanza en otra cosa.
 
 ### Plantilla de PR
 
@@ -85,9 +88,60 @@ Se autocompleta al abrir el PR (`.github/pull_request_template.md`). Completar s
 
 ## 4. Tablero (Jira)
 
-Columnas: `To Do → In Progress → Waiting QA → (QA Denied → vuelve a In Progress) → QA Accepted → Done`. `On Hold` es un flag sobre la tarjeta, no una columna. Cada historia enlaza al PR correspondiente vía el campo **Ticket** de la plantilla.
+Columnas: `To Do → In Progress ⇄ On Hold → Waiting QA → (QA Denied → vuelve a In Progress) → QA Accepted → Done`. `On Hold` es un estado propio (se llega desde cualquier columna con la transición "On Hold" y se vuelve con la que corresponda al retomar). Cada historia enlaza al PR correspondiente vía el campo **Ticket** de la plantilla.
 
 ## 5. QA
+
+### 5.1 Cómo hacerle QA a un PR de otra persona
+
+Nunca a un PR propio. Se prueba el PR corriéndolo en tu máquina, no leyendo el diff.
+
+**1. Guardar lo tuyo y traer su rama**
+
+```bash
+git status              # si hay cambios sin commitear: git stash
+gh pr checkout {número} # crea una copia local de su rama y te cambia a ella
+npm install             # por si el PR agregó dependencias
+```
+
+Tu `.env.local` no está en git: se mantiene al cambiar de rama.
+
+**2. Revisar si trae migraciones.** Si el PR agrega archivos en `supabase/migrations/`, confirmar que ya estén aplicadas en la base (la base es compartida: las aplica el autor, no quien hace QA). Si faltan, la app falla por eso y no por el código: se le avisa al autor y el PR queda en `on hold` o `qa denied`.
+
+**3. Correrlo**
+
+```bash
+npx tsc --noEmit && npm run lint && npm run build   # lo mismo que revisa el CI
+npm run dev
+```
+
+**4. Probar contra lo escrito, no contra lo que uno cree que hace**
+
+- La sección **"How should this be manually tested?"** del PR, paso por paso.
+- Los **criterios de aceptación** del `specs/SPEC.md` de la feature y de la historia en Jira, uno por uno.
+- Además del camino feliz: vacíos, errores de red, textos largos, doble click, recargar la página (ver [qa-testing-practices §2](.agents/skills/qa-testing-practices/SKILL.md)).
+
+**5. Veredicto: label y tarjeta de Jira en el mismo momento**
+
+| Resultado | Label (reemplaza a `waiting qa`) | Jira | Además |
+|---|---|---|---|
+| Todo pasa | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa accepted"` | QA Accepted | El check `qa-gate` se pone verde y se puede mergear |
+| Algo falla | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa denied"` | QA Denied | Un comentario en el PR por bug, con el formato de [qa-testing-practices §3](.agents/skills/qa-testing-practices/SKILL.md). Sin pasos para reproducir no hay bug |
+
+**6. Volver a lo tuyo**
+
+```bash
+git checkout -- AGENTS.md   # solo si `next dev` le agregó su bloque nextjs-agent-rules
+git checkout {tu-rama}
+git stash pop               # solo si hiciste stash en el paso 1
+```
+
+Reglas:
+
+- Quien hace QA **solo prueba y reporta**: nunca commitea ni pushea en la rama del autor. El arreglo lo hace el autor, y vuelve a pasar el PR a `waiting qa`.
+- `qa accepted` lo pone solo quien probó. Un agente de IA puede preparar la prueba y redactar los reportes (subagente `qa-checker`), pero el veredicto y el label los decide la persona.
+
+### 5.2 Bugs sobre un entregable
 
 Bug encontrado durante QA sobre un entregable → `qa-fix/SCRUM-{n}-...` desde ese `entregable-{n}` (ver sección 1, paso 3), no un parche silencioso sobre la rama original ya mergeada.
 

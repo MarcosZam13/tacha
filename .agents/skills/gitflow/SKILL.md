@@ -20,15 +20,22 @@ Nunca commitear ni pushear directo a `main`, `develop` ni `entregable-{n}`. Todo
 
 ## 2. Abrir un PR: el label va en el mismo comando
 
+**La PR se abre al empezar la historia, no al terminarla.** Cada historia del sprint que te toca tiene su PR abierta desde el primer momento, para que todo el equipo vea en GitHub en qué está trabajando cada quien. Se abre aunque todavía no haya código: con la SPEC de la feature, o con un commit vacío si ni eso existe todavía. Después la PR avanza de label hasta el merge.
+
 Todo PR lleva **exactamente un** label de estado desde que se abre. No existe "lo abro y después le pongo el label".
 
 ```bash
 git checkout develop && git pull
 git checkout -b ticket/SCRUM-{n}-descripcion
-# ... commits: {tipo}(SCRUM-{n}): descripción en imperativo
+# primer commit: la SPEC, o vacío si todavía no hay nada
+git commit --allow-empty -m "chore(SCRUM-{n}): abrir PR de la historia"
 git push -u origin ticket/SCRUM-{n}-descripcion
 gh pr create --base develop --label "in progress" --title "{tipo}(SCRUM-{n}): ..." --body "..."
+# ... commits siguientes: {tipo}(SCRUM-{n}): descripción en imperativo
 ```
+
+- Label al abrir: `in progress` si es la historia en la que estás trabajando ahora; `on hold` si todavía no la podés empezar (depende de otra sin mergear, o ya tenés otra en `in progress`).
+- El body se llena con lo que se sabe al abrir (qué va a hacer, ticket, assignee) y se completa antes de pasar a `waiting qa`.
 
 - `--base` sale de la tabla de la sección 1, nunca del default a ciegas.
 - Label inicial: `in progress` si falta algo; `waiting qa` si el código está completo y `tsc`/lint/build pasan.
@@ -48,9 +55,28 @@ gh pr edit {número} --remove-label "in progress" --add-label "waiting qa"
 | `waiting qa` | Waiting QA |
 | `qa accepted` | QA Accepted |
 | `qa denied` | QA Denied |
-| `on hold` | Flag sobre la tarjeta (no se mueve de columna) |
+| `on hold` | On Hold (estado propio, no un flag) |
 
 Cada cambio de label va con la transición equivalente de la tarjeta en Jira en el mismo momento. Label y tarjeta nunca dicen cosas distintas.
+
+### Una sola PR en `in progress` por persona
+
+Cada persona tiene como máximo **una** PR abierta con `in progress`. Todas sus otras PRs abiertas están en `on hold`, `waiting qa`, `qa accepted` o `qa denied`. Antes de abrir una PR con `in progress` (o pasar una a `in progress`), revisar:
+
+```bash
+gh pr list --author "@me" --label "in progress" --state open
+```
+
+Si ya hay una, primero cambiarla a `waiting qa` (si está completa) o `on hold` (si queda pausada), con su transición en Jira, y recién después abrir o retomar la otra. El check `gitflow` del CI falla en la PR que deje a su autor con dos `in progress`.
+
+### Historias que dependen de otra sin mergear
+
+No se apilan ramas (`ticket/B` saliendo de `ticket/A`): toda rama de ticket nace de `develop`. Si la historia B necesita código de la historia A que todavía no está en `develop`:
+
+1. A sigue su camino: `waiting qa` → QA de otra persona → `qa accepted` → merge a `develop`.
+2. B queda en `on hold`: su tarjeta de Jira pasa al estado On Hold, y su PR al label `on hold` si ya existía.
+3. Mientras tanto se trabaja en otra historia o tarea.
+4. Con A mergeada: `git checkout develop && git pull`, se crea (o se rebasea) la rama de B desde ahí y B pasa a `in progress`, respetando la regla de una sola PR en curso.
 
 ## 4. Mergear
 
@@ -79,4 +105,6 @@ Cada cambio de label va con la transición equivalente de la tarjeta en Jira en 
 - [ ] El PR apunta a la rama base que dice la tabla de la sección 1
 - [ ] El PR tiene exactamente un label de estado
 - [ ] La tarjeta de Jira está en la columna que corresponde a ese label
+- [ ] El autor no queda con más de una PR en `in progress`
+- [ ] Ninguna rama de ticket salió de otra rama de ticket; lo dependiente está en `on hold`
 - [ ] Nada se mergeó sin `qa accepted`

@@ -19,7 +19,10 @@ Cada feature de UI vive en su propia carpeta en kebab-case bajo `components/`:
     FeatureNameProps.interface.ts
   store/                       ← estado compartido de la feature, solo si de verdad se comparte
   constants/                   ← constantes propias de la feature (siguen constants-standards)
-  specs/SPEC.md                ← contrato de la feature, ver §2
+  specs/                       ← Spec-Driven Development, ver §2
+    SPEC.md                    ← qué y por qué (contrato)
+    plan.md                    ← cómo: archivos, datos, flujo, decisiones
+    tasks.md                   ← pasos ordenados de implementación
   tests/
     FeatureName.page.ts        ← Page Object, ver unit-testing-standards
     FeatureName.test.tsx
@@ -54,7 +57,19 @@ Reusar componentes/constantes/store existentes; qué skills aplican.
 - [ ] …
 ```
 
-Flujo: **Especificar → Planear → Tareas → Implementar → Validar.** Implementar tarea por tarea; antes de dar el trabajo por terminado, validar el resultado contra los criterios de aceptación — no contra una versión reinterpretada del pedido. Si los requerimientos cambian a mitad de la implementación, actualizar primero el spec, después el código.
+Flujo: **Especificar → Planear → Tareas → Implementar → Validar**, y cada una de las tres primeras etapas deja su archivo en `specs/`:
+
+1. **Especificar → `SPEC.md`** (plantilla de arriba): el *qué* y el *por qué*. Sin detalles de implementación salvo que sean una restricción dura.
+2. **Planear → `plan.md`**: el *cómo*, derivado del spec y de los skills que aplican. Contiene:
+   - árbol de archivos a crear o tocar, con la responsabilidad de cada uno;
+   - datos: tablas, columnas, RLS, RPCs o endpoints que se usan o se crean;
+   - flujo: el recorrido de una acción del usuario por los archivos;
+   - tabla de decisiones `Decisión | Alternativa | Por qué esta` (el porqué nombra una consecuencia concreta).
+3. **Tareas → `tasks.md`**: checklist ordenada de unidades chicas de implementación, marcando las bloqueadas y de qué dependen. Si una feature abarca varias historias, agrupar las tareas por ticket (`SCRUM-{n}`).
+4. **Implementar** tarea por tarea, marcándolas en `tasks.md`.
+5. **Validar** contra los criterios de aceptación de `SPEC.md`, no contra una versión reinterpretada del pedido.
+
+Si los requerimientos cambian a mitad de la implementación, actualizar primero `SPEC.md` (y `plan.md` si cambia el cómo), después el código. Los tres archivos viajan en el mismo PR que el código de la feature.
 
 ## 3. Presentación vs. lógica — la separación ViewModel
 
@@ -135,7 +150,7 @@ Prohibido por defecto: god component/ViewModel (responsabilidades no relacionada
 
 ## 6. Checklist
 
-- [ ] El trabajo no trivial tiene `specs/SPEC.md` (o los criterios de aceptación ya dados, persistidos ahí) y fue validado contra eso
+- [ ] El trabajo no trivial tiene `specs/SPEC.md`, `specs/plan.md` y `specs/tasks.md`, y fue validado contra los criterios de aceptación del spec
 - [ ] La feature vive en su propia carpeta kebab-case con `hooks/`, `models/`, `specs/`, `tests/` colocalizados
 - [ ] El `return` principal del `.tsx` es una composición corta de minis locales/primitivos compartidos, no un monolito largo
 - [ ] No quedó `useState`/`useEffect`/fetch/handlers no triviales en el `.tsx` — la lógica vive en `use<Nombre>ViewModel.ts`
