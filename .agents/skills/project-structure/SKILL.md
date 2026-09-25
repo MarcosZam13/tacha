@@ -28,7 +28,7 @@ tacha/
 └── tsconfig.json   "paths": { "@/*": ["./*"] }
 ```
 
-Cuando haga falta, se agregan al mismo nivel: `services/` (llamadas a Supabase/APIs), `hooks/` (hooks usados por 2+ features), `providers/` (providers globales: TanStack Query, sesión), `store/`, `utils/`. Crearlas solo cuando exista el primer archivo real, no por adelantado.
+Cuando haga falta, se agregan al mismo nivel: `services/` (llamadas a Supabase/APIs), `hooks/` (hooks usados por 2+ features), `providers/` (providers globales, ej. sesión), `store/`, `utils/`. Crearlas solo cuando exista el primer archivo real, no por adelantado.
 
 ### Qué se permite dentro de `app/`
 

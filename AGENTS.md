@@ -74,4 +74,4 @@ Si una historia cambia una decisión de producto o del modelo de datos, `docs/do
 
 ## Stack (referencia rápida)
 
-Next.js · TypeScript · Tailwind CSS · Supabase (Postgres + Auth + Realtime + RLS) vía PostgREST/RPC · TanStack Query para estado de servidor. El patrón de estado compartido puramente de cliente (modales, selección activa) todavía no está decidido por el equipo — ver [nextjs-enterprise-patterns §3](.agents/skills/nextjs-enterprise-patterns/SKILL.md#3-estado-compartido-de-cliente--elegir-un-patrón-y-exigirlo) antes de introducir uno nuevo ad hoc.
+Next.js · TypeScript · Tailwind CSS · Supabase (Postgres + Auth + Realtime + RLS) vía PostgREST/RPC · estado de servidor con servicios (`services/`) + `useEffect` en el ViewModel (TanStack Query: opción a evaluar por el equipo, no instalado). El patrón de estado compartido puramente de cliente (modales, selección activa) todavía no está decidido por el equipo — ver [nextjs-enterprise-patterns §3](.agents/skills/nextjs-enterprise-patterns/SKILL.md#3-estado-compartido-de-cliente--elegir-un-patrón-y-exigirlo) antes de introducir uno nuevo ad hoc.

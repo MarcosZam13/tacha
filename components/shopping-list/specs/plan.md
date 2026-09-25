@@ -2,7 +2,7 @@
 
 Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md).
 
-> **Pendiente de verificar antes de implementar la capa de datos:** el esquema real de la base (puede ir adelante de `supabase/schema.sql`) y si las sesiones anónimas quedan habilitadas en el proyecto. Si alguna de las dos cambia, se actualiza este plan primero.
+> **Verificado el 2026-09-25** contra la base real (MCP de Supabase): el catálogo tiene datos (28 productos, 39 variantes); no existen `lists`, `list_items`, `households` ni `profiles`; las políticas de lectura del catálogo aplican a todos los roles, así que la búsqueda funciona con la sesión anónima (rol `authenticated`). Sesiones anónimas habilitadas en el proyecto.
 
 ## Archivos
 
@@ -22,14 +22,14 @@ components/shopping-list/
   models/
     ShoppingListItem.interface.ts
     ShoppingListAction.type.ts         unión de acciones del reducer
-    CatalogSearchResult.interface.ts   resultado ya aplanado a una fila por variante
+    CatalogSearchResult.interface.ts   resultado ya aplanado a una fila por variante: variantId, productName, sizeLabel
   constants/
     shopping-list.constants.ts         textos, límites (mínimo 1), debounce, mínimo de caracteres
   specs/  SPEC.md · plan.md · tasks.md
 
 services/                              (carpeta nueva en la raíz, según project-structure)
   supabase.client.ts                   un solo cliente de Supabase para toda la app
-  catalog.service.ts                   searchCatalog(): llama al RPC search_catalog y aplana variantes
+  catalog.service.ts                   searchCatalog(): llama al RPC search_catalog y aplana variantes (descarta price_ranges)
   shopping-list.service.ts             getGeneralList(), addItem(), updateQuantity()
 
 supabase/migrations/004_create_lists.sql
@@ -47,6 +47,10 @@ Tablas (según documento-proyecto §6, solo las columnas que este sprint usa):
 - RLS en ambas: el usuario solo ve y modifica listas donde `owner_id = auth.uid()` (household y colaboradores se suman cuando existan esas tablas).
 - RPC `add_item_to_general_list(variant_id)`: busca o crea la lista general del usuario e inserta el item; si ya existe, suma 1 (`on conflict do update`). La regla de merge vive en la base, como pide documento-proyecto §6.
 
+### Qué se muestra de cada resultado
+
+`search_catalog` devuelve el producto madre con un arreglo `variants`. En los datos reales el `name` de la variante viene duplicado ("Chocolate Milka de Leche - 90 g — Chocolate Milka de Leche - 90 g", efecto de la normalización del scraper) y el nombre del producto ya trae el tamaño. Por eso cada resultado muestra **el nombre del producto** y un tamaño armado con `base_quantity` + `base_unit` ("90 g"), no el nombre de la variante. `price_ranges` se ignora: comparar precios no es de esta historia.
+
 ## Flujo
 
 1. Al montar, `useShoppingList` pide la lista general (`useEffect`) → `dispatch({ type: "loaded" })`.
@@ -59,8 +63,11 @@ Tablas (según documento-proyecto §6, solo las columnas que este sprint usa):
 | Decisión | Alternativa | Por qué esta |
 |---|---|---|
 | `useReducer` para la lista | `useState` | Varias acciones con reglas (y en Sprint 2 llegan eliminar y tachar); las reglas quedan en una función pura testeable sin React |
+| Servicio + `useEffect` en el hook | TanStack Query | Es el patrón del repo de referencia del profesor (component-architecture §3) y TanStack no está instalado; adoptarlo es decisión de todo el equipo, no de una feature (nextjs-enterprise-patterns §3) |
+| Ningún `dispatch` síncrono dentro del efecto | Poner `isLoading: true` al inicio del efecto | El estado inicial ya arranca cargando; evita renders en cascada. El lint (`set-state-in-effect`) no lo vigila para `dispatch`, así que es una regla nuestra |
 | `useEffect` + debounce + bandera de cancelación | Buscar en cada tecla | Una petición por pausa de escritura, y una respuesta vieja nunca pisa a la nueva |
 | Merge de duplicados en la base (RPC) | Revisar en el cliente si ya existe | Dos pestañas o dos miembros del household agregando a la vez no duplican filas; lo pide el documento del proyecto |
 | Mínimo 1 en UI **y** en la base | Solo en la UI | La UI es comodidad; la base es la garantía |
 | Esperar respuesta del servidor antes de actualizar | Actualización optimista | Más simple de explicar y sin rollback; se puede optimizar después si se siente lento |
 | Buscador dentro de la feature | Componente compartido | Solo hay un consumidor hoy; se promueve cuando exista el segundo |
+| Mostrar nombre del producto + tamaño | Mostrar el nombre de la variante | El nombre de la variante viene duplicado en los datos reales |

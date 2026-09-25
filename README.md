@@ -53,7 +53,7 @@ Regla principal: **`app/` contiene solo rutas.** Todo lo compartido va al lado, 
 
 - **Frontend:** Next.js (App Router) + TypeScript + Tailwind CSS
 - **Backend:** Supabase (Postgres + Auth + Realtime + RLS) vía PostgREST/RPC, Edge Functions para el scraping
-- **Estado remoto:** TanStack Query (decidido, todavía no instalado)
+- **Estado remoto:** servicios + `useEffect` en el ViewModel (TanStack Query a evaluar por el equipo)
 - **PWA:** instalable, sin depender de tiendas de apps
 
 Justificación de cada decisión en la [sección 7 del documento de proyecto](docs/documento-proyecto.md#7-arquitectura-técnica-propuesta).
