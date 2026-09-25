@@ -1,6 +1,6 @@
 # Next.js/React Enterprise Patterns
 
-Router + convenciones restantes para este proyecto (Next.js + Supabase + TanStack Query) que no ameritan su propio skill. Adaptado de un repo de referencia enterprise en Next.js que el profesor del curso compartió.
+Router + convenciones restantes para este proyecto (Next.js + Supabase) que no ameritan su propio skill. Adaptado de un repo de referencia enterprise en Next.js que el profesor del curso compartió.
 
 Ver también: [clean-code-practices](../clean-code-practices/SKILL.md)
 
@@ -36,7 +36,10 @@ Comunica intención (¿puede vaciarse intencionalmente vs. simplemente no cargó
 
 Dos tipos de estado necesitan dos respuestas distintas, y mezclarlas es el error de manejo de estado más común:
 
-- **Estado de servidor** (datos que viven en la base de datos y pueden quedar obsoletos): **TanStack Query** — ya decidido para este proyecto, es el fit natural con Supabase. No armar a mano lógica de fetch con `useEffect` + `useState` habiendo una librería de queries en el proyecto; es exactamente el patrón que existe para reemplazar.
+- **Estado de servidor** (datos que viven en la base de datos y pueden quedar obsoletos): el acceso a datos vive en un **servicio** (`services/`) y el ViewModel de la feature lo llama desde un `useEffect`, igual que el repo de referencia del profesor ([component-architecture §3](../component-architecture/SKILL.md#3-presentación-vs-lógica--la-separación-viewmodel)). Reglas del efecto:
+  - Nunca llamar un setter (`setX`/`dispatch`) de forma síncrona en el cuerpo del efecto: el estado inicial ya arranca en "cargando" y el setter se llama recién cuando responde el servicio. La regla `react-hooks/set-state-in-effect` lo marca para `useState`, pero **no** para `dispatch` de `useReducer`: ahí la regla depende de quien escribe.
+  - Toda petición que pueda quedar vieja (cambio de parámetros, desmontaje) se descarta con una bandera de cancelación en el cleanup.
+  - **TanStack Query** queda como opción a evaluar por el equipo (caché, invalidación, deduplicación). No está instalado; si se adopta, se decide para todo el proyecto y se actualiza esta sección, no se introduce en una sola feature.
 - **Estado compartido solo de cliente** (modo de UI, household activo seleccionado, modal abierto/cerrado entre componentes): **todavía no decidido por el equipo** (Context vs. Zustand son las opciones más simples dado que no se eligió Redux). Mientras no se decida: colocalizar el estado dentro de la feature que lo dueña (`useState`/`useReducer` local); no introducir un segundo patrón de estado compartido ad hoc a mitad de proyecto. En cuanto el equipo elija, actualizar esta sección.
 
 ## 4. Patrón tipado de mutaciones de datos
@@ -44,7 +47,7 @@ Dos tipos de estado necesitan dos respuestas distintas, y mezclarlas es el error
 Sin importar la operación (Supabase RPC, una función de PostgREST, un endpoint propio), mantener la misma forma:
 
 1. Interfaces `Payload` y `Response` explícitas por operación, nunca `unknown`/`any`.
-2. El hook de mutación es genérico sobre ambas: `useMutation<Response, Error, Payload>(...)` de TanStack Query.
+2. La función del servicio es genérica sobre ambas: `(payload: Payload) => Promise<Response>`, y el ViewModel la llama y maneja el resultado.
 3. Los errores tienen una forma tipada (`MutationError` o similar) manejada explícitamente — nunca un `catch {}` silencioso.
 
 ```ts
@@ -72,4 +75,4 @@ Mantener estas interfaces en un lugar predecible (`types/mutations/` o colocaliz
 1. Feature nueva → empezar con [component-architecture §2](../component-architecture/SKILL.md#2-spec-driven-development--especificar-antes-de-codear) (spec) antes de tocar código.
 2. Cualquier string/número literal → [constants-standards](../constants-standards/SKILL.md) antes de que entre al diff.
 3. Comportamiento no trivial → tests según [unit-testing-standards](../unit-testing-standards/SKILL.md) antes de dar la tarea por terminada.
-4. Estado de servidor → TanStack Query siempre. Estado de cliente compartido → ver §3, sin decidir todavía.
+4. Estado de servidor → servicio + `useEffect` en el ViewModel (TanStack Query a evaluar por el equipo). Estado de cliente compartido → ver §3, sin decidir todavía.

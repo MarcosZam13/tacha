@@ -321,7 +321,7 @@ Reglas de negocio que deben vivir en la base de datos (funciones/triggers), no e
 | Responsive/PWA | CSS responsive (Flexbox/Grid) + `manifest.json` + service worker (Workbox o plugin nativo del framework elegido) | Requerimiento no funcional central |
 | Backend / API | Supabase (Postgres) vía PostgREST + funciones RPC — **confirmado por todo el equipo el 2026-08-16** | Complejidad justa para el modelo de datos; RLS para separar datos por household y por lista privada |
 | Tiempo real | Supabase Realtime | Necesario para el tachado colaborativo instantáneo |
-| Estado remoto en cliente | TanStack Query | Cache, invalidación y optimistic updates |
+| Estado remoto en cliente | Servicios (`services/`) + `useEffect` en el ViewModel — **cambiado el 2026-09-25** (antes TanStack Query, nunca instalado) | Mismo patrón que el repo de referencia del profesor; sin dependencia extra. TanStack Query (cache, invalidación, optimistic updates) queda como opción a evaluar por el equipo |
 | Auth | Supabase Auth | — |
 | Estilos | Tailwind CSS — **confirmado por todo el equipo el 2026-08-16** | Curva de aprendizaje más pareja para un equipo de 6 con niveles distintos de experiencia; más estándar y documentado que alternativas pensadas para compatibilidad nativa, que aquí no se necesita al ser 100% web |
 | Web scraping | Node.js (Puppeteer/Playwright) o Python (BeautifulSoup/Scrapy) — pendiente de decisión del equipo, según quién lo implemente | Es el componente de mayor riesgo técnico del proyecto, vale la pena decidirlo temprano |

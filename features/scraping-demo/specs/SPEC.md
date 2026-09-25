@@ -49,7 +49,7 @@ Objetivo: que cualquiera del equipo pueda ver funcionar el pipeline y entender s
 
 ## Criterios de aceptación
 
-- [x] Estructura de feature en `components/scraping-demo/` con ViewModel pattern
+- [x] Estructura de feature en `features/scraping-demo/` con ViewModel pattern
 - [x] Constantes centralizadas en `constants/`
 - [x] Tipos tipados completos para request/response
 - [x] Componentes presentacionales sin lógica (SearchForm, ResultsDisplay, StagingTable)

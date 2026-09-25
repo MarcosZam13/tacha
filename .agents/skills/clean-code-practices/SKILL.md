@@ -58,7 +58,8 @@ tacha/
 ├── README.md        ← qué es esto, cómo correrlo, cómo desplegarlo. Lo primero que abre cualquiera.
 ├── docs/            ← documento de proyecto, historias de usuario, sprints, docs por módulo
 ├── app/             ← solo rutas, delgadas — sin lógica de negocio ni carpetas compartidas adentro
-├── components/      ← features de UI, una carpeta por feature (ver component-architecture)
+├── features/        ← features de UI, una carpeta por feature (ver component-architecture)
+├── components/      ← solo lo compartido entre features (ui/)
 ├── constants/       ← constantes (ver constants-standards)
 ├── types/           ← tipos TypeScript compartidos
 ├── services/        ← (cuando haga falta) clientes de API, wrappers de terceros
@@ -70,7 +71,7 @@ tacha/
 
 Reglas estructurales clave:
 - **Agrupar por dominio/feature, no por tipo técnico**, una vez que el proyecto crece más allá de un puñado de archivos.
-- **Las rutas se mantienen delgadas.** Llaman a `components/<feature>/` o a `services/` — no contienen lógica de negocio ellas mismas. Esto es lo que hace un repo navegable: la lógica vive en un solo lugar predecible.
+- **Las rutas se mantienen delgadas.** Llaman a `features/<feature>/` o a `services/` — no contienen lógica de negocio ellas mismas. Esto es lo que hace un repo navegable: la lógica vive en un solo lugar predecible.
 - **Sin archivos huérfanos en la raíz.** La ubicación de cada archivo debería poder inferirse de lo que hace.
 - **Una migración nueva por cambio de schema**, secuencial y nombrada descriptivamente (`003_add_purchase_sessions.sql`), nunca editada después de aplicada.
 
