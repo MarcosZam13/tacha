@@ -9,7 +9,7 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 ## Alcance
 
 - Barra de búsqueda arriba de la lista, con resultados en vivo del RPC `search_catalog` (mínimo 2 caracteres, con debounce).
-- Cada resultado es una **variante** del producto madre (ej. "Leche · caja 1 L"), porque `list_items` referencia `product_catalog_variants` (documento-proyecto §6).
+- Cada resultado es una **variante** del producto madre, mostrada como nombre del producto + tamaño (ej. "Crema de Leche Nestlé - 236g" · "236 g"), porque `list_items` referencia `product_catalog_variants` (documento-proyecto §6).
 - Al elegir un resultado, se añade a la lista general del usuario con cantidad 1. Si esa variante ya está, se le suma 1 en vez de duplicar la fila (regla de merge que vive en la base, documento-proyecto §6).
 - Controles "+" y "−" en cada fila; "−" nunca baja de 1.
 - La lista se guarda en Supabase (`lists` + `list_items`) y se carga al abrir la pantalla.
@@ -44,10 +44,10 @@ Skills que aplican: `component-architecture`, `constants-standards`, `project-st
 ## Criterios de aceptación
 
 HU-36a
-- [ ] CA-01: hay una barra de búsqueda en la parte superior de la lista general.
-- [ ] CA-02: al escribir, se muestran en tiempo real los productos del catálogo que coinciden.
-- [ ] CA-03: al seleccionar un resultado, se añade a la lista con cantidad 1.
-- [ ] CA-04: el producto aparece de inmediato como fila, sin recargar.
+- [x] CA-01: hay una barra de búsqueda en la parte superior de la lista general.
+- [x] CA-02: al escribir, se muestran en tiempo real los productos del catálogo que coinciden.
+- [x] CA-03: al seleccionar un resultado, se añade a la lista con cantidad 1.
+- [x] CA-04: el producto aparece de inmediato como fila, sin recargar.
 
 HU-36b
 - [ ] CA-01: cada fila muestra "+" y "−" junto a la cantidad.
