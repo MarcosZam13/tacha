@@ -92,6 +92,57 @@ Columnas: `To Do → In Progress ⇄ On Hold → Waiting QA → (QA Denied → v
 
 ## 5. QA
 
+### 5.1 Cómo hacerle QA a un PR de otra persona
+
+Nunca a un PR propio. Se prueba el PR corriéndolo en tu máquina, no leyendo el diff.
+
+**1. Guardar lo tuyo y traer su rama**
+
+```bash
+git status              # si hay cambios sin commitear: git stash
+gh pr checkout {número} # crea una copia local de su rama y te cambia a ella
+npm install             # por si el PR agregó dependencias
+```
+
+Tu `.env.local` no está en git: se mantiene al cambiar de rama.
+
+**2. Revisar si trae migraciones.** Si el PR agrega archivos en `supabase/migrations/`, confirmar que ya estén aplicadas en la base (la base es compartida: las aplica el autor, no quien hace QA). Si faltan, la app falla por eso y no por el código: se le avisa al autor y el PR queda en `on hold` o `qa denied`.
+
+**3. Correrlo**
+
+```bash
+npx tsc --noEmit && npm run lint && npm run build   # lo mismo que revisa el CI
+npm run dev
+```
+
+**4. Probar contra lo escrito, no contra lo que uno cree que hace**
+
+- La sección **"How should this be manually tested?"** del PR, paso por paso.
+- Los **criterios de aceptación** del `specs/SPEC.md` de la feature y de la historia en Jira, uno por uno.
+- Además del camino feliz: vacíos, errores de red, textos largos, doble click, recargar la página (ver [qa-testing-practices §2](.agents/skills/qa-testing-practices/SKILL.md)).
+
+**5. Veredicto: label y tarjeta de Jira en el mismo momento**
+
+| Resultado | Label (reemplaza a `waiting qa`) | Jira | Además |
+|---|---|---|---|
+| Todo pasa | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa accepted"` | QA Accepted | El check `qa-gate` se pone verde y se puede mergear |
+| Algo falla | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa denied"` | QA Denied | Un comentario en el PR por bug, con el formato de [qa-testing-practices §3](.agents/skills/qa-testing-practices/SKILL.md). Sin pasos para reproducir no hay bug |
+
+**6. Volver a lo tuyo**
+
+```bash
+git checkout -- AGENTS.md   # solo si `next dev` le agregó su bloque nextjs-agent-rules
+git checkout {tu-rama}
+git stash pop               # solo si hiciste stash en el paso 1
+```
+
+Reglas:
+
+- Quien hace QA **solo prueba y reporta**: nunca commitea ni pushea en la rama del autor. El arreglo lo hace el autor, y vuelve a pasar el PR a `waiting qa`.
+- `qa accepted` lo pone solo quien probó. Un agente de IA puede preparar la prueba y redactar los reportes (subagente `qa-checker`), pero el veredicto y el label los decide la persona.
+
+### 5.2 Bugs sobre un entregable
+
 Bug encontrado durante QA sobre un entregable → `qa-fix/SCRUM-{n}-...` desde ese `entregable-{n}` (ver sección 1, paso 3), no un parche silencioso sobre la rama original ya mergeada.
 
 Formato de casos de prueba, reportes de bug y planes de prueba: [qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md).
