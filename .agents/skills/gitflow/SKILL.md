@@ -52,6 +52,25 @@ gh pr edit {número} --remove-label "in progress" --add-label "waiting qa"
 
 Cada cambio de label va con la transición equivalente de la tarjeta en Jira en el mismo momento. Label y tarjeta nunca dicen cosas distintas.
 
+### Una sola PR en `in progress` por persona
+
+Cada persona tiene como máximo **una** PR abierta con `in progress`. Todas sus otras PRs abiertas están en `on hold`, `waiting qa`, `qa accepted` o `qa denied`. Antes de abrir una PR con `in progress` (o pasar una a `in progress`), revisar:
+
+```bash
+gh pr list --author "@me" --label "in progress" --state open
+```
+
+Si ya hay una, primero cambiarla a `waiting qa` (si está completa) o `on hold` (si queda pausada), con su transición en Jira, y recién después abrir o retomar la otra. El check `gitflow` del CI falla en la PR que deje a su autor con dos `in progress`.
+
+### Historias que dependen de otra sin mergear
+
+No se apilan ramas (`ticket/B` saliendo de `ticket/A`): toda rama de ticket nace de `develop`. Si la historia B necesita código de la historia A que todavía no está en `develop`:
+
+1. A sigue su camino: `waiting qa` → QA de otra persona → `qa accepted` → merge a `develop`.
+2. B queda en `on hold`: flag en su tarjeta de Jira, y label `on hold` en su PR si ya existía.
+3. Mientras tanto se trabaja en otra historia o tarea.
+4. Con A mergeada: `git checkout develop && git pull`, se crea (o se rebasea) la rama de B desde ahí y B pasa a `in progress`, respetando la regla de una sola PR en curso.
+
 ## 4. Mergear
 
 - Solo con label `qa accepted`, puesto por alguien que no es el autor. Un agente de IA **nunca** pone `qa accepted` sobre su propio trabajo ni mergea sin que el usuario lo pida explícitamente.
@@ -79,4 +98,6 @@ Cada cambio de label va con la transición equivalente de la tarjeta en Jira en 
 - [ ] El PR apunta a la rama base que dice la tabla de la sección 1
 - [ ] El PR tiene exactamente un label de estado
 - [ ] La tarjeta de Jira está en la columna que corresponde a ese label
+- [ ] El autor no queda con más de una PR en `in progress`
+- [ ] Ninguna rama de ticket salió de otra rama de ticket; lo dependiente está en `on hold`
 - [ ] Nada se mergeó sin `qa accepted`
