@@ -15,10 +15,10 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-38: validar coincidencia de contraseña
 
-- [ ] 1. Mensaje `PASSWORDS_MISMATCH` en `constants/registro.constants.ts`.
-- [ ] 2. Regla de coincidencia en `utils/validateRegistroForm.ts`.
-- [ ] 3. Error en tiempo real y botón deshabilitado en el ViewModel.
-- [ ] 4. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 1. Mensaje `PASSWORDS_MISMATCH` en `constants/registro.constants.ts`.
+- [x] 2. Regla de coincidencia en `utils/validateRegistroForm.ts`.
+- [x] 3. Error en tiempo real y botón deshabilitado en el ViewModel.
+- [x] 4. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 ## Pendiente cuando el proyecto tenga runner de tests
 

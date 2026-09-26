@@ -67,7 +67,7 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - [x] Un registro válido crea el usuario en Supabase Auth.
 - [x] Doble clic en el botón no genera dos solicitudes.
 - [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
-- [ ] Si las contraseñas no coinciden, aparece el mensaje mientras el usuario escribe.
-- [ ] El botón queda deshabilitado mientras no coincidan.
-- [ ] Al coincidir, el mensaje desaparece y el botón se habilita (si el resto está completo).
+- [x] Si las contraseñas no coinciden, aparece el mensaje mientras el usuario escribe.
+- [x] El botón queda deshabilitado mientras no coincidan.
+- [x] Al coincidir, el mensaje desaparece y el botón se habilita (si el resto está completo).
 
