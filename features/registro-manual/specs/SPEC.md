@@ -4,17 +4,17 @@ Ticket: SCRUM-37 · Epic: Registro manual · Historia: [HU-14b](../../../docs/hi
 
 ## Intención
 
-Un visitante crea una cueta en tacha con nombre, correo y contraseña. Es la base del flujo del registro manual: las HU-15 a HU-18 se montan sobre este formulario.
+Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la base del flujo del registro manual: las HU-15 a HU-18 se montan sobre este formulario.
 
 
 ## Alcance
 
-- Ruta `/registro`  con el formulario: nombre, correo, contraseña, y repetir contraseña.
+- Ruta `/registro` con el formulario: nombre, correo, contraseña, y repetir contraseña.
 - Botón de registro deshabilitado hasta que todos los campos obligatorios estén completos.
 - Mensajes de error claros por campo (campo vacío, formato inválido).
 - Envío a Supabase Auth (`signUp`) con manejo de errores.
 - Rechazo del registro si el correo ya existe, con mensaje visible.
-- Reusar con backticks: `Input` y `Button` de `components/ui/`.
+- Reusar `Input` y `Button` de `components/ui/`.
 
 ## Fuera del alcance (van en su propio ticket)
 
@@ -53,7 +53,7 @@ Un visitante crea una cueta en tacha con nombre, correo y contraseña. Es la bas
 - Variables de entorno de Supabase solo con las `NEXT_PUBLIC_*` del `.env.example`.
 - El mensaje "Ya existe una cuenta con este correo." revela qué correos están registrados
   (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confimar.
-  
+
 
 
 ## Criterios de aceptación
