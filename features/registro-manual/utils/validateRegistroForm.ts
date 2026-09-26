@@ -16,8 +16,8 @@ export const normalizeRegistroEmail = (email: string): string =>
 
 // Habilita el botón
 export const isRegistroFormComplete = (values: RegistroFormValues): boolean =>
-  values.name.trim().length > 0 &&
-  values.email.trim().length > 0 &&
+  values.name.length > 0 &&
+  values.email.length > 0 &&
   values.password.length > 0 &&
   values.confirmPassword.length > 0;
 
