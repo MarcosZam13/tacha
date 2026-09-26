@@ -64,3 +64,15 @@ export type RegistroSubmitStatusType =
   [REGISTER_RESULT.SUCCESS]: undefined,
 };
 
+// Orden visual del formulario; el tipo decide el teclado y si se oculta el texto.
+export const REGISTRO_FORM_FIELDS = [
+  { field: REGISTRO_FIELD.NAME, label: REGISTRO_LABEL.NAME, type: "text" },
+  { field: REGISTRO_FIELD.EMAIL, label: REGISTRO_LABEL.EMAIL, type: "email" },
+  { field: REGISTRO_FIELD.PASSWORD, label: REGISTRO_LABEL.PASSWORD, type: "password" },
+  {
+    field: REGISTRO_FIELD.CONFIRM_PASSWORD,
+    label: REGISTRO_LABEL.CONFIRM_PASSWORD,
+    type: "password",
+  },
+] as const;
+

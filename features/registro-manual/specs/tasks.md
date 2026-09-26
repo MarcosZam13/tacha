@@ -9,9 +9,9 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 3. Validación pura (`utils/validateRegistroForm.ts`).
 - [x] 4. Servicio de alta (`services/registro.service.ts`) con el cliente de `services/supabase.client.ts`.
 - [x] 5. ViewModel (`hooks/useRegistroManualViewModel.ts`).
-- [ ] 6. Presentación: `RegistroManual.tsx` con `Input` y `Button` de `components/ui/`.
-- [ ] 7. Ruta `app/registro/page.tsx`.
-- [ ] 8. Validar los criterios de aceptación del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 6. Presentación: `RegistroManual.tsx` con `Input` y `Button` de `components/ui/`.
+- [x] 7. Ruta `app/registro/page.tsx`.
+- [x] 8. Validar los criterios de aceptación del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 ## Pendiente cuando el proyecto tenga runner de tests
 
