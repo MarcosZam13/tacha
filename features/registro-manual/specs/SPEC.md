@@ -9,12 +9,12 @@ Un visitante crea una cueta en tacha con nombre, correo y contraseña. Es la bas
 
 ## Alcance
 
-- Ruta '/registro' con el formulario: nombre, correo, contraseña, y repetir contraseña.
+- Ruta `/registro`  con el formulario: nombre, correo, contraseña, y repetir contraseña.
 - Botón de registro deshabilitado hasta que todos los campos obligatorios estén completos.
-- Mensajes de error claros por campo(campo vacío, formato inválido)
-- Envío a Supabase Auth ('signUp') con manejo de errores.
-- Rechazo del registro si el correo ya existe, con manejo visible.
-- Reusar 'Input' y 'Button' de 'components/ui/'.
+- Mensajes de error claros por campo (campo vacío, formato inválido).
+- Envío a Supabase Auth (`signUp`) con manejo de errores.
+- Rechazo del registro si el correo ya existe, con mensaje visible.
+- Reusar con backticks: `Input` y `Button` de `components/ui/`.
 
 ## Fuera del alcance (van en su propio ticket)
 
@@ -28,13 +28,12 @@ Un visitante crea una cueta en tacha con nombre, correo y contraseña. Es la bas
 ## Requerimientos 
 
 1. Campos obligatorios: nombre, correo, contraseña, repetir contraseña.
-2. El botón "Registrarme" solo si los 4 campos tienen contenido.
+2. El botón "Registrarme" se habilita solo si los 4 campos tienen contenido.
 3. Cada campo inválido muestra su mensaje debajo del campo.
 4. El correo se valida con formato válido antes de enviar.
-5. Si supabase responde que el correo ya existe, se muestra un mensaje y no se crea la cuenta. 
+5. Si Supabase responde que el correo ya existe, se muestra un mensaje y no se crea la cuenta. 
 6. Durante el envío el botón muestra el estado de carga y no admite un segundo clic.
-7. La página 'app/registro/page.tsx es delgada: solo monta la feature.
-
+7. La página `app/registro/page.tsx` es delgada: solo monta la feature.
 
 ## Casos límite y errores
 
@@ -47,20 +46,23 @@ Un visitante crea una cueta en tacha con nombre, correo y contraseña. Es la bas
 
 ## Restricciones
 
-- Estructura: `components/registro-manual/` con presentación en `.tsx` y toda la lógica en `hooks/useRegistroManualViewModel.ts` ([component-architecture](../../../.agents/skills/component-architecture/SKILL.md)).
+- Estructura: `features/registro-manual/` con presentación en `.tsx` y toda la lógica en `hooks/useRegistroManualViewModel.ts` ([component-architecture](../../../.agents/skills/component-architecture/SKILL.md)).
 - `app/` solo contiene la ruta ([project-structure](../../../.agents/skills/project-structure/SKILL.md)).
 - Textos, límites y mensajes en constantes, nunca sueltos ([constants-standards](../../../.agents/skills/constants-standards/SKILL.md)).
 - Auth y formularios: cumplir [security-practices](../../../.agents/skills/security-practices/SKILL.md). La contraseña nunca se registra en logs ni se guarda en el estado más de lo necesario.
 - Variables de entorno de Supabase solo con las `NEXT_PUBLIC_*` del `.env.example`.
+- El mensaje "Ya existe una cuenta con este correo." revela qué correos están registrados
+  (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confimar.
+  
 
 
 ## Criterios de aceptación
 
-- [ ] El formulario muestra nombre, correo, contraseña y repetir contraseña.
-- [ ] El botón de registro está deshabilitado mientras falte algún campo.
-- [ ] Un correo con formato inválido muestra un mensaje claro y no se envía.
-- [ ] Un correo ya registrado muestra un mensaje y no crea una cuenta.
-- [ ] Un registro válido crea el usuario en Supabase Auth.
-- [ ] Doble clic en el botón no genera dos solicitudes.
-- [ ] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
+- [x] El formulario muestra nombre, correo, contraseña y repetir contraseña.
+- [x] El botón de registro está deshabilitado mientras falte algún campo.
+- [x] Un correo con formato inválido muestra un mensaje claro y no se envía.
+- [x] Un correo ya registrado muestra un mensaje y no crea una cuenta.
+- [x] Un registro válido crea el usuario en Supabase Auth.
+- [x] Doble clic en el botón no genera dos solicitudes.
+- [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
 

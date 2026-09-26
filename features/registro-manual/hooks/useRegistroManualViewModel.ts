@@ -3,11 +3,12 @@ import type { FormEvent } from "react";
 import { registerUser } from "../services/registro.service";
 import type { NullableUndefined } from "@/types/nullable.types";
 import {
-    REGISTER_RESULT,
+  REGISTER_RESULT,
   REGISTRO_RESULT_MESSAGE,
   REGISTRO_SUBMIT_STATUS,
 } from "../constants/registro.constants";
 import type {
+  RegisterResultType,
   RegistroFieldType,
   RegistroSubmitStatusType,
 } from "../constants/registro.constants";
@@ -51,7 +52,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
       email: normalizeRegistroEmail(values.email),
       name: values.name.trim(),
       password: values.password,
-    });
+    }).catch((): RegisterResultType => REGISTER_RESULT.ERROR);
 
     setStatus(
       result === REGISTER_RESULT.SUCCESS

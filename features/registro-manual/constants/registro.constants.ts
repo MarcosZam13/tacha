@@ -58,7 +58,7 @@ export const REGISTRO_SUBMIT_STATUS = {
 export type RegistroSubmitStatusType =
   (typeof REGISTRO_SUBMIT_STATUS)[keyof typeof REGISTRO_SUBMIT_STATUS];
 
-  export const REGISTRO_RESULT_MESSAGE: Record<RegisterResultType, NullableUndefined<string>> = {
+export const REGISTRO_RESULT_MESSAGE: Record<RegisterResultType, NullableUndefined<string>> = {
   [REGISTER_RESULT.EMAIL_EXISTS]: REGISTRO_ERROR_MESSAGE.EMAIL_ALREADY_EXISTS,
   [REGISTER_RESULT.ERROR]: REGISTRO_ERROR_MESSAGE.UNEXPECTED,
   [REGISTER_RESULT.SUCCESS]: undefined,
