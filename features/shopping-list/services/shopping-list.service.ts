@@ -1,6 +1,6 @@
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
-import type { CatalogBaseUnitType } from "../constants/shopping-list.constants";
+import type { CatalogBaseUnitType, ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import { formatSizeLabel } from "../utils/formatSizeLabel";
@@ -60,4 +60,24 @@ export const addItemToGeneralList = async (
     sizeLabel: searchResult.sizeLabel,
     variantId: listItem.product_catalog_variant_id,
   };
+};
+
+/**
+ * Suma o resta 1 a la cantidad de un item. Se manda el delta, no la cantidad
+ * final: si llegan dos cambios a la vez (dos pestañas), la base suma los dos
+ * en vez de que el segundo pise al primero. Devuelve la cantidad que quedó.
+ */
+export const changeItemQuantity = async (
+  itemId: string,
+  quantityStep: ItemQuantityStepType,
+): Promise<number> => {
+  await ensureSession();
+
+  const { data: listItem, error } = await getSupabaseClient().rpc(
+    SHOPPING_LIST_DB.RPC.CHANGE_ITEM_QUANTITY,
+    { quantity_delta: quantityStep, target_item_id: itemId },
+  );
+  if (error) throw error;
+
+  return listItem.quantity_requested;
 };

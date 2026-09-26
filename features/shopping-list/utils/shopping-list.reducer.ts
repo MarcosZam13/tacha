@@ -9,14 +9,19 @@ export const INITIAL_SHOPPING_LIST_STATE: ShoppingListState = {
   isLoading: true,
   items: [],
   loadErrorMessage: null,
+  pendingItemIds: [],
+  quantityErrorMessage: null,
 };
 
 /**
  * Función pura: mismo estado + misma acción = mismo resultado, sin llamar a
  * la red ni a React. Todas las reglas de cómo cambia la lista viven acá.
  *
- * Los errores de cargar y de añadir van separados: añadir con éxito borra el
- * error de añadir, pero nunca el de carga (la lista seguiría incompleta).
+ * Hay tres errores separados:
+ * - carga: solo lo borra una carga exitosa (añadir no lo borra: la lista seguiría incompleta);
+ * - añadir: lo borra el siguiente añadido exitoso;
+ * - cantidad: es uno para toda la lista y lo borra el siguiente cambio de
+ *   cantidad exitoso, de cualquier fila (el último intento es el que importa).
  */
 export const shoppingListReducer = (
   state: ShoppingListState,
@@ -43,6 +48,28 @@ export const shoppingListReducer = (
 
     case SHOPPING_LIST_ACTION.ADD_FAILED:
       return { ...state, addErrorMessage: action.errorMessage };
+
+    case SHOPPING_LIST_ACTION.QUANTITY_CHANGE_STARTED:
+      return { ...state, pendingItemIds: [...state.pendingItemIds, action.itemId] };
+
+    case SHOPPING_LIST_ACTION.QUANTITY_CHANGED:
+      // Se muestra la cantidad que quedó en la base, no la que calculó el cliente.
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === action.itemId ? { ...item, quantity: action.quantity } : item,
+        ),
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+        quantityErrorMessage: null,
+      };
+
+    case SHOPPING_LIST_ACTION.QUANTITY_CHANGE_FAILED:
+      // La cantidad no se toca: la fila sigue mostrando lo último que confirmó la base.
+      return {
+        ...state,
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+        quantityErrorMessage: action.errorMessage,
+      };
 
     default:
       return state;

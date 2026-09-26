@@ -40,13 +40,23 @@ export const ShoppingList = (): React.JSX.Element => {
           {viewModel.addErrorMessage}
         </p>
       ) : null}
+      {viewModel.quantityErrorMessage ? (
+        <p role="alert" className="font-body text-sm text-red-600">
+          {viewModel.quantityErrorMessage}
+        </p>
+      ) : null}
 
       {viewModel.isLoading ? <Spinner /> : null}
       {viewModel.isEmpty ? <ShoppingListEmptyState /> : null}
       {viewModel.hasItems ? (
         <ul className="flex flex-col divide-y divide-tacha-border rounded-tacha-badge border border-tacha-border bg-tacha-surface">
-          {viewModel.items.map((item) => (
-            <ShoppingListRow key={item.id} item={item} />
+          {viewModel.rows.map((row) => (
+            <ShoppingListRow
+              key={row.item.id}
+              row={row}
+              onDecrease={() => viewModel.onDecreaseQuantity(row.item.id)}
+              onIncrease={() => viewModel.onIncreaseQuantity(row.item.id)}
+            />
           ))}
         </ul>
       ) : null}
