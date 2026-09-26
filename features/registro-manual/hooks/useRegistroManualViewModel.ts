@@ -41,6 +41,8 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
   // Se calcula en cada render (no es estado): si cambia cualquiera de las dos contraseñas, el error aparece o desaparece solo.
   const passwordsMismatchError = validatePasswordsMatch(values.password, values.confirmPassword);
 
+  const hasPasswordMismatch = passwordsMismatchError !== undefined;
+
   const visibleErrors: RegistroFormErrors = {
     ...errors,
     [REGISTRO_FIELD.CONFIRM_PASSWORD]:
@@ -86,7 +88,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
     errors: visibleErrors,
     handleChange,
     handleSubmit,
-    isSubmitDisabled:!isRegistroFormComplete(values) || isSubmitting || passwordsMismatchError !== undefined,
+    isSubmitDisabled: !isRegistroFormComplete(values) || isSubmitting || hasPasswordMismatch,
     isSubmitting,
     isSuccess: status === REGISTRO_SUBMIT_STATUS.SUCCESS,
     submitError,

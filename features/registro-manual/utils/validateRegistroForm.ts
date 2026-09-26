@@ -38,6 +38,15 @@ const validatePassword = (password: string): NullableUndefined<string> =>
       ? REGISTRO_ERROR_MESSAGE.PASSWORD_TOO_SHORT
       : undefined;
 
+// Solo compara cuando ya se escribió algo: el campo vacío lo cubre validateConfirmPassword.
+export const validatePasswordsMatch = (
+  password: string,
+  confirmPassword: string,
+): NullableUndefined<string> =>
+  confirmPassword.length > 0 && confirmPassword !== password
+    ? REGISTRO_ERROR_MESSAGE.PASSWORDS_MISMATCH
+    : undefined;
+
 const validateConfirmPassword = (
   password: string,
   confirmPassword: string,
@@ -48,8 +57,10 @@ const validateConfirmPassword = (
 
 // Un campo válido queda en undefined. Para saber si hay errores usar hasRegistroErrors.
 export const validateRegistroForm = (values: RegistroFormValues): RegistroFormErrors => ({
-  [REGISTRO_FIELD.CONFIRM_PASSWORD]: validateConfirmPassword
-  (values.password, values.confirmPassword),
+  [REGISTRO_FIELD.CONFIRM_PASSWORD]: validateConfirmPassword(
+    values.password, 
+    values.confirmPassword,
+  ),
   [REGISTRO_FIELD.EMAIL]: validateEmail(values.email),
   [REGISTRO_FIELD.NAME]: validateName(values.name),
   [REGISTRO_FIELD.PASSWORD]: validatePassword(values.password),
@@ -57,13 +68,3 @@ export const validateRegistroForm = (values: RegistroFormValues): RegistroFormEr
 
 export const hasRegistroErrors = (errors: RegistroFormErrors): boolean =>
   Object.values(errors).some((message) => message !== undefined);
-
-// Solo compara cuando ya se escribió algo: el campo vacío lo cubre validateConfirmPassword.
-export const validatePasswordsMatch = (
-  password: string,
-  confirmPassword: string,
-): NullableUndefined<string> =>
-  confirmPassword.length > 0 && confirmPassword !== password
-    ? REGISTRO_ERROR_MESSAGE.PASSWORDS_MISMATCH
-    : undefined;
-    

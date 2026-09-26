@@ -17,7 +17,6 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Reusar `Input` y `Button` de `components/ui/`.
 - HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
 
-
 ## Fuera del alcance (van en su propio ticket)
 
 - HU-16 (SCRUM-39): barra de fortaleza de contraseña.
@@ -70,4 +69,3 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - [x] Si las contraseñas no coinciden, aparece el mensaje mientras el usuario escribe.
 - [x] El botón queda deshabilitado mientras no coincidan.
 - [x] Al coincidir, el mensaje desaparece y el botón se habilita (si el resto está completo).
-
