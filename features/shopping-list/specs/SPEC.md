@@ -50,7 +50,8 @@ HU-36a
 - [x] CA-04: el producto aparece de inmediato como fila, sin recargar.
 
 HU-36b
-- [ ] CA-01: cada fila muestra "+" y "−" junto a la cantidad.
-- [ ] CA-02: "+" suma 1.
-- [ ] CA-03: "−" resta 1 y no baja de 1.
-- [ ] CA-04: el cambio se ve de inmediato, sin confirmación, y tocar los controles no dispara ninguna otra acción de la fila.
+- [x] CA-01: cada fila muestra "+" y "−" junto a la cantidad.
+- [x] CA-02: "+" suma 1.
+- [x] CA-03: "−" resta 1 y no baja de 1.
+- [x] CA-04: el cambio se ve de inmediato, sin confirmación, y tocar los controles no dispara ninguna otra acción de la fila.
+  - Cómo se cumple: la cantidad cambia en cuanto responde la base (sin diálogo de confirmación ni recarga); mientras tanto los botones de esa fila quedan deshabilitados. No es actualización optimista (ver decisiones en [plan.md](plan.md)).

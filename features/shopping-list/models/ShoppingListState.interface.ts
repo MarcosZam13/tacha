@@ -6,4 +6,7 @@ export interface ShoppingListState {
   isLoading: boolean;
   items: ShoppingListItem[];
   loadErrorMessage: NullableRef<string>;
+  /** Filas con un cambio de cantidad esperando respuesta: sus botones se deshabilitan. */
+  pendingItemIds: string[];
+  quantityErrorMessage: NullableRef<string>;
 }

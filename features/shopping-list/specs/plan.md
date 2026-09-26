@@ -11,7 +11,8 @@ features/shopping-list/
   ShoppingList.tsx                     entrada ("use client"): compone buscador + lista (solo presentación)
   components/
     ProductSearch.tsx                  input + lista de resultados
-    ShoppingListRow.tsx                una fila: nombre, tamaño, cantidad (SCRUM-63 le suma QuantityStepper)
+    ShoppingListRow.tsx                una fila: nombre, tamaño y QuantityStepper
+    QuantityStepper.tsx                "−" cantidad "+" (botones hermanos, nunca anidados; se deshabilitan mientras la fila espera)
     ShoppingListEmptyState.tsx         lista vacía
     models/                            props de los mini componentes
   hooks/
@@ -26,7 +27,7 @@ features/shopping-list/
     CatalogSearchVariant.interface.ts  forma del jsonb `variants` que devuelve search_catalog
   services/
     catalog.service.ts                 searchCatalog(): RPC search_catalog, aplana variantes (descarta price_ranges)
-    shopping-list.service.ts           getGeneralList(), addItemToGeneralList() (SCRUM-63: updateQuantity())
+    shopping-list.service.ts           getGeneralList(), addItemToGeneralList(), changeItemQuantity()
   utils/
     shopping-list.reducer.ts           reducer puro + estado inicial (no es un hook: no va en hooks/)
     formatSizeLabel.ts                 275 + "g" → "275 g"
@@ -63,7 +64,7 @@ Tablas (según documento-proyecto §6, solo las columnas que este sprint usa):
 1. Al montar, `useShoppingList` pide la lista general (`useEffect`) → `dispatch({ type: "loaded" })`.
 2. Escribir en el buscador → `useProductSearch` espera el debounce → `searchCatalog()` → resultados. Si llega una respuesta de una búsqueda vieja, se descarta.
 3. Elegir un resultado → `addItem()` (RPC) → la base devuelve el item con su cantidad final → `dispatch({ type: "itemUpserted" })`.
-4. "+" o "−" → `updateQuantity()` → `dispatch({ type: "quantityChanged" })`. El "−" se deshabilita en 1 (UI) y la base lo rechaza igual (`check`).
+4. "+" o "−" → `dispatch(QUANTITY_CHANGE_STARTED)` (la fila queda pendiente y sus botones se deshabilitan) → `changeItemQuantity(itemId, ±1)` → RPC `change_item_quantity` → la base suma el delta y devuelve la cantidad final → `dispatch(QUANTITY_CHANGED)`. Si falla: `QUANTITY_CHANGE_FAILED` (la cantidad no cambia, aparece el error). El "−" se deshabilita en 1 (UI) y la base lo rechaza igual (`check`).
 
 ## Decisiones
 
@@ -78,6 +79,18 @@ Tablas (según documento-proyecto §6, solo las columnas que este sprint usa):
 | Esperar respuesta del servidor antes de actualizar | Actualización optimista | Más simple de explicar y sin rollback; se puede optimizar después si se siente lento |
 | Buscador dentro de la feature | Componente compartido | Solo hay un consumidor hoy; se promueve cuando exista el segundo |
 | Mostrar nombre del producto + tamaño | Mostrar el nombre de la variante | El nombre de la variante viene duplicado en los datos reales |
+
+### SCRUM-63: ajustar cantidad
+
+- RPC `change_item_quantity(target_item_id, quantity_delta)` (migración `005_change_item_quantity.sql`): `security invoker` (usa la política de update de `list_items`), solo acepta `-1` o `1`, hace `quantity_requested = quantity_requested + delta` en una sola sentencia y devuelve la fila. Si el item no existe o no es del usuario, lanza error (RLS lo deja invisible).
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Mandar un delta (±1) a una RPC | `update` con la cantidad final calculada en el cliente | Dos toques rápidos o dos pestañas mandarían la misma cantidad final y se perdería uno; con el delta la base suma cada toque |
+| Deshabilitar los botones de la fila mientras espera | Dejar tocar y encolar | Sin eso, dos respuestas de la misma fila pueden llegar en desorden y la pantalla mostraría una cantidad vieja |
+| Pendientes por fila (`pendingItemIds`) | Un solo `isUpdating` para toda la lista | Cambiar una fila no bloquea las demás |
+| Elegir en el buscador un producto que ya está en la lista = mismo +1 que el botón | Llamar `add_item_to_general_list` igual | Pasa por el mismo bloqueo por fila; si no, un añadir y un "+" en paralelo sobre la misma fila podrían dejar en pantalla una cantidad vieja |
+| `Button` de components/ui con texto solo para lectores de pantalla | `<button>` propio con `aria-label` | Reusar el primitivo (nextjs-enterprise-patterns §1); el "−" solo no dice nada a un lector de pantalla |
 
 ## Deuda conocida (revisión de seguridad, 2026-09-25)
 
