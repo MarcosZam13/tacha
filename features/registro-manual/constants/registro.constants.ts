@@ -38,6 +38,7 @@ export const REGISTRO_ERROR_MESSAGE = {
   EMAIL_INVALID: "Ingresá un correo válido.",
   EMAIL_REQUIRED: "El correo es obligatorio.",
   NAME_REQUIRED: "El nombre es obligatorio.",
+  PASSWORDS_MISMATCH: "Las contraseñas no coinciden.",
   PASSWORD_REQUIRED: "La contraseña es obligatoria.",
   PASSWORD_TOO_SHORT: "La contraseña debe tener al menos 8 caracteres.",
   REPEAT_PASSWORD_REQUIRED: "Repetí tu contraseña.",
@@ -75,4 +76,3 @@ export const REGISTRO_FORM_FIELDS = [
     type: "password",
   },
 ] as const;
-

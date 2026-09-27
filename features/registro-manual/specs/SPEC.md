@@ -15,10 +15,10 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Envío a Supabase Auth (`signUp`) con manejo de errores.
 - Rechazo del registro si el correo ya existe, con mensaje visible.
 - Reusar `Input` y `Button` de `components/ui/`.
+- HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
 
 ## Fuera del alcance (van en su propio ticket)
 
-- HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
 - HU-16 (SCRUM-39): barra de fortaleza de contraseña.
 - HU-17 (SCRUM-40): correo de verificación y estado "pendiente de verificación".
 - HU-18 (SCRUM-41): checkbox de términos y condiciones.
@@ -34,6 +34,7 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 5. Si Supabase responde que el correo ya existe, se muestra un mensaje y no se crea la cuenta. 
 6. Durante el envío el botón muestra el estado de carga y no admite un segundo clic.
 7. La página `app/registro/page.tsx` es delgada: solo monta la feature.
+8. Si las contraseñas no coinciden se muestra "Las contraseñas no coinciden." y el botón queda deshabilitado.
 
 ## Casos límite y errores
 
@@ -65,4 +66,6 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - [x] Un registro válido crea el usuario en Supabase Auth.
 - [x] Doble clic en el botón no genera dos solicitudes.
 - [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
-
+- [x] Si las contraseñas no coinciden, aparece el mensaje mientras el usuario escribe.
+- [x] El botón queda deshabilitado mientras no coincidan.
+- [x] Al coincidir, el mensaje desaparece y el botón se habilita (si el resto está completo).

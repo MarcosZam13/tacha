@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { registerUser } from "../services/registro.service";
 import type { NullableUndefined } from "@/types/nullable.types";
 import {
+  REGISTRO_FIELD,
   REGISTER_RESULT,
   REGISTRO_RESULT_MESSAGE,
   REGISTRO_SUBMIT_STATUS,
@@ -19,6 +20,7 @@ import {
   isRegistroFormComplete,
   normalizeRegistroEmail,
   validateRegistroForm,
+  validatePasswordsMatch,
 } from "../utils/validateRegistroForm";
 
 const INITIAL_VALUES: RegistroFormValues = {
@@ -35,6 +37,17 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
   const [submitError, setSubmitError] = useState<NullableUndefined<string>>(undefined);
 
   const isSubmitting = status === REGISTRO_SUBMIT_STATUS.SUBMITTING;
+
+  // Se calcula en cada render (no es estado): si cambia cualquiera de las dos contraseñas, el error aparece o desaparece solo.
+  const passwordsMismatchError = validatePasswordsMatch(values.password, values.confirmPassword);
+
+  const hasPasswordMismatch = passwordsMismatchError !== undefined;
+
+  const visibleErrors: RegistroFormErrors = {
+    ...errors,
+    [REGISTRO_FIELD.CONFIRM_PASSWORD]:
+      passwordsMismatchError ?? errors[REGISTRO_FIELD.CONFIRM_PASSWORD],
+  };
 
   // Al escribir en un campo se limpia solo el error de ese campo.
   const handleChange =
@@ -72,10 +85,10 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
   };
 
   return {
-    errors,
+    errors: visibleErrors,
     handleChange,
     handleSubmit,
-    isSubmitDisabled: !isRegistroFormComplete(values) || isSubmitting,
+    isSubmitDisabled: !isRegistroFormComplete(values) || isSubmitting || hasPasswordMismatch,
     isSubmitting,
     isSuccess: status === REGISTRO_SUBMIT_STATUS.SUCCESS,
     submitError,
