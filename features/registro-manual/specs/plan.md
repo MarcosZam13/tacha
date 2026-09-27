@@ -34,6 +34,23 @@ app/registro/page.tsx                  ruta delgada: solo renderiza <RegistroMan
 - **Contraseña mínima de 8:** debe coincidir con la configuración de Supabase (Authentication → Providers → Email).
 - **Sin `if`:** validaciones y resultados con ternarios y mapas de constantes.
 
+## SCRUM-39: feedback de seguridad de contraseña
+
+```
+features/registro-manual/
+  components/PasswordStrengthMeter.tsx   barra + etiqueta + requisitos que faltan (solo presentación)
+  components/models/PasswordStrengthMeterProps.interface.ts
+  utils/evaluatePasswordStrength.ts      función pura: contraseña → nivel y requisitos faltantes
+  constants/registro.constants.ts        reglas, niveles, etiquetas y mensajes
+```
+
+- **Reglas y niveles:** 5 reglas; nivel por cantidad cumplida (0-2 débil, 3-4 media, 5 fuerte).
+- **Unicode:** las reglas usan `\p{Ll}`, `\p{Lu}` y `[^\p{L}\p{N}]` (con la bandera `u`), para que `ñ` y `á` cuenten bien.
+- **Solo informa:** no bloquea el envío; el único bloqueo es el mínimo de 8 que ya existe.
+- **Accesibilidad:** el nivel también se escribe ("Débil", "Media", "Fuerte") y la barra lleva atributos ARIA; no depende solo del color.
+- **Colores:** rojo/terracota a teal (`docs/DESIGN.md` §7.14), con los tokens `tacha-*`.
+- **Reuso futuro:** la recuperación de contraseña (HU-28/29) usará la misma barra; se promueve a `components/` cuando exista ese segundo uso, no antes.
+
 ## SCRUM-40: verificación de correo
 
 ```
@@ -59,3 +76,5 @@ app/registro/verificado/page.tsx       ruta delgada: solo renderiza <RegistroVer
 - **Reenvío sin enumeración:** el mensaje de éxito es el mismo exista o no la cuenta.
 - **Sin login:** iniciar sesión (SCRUM-45) queda fuera de esta historia.
 - **Configuración en Supabase:** Redirect URL agregada en el Dashboard; el tiempo de expiración lo define Supabase.
+
+

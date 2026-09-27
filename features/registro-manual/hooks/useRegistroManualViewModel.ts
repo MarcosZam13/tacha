@@ -15,6 +15,7 @@ import type {
 } from "../constants/registro.constants";
 import type { RegistroFormErrors, RegistroFormValues } from "../models/RegistroFormValues.interface";
 import type { RegistroManualViewModel } from "../models/RegistroManualViewModel.interface";
+import { evaluatePasswordStrength } from "../utils/evaluatePasswordStrength";
 import {
   hasRegistroErrors,
   isRegistroFormComplete,
@@ -38,6 +39,9 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
 
   const isSubmitting = status === REGISTRO_SUBMIT_STATUS.SUBMITTING;
 
+  // Se calcula en cada render (no es estado). Sin contraseña no hay nada que mostrar.
+  const passwordStrength =
+    values.password.length > 0 ? evaluatePasswordStrength(values.password) : undefined;
   // Se calcula en cada render (no es estado): si cambia cualquiera de las dos contraseñas, el error aparece o desaparece solo.
   const passwordsMismatchError = validatePasswordsMatch(values.password, values.confirmPassword);
 
@@ -91,6 +95,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
     isSubmitDisabled: !isRegistroFormComplete(values) || isSubmitting || hasPasswordMismatch,
     isSubmitting,
     isSuccess: status === REGISTRO_SUBMIT_STATUS.SUCCESS,
+    passwordStrength,
     registeredEmail: normalizeRegistroEmail(values.email),
     submitError,
     values,
