@@ -22,6 +22,7 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 
 ## Fuera del alcance (van en su propio ticket)
 
+- HU-17 (SCRUM-40): correo de verificación y estado "pendiente de verificación".
 - Registro con Google/Facebook (HU-19 a HU-21).
 
 

@@ -43,4 +43,4 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## Historias que se montan sobre esta (cada una en su PR, en `on hold` hasta que esta se mergee)
 
-- SCRUM-41 (HU-18): términos y condiciones.
+- SCRUM-40 (HU-17): verificación de correo.
