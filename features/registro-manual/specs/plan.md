@@ -33,3 +33,29 @@ app/registro/page.tsx                  ruta delgada: solo renderiza <RegistroMan
 - **Resultado sin excepciones:** `registerUser` devuelve `success`, `email-exists` o `error`; un mapa de constantes traduce cada uno a su mensaje.
 - **Contraseña mínima de 8:** debe coincidir con la configuración de Supabase (Authentication → Providers → Email).
 - **Sin `if`:** validaciones y resultados con ternarios y mapas de constantes.
+
+## SCRUM-40: verificación de correo
+
+```
+features/registro-manual/
+  components/
+    VerificacionPendiente.tsx          pantalla "revisá tu correo" + botón de reenvío con cuenta regresiva
+    ReenvioCorreoForm.tsx              campo de correo + botón para reenviar (caso de enlace expirado)
+    models/                            props de los mini componentes
+  RegistroVerificado.tsx               entrada de /registro/verificado: éxito o enlace expirado
+  hooks/
+    useVerificacionPendienteViewModel.ts   reenvío, cuenta regresiva y mensajes
+    useRegistroVerificadoViewModel.ts      lee el resultado del enlace (hash de la URL)
+  services/registro.service.ts         + resendVerificationEmail(); registerUser() envía emailRedirectTo
+  constants/registro.constants.ts      textos, segundos de espera, claves del resultado del enlace
+app/registro/verificado/page.tsx       ruta delgada: solo renderiza <RegistroVerificado />
+```
+
+## Decisiones
+
+- **Sin correo en la URL:** el correo del registro se guarda en el estado del ViewModel; al reenviar desde el enlace expirado se pide de nuevo en un campo, porque el enlace no lo trae y así también funciona desde otro dispositivo.
+- **Cuenta regresiva:** 60 s, el mínimo que impone Supabase entre correos del mismo usuario; evita spam y el 429.
+- **Resultado del enlace:** Supabase redirige a `/registro/verificado` con el resultado en el fragmento (`#...`); un error de enlace trae `error_code` (`otp_expired`). Solo se lee en el navegador.
+- **Reenvío sin enumeración:** el mensaje de éxito es el mismo exista o no la cuenta.
+- **Sin login:** iniciar sesión (SCRUM-45) queda fuera de esta historia.
+- **Configuración en Supabase:** Redirect URL agregada en el Dashboard; el tiempo de expiración lo define Supabase.

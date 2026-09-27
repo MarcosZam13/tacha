@@ -16,11 +16,12 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Rechazo del registro si el correo ya existe, con mensaje visible.
 - Reusar `Input` y `Button` de `components/ui/`.
 - HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
+- HU-17 (SCRUM-40): verificación de correo: pantalla de "pendiente de verificación", reenvío del correo y página que recibe
+enlace de confirmación.
 
 ## Fuera del alcance (van en su propio ticket)
 
 - HU-16 (SCRUM-39): barra de fortaleza de contraseña.
-- HU-17 (SCRUM-40): correo de verificación y estado "pendiente de verificación".
 - HU-18 (SCRUM-41): checkbox de términos y condiciones.
 - Registro con Google/Facebook (HU-19 a HU-21).
 
@@ -35,6 +36,13 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 6. Durante el envío el botón muestra el estado de carga y no admite un segundo clic.
 7. La página `app/registro/page.tsx` es delgada: solo monta la feature.
 8. Si las contraseñas no coinciden se muestra "Las contraseñas no coinciden." y el botón queda deshabilitado.
+9. Al completar el registro se muestra la pantalla "pendiente de verificación" con el correo escrito y la indicación de confirmar desde el correo. Reemplaza al mensaje "¡Cuenta creada!".
+10. El correo con el enlace lo envía Supabase Auth al registrarse (con "Confirm email" activo). La cuenta queda sin confirmar hasta abrir el enlace.
+11. El registro envía `emailRedirectTo` apuntando a `/registro/verificado`, para que el enlace lleve a la página de confirmación.
+12. La pantalla pendiente ofrece "Reenviar correo". Tras usarlo el botón queda deshabilitado con una cuenta regresiva de 60 segundos (el mínimo que Supabase impone entre envíos).
+13. La ruta `/registro/verificado` muestra "Correo confirmado" cuando el enlace es válido.
+14. Si el enlace expiró o no es válido, `/registro/verificado` muestra el mensaje de expiración y un campo de correo con "Reenviar correo".
+15. El correo del usuario nunca viaja en la URL: se conserva en el estado de la pantalla.
 
 ## Casos límite y errores
 
@@ -43,6 +51,11 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Doble clic en "Registrarme": una sola solicitud.
 - Falla de red o error de Supabase: mensaje genérico, sin exponer el error técnico.
 - Correo ya registrado: mensaje específico, sin borrar lo que el usuario escribió.
+- Reenvío antes de los 60 s, o límite de envíos de Supabase (429): mensaje genérico ("Esperá un momento antes de reenviar") sin exponer el error técnico.
+- El correo del reenvío se valida con el mismo formato y se normaliza igual que en el registro.
+- Reenviar a un correo que no existe o ya está confirmado: se muestra el mismo mensaje de éxito, sin revelar si existe la cuenta.
+- Recargar `/registro/verificado` con un enlace ya usado: se muestra el mensaje de enlace inválido o expirado.
+- Abrir `/registro/verificado` sin enlace: se muestra el mensaje de enlace inválido, no un error.
 
 
 ## Restricciones
@@ -53,7 +66,9 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Auth y formularios: cumplir [security-practices](../../../.agents/skills/security-practices/SKILL.md). La contraseña nunca se registra en logs ni se guarda en el estado más de lo necesario.
 - Variables de entorno de Supabase solo con las `NEXT_PUBLIC_*` del `.env.example`.
 - El mensaje "Ya existe una cuenta con este correo." revela qué correos están registrados
-  (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confimar.
+  (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confirmar.
+  - El tiempo de expiración del enlace lo configura Supabase (Authentication → Email OTP expiration); la app no lo define.
+- `/registro/verificado` debe estar en la lista de Redirect URLs de Supabase (URL Configuration).
 
 
 
