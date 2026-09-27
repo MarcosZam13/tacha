@@ -15,11 +15,11 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Envío a Supabase Auth (`signUp`) con manejo de errores.
 - Rechazo del registro si el correo ya existe, con mensaje visible.
 - Reusar `Input` y `Button` de `components/ui/`.
+- HU-16 (SCRUM-39): feedback de seguridad de la contraseña: barra de fortaleza y requisitos que faltan.
 
 ## Fuera del alcance (van en su propio ticket)
 
 - HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
-- HU-16 (SCRUM-39): barra de fortaleza de contraseña.
 - HU-17 (SCRUM-40): correo de verificación y estado "pendiente de verificación".
 - HU-18 (SCRUM-41): checkbox de términos y condiciones.
 - Registro con Google/Facebook (HU-19 a HU-21).
@@ -34,6 +34,10 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 5. Si Supabase responde que el correo ya existe, se muestra un mensaje y no se crea la cuenta. 
 6. Durante el envío el botón muestra el estado de carga y no admite un segundo clic.
 7. La página `app/registro/page.tsx` es delgada: solo monta la feature.
+8. Mientras se escribe en "Contraseña" se evalúa contra 5 reglas: mínimo 8 caracteres, una minúscula, una mayúscula, un número y un carácter especial.
+9. Se muestra una barra de progreso con el nivel: débil (0 a 2 reglas), media (3 a 4) o fuerte (las 5), con la etiqueta escrita.
+10. Debajo de la barra se listan solo los requisitos que faltan, por ejemplo "Debe incluir al menos un número."
+11. El indicador solo aparece cuando el campo tiene contenido y no bloquea el registro (solo sigue bloqueando el mínimo de 8 que ya existe).
 
 ## Casos límite y errores
 
@@ -42,6 +46,9 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Doble clic en "Registrarme": una sola solicitud.
 - Falla de red o error de Supabase: mensaje genérico, sin exponer el error técnico.
 - Correo ya registrado: mensaje específico, sin borrar lo que el usuario escribió.
+- Contraseña vacía: no se muestra el indicador. Borrar el contenido lo oculta.
+- Letras con tilde o eñe (`ñ`, `á`) cuentan como minúscula o mayúscula.
+- "Carácter especial" es cualquier carácter que no sea letra ni número.
 
 
 ## Restricciones
@@ -65,4 +72,10 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - [x] Un registro válido crea el usuario en Supabase Auth.
 - [x] Doble clic en el botón no genera dos solicitudes.
 - [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
+- [ ] Al escribir en "Contraseña" aparece una barra con nivel débil, media o fuerte.
+- [ ] El nivel sube al cumplir más reglas.
+- [ ] Se listan los requisitos que faltan, y desaparecen al cumplirse.
+- [ ] Con las 5 reglas cumplidas el nivel es fuerte y no hay lista.
+- [ ] Con la contraseña vacía no se muestra nada.
+- [ ] El indicador no bloquea el envío del formulario.
 
