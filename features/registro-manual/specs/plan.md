@@ -50,3 +50,19 @@ features/registro-manual/
 - **Accesibilidad:** el nivel también se escribe ("Débil", "Media", "Fuerte") y la barra lleva atributos ARIA; no depende solo del color.
 - **Colores:** rojo/terracota a teal (`docs/DESIGN.md` §7.14), con los tokens `tacha-*`.
 - **Reuso futuro:** la recuperación de contraseña (HU-28/29) usará la misma barra; se promueve a `components/` cuando exista ese segundo uso, no antes.
+
+## SCRUM-41: aceptación de términos y condiciones
+
+```
+features/registro-manual/
+  RegistroManual.tsx                 agrega el Checkbox + enlace + Modal debajo de los campos
+  hooks/useRegistroManualViewModel.ts   + acceptedTerms, handleAcceptedTermsChange, isTermsModalOpen, etc.
+  constants/registro.constants.ts    texto del checkbox, del enlace, título del modal, placeholder legal
+```
+
+## Decisiones
+
+- **Reuso:** `Checkbox` y `Modal` ya existen en `components/ui/`; no se crea ningún componente nuevo.
+- **Estado del modal:** vive en el mismo ViewModel del registro, como un booleano más (abierto/cerrado), no en un store aparte — es un solo checkbox de una sola pantalla.
+- **Bloqueo:** el checkbox se suma a `isSubmitDisabled`, igual que los demás campos obligatorios.
+- **Texto legal:** placeholder hasta que el equipo redacte los términos reales; se anota en el PR para que no se confunda con contenido definitivo.

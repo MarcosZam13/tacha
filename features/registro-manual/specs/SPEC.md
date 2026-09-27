@@ -17,11 +17,11 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Reusar `Input` y `Button` de `components/ui/`.
 - HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
 - HU-16 (SCRUM-39): feedback de seguridad de la contraseña: barra de fortaleza y requisitos que faltan.
+- HU-18 (SCRUM-41): checkbox de términos y condiciones.
+
 
 ## Fuera del alcance (van en su propio ticket)
 
-- HU-17 (SCRUM-40): correo de verificación y estado "pendiente de verificación".
-- HU-18 (SCRUM-41): checkbox de términos y condiciones.
 - Registro con Google/Facebook (HU-19 a HU-21).
 
 
@@ -39,6 +39,9 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 10. Se muestra una barra de progreso con el nivel: débil (0 a 2 reglas), media (3 a 4) o fuerte (las 5), con la etiqueta escrita.
 11. Debajo de la barra se listan solo los requisitos que faltan, por ejemplo "Debe incluir al menos un número."
 12. El indicador solo aparece cuando el campo tiene contenido y no bloquea el registro (solo sigue bloqueando el mínimo de 8 que ya existe).
+13. Se muestra un checkbox "Acepto los términos y condiciones", no marcado por defecto.
+14. Junto al checkbox hay un enlace "Ver términos y condiciones" que abre un modal con el texto completo.
+15. El botón de registro permanece deshabilitado mientras el checkbox no esté marcado.
 
 ## Casos límite y errores
 
@@ -50,6 +53,8 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Contraseña vacía: no se muestra el indicador. Borrar el contenido lo oculta.
 - Letras con tilde o eñe (`ñ`, `á`) cuentan como minúscula o mayúscula.
 - "Carácter especial" es cualquier carácter que no sea letra ni número.
+- Abrir el modal y cerrarlo sin aceptar: el checkbox conserva su estado previo.
+- El texto de términos es un marcador de posición hasta que el equipo defina el contenido legal real (ver Developer Notes del PR).
 
 
 ## Restricciones
@@ -61,6 +66,7 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Variables de entorno de Supabase solo con las `NEXT_PUBLIC_*` del `.env.example`.
 - El mensaje "Ya existe una cuenta con este correo." revela qué correos están registrados
   (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confirmar.
+- Reusar `Checkbox` y `Modal` de `components/ui/`, sin crear componentes nuevos para eso.
 
 
 
@@ -82,3 +88,8 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - [x] Con las 5 reglas cumplidas el nivel es fuerte y no hay lista.
 - [x] Con la contraseña vacía no se muestra nada.
 - [x] El indicador no bloquea el envío del formulario.
+- [ ] El checkbox aparece sin marcar al cargar la página.
+- [ ] El botón de registro está deshabilitado mientras el checkbox no esté marcado.
+- [ ] Marcar el checkbox habilita el botón (si el resto del formulario está completo).
+- [ ] El enlace "Ver términos y condiciones" abre un modal con el texto.
+- [ ] Cerrar el modal no cambia el estado del checkbox.
