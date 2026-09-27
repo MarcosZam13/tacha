@@ -27,7 +27,7 @@ export const useVerificacionPendienteViewModel = ({
       secondsLeft > 0
         ? setTimeout(() => setSecondsLeft((previous) => previous - 1), VERIFICATION_COUNTDOWN_TICK_MS)
         : undefined;
-
+        
     return () => clearTimeout(timer);
   }, [secondsLeft]);
 

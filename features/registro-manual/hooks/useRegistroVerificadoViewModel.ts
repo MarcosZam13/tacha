@@ -19,8 +19,7 @@ export const useRegistroVerificadoViewModel = (): RegistroVerificadoViewModel =>
     // ni se copien al compartir la dirección.
     window.history.replaceState(null, "", window.location.pathname);
 
-    const timer = setTimeout(() => setLinkStatus(status), 0);
-    return () => clearTimeout(timer);
+    setLinkStatus(status);
   }, []);
 
   return { linkStatus };
