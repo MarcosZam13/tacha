@@ -21,10 +21,10 @@ export const isRegistroFormComplete = (values: RegistroFormValues): boolean =>
   values.password.length > 0 &&
   values.confirmPassword.length > 0;
 
-const validateName = (name: string): NullableUndefined<string> =>
+export const validateName = (name: string): NullableUndefined<string> =>
   name.trim().length === 0 ? REGISTRO_ERROR_MESSAGE.NAME_REQUIRED : undefined;
 
-const validateEmail = (email: string): NullableUndefined<string> =>
+export const validateEmail = (email: string): NullableUndefined<string> =>
   normalizeRegistroEmail(email).length === 0
     ? REGISTRO_ERROR_MESSAGE.EMAIL_REQUIRED
     : !REGISTRO_EMAIL_PATTERN.test(normalizeRegistroEmail(email))

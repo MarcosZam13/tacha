@@ -10,6 +10,7 @@ export interface RegistroManualViewModel {
   isSubmitDisabled: boolean;
   isSubmitting: boolean;
   isSuccess: boolean;
+  registeredEmail: string;
   submitError: NullableUndefined<string>;
   values: RegistroFormValues;
 }

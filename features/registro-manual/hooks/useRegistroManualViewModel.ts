@@ -91,6 +91,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
     isSubmitDisabled: !isRegistroFormComplete(values) || isSubmitting || hasPasswordMismatch,
     isSubmitting,
     isSuccess: status === REGISTRO_SUBMIT_STATUS.SUCCESS,
+    registeredEmail: normalizeRegistroEmail(values.email),
     submitError,
     values,
   };

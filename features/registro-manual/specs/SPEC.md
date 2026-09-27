@@ -80,7 +80,13 @@ enlace de confirmación.
 - [x] Un correo ya registrado muestra un mensaje y no crea una cuenta.
 - [x] Un registro válido crea el usuario en Supabase Auth.
 - [x] Doble clic en el botón no genera dos solicitudes.
-- [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
 - [x] Si las contraseñas no coinciden, aparece el mensaje mientras el usuario escribe.
 - [x] El botón queda deshabilitado mientras no coincidan.
 - [x] Al coincidir, el mensaje desaparece y el botón se habilita (si el resto está completo).
+- [x] Un registro válido muestra la pantalla "pendiente de verificación" con el correo del usuario.
+- [x] El usuario recibe el correo de confirmación de Supabase.
+- [x] "Reenviar correo" envía un correo nuevo y se deshabilita 60 segundos con cuenta regresiva.
+- [x] El enlace del correo lleva a `/registro/verificado` y muestra "Correo confirmado".
+- [x] Con un enlace expirado se muestra el mensaje de expiración y se puede pedir un correo nuevo.
+- [x] El correo no aparece en la URL.
+- [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
