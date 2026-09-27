@@ -15,12 +15,12 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-39: feedback de seguridad de contraseña
 
-- [ ] 1. Constantes: reglas, niveles, etiquetas y mensajes (`constants/registro.constants.ts`).
-- [ ] 2. Evaluación pura (`utils/evaluatePasswordStrength.ts`).
-- [ ] 3. Mini componente `components/PasswordStrengthMeter.tsx` y su modelo de props.
-- [ ] 4. El ViewModel expone la fortaleza de la contraseña.
-- [ ] 5. `RegistroManual.tsx` pinta el medidor debajo del campo de contraseña.
-- [ ] 6. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 1. Constantes: reglas, niveles, etiquetas y mensajes (`constants/registro.constants.ts`).
+- [x] 2. Evaluación pura (`utils/evaluatePasswordStrength.ts`).
+- [x] 3. Mini componente `components/PasswordStrengthMeter.tsx` y su modelo de props.
+- [x] 4. El ViewModel expone la fortaleza de la contraseña.
+- [x] 5. `RegistroManual.tsx` pinta el medidor debajo del campo de contraseña.
+- [x] 6. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 ## Pendiente cuando el proyecto tenga runner de tests
 

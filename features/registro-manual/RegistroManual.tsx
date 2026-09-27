@@ -1,7 +1,9 @@
 "use client";
 
 import { Button, Input } from "@/components/ui";
+import { PasswordStrengthMeter } from "./components/PasswordStrengthMeter";
 import {
+  REGISTRO_FIELD,
   REGISTRO_FORM_FIELDS,
   REGISTRO_LABEL,
 } from "./constants/registro.constants";
@@ -19,6 +21,7 @@ export const RegistroManual = (): React.JSX.Element => {
     isSubmitDisabled,
     isSubmitting,
     isSuccess,
+    passwordStrength,
     submitError,
     values,
   } = useRegistroManualViewModel();
@@ -34,15 +37,20 @@ export const RegistroManual = (): React.JSX.Element => {
       ) : (
         <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
           {REGISTRO_FORM_FIELDS.map(({ field, label, type }) => (
-            <Input
-              key={field}
-              isRequired
-              label={label}
-              type={type}
-              value={values[field]}
-              onChange={handleChange(field)}
-              errorMessage={errors[field]}
-            />
+            <div key={field} className="flex flex-col gap-2">
+              <Input
+                isRequired
+                label={label}
+                type={type}
+                value={values[field]}
+                onChange={handleChange(field)}
+                errorMessage={errors[field]}
+              />
+
+              {field === REGISTRO_FIELD.PASSWORD && passwordStrength ? (
+                <PasswordStrengthMeter strength={passwordStrength} />
+              ) : null}
+            </div>
           ))}
 
           {submitError ? (
