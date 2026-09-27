@@ -15,11 +15,11 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Envío a Supabase Auth (`signUp`) con manejo de errores.
 - Rechazo del registro si el correo ya existe, con mensaje visible.
 - Reusar `Input` y `Button` de `components/ui/`.
+- HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
 - HU-16 (SCRUM-39): feedback de seguridad de la contraseña: barra de fortaleza y requisitos que faltan.
 
 ## Fuera del alcance (van en su propio ticket)
 
-- HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
 - HU-17 (SCRUM-40): correo de verificación y estado "pendiente de verificación".
 - HU-18 (SCRUM-41): checkbox de términos y condiciones.
 - Registro con Google/Facebook (HU-19 a HU-21).
@@ -31,13 +31,14 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 2. El botón "Registrarme" se habilita solo si los 4 campos tienen contenido.
 3. Cada campo inválido muestra su mensaje debajo del campo.
 4. El correo se valida con formato válido antes de enviar.
-5. Si Supabase responde que el correo ya existe, se muestra un mensaje y no se crea la cuenta. 
+5. Si Supabase responde que el correo ya existe, se muestra un mensaje y no se crea la cuenta.
 6. Durante el envío el botón muestra el estado de carga y no admite un segundo clic.
 7. La página `app/registro/page.tsx` es delgada: solo monta la feature.
-8. Mientras se escribe en "Contraseña" se evalúa contra 5 reglas: mínimo 8 caracteres, una minúscula, una mayúscula, un número y un carácter especial.
-9. Se muestra una barra de progreso con el nivel: débil (0 a 2 reglas), media (3 a 4) o fuerte (las 5), con la etiqueta escrita.
-10. Debajo de la barra se listan solo los requisitos que faltan, por ejemplo "Debe incluir al menos un número."
-11. El indicador solo aparece cuando el campo tiene contenido y no bloquea el registro (solo sigue bloqueando el mínimo de 8 que ya existe).
+8. Si las contraseñas no coinciden se muestra "Las contraseñas no coinciden." y el botón queda deshabilitado.
+9. Mientras se escribe en "Contraseña" se evalúa contra 5 reglas: mínimo 8 caracteres, una minúscula, una mayúscula, un número y un carácter especial.
+10. Se muestra una barra de progreso con el nivel: débil (0 a 2 reglas), media (3 a 4) o fuerte (las 5), con la etiqueta escrita.
+11. Debajo de la barra se listan solo los requisitos que faltan, por ejemplo "Debe incluir al menos un número."
+12. El indicador solo aparece cuando el campo tiene contenido y no bloquea el registro (solo sigue bloqueando el mínimo de 8 que ya existe).
 
 ## Casos límite y errores
 
@@ -59,7 +60,7 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Auth y formularios: cumplir [security-practices](../../../.agents/skills/security-practices/SKILL.md). La contraseña nunca se registra en logs ni se guarda en el estado más de lo necesario.
 - Variables de entorno de Supabase solo con las `NEXT_PUBLIC_*` del `.env.example`.
 - El mensaje "Ya existe una cuenta con este correo." revela qué correos están registrados
-  (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confimar.
+  (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confirmar.
 
 
 
@@ -72,10 +73,12 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - [x] Un registro válido crea el usuario en Supabase Auth.
 - [x] Doble clic en el botón no genera dos solicitudes.
 - [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
-- [ ] Al escribir en "Contraseña" aparece una barra con nivel débil, media o fuerte.
-- [ ] El nivel sube al cumplir más reglas.
-- [ ] Se listan los requisitos que faltan, y desaparecen al cumplirse.
-- [ ] Con las 5 reglas cumplidas el nivel es fuerte y no hay lista.
-- [ ] Con la contraseña vacía no se muestra nada.
-- [ ] El indicador no bloquea el envío del formulario.
-
+- [x] Si las contraseñas no coinciden, aparece el mensaje mientras el usuario escribe.
+- [x] El botón queda deshabilitado mientras no coincidan.
+- [x] Al coincidir, el mensaje desaparece y el botón se habilita (si el resto está completo).
+- [x] Al escribir en "Contraseña" aparece una barra con nivel débil, media o fuerte.
+- [x] El nivel sube al cumplir más reglas.
+- [x] Se listan los requisitos que faltan, y desaparecen al cumplirse.
+- [x] Con las 5 reglas cumplidas el nivel es fuerte y no hay lista.
+- [x] Con la contraseña vacía no se muestra nada.
+- [x] El indicador no bloquea el envío del formulario.
