@@ -1,11 +1,13 @@
 "use client";
 
-import { Button, Input } from "@/components/ui";
+import { Button, Checkbox, Input, Modal } from "@/components/ui";
 import { PasswordStrengthMeter } from "./components/PasswordStrengthMeter";
 import {
   REGISTRO_FIELD,
   REGISTRO_FORM_FIELDS,
   REGISTRO_LABEL,
+  TERMS_CONTENT_PLACEHOLDER,
+  TERMS_LABEL,
 } from "./constants/registro.constants";
 import { useRegistroManualViewModel } from "./hooks/useRegistroManualViewModel";
 
@@ -16,11 +18,16 @@ import { useRegistroManualViewModel } from "./hooks/useRegistroManualViewModel";
 export const RegistroManual = (): React.JSX.Element => {
   const {
     errors,
+    handleAcceptedTermsChange,
     handleChange,
     handleSubmit,
+    handleTermsModalClose,
+    handleTermsModalOpen,
+    isAcceptedTerms,
     isSubmitDisabled,
     isSubmitting,
     isSuccess,
+    isTermsModalOpen,
     passwordStrength,
     submitError,
     values,
@@ -53,6 +60,21 @@ export const RegistroManual = (): React.JSX.Element => {
             </div>
           ))}
 
+          <div className="flex items-center gap-2">
+            <Checkbox
+              isChecked={isAcceptedTerms}
+              onChange={handleAcceptedTermsChange}
+              label={TERMS_LABEL.CHECKBOX}
+            />
+            <button
+              type="button"
+              onClick={handleTermsModalOpen}
+              className="font-body text-sm text-tacha-teal underline"
+            >
+              {TERMS_LABEL.VIEW_LINK}
+            </button>
+          </div>
+
           {submitError ? (
             <p role="alert" className="font-body text-sm text-red-600">
               {submitError}
@@ -64,6 +86,10 @@ export const RegistroManual = (): React.JSX.Element => {
           </Button>
         </form>
       )}
+
+      <Modal isOpen={isTermsModalOpen} onClose={handleTermsModalClose} title={TERMS_LABEL.MODAL_TITLE}>
+        <p className="font-body text-sm text-tacha-text">{TERMS_CONTENT_PLACEHOLDER}</p>
+      </Modal>
     </main>
   );
 };

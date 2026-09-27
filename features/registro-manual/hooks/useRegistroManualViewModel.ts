@@ -36,6 +36,8 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
   const [errors, setErrors] = useState<RegistroFormErrors>({});
   const [status, setStatus] = useState<RegistroSubmitStatusType>(REGISTRO_SUBMIT_STATUS.IDLE);
   const [submitError, setSubmitError] = useState<NullableUndefined<string>>(undefined);
+  const [isAcceptedTerms, setIsAcceptedTerms] = useState<boolean>(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState<boolean>(false);
 
   const isSubmitting = status === REGISTRO_SUBMIT_STATUS.SUBMITTING;
 
@@ -60,6 +62,18 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
       setValues((previous) => ({ ...previous, [field]: value }));
       setErrors((previous) => ({ ...previous, [field]: undefined }));
     };
+  
+  const handleAcceptedTermsChange = (isChecked: boolean): void => {
+    setIsAcceptedTerms(isChecked);
+  };
+
+  const handleTermsModalOpen = (): void => {
+    setIsTermsModalOpen(true);
+  };
+
+  const handleTermsModalClose = (): void => {
+    setIsTermsModalOpen(false);
+  };
 
   const submitRegistration = async (): Promise<void> => {
     setStatus(REGISTRO_SUBMIT_STATUS.SUBMITTING);
@@ -90,11 +104,16 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
 
   return {
     errors: visibleErrors,
+    handleAcceptedTermsChange,
     handleChange,
     handleSubmit,
-    isSubmitDisabled: !isRegistroFormComplete(values) || isSubmitting || hasPasswordMismatch,
+    handleTermsModalClose,
+    handleTermsModalOpen,
+    isAcceptedTerms,
+    isSubmitDisabled: !isRegistroFormComplete(values) || isSubmitting || hasPasswordMismatch || !isAcceptedTerms,
     isSubmitting,
     isSuccess: status === REGISTRO_SUBMIT_STATUS.SUCCESS,
+    isTermsModalOpen,
     passwordStrength,
     submitError,
     values,

@@ -8,9 +8,14 @@ export interface RegistroManualViewModel {
   errors: RegistroFormErrors;
   handleChange: (field: RegistroFieldType) => (value: string) => void;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleAcceptedTermsChange: (isChecked: boolean) => void;
+  handleTermsModalClose: () => void;
+  handleTermsModalOpen: () => void;
   isSubmitDisabled: boolean;
   isSubmitting: boolean;
   isSuccess: boolean;
+  isAcceptedTerms: boolean;
+  isTermsModalOpen: boolean;
   passwordStrength: NullableUndefined<PasswordStrength>;
   submitError: NullableUndefined<string>;
   values: RegistroFormValues;

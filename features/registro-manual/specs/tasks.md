@@ -31,10 +31,10 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-41: aceptación de términos y condiciones
 
-- [ ] 1. Constantes: textos del checkbox, del enlace, título del modal y el texto placeholder.
-- [ ] 2. ViewModel: estado de aceptación, del modal, y que bloquee el envío.
-- [ ] 3. Presentación: `Checkbox` + enlace + `Modal` en `RegistroManual.tsx`.
-- [ ] 4. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 1. Constantes: textos del checkbox, del enlace, título del modal y el texto placeholder.
+- [x] 2. ViewModel: estado de aceptación, del modal, y que bloquee el envío.
+- [x] 3. Presentación: `Checkbox` + enlace + `Modal` en `RegistroManual.tsx`.
+- [x] 4. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 
 ## Pendiente cuando el proyecto tenga runner de tests

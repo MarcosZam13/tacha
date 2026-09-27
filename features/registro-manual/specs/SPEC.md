@@ -88,8 +88,8 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - [x] Con las 5 reglas cumplidas el nivel es fuerte y no hay lista.
 - [x] Con la contraseña vacía no se muestra nada.
 - [x] El indicador no bloquea el envío del formulario.
-- [ ] El checkbox aparece sin marcar al cargar la página.
-- [ ] El botón de registro está deshabilitado mientras el checkbox no esté marcado.
-- [ ] Marcar el checkbox habilita el botón (si el resto del formulario está completo).
-- [ ] El enlace "Ver términos y condiciones" abre un modal con el texto.
-- [ ] Cerrar el modal no cambia el estado del checkbox.
+- [x] El checkbox aparece sin marcar al cargar la página.
+- [x] El botón de registro está deshabilitado mientras el checkbox no esté marcado.
+- [x] Marcar el checkbox habilita el botón (si el resto del formulario está completo).
+- [x] El enlace "Ver términos y condiciones" abre un modal con el texto.
+- [x] Cerrar el modal no cambia el estado del checkbox.
