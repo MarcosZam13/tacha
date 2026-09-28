@@ -647,6 +647,15 @@ export type Database = {
           base_unit: string
         }[]
       }
+      save_recipe: {
+        Args: {
+          ingredient_list: Json
+          recipe_base_servings: number
+          recipe_name: string
+          target_recipe_id?: string
+        }
+        Returns: string
+      }
       search_catalog: {
         Args: { household_id?: string; search_term?: string }
         Returns: {

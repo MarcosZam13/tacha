@@ -312,6 +312,7 @@ Reglas de negocio que deben vivir en la base de datos (funciones/triggers), no e
 - Normalización/deduplicación de productos scrapeados antes de pasar de staging al catálogo real (incluye asignar cada fila de staging a un `product_catalog` + `product_catalog_variants` correspondiente).
 - **Nueva (2026-08-19):** al tachar un item, además de crear/actualizar el `purchase_sessions` correspondiente, se crea o actualiza su fila en `household_inventory_items` (con `source: purchase`), usando la fecha dada por el usuario si la dio, o la vida útil típica de su categoría si no.
 - **Nueva (2026-08-19):** si el admin de un household sale y hay otros miembros, la transferencia de rol es obligatoria antes de completar la salida (no puede quedar el household sin admin); si es el único miembro, el household se elimina junto con su `household_invite_links` activo.
+- **Nueva (2026-09-28, SCRUM-95):** guardar una receta (crearla o editarla) es atómico: la función `save_recipe` guarda la receta y reemplaza todos sus ingredientes en una sola transacción, así nunca queda una receta a medias. Corre con los permisos de quien llama (`security invoker`), así que RLS sigue decidiendo quién puede editar qué.
 
 ## 7. Arquitectura técnica propuesta
 
