@@ -12,12 +12,20 @@
 --
 -- Un usuario creado después de correrlo no tiene las recetas: basta con
 -- volver a correrlo. Es idempotente: borra y vuelve a crear las recetas de
--- ejemplo de todos, sin duplicar. No toca recetas con otros nombres.
+-- ejemplo, sin duplicar.
+--
+-- Cómo sabe cuáles son "de ejemplo": todas llevan created_at dentro de la
+-- primera hora del 2000-01-01 (demo_marker), una fecha que ninguna receta
+-- real puede tener (created_at es now() al crearla). El delete y el join
+-- solo tocan esas filas, así que correrlo después de SCRUM-95 no borra
+-- recetas reales aunque se llamen igual.
+--
 -- No es una migración: son datos de prueba y no van a producción.
 -- ============================================================================
 
 do $$
 declare
+  demo_marker constant timestamptz := '2000-01-01 00:00:00+00';
   user_count integer;
   expected_ingredients integer;
   inserted_ingredients integer;
@@ -27,9 +35,12 @@ begin
     raise exception 'No hay usuarios: abre /recetas una vez antes de correr el seed';
   end if;
 
+  -- Los ingredientes se borran en cascada con su receta.
   delete from public.recipes
-  where name in ('Tres leches', 'Arroz con leche', 'Batido de chocolate', 'Cereal con leche');
+  where created_at >= demo_marker and created_at < demo_marker + interval '1 hour';
 
+  -- created_offset: más offset = más nueva, para que el orden "más nuevas
+  -- primero" de la pantalla sea estable.
   create temporary table demo_recipes (
     name text, base_servings integer, created_offset interval
   ) on commit drop;
@@ -56,10 +67,9 @@ begin
     ('Cereal con leche',    'Froot Loops Mas Leche Pinito 520 g',           40, 'g',  0),
     ('Cereal con leche',    'Leche Semidescremada Dos Pinos -1 L',         250, 'ml', 1);
 
-  -- Una copia de cada receta por usuario. created_at escalonado para que el
-  -- orden "más nuevas primero" sea estable.
+  -- Una copia de cada receta por usuario, marcada con demo_marker.
   insert into public.recipes (owner_id, name, base_servings, created_at)
-  select u.id, d.name, d.base_servings, now() - d.created_offset
+  select u.id, d.name, d.base_servings, demo_marker + d.created_offset
   from auth.users u
   cross join demo_recipes d;
 
@@ -67,7 +77,9 @@ begin
     (recipe_id, product_catalog_id, quantity_value, quantity_unit, position)
   select r.id, p.id, i.quantity_value, i.quantity_unit, i.position
   from demo_ingredients i
-  join public.recipes r on r.name = i.recipe_name
+  join public.recipes r
+    on r.name = i.recipe_name
+   and r.created_at >= demo_marker and r.created_at < demo_marker + interval '1 hour'
   join public.product_catalog p on p.name = i.product_name;
 
   get diagnostics inserted_ingredients = row_count;
