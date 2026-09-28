@@ -9,20 +9,21 @@ import { formatServings } from "./formatServings";
  * se pueden probar sin montar la pantalla.
  *
  * Los ingredientes principales son los primeros por `position` (el orden en
- * que se cargaron), no alfabéticos. Se ordena acá aunque la consulta ya pida
- * ese orden, para que la regla no dependa de cómo se escribió la consulta.
+ * que se cargaron), no alfabéticos. El orden vive solo acá, no en la consulta,
+ * para que la regla tenga un único lugar.
  */
 export const toRecipeSummary = (recipeRow: RecipeRow): RecipeSummary => {
-  const ingredientNames = [...recipeRow.recipe_ingredients]
+  const ingredients = [...recipeRow.recipe_ingredients]
     .sort((first, second) => first.position - second.position)
-    .map((ingredient) => ingredient.product_catalog.name);
+    .map((ingredient) => ({ id: ingredient.id, name: ingredient.product_catalog.name }));
 
-  const hiddenIngredientCount = ingredientNames.length - RECIPE_CATALOG.MAIN_INGREDIENTS_LIMIT;
+  const hiddenIngredientCount = ingredients.length - RECIPE_CATALOG.MAIN_INGREDIENTS_LIMIT;
 
   return {
+    hasIngredients: ingredients.length > 0,
     id: recipeRow.id,
     imageUrl: recipeRow.image_url,
-    mainIngredientNames: ingredientNames.slice(0, RECIPE_CATALOG.MAIN_INGREDIENTS_LIMIT),
+    mainIngredients: ingredients.slice(0, RECIPE_CATALOG.MAIN_INGREDIENTS_LIMIT),
     moreIngredientsLabel:
       hiddenIngredientCount > 0 ? `+${hiddenIngredientCount} ${RECIPE_TEXT.MORE_INGREDIENTS}` : null,
     name: recipeRow.name,

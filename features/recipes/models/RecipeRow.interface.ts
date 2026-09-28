@@ -10,6 +10,7 @@ export interface RecipeRow {
   image_url: NullableRef<string>;
   name: string;
   recipe_ingredients: {
+    id: string;
     position: number;
     product_catalog: { name: string };
   }[];

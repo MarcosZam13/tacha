@@ -39,13 +39,13 @@ export const RecipeCard = ({ recipe }: RecipeCardProps): React.JSX.Element => (
           <p className="font-body text-sm text-tacha-textsec">{recipe.servingsLabel}</p>
         </div>
 
-        {recipe.mainIngredientNames.length > 0 ? (
+        {recipe.hasIngredients ? (
           <section className="flex flex-col gap-2">
             <CategoryLabel>{RECIPE_TEXT.INGREDIENTS_LABEL}</CategoryLabel>
             <ul className="flex flex-wrap gap-2">
-              {recipe.mainIngredientNames.map((ingredientName) => (
-                <li key={ingredientName}>
-                  <Chip>{ingredientName}</Chip>
+              {recipe.mainIngredients.map((ingredient) => (
+                <li key={ingredient.id}>
+                  <Chip>{ingredient.name}</Chip>
                 </li>
               ))}
               {recipe.moreIngredientsLabel ? (

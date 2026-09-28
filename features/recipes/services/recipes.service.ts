@@ -5,7 +5,7 @@ import { toRecipeSummary } from "../utils/toRecipeSummary";
 
 /**
  * Trae las recetas que el usuario puede ver, más nuevas primero, con sus
- * ingredientes en el orden en que se cargaron.
+ * ingredientes (el adapter los ordena por `position`).
  *
  * No filtra por dueño a propósito: eso lo decide RLS en la base. Hoy la
  * política devuelve solo las recetas propias; cuando exista households se
@@ -19,8 +19,7 @@ export const getRecipeSummaries = async (): Promise<RecipeSummary[]> => {
   const { data: recipeRows, error } = await getSupabaseClient()
     .from(RECIPES_DB.TABLE.RECIPES)
     .select(RECIPES_DB.CATALOG_SELECT)
-    .order("created_at", { ascending: false })
-    .order("position", { referencedTable: RECIPES_DB.TABLE.RECIPE_INGREDIENTS });
+    .order(RECIPES_DB.COLUMN.CREATED_AT, { ascending: false });
   if (error) throw error;
 
   return recipeRows.map(toRecipeSummary);

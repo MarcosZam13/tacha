@@ -15,13 +15,17 @@ export const RECIPE_CATALOG_STATUS = {
 
 export const RECIPES_DB = {
   // Embebe ingredientes → producto madre en una sola petición (PostgREST).
-  // Los nombres de columnas no llevan constante propia: el genérico Database
-  // de types/database.types.ts los valida al compilar.
+  // Las columnas dentro del select no llevan constante propia: el genérico
+  // Database de types/database.types.ts las valida al compilar.
   CATALOG_SELECT:
-    "id, name, base_servings, image_url, recipe_ingredients(position, product_catalog(name))",
+    "id, name, base_servings, image_url, recipe_ingredients(id, position, product_catalog(name))",
+  // .order() sí acepta cualquier string (no lo valida el genérico), así que
+  // la columna va como constante: un typo acá compilaría y fallaría en runtime.
+  COLUMN: {
+    CREATED_AT: "created_at",
+  },
   TABLE: {
     RECIPES: "recipes",
-    RECIPE_INGREDIENTS: "recipe_ingredients",
   },
 } as const;
 
@@ -41,7 +45,7 @@ export const RECIPES_TABS = [
 ] as const satisfies ReadonlyArray<{ id: RecipesTabType; isAvailable: boolean; label: string }>;
 
 export const RECIPE_TEXT = {
-  COMING_SOON: "Próximamente",
+  COMING_SOON: "· Próximamente",
   EMPTY_CATALOG: "Todavía no tienes recetas.",
   INGREDIENTS_LABEL: "Ingredientes",
   LOAD_ERROR: "No se pudieron cargar tus recetas. Intenta de nuevo.",
