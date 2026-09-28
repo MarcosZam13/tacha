@@ -38,4 +38,7 @@ Bloqueado / pendiente de decisión del equipo:
 - [x] 9. Catálogo: link "+ Nueva receta" en `RecipeCatalog` y "Editar" en `RecipeCard`.
 - [x] 10. Validar CA-01..04 en el navegador (crear, editar, casos límite de la SPEC, receta ajena por URL) y con otra sesión; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+- [x] 11. Correcciones de la revisión de código y seguridad del PR: tipos derivados (`extends` / `Pick`), rutas desde una base, `normalizeDecimal` propio, tope de cantidad en el formulario, textos del catálogo en `RECIPE_TEXT`, y migración `008_harden_recipes.sql`.
+- [x] 12. Aplicar `008_harden_recipes.sql` en Supabase y repetir la prueba de crear y editar (incluida una cantidad mayor a 100000).
+
 Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), edición por miembros del household (integración con households).

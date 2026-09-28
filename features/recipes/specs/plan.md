@@ -148,7 +148,8 @@ features/recipes/
     recipes.service.ts                 + getRecipeForEditing(), saveRecipe()
   utils/
     recipe-editor.reducer.ts           reducer puro + estado inicial
-    validateRecipeForm.ts              validación pura (+ hasRecipeFormErrors, normalizeDecimal)
+    validateRecipeForm.ts              validación pura (+ hasRecipeFormErrors)
+    normalizeDecimal.ts                " 0,5 " → "0.5" (lo usan la validación y el payload)
     toSaveRecipePayload.ts             valores del formulario → payload (trim, números)
     toRecipeEditorValues.ts            fila de la base → valores del formulario
     getDefaultUnit.ts                  producto del catálogo → unidad preseleccionada
@@ -160,7 +161,8 @@ features/recipes/
 
 app/recetas/nueva/page.tsx             ruta delgada: <RecipeEditor />
 app/recetas/[id]/editar/page.tsx       ruta delgada: await params → <RecipeEditor recipeId={id} />
-supabase/migrations/007_save_recipe.sql
+supabase/migrations/007_save_recipe.sql     políticas de escritura + save_recipe
+supabase/migrations/008_harden_recipes.sql  tope de cantidad, columnas escribibles, largo del nombre (revisión de seguridad)
 types/database.types.ts                + Functions.save_recipe (regenerar al aplicar la migración)
 ```
 
@@ -180,6 +182,12 @@ types/database.types.ts                + Functions.save_recipe (regenerar al apl
   - Todo en una transacción: si algo falla (un producto inexistente, una unidad inválida), no queda nada a medias.
   - Solo `authenticated` puede ejecutarla.
 - `ingredient_list` JSON: `[{ "product_catalog_id": uuid, "quantity_value": number, "quantity_unit": "ml" | "g" | "unidad" }]`.
+
+**Migración `008_harden_recipes.sql`** (de la revisión de seguridad del PR; la `007` ya estaba aplicada y no se edita, clean-code-practices §4):
+
+- **Cantidad `> 0 and <= 100000`:** el check de `006` era solo `> 0`, y en Postgres `'NaN'::numeric > 0` da verdadero y `'Infinity'::numeric` existe. Llamando a la API directo se podía guardar NaN o Infinity, que después rompería la suma contra la lista (SCRUM-97). El tope los rechaza; el formulario usa el mismo (`RECIPE_FORM_LIMIT.QUANTITY_MAX`).
+- **Permisos por columna en `recipes`:** insert y update solo sobre `name` y `base_servings`. `image_url` queda cerrada hasta el ticket de la foto (con households sería un píxel de rastreo), e `id`, `owner_id`, `household_id` y `created_at` no se pueden fijar a mano. RLS decide qué filas; los permisos por columna, qué columnas.
+- **Nombre:** se mide el largo total (máx. 120) y se sigue exigiendo que no quede vacío al recortar. Antes solo se medía el largo recortado, así que se podía rellenar con espacios sin límite.
 
 **Consulta para editar:**
 
@@ -222,11 +230,15 @@ Sin fila → "no encontrada" (no existe o es de otro usuario: RLS no la devuelve
 - Resuelve los puntos 1, 2 y 4 de la [deuda de SCRUM-94](#deuda-de-la-revisión-de-seguridad-de-scrum-94).
 - El cliente nunca manda `owner_id` ni `household_id`: el dueño sale de `auth.uid()` y el `household_id is null` lo exige la política.
 - Editar una receta ajena es imposible por RLS aunque alguien llame a `save_recipe` con un id ajeno desde la consola: el update no encuentra la fila.
+- La base rechaza cantidades NaN/Infinity o enormes, nombres rellenos y escrituras sobre columnas que el formulario no usa (`008`), aunque alguien se salte el formulario.
 
 ### Deuda conocida
 
 - **Sin tests automatizados** (no hay runner): lo primero a cubrir son `recipe-editor.reducer.ts`, `validateRecipeForm.ts` y `toSaveRecipePayload.ts` (funciones puras).
 - **Catálogo chico:** con 28 productos de "leche", solo se pueden armar recetas de lácteos hasta que el catálogo crezca (Daniel).
 - **Productos personalizados de otro household:** `recipe_ingredients.product_catalog_id` acepta cualquier producto del catálogo. Hoy no importa porque `product_catalog` se lee público, pero cuando los productos de household ("Mis productos") tengan RLS propia, el insert de ingredientes tiene que exigir que el producto sea visible para quien guarda (si no, se podría ligar el id de un producto ajeno y leer su nombre desde la receta).
-- **Sin límite de ingredientes por receta:** `save_recipe` acepta cualquier cantidad. No es explotable más allá de ensuciar tus propias recetas; si hiciera falta, un `check` en la función (ej. 50).
+- **Sin límite de ingredientes por receta:** `save_recipe` acepta cualquier cantidad (solo la acota el `unique` por producto). No es explotable más allá de ensuciar tus propias recetas; si hiciera falta, un tope en la función (ej. 100).
+- **Sesiones anónimas:** cualquiera puede generar sesiones anónimas y crear recetas (solo lo limita el rate limit de Supabase por IP). Deuda conocida de `ensureSession`; se cierra con el login real.
+- **Para SCRUM-96:** la política de delete de `recipes` tiene que ser `using (owner_id = (select auth.uid()))` (los ingredientes se borran en cascada). Si una receta se borra mientras otra pestaña la edita, `save_recipe` responde `P0002`; conviene mostrarlo como "no encontrada" en vez del error genérico.
+- **Para households:** el `household_id is null` del `with check` del update va a bloquear las recetas compartidas: hay que sumar políticas de miembros y la FK, no solo quitar el `is null` (sin FK se podría colgar de un household ajeno). Un miembro que no es el dueño nunca debe poder cambiar `owner_id` (ya cubierto por los permisos por columna de `008`).
 - **Estilo de links:** "+ Nueva receta" y "Cancelar" repiten las clases del `Button` primario y secundario porque son links. Si otra feature necesita lo mismo, conviene un primitivo `ButtonLink` en `components/ui`.
