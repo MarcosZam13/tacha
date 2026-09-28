@@ -46,5 +46,7 @@ Skills que aplican: `component-architecture`, `constants-standards`, `project-st
 ## Criterios de aceptación
 
 HU-63
-- [x] CA-01: el sub-tab "Recetas" (dentro de la sección "Recetas") muestra las recetas con nombre, foto e ingredientes principales. *El ítem de sidebar queda pendiente (ver Fuera de alcance).*
+- [ ] CA-01 (**parcial**): el sub-tab "Recetas" muestra las recetas con nombre, foto (o su inicial si no tiene) e ingredientes principales. Cumplido para las recetas **propias** en la ruta `/recetas`. Falta, por dependencias fuera de esta historia (ver [Fuera de alcance](#fuera-de-alcance-y-por-qué)):
+  - que viva dentro del ítem "Recetas" del **sidebar**, que todavía no existe;
+  - que muestre las recetas **del household**, que llegan con la [integración con households](plan.md#integración-con-households-pendiente).
 - [x] CA-02: cada receta muestra sus porciones base.
