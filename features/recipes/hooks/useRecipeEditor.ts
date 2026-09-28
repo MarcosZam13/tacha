@@ -66,7 +66,7 @@ export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeE
 
     dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_STARTED });
     try {
-      await saveRecipe(toSaveRecipePayload(state.values, recipeId ?? null));
+      await saveRecipe(toSaveRecipePayload(state.values, recipeId));
       return true;
     } catch {
       dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_FAILED });

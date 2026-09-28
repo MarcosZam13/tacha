@@ -1,7 +1,7 @@
-import type { NullableRef } from "@/types/nullable.types";
+import type { NullableUndefined } from "@/types/nullable.types";
 import type { RecipeEditorValues } from "../models/RecipeEditorValues.interface";
 import type { SaveRecipePayload } from "../models/SaveRecipePayload.interface";
-import { normalizeDecimal } from "./validateRecipeForm";
+import { normalizeDecimal } from "./normalizeDecimal";
 
 /**
  * Convierte lo escrito en el formulario a lo que recibe save_recipe: recorta
@@ -11,7 +11,7 @@ import { normalizeDecimal } from "./validateRecipeForm";
  */
 export const toSaveRecipePayload = (
   values: RecipeEditorValues,
-  recipeId: NullableRef<string>,
+  recipeId: NullableUndefined<string>,
 ): SaveRecipePayload => ({
   baseServings: Number(values.baseServings.trim()),
   ingredients: values.ingredients.map((ingredient) => ({

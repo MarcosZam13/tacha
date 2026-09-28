@@ -3,10 +3,7 @@ import { RECIPE_FORM_ERROR, RECIPE_FORM_LIMIT, RECIPE_FORM_PATTERN } from "../co
 import type { RecipeEditorErrors } from "../models/RecipeEditorErrors.interface";
 import type { RecipeEditorIngredient } from "../models/RecipeEditorIngredient.interface";
 import type { RecipeEditorValues } from "../models/RecipeEditorValues.interface";
-
-/** "0,5" → "0.5": en Costa Rica los decimales se escriben con coma. */
-export const normalizeDecimal = (text: string): string =>
-  text.trim().replace(RECIPE_FORM_PATTERN.DECIMAL_COMMA, RECIPE_FORM_PATTERN.DECIMAL_POINT);
+import { normalizeDecimal } from "./normalizeDecimal";
 
 const validateName = (name: string): NullableUndefined<string> => {
   const trimmedName = name.trim();
@@ -26,10 +23,16 @@ const validateBaseServings = (baseServings: string): NullableUndefined<string> =
   return isValid ? undefined : RECIPE_FORM_ERROR.SERVINGS_INVALID;
 };
 
-// Número mayor que 0, con punto o coma decimal: "500" y "0,5" sí; "", "0" o "abc" no.
+// Número mayor que 0 y hasta el tope, con punto o coma decimal: "500" y "0,5"
+// sí; "", "0", "abc" o "200000" no.
 const isValidQuantity = (quantity: string): boolean => {
   const normalizedQuantity = normalizeDecimal(quantity);
-  return RECIPE_FORM_PATTERN.QUANTITY.test(normalizedQuantity) && Number(normalizedQuantity) > 0;
+  const quantityValue = Number(normalizedQuantity);
+  return (
+    RECIPE_FORM_PATTERN.QUANTITY.test(normalizedQuantity) &&
+    quantityValue > 0 &&
+    quantityValue <= RECIPE_FORM_LIMIT.QUANTITY_MAX
+  );
 };
 
 const validateQuantities = (ingredients: RecipeEditorIngredient[]): Record<string, string> =>
@@ -40,8 +43,9 @@ const validateQuantities = (ingredients: RecipeEditorIngredient[]): Record<strin
   );
 
 /**
- * Valida todo el formulario. Es la misma regla que repiten los check de la
- * base: acá es para avisar antes de mandar, allá es la garantía.
+ * Valida todo el formulario. Las mismas reglas están en los check de la base
+ * (006 y 008): acá es para avisar antes de mandar, allá es la garantía, aunque
+ * alguien llame a la API sin pasar por este formulario.
  */
 export const validateRecipeForm = (values: RecipeEditorValues): RecipeEditorErrors => ({
   baseServings: validateBaseServings(values.baseServings),

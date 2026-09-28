@@ -1,5 +1,5 @@
 import type { CatalogBaseUnitType } from "@/constants";
-import type { NullableRef } from "@/types/nullable.types";
+import type { NullableUndefined } from "@/types/nullable.types";
 
 /**
  * Lo que se manda a save_recipe, ya validado y convertido a números
@@ -14,6 +14,6 @@ export interface SaveRecipePayload {
     quantityValue: number;
   }[];
   name: string;
-  /** null = receta nueva; con valor = editar esa receta. */
-  recipeId: NullableRef<string>;
+  /** Sin valor = receta nueva; con valor = editar esa receta. */
+  recipeId: NullableUndefined<string>;
 }

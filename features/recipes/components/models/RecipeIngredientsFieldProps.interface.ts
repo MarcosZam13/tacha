@@ -1,14 +1,13 @@
-import type { ProductSearchProps } from "@/components/product-search/models/ProductSearchProps.interface";
-import type { CatalogBaseUnitType } from "@/constants";
-import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
-import type { RecipeIngredientRowViewModel } from "../../models/RecipeIngredientRowViewModel.interface";
+import type { RecipeEditorViewModel } from "../../models/RecipeEditorViewModel.interface";
 
-export interface RecipeIngredientsFieldProps {
-  ingredientNotice: NullableRef<string>;
-  ingredients: RecipeIngredientRowViewModel[];
-  ingredientsError: NullableUndefined<string>;
-  ingredientSearch: ProductSearchProps;
-  onIngredientQuantityChange: (productId: string, quantity: string) => void;
-  onIngredientUnitChange: (productId: string, unit: CatalogBaseUnitType) => void;
-  onRemoveIngredient: (productId: string) => void;
-}
+/** Subconjunto del ViewModel: si cambia una firma allá, esto se entera solo. */
+export type RecipeIngredientsFieldProps = Pick<
+  RecipeEditorViewModel,
+  | "ingredientNotice"
+  | "ingredients"
+  | "ingredientsError"
+  | "ingredientSearch"
+  | "onIngredientQuantityChange"
+  | "onIngredientUnitChange"
+  | "onRemoveIngredient"
+>;

@@ -16,7 +16,7 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
   const router = useRouter();
   const editor = useRecipeEditor(recipeId);
   const search = useProductSearch();
-  const { errors, status, values } = editor.state;
+  const { errors, ingredientNotice, saveErrorMessage, status, values } = editor.state;
 
   // CA-02: el ingrediente queda ligado al producto madre desde que se elige;
   // la cantidad la escribe el usuario después, y la unidad viene sugerida.
@@ -43,7 +43,7 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
   return {
     baseServings: values.baseServings,
     baseServingsError: errors.baseServings,
-    ingredientNotice: editor.state.ingredientNotice,
+    ingredientNotice,
     ingredients: values.ingredients.map((ingredient) => ({
       ...ingredient,
       quantityError: errors.quantityByProductId[ingredient.productId],
@@ -71,7 +71,7 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
     onNameChange: editor.changeName,
     onRemoveIngredient: editor.removeIngredient,
     onSubmit,
-    saveErrorMessage: editor.state.saveErrorMessage,
+    saveErrorMessage,
     showForm: status === RECIPE_EDITOR_STATUS.EDITING || status === RECIPE_EDITOR_STATUS.SAVING,
     title: recipeId ? RECIPE_EDITOR_TEXT.EDIT_TITLE : RECIPE_EDITOR_TEXT.NEW_TITLE,
   };

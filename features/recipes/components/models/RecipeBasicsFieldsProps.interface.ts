@@ -1,10 +1,7 @@
-import type { NullableUndefined } from "@/types/nullable.types";
+import type { RecipeEditorViewModel } from "../../models/RecipeEditorViewModel.interface";
 
-export interface RecipeBasicsFieldsProps {
-  baseServings: string;
-  baseServingsError: NullableUndefined<string>;
-  name: string;
-  nameError: NullableUndefined<string>;
-  onBaseServingsChange: (baseServings: string) => void;
-  onNameChange: (name: string) => void;
-}
+/** Subconjunto del ViewModel: si cambia una firma allá, esto se entera solo. */
+export type RecipeBasicsFieldsProps = Pick<
+  RecipeEditorViewModel,
+  "baseServings" | "baseServingsError" | "name" | "nameError" | "onBaseServingsChange" | "onNameChange"
+>;

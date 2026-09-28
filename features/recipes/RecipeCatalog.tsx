@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Spinner } from "@/components/ui";
-import { RECIPE_EDITOR_TEXT, RECIPE_ROUTE, RECIPE_TEXT, RECIPES_TAB } from "./constants/recipes.constants";
+import { RECIPE_ROUTE, RECIPE_TEXT, RECIPES_TAB } from "./constants/recipes.constants";
 import { RecipeCard } from "./components/RecipeCard";
 import { RecipeCatalogEmptyState } from "./components/RecipeCatalogEmptyState";
 import { RecipesTabs } from "./components/RecipesTabs";
@@ -24,7 +24,7 @@ export const RecipeCatalog = (): React.JSX.Element => {
           href={RECIPE_ROUTE.NEW}
           className="rounded-tacha-badge bg-tacha-teal px-4 py-2 font-body text-sm font-semibold text-white hover:opacity-90"
         >
-          {RECIPE_EDITOR_TEXT.NEW_RECIPE}
+          {RECIPE_TEXT.NEW_RECIPE}
         </Link>
       </div>
       <RecipesTabs activeTab={RECIPES_TAB.RECIPES} />

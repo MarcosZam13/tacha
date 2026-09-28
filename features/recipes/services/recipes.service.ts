@@ -67,7 +67,7 @@ export const saveRecipe = async (payload: SaveRecipePayload): Promise<SaveRecipe
     recipe_base_servings: payload.baseServings,
     recipe_name: payload.name,
     // Sin id la función crea una receta nueva.
-    target_recipe_id: payload.recipeId ?? undefined,
+    target_recipe_id: payload.recipeId,
   });
   if (error) throw error;
 

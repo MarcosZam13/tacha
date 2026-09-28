@@ -44,10 +44,13 @@ export const POSTGRES_ERROR_CODE = {
   INVALID_TEXT_REPRESENTATION: "22P02",
 } as const;
 
-// Espejo de los check de recipes en la base (006_create_recipes.sql): la UI
-// avisa antes de mandar, pero la base es la que garantiza.
+// Espejo de los check de la base (006_create_recipes.sql y 008_harden_recipes.sql):
+// la UI avisa antes de mandar, pero la base es la que garantiza.
+// QUANTITY_MAX: 100 kg / 100 L / 100 000 unidades; además de ser un tope
+// razonable, es lo que hace que la base rechace NaN e Infinity.
 export const RECIPE_FORM_LIMIT = {
   NAME_MAX_LENGTH: 120,
+  QUANTITY_MAX: 100_000,
   SERVINGS_MAX: 50,
   SERVINGS_MIN: 1,
 } as const;
@@ -55,10 +58,14 @@ export const RECIPE_FORM_LIMIT = {
 // Cantidad: dígitos con decimales opcionales, ya con la coma pasada a punto
 // ("0,5" → "0.5"). Porciones: solo enteros.
 export const RECIPE_FORM_PATTERN = {
-  DECIMAL_COMMA: ",",
-  DECIMAL_POINT: ".",
   QUANTITY: /^\d+(\.\d+)?$/,
   SERVINGS: /^\d+$/,
+} as const;
+
+// En Costa Rica los decimales se escriben con coma; Number() solo entiende punto.
+export const DECIMAL_SEPARATOR = {
+  COMMA: ",",
+  POINT: ".",
 } as const;
 
 // Cómo se muestra cada unidad en el selector del ingrediente.
@@ -68,7 +75,8 @@ export const RECIPE_UNIT_LABEL = {
   [CATALOG_BASE_UNIT.UNIT]: "unidades",
 } as const satisfies Record<CatalogBaseUnitType, string>;
 
-// Opciones del selector de unidad, en el orden de CATALOG_BASE_UNIT.
+// Opciones del selector de unidad. ml primero a propósito: es la unidad más
+// común en las recetas del catálogo actual (lácteos), así queda arriba.
 export const RECIPE_UNIT_OPTIONS = [
   { label: RECIPE_UNIT_LABEL[CATALOG_BASE_UNIT.MILLILITERS], value: CATALOG_BASE_UNIT.MILLILITERS },
   { label: RECIPE_UNIT_LABEL[CATALOG_BASE_UNIT.GRAMS], value: CATALOG_BASE_UNIT.GRAMS },
@@ -102,17 +110,20 @@ export const RECIPE_EDITOR_ACTION = {
   VALIDATION_FAILED: "validationFailed",
 } as const;
 
+// Todas las rutas salen de la misma base: si cambia "/recetas", cambian todas.
+const RECIPES_BASE_PATH = "/recetas";
+
 export const RECIPE_ROUTE = {
-  CATALOG: "/recetas",
+  CATALOG: RECIPES_BASE_PATH,
   EDIT_SEGMENT: "editar",
-  NEW: "/recetas/nueva",
+  NEW: `${RECIPES_BASE_PATH}/nueva`,
 } as const;
 
 export const RECIPE_FORM_ERROR = {
   INGREDIENTS_REQUIRED: "Agrega al menos un ingrediente.",
   NAME_REQUIRED: "Escribe el nombre de la receta.",
   NAME_TOO_LONG: `El nombre puede tener hasta ${RECIPE_FORM_LIMIT.NAME_MAX_LENGTH} caracteres.`,
-  QUANTITY_INVALID: "Escribe una cantidad mayor que 0.",
+  QUANTITY_INVALID: `Escribe una cantidad mayor que 0 y de hasta ${RECIPE_FORM_LIMIT.QUANTITY_MAX}.`,
   SERVINGS_INVALID: `Las porciones tienen que ser un número entero entre ${RECIPE_FORM_LIMIT.SERVINGS_MIN} y ${RECIPE_FORM_LIMIT.SERVINGS_MAX}.`,
 } as const;
 
@@ -120,13 +131,11 @@ export const RECIPE_EDITOR_TEXT = {
   BACK_TO_CATALOG: "← Volver a recetas",
   CANCEL: "Cancelar",
   DUPLICATE_INGREDIENT: "Ese producto ya está en la receta.",
-  EDIT: "Editar",
   EDIT_TITLE: "Editar receta",
   INGREDIENTS_HINT: "Busca cada ingrediente en el catálogo y después indica cuánto lleva.",
   LOAD_ERROR: "No se pudo cargar la receta. Intenta de nuevo.",
   NAME_LABEL: "Nombre",
   NAME_PLACEHOLDER: "Ej. Arroz con leche",
-  NEW_RECIPE: "+ Nueva receta",
   NEW_TITLE: "Nueva receta",
   NOT_FOUND: "No encontramos esa receta.",
   NO_INGREDIENTS: "Todavía no agregaste ingredientes.",
@@ -158,10 +167,12 @@ export const RECIPES_TABS = [
 
 export const RECIPE_TEXT = {
   COMING_SOON: "· Próximamente",
+  EDIT: "Editar",
   EMPTY_CATALOG: "Todavía no tienes recetas.",
   INGREDIENTS_LABEL: "Ingredientes",
   LOAD_ERROR: "No se pudieron cargar tus recetas. Intenta de nuevo.",
   MORE_INGREDIENTS: "más",
+  NEW_RECIPE: "+ Nueva receta",
   SERVINGS_PLURAL: "porciones",
   SERVINGS_SINGULAR: "porción",
   TABS_LABEL: "Secciones de recetas",
