@@ -104,9 +104,9 @@ Que el usuario arme sus propias recetas (nombre, porciones base e ingredientes e
 ### Criterios de aceptación
 
 HU-64
-- [ ] CA-01: un botón "+ Nueva receta" abre un formulario con nombre, porciones base e ingredientes (búsqueda estilo catálogo).
-- [ ] CA-02: por cada ingrediente, el usuario primero elige el producto (ej. "Leche") y después le asigna cantidad con su unidad (ej. "500 ml"); el ingrediente queda ligado al producto desde ese paso.
-- [ ] CA-03: cada ingrediente se elige de entre los productos del catálogo, no se escribe como texto libre.
+- [x] CA-01: un botón "+ Nueva receta" abre un formulario con nombre, porciones base e ingredientes (búsqueda estilo catálogo).
+- [x] CA-02: por cada ingrediente, el usuario primero elige el producto (ej. "Leche") y después le asigna cantidad con su unidad (ej. "500 ml"); el ingrediente queda ligado al producto desde ese paso.
+- [x] CA-03: cada ingrediente se elige de entre los productos del catálogo, no se escribe como texto libre.
 - [ ] CA-04 (**parcial**): quien creó la receta la puede **editar** después. Fuera de esta historia: **eliminar** (SCRUM-96) y que la edite **cualquier miembro del household** si es compartida (integración con households).
 
 ---
