@@ -10,6 +10,20 @@ export const PRODUCT_SEARCH = {
   MIN_QUERY_LENGTH: 2,
 } as const;
 
+// MIN es espejo del check quantity_requested >= 1 de list_items: la UI
+// deshabilita el "−" ahí, y la base lo rechaza igual si alguien lo salta.
+// STEP son los únicos deltas que acepta la RPC change_item_quantity.
+export const ITEM_QUANTITY = {
+  MIN: 1,
+  STEP: {
+    DECREASE: -1,
+    INCREASE: 1,
+  },
+} as const;
+
+export type ItemQuantityStepType =
+  (typeof ITEM_QUANTITY.STEP)[keyof typeof ITEM_QUANTITY.STEP];
+
 // Espejo del check de lists.type en la base (documento-proyecto §6).
 export const LIST_TYPE = {
   DATE: "date",
@@ -47,6 +61,7 @@ export const SHOPPING_LIST_DB = {
     "list_items(id, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   RPC: {
     ADD_ITEM_TO_GENERAL_LIST: "add_item_to_general_list",
+    CHANGE_ITEM_QUANTITY: "change_item_quantity",
     SEARCH_CATALOG: "search_catalog",
   },
   TABLE: {
@@ -61,13 +76,19 @@ export const SHOPPING_LIST_ACTION = {
   ITEM_UPSERTED: "itemUpserted",
   LOADED: "loaded",
   LOAD_FAILED: "loadFailed",
+  QUANTITY_CHANGED: "quantityChanged",
+  QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
+  QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
 } as const;
 
 export const SHOPPING_LIST_TEXT = {
   ADD_ERROR: "No se pudo añadir el producto. Intenta de nuevo.",
+  DECREASE_QUANTITY: "Quitar uno",
   EMPTY_LIST: "Tu lista está vacía. Busca un producto para empezar.",
+  INCREASE_QUANTITY: "Añadir uno",
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
   NO_RESULTS: "No encontramos productos con ese nombre.",
+  QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   SEARCH_ERROR: "No se pudo buscar en el catálogo. Intenta de nuevo.",
   SEARCH_LABEL: "Buscar producto",
   SEARCH_PLACEHOLDER: "Busca un producto, ej. leche",
