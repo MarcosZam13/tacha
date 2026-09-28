@@ -133,7 +133,9 @@ export const PASSWORD_STRENGTH_LABEL: Record<PasswordStrengthLevelType, string> 
   [PASSWORD_STRENGTH_LEVEL.WEAK]: "Débil",
 };
 
-export const REGISTRO_ROUTE = {
+
+
+  export const REGISTRO_ROUTE = {
   VERIFIED: "/registro/verificado",
 } as const;
 
@@ -192,3 +194,13 @@ export const VERIFICATION_LINK_PARAM = {
 } as const;
 
 
+export const TERMS_LABEL = {
+  CHECKBOX: "Acepto los términos y condiciones",
+  MODAL_TITLE: "Términos y condiciones",
+  VIEW_LINK: "Ver términos y condiciones",
+} as const;
+
+// Placeholder hasta que el equipo redacte el texto legal real (ver Developer Notes del PR SCRUM-41).
+export const TERMS_CONTENT_PLACEHOLDER =
+  "Este es un texto de ejemplo de términos y condiciones. Se reemplazará por el contenido " +
+  "legal definitivo antes de la entrega final del proyecto.";

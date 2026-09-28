@@ -38,13 +38,9 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 5. Página `/registro/verificado`: éxito y enlace expirado, con reenvío.
 - [x] 6. Validar en el navegador (el estado expirado se prueba a mano con `#error=access_denied&error_code=otp_expired`); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-41: aceptación de términos y condiciones
 
-
-
-## Pendiente cuando el proyecto tenga runner de tests
-
-- [ ] Tests unitarios de `utils/validateRegistroForm.ts` (función pura) y del ViewModel, según unit-testing-standards.
-
-## Historias que se montan sobre esta (cada una en su PR, en `on hold` hasta que esta se mergee)
-
-- SCRUM-41 (HU-18): términos y condiciones.
+- [x] 1. Constantes: textos del checkbox, del enlace, título del modal y el texto placeholder.
+- [x] 2. ViewModel: estado de aceptación, del modal, y que bloquee el envío.
+- [x] 3. Presentación: `Checkbox` + enlace + `Modal` en `RegistroManual.tsx`.
+- [x] 4. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.

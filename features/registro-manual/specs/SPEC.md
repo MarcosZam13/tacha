@@ -16,13 +16,14 @@ Un visitante crea una cuenta en tacha con nombre, correo y contraseña. Es la ba
 - Rechazo del registro si el correo ya existe, con mensaje visible.
 - Reusar `Input` y `Button` de `components/ui/`.
 - HU-15 (SCRUM-38): validación en tiempo real de que las contraseñas coincidan.
-- HU-16 (SCRUM-39): barra de fortaleza de contraseña.
+- HU-16 (SCRUM-39): feedback de seguridad de la contraseña: barra de fortaleza y requisitos que faltan.
 - HU-17 (SCRUM-40): verificación de correo: pantalla de "pendiente de verificación", reenvío del correo y página que recibe
 enlace de confirmación.
+- HU-18 (SCRUM-41): checkbox de términos y condiciones.
+
 
 ## Fuera del alcance (van en su propio ticket)
 
-- HU-18 (SCRUM-41): checkbox de términos y condiciones.
 - Registro con Google/Facebook (HU-19 a HU-21).
 
 
@@ -47,6 +48,9 @@ enlace de confirmación.
 17. La ruta `/registro/verificado` muestra "Correo confirmado" cuando el enlace es válido.
 18. Si el enlace expiró o no es válido, `/registro/verificado` muestra el mensaje de expiración y un campo de correo con "Reenviar correo".
 19. El correo del usuario nunca viaja en la URL: se conserva en el estado de la pantalla. 
+20. Se muestra un checkbox "Acepto los términos y condiciones", no marcado por defecto.
+21. Junto al checkbox hay un enlace "Ver términos y condiciones" que abre un modal con el texto completo.
+22. El botón de registro permanece deshabilitado mientras el checkbox no esté marcado.
 
 ## Casos límite y errores
 
@@ -63,6 +67,9 @@ enlace de confirmación.
 - Reenviar a un correo que no existe o ya está confirmado: se muestra el mismo mensaje de éxito, sin revelar si existe la cuenta.
 - Recargar `/registro/verificado` con un enlace ya usado: se muestra el mensaje de enlace inválido o expirado.
 - Abrir `/registro/verificado` sin enlace: se muestra el mensaje de enlace inválido, no un error.
+- Abrir el modal y cerrarlo sin aceptar: el checkbox conserva su estado previo.
+- El texto de términos es un marcador de posición hasta que el equipo defina el contenido legal real (ver Developer Notes del PR).
+
 
 
 
@@ -74,9 +81,9 @@ enlace de confirmación.
 - Auth y formularios: cumplir [security-practices](../../../.agents/skills/security-practices/SKILL.md). La contraseña nunca se registra en logs ni se guarda en el estado más de lo necesario.
 - Variables de entorno de Supabase solo con las `NEXT_PUBLIC_*` del `.env.example`.
 - El mensaje "Ya existe una cuenta con este correo." revela qué correos están registrados (enumeración de cuentas). Se mantiene porque HU-14b lo exige; decisión pendiente de confirmar.
+- Reusar `Checkbox` y `Modal` de `components/ui/`, sin crear componentes nuevos para eso.
 - El tiempo de expiración del enlace lo configura Supabase (Authentication → Email OTP expiration); la app no lo define.
 - `/registro/verificado` debe estar en la lista de Redirect URLs de Supabase (URL Configuration).
-
 
 
 ## Criterios de aceptación
@@ -102,4 +109,9 @@ enlace de confirmación.
 - [x] El enlace del correo lleva a `/registro/verificado` y muestra "Correo confirmado".
 - [x] Con un enlace expirado se muestra el mensaje de expiración y se puede pedir un correo nuevo.
 - [x] El correo no aparece en la URL.
+- [x] El checkbox aparece sin marcar al cargar la página.
+- [x] El botón de registro está deshabilitado mientras el checkbox no esté marcado.
+- [x] Marcar el checkbox habilita el botón (si el resto del formulario está completo).
+- [x] El enlace "Ver términos y condiciones" abre un modal con el texto.
+- [x] Cerrar el modal no cambia el estado del checkbox.
 - [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.

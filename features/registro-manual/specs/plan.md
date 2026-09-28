@@ -68,8 +68,6 @@ features/registro-manual/
 app/registro/verificado/page.tsx       ruta delgada: solo renderiza <RegistroVerificado />
 ```
 
-## Decisiones
-
 - **Sin correo en la URL:** el correo del registro se guarda en el estado del ViewModel; al reenviar desde el enlace expirado se pide de nuevo en un campo, porque el enlace no lo trae y así también funciona desde otro dispositivo.
 - **Cuenta regresiva:** 60 s, el mínimo que impone Supabase entre correos del mismo usuario; evita spam y el 429.
 - **Resultado del enlace:** Supabase redirige a `/registro/verificado` con el resultado en el fragmento (`#...`); un error de enlace trae `error_code` (`otp_expired`). Solo se lee en el navegador.
@@ -77,4 +75,16 @@ app/registro/verificado/page.tsx       ruta delgada: solo renderiza <RegistroVer
 - **Sin login:** iniciar sesión (SCRUM-45) queda fuera de esta historia.
 - **Configuración en Supabase:** Redirect URL agregada en el Dashboard; el tiempo de expiración lo define Supabase.
 
+## SCRUM-41: aceptación de términos y condiciones
 
+```
+features/registro-manual/
+  RegistroManual.tsx                 agrega el Checkbox + enlace + Modal debajo de los campos
+  hooks/useRegistroManualViewModel.ts   + acceptedTerms, handleAcceptedTermsChange, isTermsModalOpen, etc.
+  constants/registro.constants.ts    texto del checkbox, del enlace, título del modal, placeholder legal
+```
+
+- **Reuso:** `Checkbox` y `Modal` ya existen en `components/ui/`; no se crea ningún componente nuevo.
+- **Estado del modal:** vive en el mismo ViewModel del registro, como un booleano más (abierto/cerrado), no en un store aparte — es un solo checkbox de una sola pantalla.
+- **Bloqueo:** el checkbox se suma a `isSubmitDisabled`, igual que los demás campos obligatorios.
+- **Texto legal:** placeholder hasta que el equipo redacte los términos reales; se anota en el PR para que no se confunda con contenido definitivo.
