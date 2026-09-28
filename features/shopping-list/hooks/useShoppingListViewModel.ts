@@ -1,7 +1,9 @@
+import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
+import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
-import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
-import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
-import { useProductSearch } from "./useProductSearch";
+import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
+import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
+import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
 import { useShoppingList } from "./useShoppingList";
 
 interface UseShoppingListViewModelReturn {
@@ -12,13 +14,16 @@ interface UseShoppingListViewModelReturn {
   isEmpty: boolean;
   isLoading: boolean;
   isSearching: boolean;
-  items: ShoppingListItem[];
   loadErrorMessage: NullableRef<string>;
+  onDecreaseQuantity: (itemId: string) => void;
+  onIncreaseQuantity: (itemId: string) => void;
   onQueryChange: (query: string) => void;
-  onSelectResult: (searchResult: CatalogSearchResult) => void;
+  onSelectSearchOption: (variantId: string) => void;
+  quantityErrorMessage: NullableRef<string>;
   query: string;
+  rows: ShoppingListRowViewModel[];
   searchErrorMessage: NullableRef<string>;
-  searchResults: CatalogSearchResult[];
+  searchOptions: ProductSearchOption[];
 }
 
 /**
@@ -26,14 +31,46 @@ interface UseShoppingListViewModelReturn {
  * ShoppingList.tsx exactamente lo que dibuja, ya calculado.
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
-  const { addItem, state } = useShoppingList();
+  const { addItem, changeQuantity, state } = useShoppingList();
   const search = useProductSearch();
+  // El buscador devuelve productos madre; la lista añade variantes.
+  const searchResults = toCatalogSearchResults(search.results);
 
-  const onSelectResult = (searchResult: CatalogSearchResult): void => {
+  const onSelectSearchOption = (variantId: string): void => {
+    const searchResult = searchResults.find((result) => result.variantId === variantId);
+    if (!searchResult) return;
     search.clearQuery();
-    // addItem maneja su propio error (lo pasa al estado), por eso no se espera acá.
-    void addItem(searchResult);
+    const listedItem = state.items.find((item) => item.variantId === searchResult.variantId);
+    if (!listedItem) {
+      // addItem maneja su propio error (lo pasa al estado), por eso no se espera acá.
+      void addItem(searchResult);
+      return;
+    }
+    // Ya está en la lista: es el mismo +1 que el botón, y pasa por el mismo
+    // bloqueo por fila. Si la fila espera respuesta se ignora, como el botón
+    // deshabilitado; si no, dos escrituras en paralelo podrían dejar en
+    // pantalla una cantidad vieja.
+    if (state.pendingItemIds.includes(listedItem.id)) return;
+    void changeQuantity(listedItem.id, ITEM_QUANTITY.STEP.INCREASE);
   };
+
+  // changeQuantity también maneja su propio error, por eso tampoco se espera.
+  const onIncreaseQuantity = (itemId: string): void => {
+    void changeQuantity(itemId, ITEM_QUANTITY.STEP.INCREASE);
+  };
+
+  const onDecreaseQuantity = (itemId: string): void => {
+    void changeQuantity(itemId, ITEM_QUANTITY.STEP.DECREASE);
+  };
+
+  const rows = state.items.map((item) => {
+    const isPending = state.pendingItemIds.includes(item.id);
+    return {
+      canDecrease: !isPending && item.quantity > ITEM_QUANTITY.MIN,
+      canIncrease: !isPending,
+      item,
+    };
+  });
 
   return {
     addErrorMessage: state.addErrorMessage,
@@ -46,12 +83,19 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     isEmpty: !state.isLoading && !state.loadErrorMessage && state.items.length === 0,
     isLoading: state.isLoading,
     isSearching: search.isSearching,
-    items: state.items,
     loadErrorMessage: state.loadErrorMessage,
+    onDecreaseQuantity,
+    onIncreaseQuantity,
     onQueryChange: search.setQuery,
-    onSelectResult,
+    onSelectSearchOption,
+    quantityErrorMessage: state.quantityErrorMessage,
     query: search.query,
+    rows,
     searchErrorMessage: search.errorMessage,
-    searchResults: search.results,
+    searchOptions: searchResults.map((result) => ({
+      detail: result.sizeLabel,
+      id: result.variantId,
+      label: result.productName,
+    })),
   };
 };

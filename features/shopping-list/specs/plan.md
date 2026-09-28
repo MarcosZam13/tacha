@@ -10,37 +10,45 @@ Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md).
 features/shopping-list/
   ShoppingList.tsx                     entrada ("use client"): compone buscador + lista (solo presentación)
   components/
-    ProductSearch.tsx                  input + lista de resultados
-    ShoppingListRow.tsx                una fila: nombre, tamaño, cantidad (SCRUM-63 le suma QuantityStepper)
+    ShoppingListRow.tsx                una fila: nombre, tamaño y QuantityStepper
+    QuantityStepper.tsx                "−" cantidad "+" (botones hermanos, nunca anidados; se deshabilitan mientras la fila espera)
     ShoppingListEmptyState.tsx         lista vacía
     models/                            props de los mini componentes
   hooks/
-    useShoppingListViewModel.ts        facade: une useShoppingList + useProductSearch para la vista
+    useShoppingListViewModel.ts        facade: une useShoppingList + useProductSearch, aplana resultados y arma las opciones del buscador
     useShoppingList.ts                 useReducer + carga inicial (useEffect) + addItem
-    useProductSearch.ts                texto, debounce, protección contra respuestas viejas; resto derivado
   models/
     ShoppingListItem.interface.ts
     ShoppingListState.interface.ts
     ShoppingListAction.type.ts         unión discriminada de acciones del reducer
     CatalogSearchResult.interface.ts   resultado ya aplanado a una fila por variante: variantId, productName, sizeLabel
-    CatalogSearchVariant.interface.ts  forma del jsonb `variants` que devuelve search_catalog
   services/
-    catalog.service.ts                 searchCatalog(): RPC search_catalog, aplana variantes (descarta price_ranges)
-    shopping-list.service.ts           getGeneralList(), addItemToGeneralList() (SCRUM-63: updateQuantity())
+    shopping-list.service.ts           getGeneralList(), addItemToGeneralList(), changeItemQuantity()
   utils/
     shopping-list.reducer.ts           reducer puro + estado inicial (no es un hook: no va en hooks/)
     formatSizeLabel.ts                 275 + "g" → "275 g"
+    toCatalogSearchResults.ts          productos madre del buscador → una fila por variante
   constants/
-    shopping-list.constants.ts         textos, debounce, mínimo de caracteres, nombres de tablas/RPC, acciones
+    shopping-list.constants.ts         textos, nombres de tablas/RPC, acciones
   specs/  SPEC.md · plan.md · tasks.md
 
 services/supabase.client.ts            único cliente de Supabase de la app + ensureSession() (sesión anónima)
+
+Buscador compartido con recetas (SCRUM-120):
+components/product-search/
+  ProductSearch.tsx                    input + lista de opciones (solo presentación)
+  models/                              props + ProductSearchOption (id, label, detail opcional)
+hooks/useProductSearch.ts              texto, debounce, protección contra respuestas viejas; resto derivado
+services/catalog.service.ts            searchCatalog(): RPC search_catalog → productos madre con variantes (descarta brands y price_ranges)
+types/catalog.types.ts                 CatalogProduct, CatalogProductVariant, forma del jsonb de variantes
+constants/catalog.constants.ts         debounce, mínimo/máximo de caracteres, unidades base, RPC, textos del buscador
+
 types/database.types.ts                tipos generados desde el esquema real (regenerar tras cada migración)
 supabase/migrations/004_create_lists.sql
 app/lista/page.tsx                     ruta delgada: solo renderiza <ShoppingList />
 ```
 
-Todo lo que solo usa esta feature vive dentro de `features/shopping-list/`; afuera quedan solo el cliente de Supabase (lo usará toda la app), los tipos de la base y la ruta.
+Todo lo que solo usa esta feature vive dentro de `features/shopping-list/`; afuera quedan el cliente de Supabase (lo usará toda la app), los tipos de la base, la ruta y el buscador del catálogo, que desde SCRUM-120 comparte con recetas.
 
 Dependencia nueva: `@supabase/supabase-js` (hoy el repo llama a PostgREST con `fetch` a mano; con auth y RLS de por medio, el cliente oficial maneja la sesión y el token).
 
@@ -63,7 +71,7 @@ Tablas (según documento-proyecto §6, solo las columnas que este sprint usa):
 1. Al montar, `useShoppingList` pide la lista general (`useEffect`) → `dispatch({ type: "loaded" })`.
 2. Escribir en el buscador → `useProductSearch` espera el debounce → `searchCatalog()` → resultados. Si llega una respuesta de una búsqueda vieja, se descarta.
 3. Elegir un resultado → `addItem()` (RPC) → la base devuelve el item con su cantidad final → `dispatch({ type: "itemUpserted" })`.
-4. "+" o "−" → `updateQuantity()` → `dispatch({ type: "quantityChanged" })`. El "−" se deshabilita en 1 (UI) y la base lo rechaza igual (`check`).
+4. "+" o "−" → `dispatch(QUANTITY_CHANGE_STARTED)` (la fila queda pendiente y sus botones se deshabilitan) → `changeItemQuantity(itemId, ±1)` → RPC `change_item_quantity` → la base suma el delta y devuelve la cantidad final → `dispatch(QUANTITY_CHANGED)`. Si falla: `QUANTITY_CHANGE_FAILED` (la cantidad no cambia, aparece el error). El "−" se deshabilita en 1 (UI) y la base lo rechaza igual (`check`).
 
 ## Decisiones
 
@@ -76,8 +84,22 @@ Tablas (según documento-proyecto §6, solo las columnas que este sprint usa):
 | Merge de duplicados en la base (RPC) | Revisar en el cliente si ya existe | Dos pestañas o dos miembros del household agregando a la vez no duplican filas; lo pide el documento del proyecto |
 | Mínimo 1 en UI **y** en la base | Solo en la UI | La UI es comodidad; la base es la garantía |
 | Esperar respuesta del servidor antes de actualizar | Actualización optimista | Más simple de explicar y sin rollback; se puede optimizar después si se siente lento |
-| Buscador dentro de la feature | Componente compartido | Solo hay un consumidor hoy; se promueve cuando exista el segundo |
+| Buscador compartido en las carpetas de la raíz (SCRUM-120) | Dejarlo en la feature y que recetas lo importe de `features/shopping-list/` | Recetas (SCRUM-95) es el segundo consumidor real; importar de otra feature amarraría una a la otra (component-architecture §1, project-structure) |
+| El buscador devuelve productos madre; la lista los aplana a variantes | Que el servicio compartido aplane | Recetas necesita el producto madre (CA-02 de SCRUM-95) y la lista necesita variantes; cada feature adapta el mismo resultado |
+| `ProductSearch` recibe opciones (`id`, `label`, `detail`) ya armadas | Recibir productos o variantes directo | La barra no sabe si una opción es una variante o un producto; así sirve igual a las dos features sin condicionales adentro |
 | Mostrar nombre del producto + tamaño | Mostrar el nombre de la variante | El nombre de la variante viene duplicado en los datos reales |
+
+### SCRUM-63: ajustar cantidad
+
+- RPC `change_item_quantity(target_item_id, quantity_delta)` (migración `005_change_item_quantity.sql`): `security invoker` (usa la política de update de `list_items`), solo acepta `-1` o `1`, hace `quantity_requested = quantity_requested + delta` en una sola sentencia y devuelve la fila. Si el item no existe o no es del usuario, lanza error (RLS lo deja invisible).
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Mandar un delta (±1) a una RPC | `update` con la cantidad final calculada en el cliente | Dos toques rápidos o dos pestañas mandarían la misma cantidad final y se perdería uno; con el delta la base suma cada toque |
+| Deshabilitar los botones de la fila mientras espera | Dejar tocar y encolar | Sin eso, dos respuestas de la misma fila pueden llegar en desorden y la pantalla mostraría una cantidad vieja |
+| Pendientes por fila (`pendingItemIds`) | Un solo `isUpdating` para toda la lista | Cambiar una fila no bloquea las demás |
+| Elegir en el buscador un producto que ya está en la lista = mismo +1 que el botón | Llamar `add_item_to_general_list` igual | Pasa por el mismo bloqueo por fila; si no, un añadir y un "+" en paralelo sobre la misma fila podrían dejar en pantalla una cantidad vieja |
+| `Button` de components/ui con texto solo para lectores de pantalla | `<button>` propio con `aria-label` | Reusar el primitivo (nextjs-enterprise-patterns §1); el "−" solo no dice nada a un lector de pantalla |
 
 ## Deuda conocida (revisión de seguridad, 2026-09-25)
 

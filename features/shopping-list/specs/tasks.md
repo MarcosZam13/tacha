@@ -13,12 +13,18 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 7. `useProductSearch` (debounce + descartar respuestas viejas) y `useShoppingListViewModel`.
 - [x] 8. Presentación: `ProductSearch`, `ShoppingListRow` (sin controles aún), `ShoppingListEmptyState`, `ShoppingList`, ruta `app/lista/page.tsx`. Validar CA-01..04 de HU-36a; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-120: buscador compartido
+
+- [x] 12. Mover `useProductSearch`, `searchCatalog`, `ProductSearch` y sus constantes/tipos a `hooks/`, `services/`, `components/product-search/`, `constants/catalog.constants.ts` y `types/catalog.types.ts`. El servicio devuelve productos madre; la lista los aplana en `utils/toCatalogSearchResults.ts`. Sin cambio de comportamiento: validar de nuevo CA-01..04 de HU-36a; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
 ## Pendiente cuando el proyecto tenga runner de tests
 
-- [ ] Tests unitarios de `utils/shopping-list.reducer.ts` (función pura) y de `useProductSearch` (debounce y descarte de respuestas viejas), según unit-testing-standards.
+- [ ] Tests unitarios de `utils/shopping-list.reducer.ts` (función pura) y de `hooks/useProductSearch.ts` (debounce y descarte de respuestas viejas), según unit-testing-standards.
 
 ## SCRUM-63: ajustar cantidad
 
-- [ ] 9. `updateQuantity()` en el servicio, acción `quantityChanged` en el reducer, `QuantityStepper` dentro de `ShoppingListRow`. Validar CA-01..04 de HU-36b.
+- [x] 9. Migración `005_change_item_quantity.sql` (RPC con delta) y aplicarla; regenerar `types/database.types.ts`.
+- [x] 10. `changeItemQuantity()` en el servicio; acciones `QUANTITY_CHANGE_STARTED` / `QUANTITY_CHANGED` / `QUANTITY_CHANGE_FAILED` y `pendingItemIds` en el reducer; `changeQuantity` en `useShoppingList` y el ViewModel.
+- [x] 11. `QuantityStepper` dentro de `ShoppingListRow`. Validar CA-01..04 de HU-36b; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

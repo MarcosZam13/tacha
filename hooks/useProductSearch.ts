@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { PRODUCT_SEARCH, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
-import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
-import { searchCatalog } from "../services/catalog.service";
+import { PRODUCT_SEARCH, PRODUCT_SEARCH_TEXT } from "@/constants";
+import { searchCatalog } from "@/services/catalog.service";
+import type { CatalogProduct } from "@/types/catalog.types";
 import type { NullableRef } from "@/types/nullable.types";
 
 /** Respuesta de la base, guardada junto al término que la pidió. */
 interface SearchResponse {
   errorMessage: NullableRef<string>;
-  results: CatalogSearchResult[];
+  results: CatalogProduct[];
   term: string;
 }
 
@@ -17,7 +17,7 @@ interface UseProductSearchReturn {
   hasNoResults: boolean;
   isSearching: boolean;
   query: string;
-  results: CatalogSearchResult[];
+  results: CatalogProduct[];
   setQuery: (query: string) => void;
 }
 
@@ -25,6 +25,7 @@ interface UseProductSearchReturn {
  * Buscador con debounce. Solo se guarda en estado lo que no se puede
  * calcular: el texto del input y la última respuesta. Si hay resultados,
  * si está buscando o si no hubo coincidencias se deriva en cada render.
+ * Devuelve productos madre; cada feature los adapta a sus propias filas.
  */
 export const useProductSearch = (): UseProductSearchReturn => {
   const [query, setQuery] = useState("");
@@ -46,7 +47,7 @@ export const useProductSearch = (): UseProductSearchReturn => {
         })
         .catch(() => {
           if (!isCancelled) {
-            setResponse({ errorMessage: SHOPPING_LIST_TEXT.SEARCH_ERROR, results: [], term });
+            setResponse({ errorMessage: PRODUCT_SEARCH_TEXT.SEARCH_ERROR, results: [], term });
           }
         });
     }, PRODUCT_SEARCH.DEBOUNCE_MS);
