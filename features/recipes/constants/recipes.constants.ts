@@ -1,3 +1,6 @@
+import { CATALOG_BASE_UNIT } from "@/constants";
+import type { CatalogBaseUnitType } from "@/constants";
+
 // Constantes propias de recetas. Viven dentro de la feature porque ninguna
 // otra las usa todavía; se promueven a constants/ con el segundo consumidor.
 
@@ -19,14 +22,123 @@ export const RECIPES_DB = {
   // Database de types/database.types.ts las valida al compilar.
   CATALOG_SELECT:
     "id, name, base_servings, image_url, recipe_ingredients(id, position, product_catalog(name))",
-  // .order() sí acepta cualquier string (no lo valida el genérico), así que
-  // la columna va como constante: un typo acá compilaría y fallaría en runtime.
+  // .order() y .eq() aceptan cualquier string (no los valida el genérico), así
+  // que esas columnas van como constante: un typo compilaría y fallaría en runtime.
   COLUMN: {
     CREATED_AT: "created_at",
+    ID: "id",
+  },
+  EDITOR_SELECT:
+    "id, name, base_servings, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
+  RPC: {
+    SAVE_RECIPE: "save_recipe",
   },
   TABLE: {
     RECIPES: "recipes",
   },
+} as const;
+
+// Código de Postgres para "texto con formato inválido": es lo que responde
+// cuando el id de la URL no es un uuid. Se trata igual que "no encontrada".
+export const POSTGRES_ERROR_CODE = {
+  INVALID_TEXT_REPRESENTATION: "22P02",
+} as const;
+
+// Espejo de los check de recipes en la base (006_create_recipes.sql): la UI
+// avisa antes de mandar, pero la base es la que garantiza.
+export const RECIPE_FORM_LIMIT = {
+  NAME_MAX_LENGTH: 120,
+  SERVINGS_MAX: 50,
+  SERVINGS_MIN: 1,
+} as const;
+
+// Cantidad: dígitos con decimales opcionales, ya con la coma pasada a punto
+// ("0,5" → "0.5"). Porciones: solo enteros.
+export const RECIPE_FORM_PATTERN = {
+  DECIMAL_COMMA: ",",
+  DECIMAL_POINT: ".",
+  QUANTITY: /^\d+(\.\d+)?$/,
+  SERVINGS: /^\d+$/,
+} as const;
+
+// Cómo se muestra cada unidad en el selector del ingrediente.
+export const RECIPE_UNIT_LABEL = {
+  [CATALOG_BASE_UNIT.GRAMS]: "g",
+  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
+  [CATALOG_BASE_UNIT.UNIT]: "unidades",
+} as const satisfies Record<CatalogBaseUnitType, string>;
+
+// Opciones del selector de unidad, en el orden de CATALOG_BASE_UNIT.
+export const RECIPE_UNIT_OPTIONS = [
+  { label: RECIPE_UNIT_LABEL[CATALOG_BASE_UNIT.MILLILITERS], value: CATALOG_BASE_UNIT.MILLILITERS },
+  { label: RECIPE_UNIT_LABEL[CATALOG_BASE_UNIT.GRAMS], value: CATALOG_BASE_UNIT.GRAMS },
+  { label: RECIPE_UNIT_LABEL[CATALOG_BASE_UNIT.UNIT], value: CATALOG_BASE_UNIT.UNIT },
+] as const satisfies ReadonlyArray<{ label: string; value: CatalogBaseUnitType }>;
+
+// Estados del editor (models/RecipeEditorState.interface.ts).
+export const RECIPE_EDITOR_STATUS = {
+  EDITING: "editing",
+  LOADING: "loading",
+  LOAD_FAILED: "loadFailed",
+  NOT_FOUND: "notFound",
+  SAVING: "saving",
+} as const;
+
+export type RecipeEditorStatusType = (typeof RECIPE_EDITOR_STATUS)[keyof typeof RECIPE_EDITOR_STATUS];
+
+// Acciones del reducer del editor (utils/recipe-editor.reducer.ts).
+export const RECIPE_EDITOR_ACTION = {
+  BASE_SERVINGS_CHANGED: "baseServingsChanged",
+  INGREDIENT_ADDED: "ingredientAdded",
+  INGREDIENT_QUANTITY_CHANGED: "ingredientQuantityChanged",
+  INGREDIENT_REMOVED: "ingredientRemoved",
+  INGREDIENT_UNIT_CHANGED: "ingredientUnitChanged",
+  LOADED: "loaded",
+  LOAD_FAILED: "loadFailed",
+  NAME_CHANGED: "nameChanged",
+  NOT_FOUND: "notFound",
+  SAVE_FAILED: "saveFailed",
+  SAVE_STARTED: "saveStarted",
+  VALIDATION_FAILED: "validationFailed",
+} as const;
+
+export const RECIPE_ROUTE = {
+  CATALOG: "/recetas",
+  EDIT_SEGMENT: "editar",
+  NEW: "/recetas/nueva",
+} as const;
+
+export const RECIPE_FORM_ERROR = {
+  INGREDIENTS_REQUIRED: "Agrega al menos un ingrediente.",
+  NAME_REQUIRED: "Escribe el nombre de la receta.",
+  NAME_TOO_LONG: `El nombre puede tener hasta ${RECIPE_FORM_LIMIT.NAME_MAX_LENGTH} caracteres.`,
+  QUANTITY_INVALID: "Escribe una cantidad mayor que 0.",
+  SERVINGS_INVALID: `Las porciones tienen que ser un número entero entre ${RECIPE_FORM_LIMIT.SERVINGS_MIN} y ${RECIPE_FORM_LIMIT.SERVINGS_MAX}.`,
+} as const;
+
+export const RECIPE_EDITOR_TEXT = {
+  BACK_TO_CATALOG: "← Volver a recetas",
+  CANCEL: "Cancelar",
+  DUPLICATE_INGREDIENT: "Ese producto ya está en la receta.",
+  EDIT: "Editar",
+  EDIT_TITLE: "Editar receta",
+  INGREDIENTS_HINT: "Busca cada ingrediente en el catálogo y después indica cuánto lleva.",
+  LOAD_ERROR: "No se pudo cargar la receta. Intenta de nuevo.",
+  NAME_LABEL: "Nombre",
+  NAME_PLACEHOLDER: "Ej. Arroz con leche",
+  NEW_RECIPE: "+ Nueva receta",
+  NEW_TITLE: "Nueva receta",
+  NOT_FOUND: "No encontramos esa receta.",
+  NO_INGREDIENTS: "Todavía no agregaste ingredientes.",
+  QUANTITY_LABEL: "Cantidad",
+  QUANTITY_PLACEHOLDER: "Ej. 500",
+  REMOVE_INGREDIENT: "Quitar",
+  SAVE: "Guardar receta",
+  SAVE_ERROR: "No se pudo guardar la receta. Intenta de nuevo.",
+  SAVING: "Guardando…",
+  SERVINGS_LABEL: "Porciones base",
+  SERVINGS_PLACEHOLDER: "Ej. 4",
+  UNIT_LABEL: "Unidad",
 } as const;
 
 // Sub-tabs de la sección "Recetas" (DESIGN.md §3.1). El planificador es SCRUM-99.

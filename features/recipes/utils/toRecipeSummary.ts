@@ -2,6 +2,7 @@ import { RECIPE_CATALOG, RECIPE_TEXT } from "../constants/recipes.constants";
 import type { RecipeRow } from "../models/RecipeRow.interface";
 import type { RecipeSummary } from "../models/RecipeSummary.interface";
 import { formatServings } from "./formatServings";
+import { getRecipeEditPath } from "./getRecipeEditPath";
 
 /**
  * Adapter: convierte la fila de la base en lo que dibuja la tarjeta. Es una
@@ -20,6 +21,7 @@ export const toRecipeSummary = (recipeRow: RecipeRow): RecipeSummary => {
   const hiddenIngredientCount = ingredients.length - RECIPE_CATALOG.MAIN_INGREDIENTS_LIMIT;
 
   return {
+    editPath: getRecipeEditPath(recipeRow.id),
     hasIngredients: ingredients.length > 0,
     id: recipeRow.id,
     imageUrl: recipeRow.image_url,
