@@ -115,6 +115,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
     isSuccess: status === REGISTRO_SUBMIT_STATUS.SUCCESS,
     isTermsModalOpen,
     passwordStrength,
+    registeredEmail: normalizeRegistroEmail(values.email),
     submitError,
     values,
   };

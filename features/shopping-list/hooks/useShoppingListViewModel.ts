@@ -1,8 +1,9 @@
+import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
+import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
 import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
-import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
-import { useProductSearch } from "./useProductSearch";
+import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
 import { useShoppingList } from "./useShoppingList";
 
 interface UseShoppingListViewModelReturn {
@@ -17,12 +18,12 @@ interface UseShoppingListViewModelReturn {
   onDecreaseQuantity: (itemId: string) => void;
   onIncreaseQuantity: (itemId: string) => void;
   onQueryChange: (query: string) => void;
-  onSelectResult: (searchResult: CatalogSearchResult) => void;
+  onSelectSearchOption: (variantId: string) => void;
   quantityErrorMessage: NullableRef<string>;
   query: string;
   rows: ShoppingListRowViewModel[];
   searchErrorMessage: NullableRef<string>;
-  searchResults: CatalogSearchResult[];
+  searchOptions: ProductSearchOption[];
 }
 
 /**
@@ -32,8 +33,12 @@ interface UseShoppingListViewModelReturn {
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const { addItem, changeQuantity, state } = useShoppingList();
   const search = useProductSearch();
+  // El buscador devuelve productos madre; la lista añade variantes.
+  const searchResults = toCatalogSearchResults(search.results);
 
-  const onSelectResult = (searchResult: CatalogSearchResult): void => {
+  const onSelectSearchOption = (variantId: string): void => {
+    const searchResult = searchResults.find((result) => result.variantId === variantId);
+    if (!searchResult) return;
     search.clearQuery();
     const listedItem = state.items.find((item) => item.variantId === searchResult.variantId);
     if (!listedItem) {
@@ -82,11 +87,15 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     onDecreaseQuantity,
     onIncreaseQuantity,
     onQueryChange: search.setQuery,
-    onSelectResult,
+    onSelectSearchOption,
     quantityErrorMessage: state.quantityErrorMessage,
     query: search.query,
     rows,
     searchErrorMessage: search.errorMessage,
-    searchResults: search.results,
+    searchOptions: searchResults.map((result) => ({
+      detail: result.sizeLabel,
+      id: result.variantId,
+      label: result.productName,
+    })),
   };
 };

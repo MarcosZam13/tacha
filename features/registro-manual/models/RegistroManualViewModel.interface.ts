@@ -17,6 +17,7 @@ export interface RegistroManualViewModel {
   isAcceptedTerms: boolean;
   isTermsModalOpen: boolean;
   passwordStrength: NullableUndefined<PasswordStrength>;
+  registeredEmail: string;
   submitError: NullableUndefined<string>;
   values: RegistroFormValues;
 }

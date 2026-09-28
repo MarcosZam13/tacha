@@ -30,7 +30,6 @@ export const REGISTRO_LABEL = {
   PASSWORD_STRENGTH: "Seguridad",
   SUBMIT: "Registrarme",
   SUBMITTING: "Creando cuenta...",
-  SUCCESS: "¡Cuenta creada!",
   TITLE: "Crear cuenta",
 } as const;
 
@@ -133,6 +132,67 @@ export const PASSWORD_STRENGTH_LABEL: Record<PasswordStrengthLevelType, string> 
   [PASSWORD_STRENGTH_LEVEL.STRONG]: "Fuerte",
   [PASSWORD_STRENGTH_LEVEL.WEAK]: "Débil",
 };
+
+
+
+  export const REGISTRO_ROUTE = {
+  VERIFIED: "/registro/verificado",
+} as const;
+
+export const HTTP_STATUS = {
+  TOO_MANY_REQUESTS: 429,
+} as const;
+
+// Segundos que "Reenviar correo" queda deshabilitado: es el mínimo que Supabase exige entre
+// dos correos al mismo usuario.
+export const VERIFICATION_RESEND_COOLDOWN_SECONDS = 60;
+export const VERIFICATION_COUNTDOWN_TICK_MS = 1000;
+
+export const RESEND_RESULT = {
+  ERROR: "error",
+  RATE_LIMITED: "rate-limited",
+  SUCCESS: "success",
+} as const;
+
+export type ResendResultType = (typeof RESEND_RESULT)[keyof typeof RESEND_RESULT];
+
+export const RESEND_MESSAGE: Record<ResendResultType, string> = {
+  [RESEND_RESULT.ERROR]: "No pudimos reenviar el correo. Intentá de nuevo en unos minutos.",
+  [RESEND_RESULT.RATE_LIMITED]: "Esperá un momento antes de reenviar el correo.",
+  [RESEND_RESULT.SUCCESS]: "Te enviamos un correo nuevo.",
+};
+
+export const VERIFICATION_LABEL = {
+  CONFIRMED_MESSAGE: "Tu cuenta ya está verificada.",
+  CONFIRMED_TITLE: "¡Correo confirmado!",
+  EXPIRED_MESSAGE: "El enlace expiró o ya no es válido. Pedí uno nuevo con tu correo.",
+  EXPIRED_TITLE: "Enlace no válido",
+  PAGE_TITLE: "Verificación de correo",
+  PENDING_MESSAGE_PREFIX: "Te enviamos un correo a",
+  PENDING_MESSAGE_SUFFIX: "Confirmá tu cuenta desde ahí.",
+  PENDING_TITLE: "Revisá tu correo",
+  RESEND: "Reenviar correo",
+  RESENDING: "Enviando...",
+  RESEND_WAIT: "Reenviar en",
+  SECONDS_UNIT: "s",
+} as const;
+
+// Estado del enlace del correo en /registro/verificado. CHECKING es el instante antes de leer la URL.
+export const VERIFICATION_LINK_STATUS = {
+  CHECKING: "checking",
+  CONFIRMED: "confirmed",
+  INVALID: "invalid",
+} as const;
+
+export type VerificationLinkStatusType =
+  (typeof VERIFICATION_LINK_STATUS)[keyof typeof VERIFICATION_LINK_STATUS];
+
+// Parámetros que Supabase agrega al fragmento (#...) de la URL al volver del enlace del correo.
+export const VERIFICATION_LINK_PARAM = {
+  ACCESS_TOKEN: "access_token",
+  ERROR: "error",
+} as const;
+
 
 export const TERMS_LABEL = {
   CHECKBOX: "Acepto los términos y condiciones",

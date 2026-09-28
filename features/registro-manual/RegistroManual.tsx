@@ -10,6 +10,7 @@ import {
   TERMS_LABEL,
 } from "./constants/registro.constants";
 import { useRegistroManualViewModel } from "./hooks/useRegistroManualViewModel";
+import { VerificacionPendiente } from "./components/VerificacionPendiente";
 
 /**
  * Pantalla de registro manual. "use client" porque usa hooks y habla con
@@ -29,6 +30,7 @@ export const RegistroManual = (): React.JSX.Element => {
     isSuccess,
     isTermsModalOpen,
     passwordStrength,
+    registeredEmail,
     submitError,
     values,
   } = useRegistroManualViewModel();
@@ -37,10 +39,8 @@ export const RegistroManual = (): React.JSX.Element => {
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 bg-tacha-bg px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{REGISTRO_LABEL.TITLE}</h1>
 
-      {isSuccess ? (
-        <p role="status" className="font-body text-sm text-tacha-teal">
-          {REGISTRO_LABEL.SUCCESS}
-        </p>
+        {isSuccess ? (
+        <VerificacionPendiente email={registeredEmail} />
       ) : (
         <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
           {REGISTRO_FORM_FIELDS.map(({ field, label, type }) => (

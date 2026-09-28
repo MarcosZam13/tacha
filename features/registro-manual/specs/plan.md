@@ -51,6 +51,30 @@ features/registro-manual/
 - **Colores:** rojo/terracota a teal (`docs/DESIGN.md` §7.14), con los tokens `tacha-*`.
 - **Reuso futuro:** la recuperación de contraseña (HU-28/29) usará la misma barra; se promueve a `components/` cuando exista ese segundo uso, no antes.
 
+## SCRUM-40: verificación de correo
+
+```
+features/registro-manual/
+  components/
+    VerificacionPendiente.tsx          pantalla "revisá tu correo" + botón de reenvío con cuenta regresiva
+    ReenvioCorreoForm.tsx              campo de correo + botón para reenviar (caso de enlace expirado)
+    models/                            props de los mini componentes
+  RegistroVerificado.tsx               entrada de /registro/verificado: éxito o enlace expirado
+  hooks/
+    useVerificacionPendienteViewModel.ts   reenvío, cuenta regresiva y mensajes
+    useRegistroVerificadoViewModel.ts      lee el resultado del enlace (hash de la URL)
+  services/registro.service.ts         + resendVerificationEmail(); registerUser() envía emailRedirectTo
+  constants/registro.constants.ts      textos, segundos de espera, claves del resultado del enlace
+app/registro/verificado/page.tsx       ruta delgada: solo renderiza <RegistroVerificado />
+```
+
+- **Sin correo en la URL:** el correo del registro se guarda en el estado del ViewModel; al reenviar desde el enlace expirado se pide de nuevo en un campo, porque el enlace no lo trae y así también funciona desde otro dispositivo.
+- **Cuenta regresiva:** 60 s, el mínimo que impone Supabase entre correos del mismo usuario; evita spam y el 429.
+- **Resultado del enlace:** Supabase redirige a `/registro/verificado` con el resultado en el fragmento (`#...`); un error de enlace trae `error_code` (`otp_expired`). Solo se lee en el navegador.
+- **Reenvío sin enumeración:** el mensaje de éxito es el mismo exista o no la cuenta.
+- **Sin login:** iniciar sesión (SCRUM-45) queda fuera de esta historia.
+- **Configuración en Supabase:** Redirect URL agregada en el Dashboard; el tiempo de expiración lo define Supabase.
+
 ## SCRUM-41: aceptación de términos y condiciones
 
 ```
@@ -59,8 +83,6 @@ features/registro-manual/
   hooks/useRegistroManualViewModel.ts   + acceptedTerms, handleAcceptedTermsChange, isTermsModalOpen, etc.
   constants/registro.constants.ts    texto del checkbox, del enlace, título del modal, placeholder legal
 ```
-
-## Decisiones
 
 - **Reuso:** `Checkbox` y `Modal` ya existen en `components/ui/`; no se crea ningún componente nuevo.
 - **Estado del modal:** vive en el mismo ViewModel del registro, como un booleano más (abierto/cerrado), no en un store aparte — es un solo checkbox de una sola pantalla.
