@@ -29,6 +29,17 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 5. `RegistroManual.tsx` pinta el medidor debajo del campo de contraseña.
 - [x] 6. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-40: verificación de correo
+
+- [x] 1. Constantes: textos, segundos de espera del reenvío, claves del resultado del enlace.
+- [x] 2. Servicio: `emailRedirectTo` en `registerUser` y `resendVerificationEmail`.
+- [x] 3. Pantalla pendiente: `VerificacionPendiente` con reenvío y cuenta regresiva.
+- [x] 4. `RegistroManual` muestra la pantalla pendiente al registrarse con éxito.
+- [x] 5. Página `/registro/verificado`: éxito y enlace expirado, con reenvío.
+- [x] 6. Validar en el navegador (el estado expirado se prueba a mano con `#error=access_denied&error_code=otp_expired`); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+
+
 
 ## Pendiente cuando el proyecto tenga runner de tests
 
@@ -37,4 +48,3 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 ## Historias que se montan sobre esta (cada una en su PR, en `on hold` hasta que esta se mergee)
 
 - SCRUM-41 (HU-18): términos y condiciones.
-- SCRUM-40 (HU-17): verificación de correo.
