@@ -1,8 +1,8 @@
 "use client";
 
+import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Spinner } from "@/components/ui";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
-import { ProductSearch } from "./components/ProductSearch";
 import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListRow } from "./components/ShoppingListRow";
 import { useShoppingListViewModel } from "./hooks/useShoppingListViewModel";
@@ -24,9 +24,9 @@ export const ShoppingList = (): React.JSX.Element => {
           hasNoResults={viewModel.hasNoSearchResults}
           isSearching={viewModel.isSearching}
           onQueryChange={viewModel.onQueryChange}
-          onSelectResult={viewModel.onSelectResult}
+          onSelectOption={viewModel.onSelectSearchOption}
+          options={viewModel.searchOptions}
           query={viewModel.query}
-          results={viewModel.searchResults}
         />
       ) : null}
 
