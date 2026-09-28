@@ -23,7 +23,19 @@ Bloqueado / pendiente de decisión del equipo:
 ## Pendiente cuando el proyecto tenga runner de tests
 
 - [ ] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
+- [ ] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
 
 ## SCRUM-95: crear o editar una receta
 
-Se detalla al empezar la historia (rama propia, cuando SCRUM-94 esté en `develop`).
+- [ ] 1. Constantes: límites del formulario, campos, acciones y estados del editor, textos, etiquetas de unidad, rutas, RPC y columnas.
+- [ ] 2. Modelos: ingrediente y valores del formulario, errores, estado, acciones, fila de edición, `SaveRecipePayload` / `SaveRecipeResponse`, interfaz del ViewModel.
+- [ ] 3. Migración `007_save_recipe.sql` (políticas de insert/update y `save_recipe`) y `Functions.save_recipe` en `types/database.types.ts`.
+- [ ] 4. Aplicar la migración en Supabase y regenerar `types/database.types.ts`.
+- [ ] 5. Utils puros: `getDefaultUnit`, `validateRecipeForm` (+ `parseQuantity`, `hasRecipeFormErrors`), `toSaveRecipePayload`, `toRecipeEditorValues`, `recipe-editor.reducer`.
+- [ ] 6. Servicio: `getRecipeForEditing()` (con "no encontrada" para id inexistente, ajeno o inválido) y `saveRecipe()`.
+- [ ] 7. `useRecipeEditor` (reducer + carga para editar con bandera de cancelación + guardar) y `useRecipeEditorViewModel` (facade con `useProductSearch` y navegación).
+- [ ] 8. Presentación: `RecipeBasicsFields`, `RecipeIngredientRow`, `RecipeIngredientsField`, `RecipeEditorActions`, `RecipeEditor`; rutas `app/recetas/nueva/page.tsx` y `app/recetas/[id]/editar/page.tsx`.
+- [ ] 9. Catálogo: link "+ Nueva receta" en `RecipeCatalog` y "Editar" en `RecipeCard`.
+- [ ] 10. Validar CA-01..04 en el navegador (crear, editar, casos límite de la SPEC, receta ajena por URL) y con otra sesión; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), edición por miembros del household (integración con households).
