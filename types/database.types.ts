@@ -494,6 +494,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      change_item_quantity: {
+        Args: { quantity_delta: number; target_item_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
         Returns: {

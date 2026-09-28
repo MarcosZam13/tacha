@@ -19,6 +19,8 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-63: ajustar cantidad
 
-- [ ] 9. `updateQuantity()` en el servicio, acción `quantityChanged` en el reducer, `QuantityStepper` dentro de `ShoppingListRow`. Validar CA-01..04 de HU-36b.
+- [x] 9. Migración `005_change_item_quantity.sql` (RPC con delta) y aplicarla; regenerar `types/database.types.ts`.
+- [x] 10. `changeItemQuantity()` en el servicio; acciones `QUANTITY_CHANGE_STARTED` / `QUANTITY_CHANGED` / `QUANTITY_CHANGE_FAILED` y `pendingItemIds` en el reducer; `changeQuantity` en `useShoppingList` y el ViewModel.
+- [x] 11. `QuantityStepper` dentro de `ShoppingListRow`. Validar CA-01..04 de HU-36b; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

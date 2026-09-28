@@ -1,5 +1,7 @@
-import type { ShoppingListItem } from "../../models/ShoppingListItem.interface";
+import type { ShoppingListRowViewModel } from "../../models/ShoppingListRowViewModel.interface";
 
 export interface ShoppingListRowProps {
-  item: ShoppingListItem;
+  onDecrease: () => void;
+  onIncrease: () => void;
+  row: ShoppingListRowViewModel;
 }
