@@ -1,12 +1,12 @@
 import type { NullableRef } from "@/types/nullable.types";
-import type { CatalogSearchResult } from "../../models/CatalogSearchResult.interface";
+import type { ProductSearchOption } from "./ProductSearchOption.interface";
 
 export interface ProductSearchProps {
   errorMessage: NullableRef<string>;
   hasNoResults: boolean;
   isSearching: boolean;
   onQueryChange: (query: string) => void;
-  onSelectResult: (searchResult: CatalogSearchResult) => void;
+  onSelectOption: (optionId: string) => void;
+  options: ProductSearchOption[];
   query: string;
-  results: CatalogSearchResult[];
 }

@@ -1,6 +1,7 @@
+import type { CatalogBaseUnitType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
-import type { CatalogBaseUnitType, ItemQuantityStepType } from "../constants/shopping-list.constants";
+import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import { formatSizeLabel } from "../utils/formatSizeLabel";
