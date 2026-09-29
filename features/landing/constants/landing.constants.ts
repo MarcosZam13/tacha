@@ -29,12 +29,14 @@ export const HERO_TEXT = {
 } as const;
 
 export const FOOTER_TEXT = {
+  ABOUT_LABEL: "Sobre Tacha",
   CONTACT_DESCRIPTION: "Escribinos por mensaje directo en Instagram.",
   CONTACT_TITLE: "Contacto",
   DESCRIPTION:
     "Listas de compras colaborativas para el hogar: una lista compartida, precios aproximados por supermercado y menos mandados repetidos.",
   SOCIAL_TITLE: "Seguinos",
 } as const;
+
 
 export const TACHA_INSTAGRAM = {
   HANDLE: "@tacha.2026",
