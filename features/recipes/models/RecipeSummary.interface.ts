@@ -2,6 +2,8 @@ import type { NullableRef } from "@/types/nullable.types";
 
 /** Una receta lista para dibujar en su tarjeta: los textos ya vienen armados. */
 export interface RecipeSummary {
+  /** Ruta del editor de esta receta ("/recetas/{id}/editar"). */
+  editPath: string;
   hasIngredients: boolean;
   id: string;
   imageUrl: NullableRef<string>;

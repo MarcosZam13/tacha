@@ -1,6 +1,6 @@
-# Plan técnico: catálogo de recetas
+# Plan técnico: recetas
 
-Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md).
+Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md). Las secciones de arriba son de SCRUM-94 (catálogo); [SCRUM-95](#scrum-95-crear-o-editar-una-receta) (crear o editar) está al final.
 
 > **Verificado el 2026-09-25** contra la base real: no existen `recipes`, `recipe_ingredients` ni `households`. El catálogo tiene 28 productos madre (casi todos lácteos, del scraping de "leche") y se puede leer con cualquier rol, así que el join `recipe_ingredients → product_catalog` funciona con la sesión anónima.
 
@@ -98,16 +98,147 @@ Cuando `households` esté en `develop` (idealmente dentro de SCRUM-95, cuyo CA-0
 5. Excluir usuarios anónimos de todo lo que sea household (deuda ya anotada en `features/shopping-list/specs/plan.md`).
 6. Frontend: selector "personal / del household" al crear o editar. El catálogo no cambia (requerimiento 4).
 
-## Deuda para SCRUM-95 (crear y editar)
+## Deuda de la revisión de seguridad de SCRUM-94
 
-De la revisión de seguridad de esta historia:
+Los puntos 1, 2 y 4 se resuelven en [SCRUM-95](#scrum-95-crear-o-editar-una-receta) (ver "Seguridad" ahí). El 3 queda para el ticket de la foto.
 
 1. **Insert en `recipes`:** `with check (owner_id = (select auth.uid()) and household_id is null)`, igual que `lists` en `004_create_lists.sql`. Sin `household_id is null`, cualquiera podría mandar un `household_id` ajeno (sin FK se guarda igual) y la receta aparecería en ese household cuando exista la política de miembros.
 2. **Insert/update en `recipe_ingredients`:** el update necesita `using` **y** `with check`, ambos con el `exists` sobre una receta propia. Sin `with check`, un usuario podría mover su ingrediente a una receta ajena cambiando `recipe_id`.
-3. **`image_url`:** guardar la ruta dentro de Supabase Storage, no una URL libre (con recetas compartidas, una URL propia de un miembro funcionaría como píxel de rastreo de los demás). Validar tipo y tamaño en la política del bucket, no en el `accept=` del input. No cambiar `unoptimized` por `remotePatterns` con comodín: convertiría el optimizador de Next en un proxy abierto.
-4. **Validación del formulario** con esquema antes de escribir, respetando los `check` de la base (nombre 1-120, porciones 1-50, cantidad > 0, unidad `ml`/`g`/`unidad`).
+3. **`image_url` (ticket de la foto):** guardar la ruta dentro de Supabase Storage, no una URL libre (con recetas compartidas, una URL propia de un miembro funcionaría como píxel de rastreo de los demás). Validar tipo y tamaño en la política del bucket, no en el `accept=` del input. No cambiar `unoptimized` por `remotePatterns` con comodín: convertiría el optimizador de Next en un proxy abierto.
+4. **Validación del formulario** antes de escribir, respetando los `check` de la base (nombre 1-120, porciones 1-50, cantidad > 0, unidad `ml`/`g`/`unidad`).
 
 ## Deuda conocida
 
 - **Nombres de producto largos:** el catálogo scrapeado guarda el nombre con marca y tamaño ("Leche entera Sabemas - 1 L"). Los ingredientes se ven así hasta que el módulo de catálogo normalice el nombre del producto madre.
 - **Sin tests automatizados:** el proyecto no tiene runner. Lo primero a cubrir: `toRecipeSummary` y `formatServings` (funciones puras).
+
+---
+
+## SCRUM-95: crear o editar una receta
+
+> **Verificado el 2026-09-28:** `recipes` y `recipe_ingredients` existen (migración `006`, solo lectura). El buscador del catálogo ya es compartido (SCRUM-120): `hooks/useProductSearch.ts` devuelve productos madre (`CatalogProduct`, con sus variantes y `baseUnit`) y `components/product-search/ProductSearch.tsx` dibuja opciones genéricas.
+
+### Archivos
+
+```
+features/recipes/
+  RecipeEditor.tsx                     entrada ("use client"): cargando / no encontrada / error / formulario
+  components/
+    RecipeBasicsFields.tsx             nombre + porciones base
+    RecipeIngredientsField.tsx         buscador compartido + lista de filas de ingrediente
+    RecipeIngredientRow.tsx            producto elegido + cantidad + unidad + "Quitar"
+    RecipeEditorActions.tsx            "Guardar" / "Cancelar"
+    models/…Props.interface.ts         props de cada mini componente
+  hooks/
+    useRecipeEditorViewModel.ts        facade: une useRecipeEditor + useProductSearch + navegación
+    useRecipeEditor.ts                 useReducer + carga para editar (useEffect) + guardar
+  models/
+    RecipeEditorIngredient.interface.ts  un ingrediente en el formulario (cantidad como texto)
+    RecipeEditorValues.interface.ts      nombre, porciones (texto) e ingredientes
+    RecipeEditorErrors.interface.ts      un mensaje por campo; los de ingrediente por productId
+    RecipeEditorState.interface.ts       status + values + errores + mensajes
+    RecipeEditorAction.type.ts           unión discriminada de acciones del reducer
+    RecipeEditorRow.interface.ts         receta tal como la devuelve la consulta de edición
+    SaveRecipePayload.interface.ts       lo que se manda a save_recipe
+    SaveRecipeResponse.interface.ts      lo que devuelve (el id guardado)
+    RecipeEditorViewModel.interface.ts   lo que el ViewModel le entrega a RecipeEditor.tsx
+    RecipeIngredientRowViewModel.interface.ts  una fila de ingrediente lista para dibujar (con su error)
+    RecipeEditorProps.interface.ts       recipeId opcional: sin id es receta nueva
+  services/
+    recipes.service.ts                 + getRecipeForEditing(), saveRecipe()
+  utils/
+    recipe-editor.reducer.ts           reducer puro + estado inicial
+    validateRecipeForm.ts              validación pura (+ hasRecipeFormErrors)
+    normalizeDecimal.ts                " 0,5 " → "0.5" (lo usan la validación y el payload)
+    toSaveRecipePayload.ts             valores del formulario → payload (trim, números)
+    toRecipeEditorValues.ts            fila de la base → valores del formulario
+    getDefaultUnit.ts                  producto del catálogo → unidad preseleccionada
+    getRecipeEditPath.ts               id → "/recetas/{id}/editar"
+  constants/recipes.constants.ts       + límites, patrones, unidades, acciones, estados, textos, rutas, RPC
+
+  RecipeCatalog.tsx                    + link "+ Nueva receta"
+  components/RecipeCard.tsx            + link "Editar" (la ruta viene armada en RecipeSummary.editPath)
+
+app/recetas/nueva/page.tsx             ruta delgada: <RecipeEditor />
+app/recetas/[id]/editar/page.tsx       ruta delgada: await params → <RecipeEditor recipeId={id} />
+supabase/migrations/007_save_recipe.sql     políticas de escritura + save_recipe
+supabase/migrations/008_harden_recipes.sql  tope de cantidad, columnas escribibles, largo del nombre (revisión de seguridad)
+types/database.types.ts                + Functions.save_recipe (regenerar al aplicar la migración)
+```
+
+### Datos
+
+**Migración `007_save_recipe.sql`:**
+
+- Políticas nuevas (las de lectura de `006` no cambian):
+  - `recipes` insert: `with check (owner_id = auth.uid() and household_id is null)`.
+  - `recipes` update: `using (owner_id = auth.uid())` y `with check (owner_id = auth.uid() and household_id is null)`: no se puede pasar la receta a otro dueño ni colgarla de un household.
+  - `recipe_ingredients` insert, update y delete: `exists` sobre una receta propia; el update con `using` **y** `with check`. El delete de ingredientes hace falta para editar (se reemplazan); borrar la **receta** sigue cerrado hasta SCRUM-96.
+- Función `save_recipe(recipe_name text, recipe_base_servings integer, ingredient_list jsonb, target_recipe_id uuid default null) returns uuid` (el parámetro no se llama `recipe_ingredients` para no confundirlo con la tabla dentro de la función; `target_recipe_id` va al final porque tiene default):
+  - `security invoker` (RLS sigue aplicando) y `search_path` vacío, como `add_item_to_general_list`.
+  - Sin ingredientes → error.
+  - `target_recipe_id` nulo → inserta (el dueño sale del default `auth.uid()`); con valor → actualiza. Si el update no toca ninguna fila (no existe o es ajena, RLS la oculta) → error "no encontrada", sin revelar cuál de las dos.
+  - Borra los ingredientes de esa receta e inserta los nuevos; `position` = orden en el arreglo.
+  - Todo en una transacción: si algo falla (un producto inexistente, una unidad inválida), no queda nada a medias.
+  - Solo `authenticated` puede ejecutarla.
+- `ingredient_list` JSON: `[{ "product_catalog_id": uuid, "quantity_value": number, "quantity_unit": "ml" | "g" | "unidad" }]`.
+
+**Migración `008_harden_recipes.sql`** (de la revisión de seguridad del PR; la `007` ya estaba aplicada y no se edita, clean-code-practices §4):
+
+- **Cantidad `> 0 and <= 100000`:** el check de `006` era solo `> 0`, y en Postgres `'NaN'::numeric > 0` da verdadero y `'Infinity'::numeric` existe. Llamando a la API directo se podía guardar NaN o Infinity, que después rompería la suma contra la lista (SCRUM-97). El tope los rechaza; el formulario usa el mismo (`RECIPE_FORM_LIMIT.QUANTITY_MAX`).
+- **Permisos por columna en `recipes`:** insert y update solo sobre `name` y `base_servings`. `image_url` queda cerrada hasta el ticket de la foto (con households sería un píxel de rastreo), e `id`, `owner_id`, `household_id` y `created_at` no se pueden fijar a mano. RLS decide qué filas; los permisos por columna, qué columnas.
+- **Nombre:** se mide el largo total (máx. 120) y se sigue exigiendo que no quede vacío al recortar. Antes solo se medía el largo recortado, así que se podía rellenar con espacios sin límite.
+
+**Consulta para editar:**
+
+```
+recipes(id, name, base_servings,
+        recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name)))
+where id = {recipeId}   (maybeSingle)
+```
+
+Sin fila → "no encontrada" (no existe o es de otro usuario: RLS no la devuelve). Un id que no es un uuid válido hace que Postgres responda error `22P02`; se trata igual que "no encontrada".
+
+### Flujo
+
+1. **Nueva:** `/recetas` → "+ Nueva receta" → `/recetas/nueva` → `RecipeEditor` sin `recipeId` → estado inicial `editing` con el formulario vacío.
+2. **Editar:** tarjeta → "Editar" → `/recetas/{id}/editar` → `RecipeEditor recipeId={id}` → estado inicial `loading` → `getRecipeForEditing(id)` → `loaded` (valores precargados) / `notFound` / `loadFailed`.
+3. **Ingrediente:** escribir en el buscador → `useProductSearch` → opciones (id = producto madre, sin detalle de tamaño). Elegir una → `ingredientAdded` con la unidad de `getDefaultUnit(product)` y cantidad vacía; si ya estaba → aviso, no se duplica. El buscador se limpia.
+4. **Editar campos:** cada cambio es una acción del reducer y limpia el error de ese campo.
+5. **Guardar:** `validateRecipeForm(values)` → si hay errores se muestran y no se llama a la base. Si no → `saving` (botón deshabilitado) → `saveRecipe(toSaveRecipePayload(values, recipeId))` → éxito: `router.push("/recetas")`; error: `saveFailed`, el formulario conserva todo.
+6. **Cancelar:** link a `/recetas`, sin guardar.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Rutas propias `/recetas/nueva` y `/recetas/{id}/editar` | Modal sobre el catálogo | El botón "atrás" del navegador funciona, se puede recargar sin perder en qué receta estás, y el modal necesitaría estado compartido entre catálogo y formulario (patrón todavía sin decidir, nextjs-enterprise-patterns §3) |
+| Un solo `RecipeEditor` para crear y editar | Dos pantallas | Es el mismo formulario; solo cambia si arranca vacío o cargado, y si `save_recipe` recibe id |
+| Guardar con una RPC (`save_recipe`) | Varias llamadas desde el cliente (insert receta, después ingredientes) | Todo o nada en una transacción: si falla la red a mitad, no queda una receta sin ingredientes. Además es una sola petición |
+| Reemplazar todos los ingredientes al editar | Calcular qué se agregó, cambió o quitó | Una receta tiene pocos ingredientes; reemplazar es simple, correcto y deja `position` siempre en el orden del formulario |
+| `security invoker` en `save_recipe` | `security definer` | Con invoker, RLS sigue siendo el control: la función no puede hacer nada que el usuario no pueda hacer directo. Definer obligaría a revalidar permisos adentro |
+| `useReducer` para el formulario | Varios `useState` | Varias acciones con reglas (no duplicar, limpiar el error del campo, cargar para editar); las reglas quedan en una función pura |
+| Cantidad y porciones como texto en el formulario | Guardarlas como número al escribir | El input es texto: con número, "0," o un campo vacío se volverían 0 mientras se escribe. Se convierten recién al validar |
+| Aceptar coma decimal ("0,5") | Solo punto | En Costa Rica se escribe con coma; rechazarla sería un error para el usuario, no para el sistema |
+| Unidad preseleccionada desde las variantes del producto | Siempre `unidad` / obligar a elegir | Casi siempre acierta (la leche se mide en `ml`) y ahorra un paso; se puede cambiar |
+| Validación en `utils/` + `check` de la base | Librería de esquemas (Zod) | Mismo patrón que el registro (`features/registro-manual/utils/validateRegistroForm.ts`) y sin dependencia nueva; la base repite las reglas, así que la UI es comodidad y la base la garantía |
+| `<select>` nativo para la unidad, dentro de la feature | Primitivo `Select` en `components/ui` | Solo hay un uso; un primitivo nuevo se crea cuando aparezca el segundo |
+| Links (`next/link`) para "+ Nueva receta", "Editar" y "Cancelar" | `Button` con `router.push` | Son navegación, no acciones: con un link se puede abrir en otra pestaña y el lector de pantalla lo anuncia bien. El `Button` compartido no navega (component-architecture §5, Liskov) |
+
+### Seguridad
+
+- Resuelve los puntos 1, 2 y 4 de la [deuda de SCRUM-94](#deuda-de-la-revisión-de-seguridad-de-scrum-94).
+- El cliente nunca manda `owner_id` ni `household_id`: el dueño sale de `auth.uid()` y el `household_id is null` lo exige la política.
+- Editar una receta ajena es imposible por RLS aunque alguien llame a `save_recipe` con un id ajeno desde la consola: el update no encuentra la fila.
+- La base rechaza cantidades NaN/Infinity o enormes, nombres rellenos y escrituras sobre columnas que el formulario no usa (`008`), aunque alguien se salte el formulario.
+
+### Deuda conocida
+
+- **Sin tests automatizados** (no hay runner): lo primero a cubrir son `recipe-editor.reducer.ts`, `validateRecipeForm.ts` y `toSaveRecipePayload.ts` (funciones puras).
+- **Catálogo chico:** con 28 productos de "leche", solo se pueden armar recetas de lácteos hasta que el catálogo crezca (Daniel).
+- **Productos personalizados de otro household:** `recipe_ingredients.product_catalog_id` acepta cualquier producto del catálogo. Hoy no importa porque `product_catalog` se lee público, pero cuando los productos de household ("Mis productos") tengan RLS propia, el insert de ingredientes tiene que exigir que el producto sea visible para quien guarda (si no, se podría ligar el id de un producto ajeno y leer su nombre desde la receta).
+- **Sin límite de ingredientes por receta:** `save_recipe` acepta cualquier cantidad (solo la acota el `unique` por producto). No es explotable más allá de ensuciar tus propias recetas; si hiciera falta, un tope en la función (ej. 100).
+- **Sesiones anónimas:** cualquiera puede generar sesiones anónimas y crear recetas (solo lo limita el rate limit de Supabase por IP). Deuda conocida de `ensureSession`; se cierra con el login real.
+- **Para SCRUM-96:** la política de delete de `recipes` tiene que ser `using (owner_id = (select auth.uid()))` (los ingredientes se borran en cascada). Si una receta se borra mientras otra pestaña la edita, `save_recipe` responde `P0002`; conviene mostrarlo como "no encontrada" en vez del error genérico.
+- **Para households:** el `household_id is null` del `with check` del update va a bloquear las recetas compartidas: hay que sumar políticas de miembros y la FK, no solo quitar el `is null` (sin FK se podría colgar de un household ajeno). Un miembro que no es el dueño nunca debe poder cambiar `owner_id` (ya cubierto por los permisos por columna de `008`).
+- **Estilo de links:** "+ Nueva receta" y "Cancelar" repiten las clases del `Button` primario y secundario porque son links. Si otra feature necesita lo mismo, conviene un primitivo `ButtonLink` en `components/ui`.

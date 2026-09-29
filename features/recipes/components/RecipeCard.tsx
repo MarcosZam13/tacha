@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { CategoryLabel, Chip } from "@/components/ui";
 import { RECIPE_TEXT } from "../constants/recipes.constants";
 import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
@@ -56,6 +57,14 @@ export const RecipeCard = ({ recipe }: RecipeCardProps): React.JSX.Element => (
             </ul>
           </section>
         ) : null}
+
+        {/* mt-auto: el link queda al pie aunque las tarjetas tengan alturas distintas. */}
+        <Link
+          href={recipe.editPath}
+          className="mt-auto self-start font-body text-sm font-semibold text-tacha-teal hover:underline"
+        >
+          {RECIPE_TEXT.EDIT}
+        </Link>
       </div>
     </article>
   </li>

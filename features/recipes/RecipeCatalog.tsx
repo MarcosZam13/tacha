@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Spinner } from "@/components/ui";
-import { RECIPE_TEXT, RECIPES_TAB } from "./constants/recipes.constants";
+import { RECIPE_ROUTE, RECIPE_TEXT, RECIPES_TAB } from "./constants/recipes.constants";
 import { RecipeCard } from "./components/RecipeCard";
 import { RecipeCatalogEmptyState } from "./components/RecipeCatalogEmptyState";
 import { RecipesTabs } from "./components/RecipesTabs";
@@ -16,7 +17,16 @@ export const RecipeCatalog = (): React.JSX.Element => {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 bg-tacha-bg px-4 py-8">
-      <h1 className="font-display text-3xl font-bold text-tacha-text">{RECIPE_TEXT.TITLE}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold text-tacha-text">{RECIPE_TEXT.TITLE}</h1>
+        {/* Link y no Button: es navegación (CA-01 de SCRUM-95). */}
+        <Link
+          href={RECIPE_ROUTE.NEW}
+          className="rounded-tacha-badge bg-tacha-teal px-4 py-2 font-body text-sm font-semibold text-white hover:opacity-90"
+        >
+          {RECIPE_TEXT.NEW_RECIPE}
+        </Link>
+      </div>
       <RecipesTabs activeTab={RECIPES_TAB.RECIPES} />
 
       {viewModel.errorMessage ? (
