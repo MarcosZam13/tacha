@@ -42,28 +42,30 @@ Para que una historia cuente como cubierta por QA necesita al menos: funcional +
 
 ## 3. Reporte de bug
 
-```markdown
-### BUG-{n}: {título específico, no "el botón no sirve"}
+El reporte se publica como comentario en el PR, así que se escribe en inglés (ver [gitflow, «Idioma»](../gitflow/SKILL.md#idioma-commits-prs-y-comentarios-en-inglés)).
 
-**Severidad:** Crítica / Alta / Media / Baja
-**Ambiente:** SO, navegador y versión, dispositivo, rama o entregable
-**Pasos para reproducir:**
+```markdown
+### BUG-{n}: {specific title, not "the button doesn't work"}
+
+**Severity:** Critical / High / Medium / Low
+**Environment:** OS, browser and version, device, branch or deliverable
+**Steps to reproduce:**
 1.
 2.
-**Esperado:**
-**Obtenido:**
-**Evidencia:** captura / video / log
-**Historia relacionada:** SCRUM-{n}
+**Expected:**
+**Actual:**
+**Evidence:** screenshot / video / log
+**Related story:** SCRUM-{n}
 ```
 
-Severidad:
-- **Crítica:** pérdida de datos, problema de seguridad, crash, bloquea el flujo principal
-- **Alta:** feature rota sin alternativa
-- **Media:** feature rota pero hay alternativa
-- **Baja:** cosmético, no afecta el funcionamiento
+Severidad (el valor del reporte va en inglés):
+- **Critical (Crítica):** pérdida de datos, problema de seguridad, crash, bloquea el flujo principal
+- **High (Alta):** feature rota sin alternativa
+- **Medium (Media):** feature rota pero hay alternativa
+- **Low (Baja):** cosmético, no afecta el funcionamiento
 
 Reglas:
-- El título describe la falla concreta: "El total de la sesión queda en 0 al editar con coma decimal", no "el historial está malo".
+- El título describe la falla concreta: "The session total is 0 after editing with a decimal comma", not "the history is broken".
 - Sin pasos para reproducir no hay bug. Si no se reproduce siempre, decirlo y describir las condiciones en que pasó.
 - Un bug por reporte.
 - Un bug encontrado en QA de un entregable se corrige en `qa-fix/SCRUM-{n}-...` desde ese `entregable-{n}`, no con un parche directo (ver CONTRIBUTING.md §1 y §5).

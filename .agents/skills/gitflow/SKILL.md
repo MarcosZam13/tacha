@@ -28,7 +28,7 @@ Todo PR lleva **exactamente un** label de estado desde que se abre. No existe "l
 git checkout develop && git pull
 git checkout -b ticket/SCRUM-{n}-descripcion
 # primer commit: la SPEC, o vacío si todavía no hay nada
-git commit --allow-empty -m "chore(SCRUM-{n}): abrir PR de la historia"
+git commit --allow-empty -m "chore(SCRUM-{n}): open the story PR"
 git push -u origin ticket/SCRUM-{n}-descripcion
 gh pr create --base develop --label "in progress" --title "{tipo}(SCRUM-{n}): ..." --body "..."
 # ... commits siguientes: {tipo}(SCRUM-{n}): descripción en imperativo
@@ -40,6 +40,18 @@ gh pr create --base develop --label "in progress" --title "{tipo}(SCRUM-{n}): ..
 - `--base` sale de la tabla de la sección 1, nunca del default a ciegas.
 - Label inicial: `in progress` si falta algo; `waiting qa` si el código está completo y `tsc`/lint/build pasan.
 - El body usa la plantilla `.github/pull_request_template.md` completa, con **Ticket** = link a `https://tacha.atlassian.net/browse/SCRUM-{n}`.
+
+### Idioma: commits, PRs y comentarios en inglés
+
+Todo lo que queda escrito en git y en GitHub va en inglés:
+
+- **Commits:** `{tipo}(SCRUM-{n}): add footer information`, en imperativo. El tipo y la clave `SCRUM-{n}` no cambian.
+- **PR:** título y descripción (la plantilla completa, con sus encabezados) en inglés. Los PRs de ciclo también: `chore(sprint-{n}): deliverable {n}`.
+- **Comentarios en el PR:** revisión de código, resultado de QA y reportes de bug (formato de [qa-testing-practices §3](../qa-testing-practices/SKILL.md)), en inglés.
+
+Lo que este idioma no regula: los textos de la interfaz de Tacha, los comentarios dentro del código, los nombres de rama, los documentos del repo y lo que el agente le responde a la persona en la conversación (incluidos los informes de los subagentes de revisión), que siguen como están.
+
+El check `gitflow` del CI valida el formato del título (`tipo(SCRUM-n): descripción`), no el idioma: lo revisa quien revisa el PR. Los commits y PRs anteriores no se reescriben.
 
 ## 3. Cambiar de estado
 
@@ -87,8 +99,8 @@ No se apilan ramas (`ticket/B` saliendo de `ticket/A`): toda rama de ticket nace
 
 1. `git checkout develop && git pull && git checkout -b entregable-{n} && git push -u origin entregable-{n}`, donde `{n}` es el número del sprint que cierra.
 2. QA prueba `entregable-{n}`. Cada hallazgo → ticket en Jira → `qa-fix/SCRUM-{m}-...` desde `entregable-{n}` → PR a `entregable-{n}` con su label.
-3. Con todo aprobado: PR `entregable-{n}` → `main`, título `chore(sprint-{n}): entregable {n}`, label `waiting qa` → `qa accepted` → merge.
-4. Enseguida: PR `main` → `develop`, título `chore(sprint-{n}): sincronizar main en develop`, para que los `qa-fix` lleguen al sprint siguiente.
+3. Con todo aprobado: PR `entregable-{n}` → `main`, título `chore(sprint-{n}): deliverable {n}`, label `waiting qa` → `qa accepted` → merge.
+4. Enseguida: PR `main` → `develop`, título `chore(sprint-{n}): sync main into develop`, para que los `qa-fix` lleguen al sprint siguiente.
 
 ## 6. Errores que ya pasaron en este repo (no repetir)
 
@@ -104,6 +116,7 @@ No se apilan ramas (`ticket/B` saliendo de `ticket/A`): toda rama de ticket nace
 - [ ] La rama tiene uno de los prefijos permitidos y una clave `SCRUM-{n}` que existe en Jira
 - [ ] El PR apunta a la rama base que dice la tabla de la sección 1
 - [ ] El PR tiene exactamente un label de estado
+- [ ] Commits, título, descripción y comentarios del PR están en inglés
 - [ ] La tarjeta de Jira está en la columna que corresponde a ese label
 - [ ] El autor no queda con más de una PR en `in progress`
 - [ ] Ninguna rama de ticket salió de otra rama de ticket; lo dependiente está en `on hold`

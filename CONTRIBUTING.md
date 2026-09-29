@@ -47,16 +47,17 @@ Nunca se trabaja ni se commitea directo sobre `main`, `develop` o `entregable-{n
 ## 2. Commits
 
 ```
-{type}(SCRUM-{n}): descripción corta en imperativo
+{type}(SCRUM-{n}): short description in imperative mood
 
-[cuerpo opcional: el porqué, no el qué]
+[optional body: the why, not the what]
 ```
 
-Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
+Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`. El mensaje se escribe en inglés.
 
 ## 3. Pull Requests
 
-- Título con el mismo formato: `feat(SCRUM-14): descripción corta`. Los PRs de ciclo (`entregable-{n}` → `main`, `main` → `develop`) usan `chore(sprint-{n}): ...`.
+- Título con el mismo formato: `feat(SCRUM-14): short description`. Los PRs de ciclo (`entregable-{n}` → `main`, `main` → `develop`) usan `chore(sprint-{n}): ...`.
+- **Título, descripción y comentarios del PR van en inglés**, incluidos los reportes de bug de QA. El CI valida el formato del título, no el idioma. Detalle en [gitflow](.agents/skills/gitflow/SKILL.md#idioma-commits-prs-y-comentarios-en-inglés).
 - Se abre siempre, incluso trabajando solo: es el checkpoint de revisión antes de mergear.
 - **Se abre al empezar la historia, no al terminarla.** Cada historia del sprint que te toca tiene su PR desde el primer momento (con la SPEC, o con un commit vacío si todavía no hay nada), para que el equipo vea en GitHub quién trabaja en qué. Con `in progress` si es la que estás haciendo ahora, con `on hold` si todavía no la podés empezar. Se completa la descripción y se pasa a `waiting qa` cuando está lista.
 - Nunca mergear una rama de trabajo en progreso sobre otra rama de trabajo en progreso.
@@ -126,7 +127,7 @@ npm run dev
 | Resultado | Label (reemplaza a `waiting qa`) | Jira | Además |
 |---|---|---|---|
 | Todo pasa | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa accepted"` | QA Accepted | El check `qa-gate` se pone verde y se puede mergear |
-| Algo falla | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa denied"` | QA Denied | Un comentario en el PR por bug, con el formato de [qa-testing-practices §3](.agents/skills/qa-testing-practices/SKILL.md). Sin pasos para reproducir no hay bug |
+| Algo falla | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa denied"` | QA Denied | Un comentario en el PR por bug, en inglés y con el formato de [qa-testing-practices §3](.agents/skills/qa-testing-practices/SKILL.md). Sin pasos para reproducir no hay bug |
 
 **6. Volver a lo tuyo**
 
