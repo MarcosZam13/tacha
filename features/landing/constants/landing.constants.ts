@@ -33,10 +33,12 @@ export const FOOTER_TEXT = {
   CONTACT_TITLE: "Contacto",
   DESCRIPTION:
     "Listas de compras colaborativas para el hogar: una lista compartida, precios aproximados por supermercado y menos mandados repetidos.",
+  SOCIAL_TITLE: "Seguinos",
 } as const;
 
 export const TACHA_INSTAGRAM = {
   HANDLE: "@tacha.2026",
+  LINK_LABEL: "Instagram de Tacha (se abre en una pestaña nueva)",
   URL: "https://www.instagram.com/tacha.2026/",
 } as const;
 
