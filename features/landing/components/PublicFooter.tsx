@@ -1,4 +1,5 @@
 import { FOOTER_TEXT, LANDING_SECTION_ID, TACHA_INSTAGRAM } from "../constants/landing.constants";
+import { Logo } from "./Logo";
 import { SocialLinks } from "./SocialLinks";
 
 export const PublicFooter = (): React.JSX.Element => (
@@ -24,6 +25,9 @@ export const PublicFooter = (): React.JSX.Element => (
       <SocialLinks />
     </section>
 
-    <p className="font-body text-sm text-tacha-textsec">{FOOTER_TEXT.DESCRIPTION}</p>
+    <section aria-label={FOOTER_TEXT.ABOUT_LABEL} className="flex flex-col gap-3">
+      <Logo />
+      <p className="font-body text-sm text-tacha-textsec">{FOOTER_TEXT.DESCRIPTION}</p>
+    </section>
   </footer>
 );
