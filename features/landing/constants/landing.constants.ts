@@ -5,6 +5,10 @@ export const LANDING_ROUTE = {
   REGISTER: "/registro",
 } as const;
 
+export const LANDING_SECTION_ID = {
+  CONTACT: "contacto",
+} as const;
+
 export const BRAND_LOGO = {
   IMAGE_SIZE_PX: 40,
   IMAGE_SRC: "/logo-marca/logo.png",
@@ -24,5 +28,20 @@ export const HERO_TEXT = {
   TITLE: "Compras compartidas, sin complicaciones",
 } as const;
 
-//Cada sección nueva agrega su enlace acá.
-export const NAV_LINKS: readonly NavLink[] = [{ href: LANDING_ROUTE.HOME, label: "Inicio" }];
+export const FOOTER_TEXT = {
+  CONTACT_DESCRIPTION: "Escribinos por mensaje directo en Instagram.",
+  CONTACT_TITLE: "Contacto",
+  DESCRIPTION:
+    "Listas de compras colaborativas para el hogar: una lista compartida, precios aproximados por supermercado y menos mandados repetidos.",
+} as const;
+
+export const TACHA_INSTAGRAM = {
+  HANDLE: "@tacha.2026",
+  URL: "https://www.instagram.com/tacha.2026/",
+} as const;
+
+// Cada sección nueva agrega su enlace acá.
+export const NAV_LINKS: readonly NavLink[] = [
+  { href: LANDING_ROUTE.HOME, label: "Inicio" },
+  { href: `${LANDING_ROUTE.HOME}#${LANDING_SECTION_ID.CONTACT}`, label: "Contacto" },
+];
