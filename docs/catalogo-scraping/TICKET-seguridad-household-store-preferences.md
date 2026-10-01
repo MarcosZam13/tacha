@@ -7,7 +7,13 @@ bloquea: no debe llegar a producción sin resolverse — bloquea el lanzamiento,
 ---
 # Endurecer RLS de `household_store_preferences` cuando exista el módulo de auth/households
 
-## Problema
+## Estado (2026-10-01, SCRUM-123)
+
+En la QA del entregable 1 se cerró la parte que no podía llegar a `main`: la migración `009_close_store_preferences_writes.sql` borra las policies de escritura abiertas. Hoy nadie escribe en la tabla desde el cliente (RLS sin policy de escritura) y la lectura sigue pública. El demo `/debug/preferences-demo` ya no puede guardar.
+
+Queda pendiente lo de abajo: agregar la policy de escritura por membresía cuando exista `household_members`. Ya no hay que hacer los `drop policy` del ejemplo, la 009 los hizo.
+
+## Problema (original)
 
 `household_store_preferences` tiene sus policies de `insert`/`update`/`delete` completamente abiertas:
 
