@@ -2,63 +2,164 @@
 
 ## 1. Branching
 
-Modelo exigido por el profesor para el proyecto del curso, en kebab-case y con código de ticket para trazabilidad:
+Modelo exigido por el profesor para el proyecto del curso, en kebab-case y con la clave de Jira para trazabilidad. **Es obligatorio, sin excepciones.** El check `gitflow` del CI rechaza un PR con una combinación de ramas que no esté en esta tabla. Detalle para agentes de IA en [gitflow](.agents/skills/gitflow/SKILL.md).
 
+| Rama | Nace de | Se fusiona a | Para qué |
+|---|---|---|---|
+| `main` | — | — | Lo ya entregado y aprobado por QA ("Master" en el diagrama del profesor) |
+| `develop` | `main` | `entregable-{n}` | Integración continua de las historias terminadas del sprint. Rama default del repo |
+| `ticket/SCRUM-{n}-descripcion` | `develop` | `develop` | Una historia o tarea de Jira |
+| `entregable-{n}` | `develop` | `main` | Se congela **al cierre de cada sprint** (`entregable-1` = Sprint 1, `entregable-2` = Sprint 2...) y pasa por QA antes de llegar a `main` |
+| `qa-fix/SCRUM-{n}-descripcion` | `entregable-{n}` | `entregable-{n}` | Corrige un hallazgo de QA sobre ese entregable |
+| `hotfix/SCRUM-{n}-descripcion` | `main` | `main` | Corrección urgente sobre algo ya entregado |
+
+```mermaid
+gitGraph
+    commit id: "main"
+    branch develop
+    checkout develop
+    branch ticket/SCRUM-23-navbar
+    commit id: "feat(SCRUM-23)"
+    checkout develop
+    merge ticket/SCRUM-23-navbar
+    branch entregable-1
+    checkout entregable-1
+    branch qa-fix/SCRUM-23-link-roto
+    commit id: "fix(SCRUM-23)"
+    checkout entregable-1
+    merge qa-fix/SCRUM-23-link-roto
+    checkout main
+    merge entregable-1 tag: "Sprint 1"
+    checkout develop
+    merge main id: "sync"
 ```
-main                              → producción (equivalente a "Master" del diagrama del profesor)
-develop                           → integración de desarrollo, nace de main
-ticket/TACHA-{n}-descripcion      → tarea puntual, nace de develop, vuelve a develop
-entregable-{n}                    → una entrega formal del curso (entregable-1, entregable-2...), nace de develop
-qa-fix/TACHA-{n}-descripcion      → corrige hallazgos de QA sobre un entregable, nace de entregable-{n}, vuelve a entregable-{n}
-hotfix/TACHA-{n}-descripcion      → corrección urgente sobre producción, nace de main, vuelve a main
-```
 
-Flujo:
-1. `develop` nace de `main`.
-2. Cada tarea se trabaja en `ticket/TACHA-{n}-...`, creada desde `develop`; al terminar, se fusiona de vuelta a `develop`.
-3. Al preparar una entrega del curso, `develop` da origen a `entregable-{n}`.
-4. Si QA encuentra problemas en `entregable-{n}`, se crea `qa-fix/TACHA-{n}-...` desde esa rama; al corregir, se fusiona de vuelta a `entregable-{n}`.
-5. `entregable-{n}` ya corregido y aprobado se fusiona a `main`.
-6. Problema urgente en producción: `hotfix/TACHA-{n}-...` desde `main`; al corregirlo, se fusiona de vuelta a `main`.
+### Ciclo de cada sprint
 
-Nunca se trabaja directo sobre `main` o `develop`.
+1. **Durante el sprint:** cada historia en su `ticket/SCRUM-{n}-...` desde `develop`, PR a `develop`. Solo se mergea con label `qa accepted`.
+2. **Lunes de cierre** (revisión): se crea `entregable-{n}` desde `develop` con lo que se haya mergeado. Lo que no llegó a `develop` pasa al siguiente sprint; no se mete a la fuerza en el entregable.
+3. **QA del entregable:** se prueba `entregable-{n}` completo. Cada hallazgo es un `qa-fix/SCRUM-{n}-...` desde `entregable-{n}`, con PR de vuelta a `entregable-{n}`. Nunca se commitea directo en `entregable-{n}`.
+4. **Entrega:** con QA aprobado, PR de `entregable-{n}` a `main` (label `qa accepted`).
+5. **Sincronizar:** inmediatamente después, PR de `main` a `develop` para que los `qa-fix` no se pierdan en el sprint siguiente. Lo mismo después de cada `hotfix`.
+
+Nunca se trabaja ni se commitea directo sobre `main`, `develop` o `entregable-{n}`: todo entra por PR.
 
 ## 2. Commits
 
 ```
-{type}(TACHA-{n}): descripción corta en imperativo
+{type}(SCRUM-{n}): short description in imperative mood
 
-[cuerpo opcional: el porqué, no el qué]
+[optional body: the why, not the what]
 ```
 
-Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
+Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`. El mensaje se escribe en inglés.
 
 ## 3. Pull Requests
 
-- Título con el mismo formato: `feat(TACHA-14): descripción corta`.
-- Se abre siempre, incluso trabajando solo — es el checkpoint de revisión antes de mergear.
+- Título con el mismo formato: `feat(SCRUM-14): short description`. Los PRs de ciclo (`entregable-{n}` → `main`, `main` → `develop`) usan `chore(sprint-{n}): ...`.
+- **Título, descripción y comentarios del PR van en inglés**, incluidos los reportes de bug de QA. El CI valida el formato del título, no el idioma. Detalle en [gitflow](.agents/skills/gitflow/SKILL.md#idioma-commits-prs-y-comentarios-en-inglés).
+- Se abre siempre, incluso trabajando solo: es el checkpoint de revisión antes de mergear.
+- **Se abre al empezar la historia, no al terminarla.** Cada historia del sprint que te toca tiene su PR desde el primer momento (con la SPEC, o con un commit vacío si todavía no hay nada), para que el equipo vea en GitHub quién trabaja en qué. Con `in progress` si es la que estás haciendo ahora, con `on hold` si todavía no la podés empezar. Se completa la descripción y se pasa a `waiting qa` cuando está lista.
 - Nunca mergear una rama de trabajo en progreso sobre otra rama de trabajo en progreso.
 
-### Labels de estado (uno por PR, se actualiza a mano)
+### Labels de estado: exactamente uno, siempre
 
-| Label | Significado |
-|---|---|
-| `in progress` | Se sigue trabajando, no listo para revisión |
-| `waiting qa` | Código completo, esperando que QA lo tome |
-| `qa accepted` | QA probó y aprobó — listo para merge |
-| `qa denied` | QA encontró problemas — vuelve al autor |
-| `on hold` | Bloqueado por algo externo |
+**Todo PR lleva exactamente un label de estado desde el momento en que se abre**, y se actualiza en cuanto cambia el estado. Un PR sin label, o con dos, lo marca en rojo el check `gitflow` del CI. Al abrirlo desde la terminal: `gh pr create --label "in progress"` (o `"waiting qa"` si ya está completo).
 
-Flujo: `in progress` → `waiting qa` → (`qa accepted` → merge) o (`qa denied` → vuelve a `in progress`). `on hold` puede aplicarse desde cualquier estado.
+| Label | Significado | Lo pone | Columna en Jira |
+|---|---|---|---|
+| `in progress` | Se sigue trabajando, no listo para revisión | El autor, al abrir el PR | In Progress |
+| `waiting qa` | Código completo, CI en verde, esperando que QA lo tome | El autor | Waiting QA |
+| `qa accepted` | QA probó y aprobó: listo para merge | Quien hizo QA | QA Accepted |
+| `qa denied` | QA encontró problemas: vuelve al autor | Quien hizo QA | QA Denied |
+| `on hold` | Bloqueado por algo externo, o esperando que se mergee otra historia de la que depende | Cualquiera | On Hold |
+
+Flujo: `in progress` → `waiting qa` → (`qa accepted` → merge) o (`qa denied` → vuelve a `in progress`). `on hold` puede aplicarse desde cualquier estado (se quita el anterior).
+
+Reglas:
+- **Solo se mergea con `qa accepted`.** Un PR con `waiting qa` no se mergea aunque esté aprobado en GitHub.
+- Quien hace QA no es el autor del PR.
+- Al cambiar el label, mover la tarjeta de Jira a la columna equivalente. Label y tarjeta siempre dicen lo mismo.
+- **Una sola PR en `in progress` por persona.** Todas las demás PRs abiertas de esa persona tienen que estar en `on hold`, `waiting qa`, `qa accepted` o `qa denied`. Para retomar una PR que está en `on hold`, primero se pasa la actual a otro estado. El check `gitflow` del CI marca en rojo la PR que rompa esta regla.
+- **Historia que depende de otra todavía no mergeada:** no se apila una rama sobre otra. La historia dependiente queda en `on hold` (label de su PR si ya existe, y su tarjeta de Jira en el estado On Hold) hasta que la otra reciba `qa accepted` y se mergee a `develop`; recién ahí su rama nace de `develop` actualizado. Mientras tanto se avanza en otra cosa.
 
 ### Plantilla de PR
 
-Se autocompleta al abrir el PR (`.github/pull_request_template.md`). Completar siempre **Ticket** (clave de Jira o de `TACHA-{n}`), **Assignee** (quien hizo el trabajo) y **Reviewer** (a quién le toca revisar — rotar entre el equipo).
+Se autocompleta al abrir el PR (`.github/pull_request_template.md`). Completar siempre **Ticket** (clave del issue de Jira, ej. `SCRUM-14`), **Assignee** (quien hizo el trabajo) y **Reviewer** (a quién le toca revisar — rotar entre el equipo).
 
 ## 4. Tablero (Jira)
 
-Columnas: `To Do → In Progress → Waiting QA → (QA Denied → vuelve a In Progress) → QA Accepted → Done`. `On Hold` es un flag sobre la tarjeta, no una columna. Cada historia enlaza al PR correspondiente vía el campo **Ticket** de la plantilla.
+Columnas: `To Do → In Progress ⇄ On Hold → Waiting QA → (QA Denied → vuelve a In Progress) → QA Accepted → Done`. `On Hold` es un estado propio (se llega desde cualquier columna con la transición "On Hold" y se vuelve con la que corresponda al retomar). Cada historia enlaza al PR correspondiente vía el campo **Ticket** de la plantilla.
 
 ## 5. QA
 
-Bug encontrado durante QA sobre un entregable → `qa-fix/TACHA-{n}-...` desde ese `entregable-{n}` (ver sección 1), no un parche silencioso sobre la rama original ya mergeada.
+### 5.1 Cómo hacerle QA a un PR de otra persona
+
+Nunca a un PR propio. Se prueba el PR corriéndolo en tu máquina, no leyendo el diff.
+
+**1. Guardar lo tuyo y traer su rama**
+
+```bash
+git status              # si hay cambios sin commitear: git stash
+gh pr checkout {número} # crea una copia local de su rama y te cambia a ella
+npm install             # por si el PR agregó dependencias
+```
+
+Tu `.env.local` no está en git: se mantiene al cambiar de rama.
+
+**2. Revisar si trae migraciones.** Si el PR agrega archivos en `supabase/migrations/`, confirmar que ya estén aplicadas en la base (la base es compartida: las aplica el autor, no quien hace QA). Si faltan, la app falla por eso y no por el código: se le avisa al autor y el PR queda en `on hold` o `qa denied`.
+
+**3. Correrlo**
+
+```bash
+npx tsc --noEmit && npm run lint && npm run build   # lo mismo que revisa el CI
+npm run dev
+```
+
+**4. Probar contra lo escrito, no contra lo que uno cree que hace**
+
+- La sección **"How should this be manually tested?"** del PR, paso por paso.
+- Los **criterios de aceptación** del `specs/SPEC.md` de la feature y de la historia en Jira, uno por uno.
+- Además del camino feliz: vacíos, errores de red, textos largos, doble click, recargar la página (ver [qa-testing-practices §2](.agents/skills/qa-testing-practices/SKILL.md)).
+
+**5. Veredicto: label y tarjeta de Jira en el mismo momento**
+
+| Resultado | Label (reemplaza a `waiting qa`) | Jira | Además |
+|---|---|---|---|
+| Todo pasa | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa accepted"` | QA Accepted | El check `qa-gate` se pone verde y se puede mergear |
+| Algo falla | `gh pr edit {número} --remove-label "waiting qa" --add-label "qa denied"` | QA Denied | Un comentario en el PR por bug, en inglés y con el formato de [qa-testing-practices §3](.agents/skills/qa-testing-practices/SKILL.md). Sin pasos para reproducir no hay bug |
+
+**6. Volver a lo tuyo**
+
+```bash
+git checkout -- AGENTS.md   # solo si `next dev` le agregó su bloque nextjs-agent-rules
+git checkout {tu-rama}
+git stash pop               # solo si hiciste stash en el paso 1
+```
+
+Reglas:
+
+- Quien hace QA **solo prueba y reporta**: nunca commitea ni pushea en la rama del autor. El arreglo lo hace el autor, y vuelve a pasar el PR a `waiting qa`.
+- `qa accepted` lo pone solo quien probó. Un agente de IA puede preparar la prueba y redactar los reportes (subagente `qa-checker`), pero el veredicto y el label los decide la persona.
+
+### 5.2 Bugs sobre un entregable
+
+Bug encontrado durante QA sobre un entregable → `qa-fix/SCRUM-{n}-...` desde ese `entregable-{n}` (ver sección 1, paso 3), no un parche silencioso sobre la rama original ya mergeada.
+
+Formato de casos de prueba, reportes de bug y planes de prueba: [qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md).
+
+## 6. Sprints
+
+Sprints de una semana, de lunes a lunes; la revisión es el lunes en que cierra cada sprint, y ese día se crea `entregable-{n}` (sección 1). El primero arrancó el lunes 21 de septiembre, así que `entregable-1` se crea el lunes 28. Calendario y reparto de historias en [docs/sprints.md](docs/sprints.md) (Jira manda si no coinciden).
+
+## 7. Definition of Done
+
+Una historia pasa a `Done` solo si:
+
+- [ ] El código sigue los skills de [AGENTS.md](AGENTS.md), incluida la estructura de carpetas (`app/` solo rutas)
+- [ ] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan (el CI corre lint y build en cada PR)
+- [ ] Tiene tests del camino feliz + al menos un caso negativo o límite ([qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md))
+- [ ] Si toca auth, household, RLS, formularios o variables de entorno: se revisó con [security-practices](.agents/skills/security-practices/SKILL.md) (o el subagente `security-reviewer`)
+- [ ] El PR usa la plantilla, con pasos de prueba manual, y otra persona del equipo lo aprobó
+- [ ] QA lo probó sobre la rama y quedó en `qa accepted`
+- [ ] Si cambió una decisión de producto o del modelo de datos, se actualizó `docs/documento-proyecto.md` en el mismo PR
