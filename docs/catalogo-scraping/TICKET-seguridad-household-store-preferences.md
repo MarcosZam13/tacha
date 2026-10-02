@@ -11,7 +11,7 @@ bloquea: no debe llegar a producción sin resolverse — bloquea el lanzamiento,
 
 En la QA del entregable 1 se cerró la parte que no podía llegar a `main`: la migración `009_close_store_preferences_writes.sql` borra las policies de escritura abiertas. Hoy nadie escribe en la tabla desde el cliente (RLS sin policy de escritura) y la lectura sigue pública. El demo `/debug/preferences-demo` ya no puede guardar.
 
-Queda pendiente lo de abajo: agregar la policy de escritura por membresía cuando exista `household_members`. Ya no hay que hacer los `drop policy` del ejemplo, la 009 los hizo.
+Lo que queda está en SCRUM-127: revocar los permisos de escritura que todavía tienen `anon`/`authenticated` (incluido `TRUNCATE`, que RLS no controla), agregar la FK de `household_id` a `households`, volver a dar `grant` de escritura a `authenticated` y crear la policy por membresía de la sección de abajo.
 
 ## Problema (original)
 
@@ -34,13 +34,9 @@ Cualquiera con la `anon key` del proyecto (que es pública por diseño, vive en 
 
 ## Qué hay que hacer cuando el módulo `households` exista
 
-Reemplazar las 3 policies temporales por policies que verifiquen membresía real, por ejemplo:
+Las 3 policies temporales ya se borraron en la migración 009. Falta crear la que verifica membresía real (SCRUM-127), por ejemplo:
 
 ```sql
-drop policy "temp insert household_store_preferences" on household_store_preferences;
-drop policy "temp update household_store_preferences" on household_store_preferences;
-drop policy "temp delete household_store_preferences" on household_store_preferences;
-
 create policy "household members write their preferences" on household_store_preferences
   for all
   using (

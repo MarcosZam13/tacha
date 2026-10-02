@@ -10,7 +10,7 @@ Construir la UI y la lógica de lectura/escritura para que un usuario, dentro de
 
 - Componente de configuración (ej. dentro de "Configuración del household") con las 3 tiendas listadas, cada una con un toggle/checkbox de visibilidad.
 - Al cargar, debe reflejar el estado real: tiendas sin fila en `household_store_preferences` se muestran como **visibles por defecto** (toggle activado), no como "sin definir".
-- Al cambiar un toggle, debe hacer upsert en `household_store_preferences` (household_id, store_id, visible) — no debe fallar si es la primera vez que ese household+store se guarda (no hay fila previa).
+- Al cambiar un toggle, debe hacer upsert en `household_store_preferences` (household_id, store_id, visible) — no debe fallar si es la primera vez que ese household+store se guarda (no hay fila previa). *Bloqueado hasta SCRUM-127: hoy la escritura está cerrada (ver casos límite).*
 - Ocultar una tienda no debe borrar ningún dato de precio existente — es puramente un filtro de visualización, `product_prices` y `product_catalog_staging` no se tocan.
 
 ## Out of scope
@@ -31,7 +31,7 @@ Construir la UI y la lógica de lectura/escritura para que un usuario, dentro de
 - Household recién creado, sin ninguna fila en `household_store_preferences`: las 3 tiendas deben aparecer visibles (toggle activado) — no debe verse como "cargando" ni como error.
 - Dos pestañas del mismo usuario cambiando el mismo toggle casi al mismo tiempo: el `upsert` debe ser la última escritura gana (comportamiento estándar, no se requiere manejo especial de conflictos para el alcance de esta spec).
 - Usuario sin household (uso solo, permitido por el documento sección 4.1): esta funcionalidad no debería ni mostrarse — no tiene sentido "preferencia de household" sin household. Quien construya la UI debe ocultar esta sección completa si `household_id` es null, no mostrarla deshabilitada.
-- Las políticas RLS de `household_store_preferences` son temporales (`using (true)`, ver referencia técnica sección 6) porque el módulo de autenticación/households todavía no existe en este proyecto de Supabase — cualquier implementación de esta spec debe funcionar hoy con esas policies abiertas, sabiendo que se van a endurecer después sin que el contrato de lectura/escritura cambie.
+- Las políticas RLS de `household_store_preferences` son temporales (ver referencia técnica sección 6). Desde la migración 009 (SCRUM-123, 2026-10-02) solo queda la lectura pública: la escritura está cerrada y el upsert de esta spec falla con `42501` hasta que se agregue la política por membresía (SCRUM-127). El contrato de lectura/escritura no cambia.
 
 ## Constraints
 
