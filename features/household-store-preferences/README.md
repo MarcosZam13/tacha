@@ -19,7 +19,7 @@ export const MyPage = () => {
 ## Comportamiento
 
 - **Household sin filas en `household_store_preferences`:** todas las tiendas aparecen visibles (default = true)
-- **Al cambiar toggle:** hace upsert en la BD (no falla si es la primera vez)
+- **Al cambiar toggle:** hace upsert en la BD (no falla si es la primera vez). **Hoy falla con `42501`:** la escritura está cerrada desde la migración 009 (SCRUM-123) hasta que exista la política de membresía (SCRUM-127)
 - **Sin householdId:** no renderiza nada (es configuración de household, no tiene sentido sin household)
 
 ## Queries SQL para reutilización (otros módulos)
@@ -48,6 +48,8 @@ order by s.slug asc;
 - Dashboard: mostrar precios solo de tiendas visibles
 
 ### Actualizar preferencia (upsert)
+
+> Bloqueado desde el cliente hasta SCRUM-127: sin política de escritura, RLS lo rechaza con `42501`.
 
 ```sql
 insert into household_store_preferences (household_id, store_id, visible)

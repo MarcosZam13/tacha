@@ -1,5 +1,7 @@
 # Spec: Preferencias de Tienda por Household
 
+> **Estado (2026-10-02):** la escritura está cerrada. La migración 009 (SCRUM-123) borró las políticas de escritura abiertas y todavía no existe la de membresía (SCRUM-127). Hoy el componente lee bien, pero cualquier upsert falla con `42501`. El requerimiento 2 y los criterios de escritura quedan bloqueados hasta SCRUM-127.
+
 ## Intención
 
 Componente de UI + lógica que permite al usuario elegir cuáles de las 3 tiendas (MaxiPali, Walmart Costa Rica, MasXMenos) quiere seguir viendo en el catálogo y otros módulos. Esta preferencia afecta:
@@ -32,7 +34,7 @@ Componente de UI + lógica que permite al usuario elegir cuáles de las 3 tienda
 - Household sin filas previas → todas tiendas visibles
 - Doble click rápido en toggle → upsert maneja sin error de duplicado
 - Usuario sin household → no mostrar componente (not render)
-- Políticas RLS aún abiertas (temporales) → funciona hoy, se endurecerá después
+- Escritura cerrada hasta la política de membresía (SCRUM-127) → el upsert falla con `42501`; la lectura funciona
 
 ## Restricciones
 
@@ -43,7 +45,7 @@ Componente de UI + lógica que permite al usuario elegir cuáles de las 3 tienda
 ## Criterios de aceptación
 
 - [ ] Household nuevo sin filas muestra 3 tiendas con toggle activado
-- [ ] Desactivar toggle de Walmart → crea/actualiza fila `(household_id, store_id_walmart, visible=false)`
-- [ ] Activar toggle actualiza a `visible=true`, sin duplicado
+- [ ] Desactivar toggle de Walmart → crea/actualiza fila `(household_id, store_id_walmart, visible=false)` *(bloqueado por SCRUM-127)*
+- [ ] Activar toggle actualiza a `visible=true`, sin duplicado *(bloqueado por SCRUM-127)*
 - [ ] `search_catalog(term, household_id)` excluye precios de tienda oculta
-- [ ] Doble click rápido no genera error de clave duplicada
+- [ ] Doble click rápido no genera error de clave duplicada *(bloqueado por SCRUM-127)*
