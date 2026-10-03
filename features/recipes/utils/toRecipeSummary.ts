@@ -1,6 +1,5 @@
 import { RECIPE_CATALOG, RECIPE_TEXT } from "../constants/recipes.constants";
-import type { RecipeRow } from "../models/RecipeRow.interface";
-import type { RecipeSummary } from "../models/RecipeSummary.interface";
+import type { RecipeRow, RecipeSummary } from "../models/recipe-catalog.interfaces";
 import { formatServings } from "./formatServings";
 import { getRecipeEditPath } from "./getRecipeEditPath";
 

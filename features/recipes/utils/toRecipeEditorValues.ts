@@ -1,6 +1,5 @@
 import type { CatalogBaseUnitType } from "@/constants";
-import type { RecipeEditorRow } from "../models/RecipeEditorRow.interface";
-import type { RecipeEditorValues } from "../models/RecipeEditorValues.interface";
+import type { RecipeEditorRow, RecipeEditorValues } from "../models/recipe-editor.interfaces";
 
 /**
  * Adapter: convierte la receta guardada en los valores del formulario para

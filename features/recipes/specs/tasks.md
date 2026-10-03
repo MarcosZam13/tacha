@@ -24,6 +24,7 @@ Bloqueado / pendiente de decisión del equipo:
 
 - [ ] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
 - [ ] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
+- [ ] Tests de `hooks/useRecipeDeletion.ts` y de tarjeta + diálogo con Page Object (SCRUM-96).
 
 ## SCRUM-95: crear o editar una receta
 
@@ -42,3 +43,22 @@ Bloqueado / pendiente de decisión del equipo:
 - [x] 12. Aplicar `008_harden_recipes.sql` en Supabase y repetir la prueba de crear y editar (incluida una cantidad mayor a 100000).
 
 Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), edición por miembros del household (integración con households).
+
+## SCRUM-96: eliminar una receta
+
+- [x] 1. SPEC (migrada a la plantilla de 15 secciones) y plan de la historia.
+- [x] 2. Migración `010_delete_recipes.sql`: `grant delete` y política de delete en `recipes` para el dueño.
+- [x] 3. Aplicar `010` en Supabase (SQL Editor) y verificar que la política existe (`pg_policies` de `recipes` con `cmd = DELETE`). Bloquea la validación de la tarea 10, no el código.
+- [x] 4. Constantes: `RECIPE_DELETION_STATUS`, `RECIPE_DELETE_TEXT` y `POSTGRES_ERROR_CODE.NO_DATA_FOUND`.
+- [x] 5. Modelos en `models/recipe-deletion.types.ts` y `models/recipe-deletion.interfaces.ts`: `RecipeDeletionTarget`, `RecipeDeletionState`, `RecipeDeletionViewModel`, `DeleteRecipePayload` / `DeleteRecipeResponse`. (`deletion` en `RecipeCatalogViewModel` pasa a la tarea 7, junto con el hook que lo devuelve, para que cada commit compile.)
+- [x] 6. Servicio: `deleteRecipe()`, y `saveRecipe()` devuelve `null` con `P0002`. Incluye el cambio de `useRecipeEditor` (despacha `NOT_FOUND` con `null`), que estaba en la tarea 7: sin él, este commit trataría una receta no encontrada como guardada.
+- [x] 7. Hooks: `useRecipeDeletion` (pedir, cancelar, confirmar, reintentar, ignorar doble clic y cerrar a mitad); `useRecipeCatalogViewModel` lo compone (y `deletion` se suma a `RecipeCatalogViewModel`) y quita la receta borrada.
+- [x] 8. Presentación: `RecipeDeleteDialog` (+ props), botón "Eliminar" en `RecipeCard` (con el nombre en `sr-only`), y `RecipeCatalog` conecta el diálogo.
+- [x] 9. `npx tsc --noEmit`, `npm run lint` y `npm run build`.
+- [x] 10. Validar en el navegador los casos de aceptación de HU-64b (SPEC §13), incluido "al recargar, la receta borrada no vuelve", la receta ajena desde la consola con otra sesión y guardar en el editor una receta borrada en otra pestaña. Depende de la tarea 3.
+- [x] 11. Revisión con los subagentes `code-reviewer` y `security-reviewer` (toca RLS), corregir lo que salga y completar los pasos de prueba manual del PR antes de pasarlo a `waiting qa`.
+
+Bloqueado / fuera de esta historia:
+
+- [ ] CA-02 (aviso por asignaciones en el plan semanal): lo cierra SCRUM-100 al crear `meal_plans` (contrato en SPEC §15).
+- [ ] Borrado por miembros del household (integración con households).

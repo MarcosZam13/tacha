@@ -107,3 +107,42 @@ Viene de la sesión anónima provisional; se cierra cuando exista el registro:
 
 - **Cuentas anónimas sin CAPTCHA:** cualquiera con la anon key puede crear usuarios anónimos en bucle (Supabase los limita por IP). Antes de producción: CAPTCHA en Auth › Attack Protection (y `captchaToken` en `signInAnonymously`), revisar el rate limit y limpiar anónimos viejos.
 - **Anónimo = `authenticated`:** las políticas de este sprint no distinguen anónimos de registrados, y hoy eso es lo buscado. La migración de households tiene que exigir `coalesce((select (auth.jwt()->>'is_anonymous')::boolean), false) = false` en toda acción que requiera cuenta real (crear o unirse a un household).
+
+## SCRUM-64: ver detalle de producto
+
+> **Verificado el 2026-10-03** contra la base real: cada variante de las listas tiene 1 marca y 1 precio (solo MaxiPali). La vista `latest_prices` es `security_invoker` y `anon`/`authenticated` pueden leerla, igual que `product_brands` y `stores`. PostgREST resuelve la relación variante → `latest_prices` → `stores` en una sola petición (probado con la anon key).
+
+Sin migraciones: todo lo que pide CA-02 ya existe en la base.
+
+```
+features/shopping-list/
+  components/
+    ShoppingListRow.tsx                + botón de detalle, hermano del QuantityStepper
+    ShoppingListItemDetail.tsx         contenido del modal: presentación, marcas, precios (solo presentación)
+    models/ShoppingListItemDetailProps.interface.ts
+  hooks/
+    useItemDetail.ts                   pide el detalle de la variante abierta; el "cargando" se deriva, no se guarda
+    useShoppingListViewModel.ts        + fila abierta, abrir/cerrar y textos ya formateados para el modal
+  models/
+    ItemDetail.interface.ts            marcas + precios por tienda (lo que devuelve el servicio)
+    ItemDetailViewModel.interface.ts   lo que dibuja el modal, ya calculado
+  services/
+    shopping-list.service.ts           + getItemDetail(variantId)
+  utils/
+    toStorePriceRanges.ts              precios por marca y tienda → rango por tienda, del más barato al más caro
+    formatPriceRange.ts                2300, 2500 → "₡2 300 – ₡2 500"
+```
+
+Flujo: tocar el botón de detalle → el ViewModel guarda la fila abierta → `useItemDetail` ve un `variantId` nuevo y pide `getItemDetail()` → una sola consulta a `product_catalog_variants` con `product_brands(name)` y `latest_prices(price, stores(display_name))` embebidos → `toStorePriceRanges()` agrupa por tienda → el modal muestra el nombre y el tamaño que la fila ya tenía, más las marcas y los precios. Cerrar el modal suelta la fila abierta.
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Pedir el detalle al abrirlo | Traer marcas y precios junto con la lista | La carga de la lista sigue siendo una consulta liviana; los precios solo se piden para el producto que se mira, y llegan frescos |
+| Una consulta con embeds (marcas + `latest_prices` + `stores`) | Dos o tres consultas, o calcular el último precio en el cliente | La vista `latest_prices` ya resuelve "el último precio por marca y tienda" en la base; una sola petición = un solo estado de carga y de error |
+| Rango por tienda (mínimo–máximo entre marcas) | Una fila por marca y tienda | Es lo que pide el diseño (DESIGN.md, product-detail-view) y HU-53; con una sola marca el rango es un solo precio |
+| Modal de `components/ui` | Ruta nueva `/lista/[itemId]` | No se pierde la lista de vista ni el scroll; se reusa el primitivo con cierre por Escape y por fondo |
+| `isLoading` derivado: hay fila abierta y todavía no hay respuesta para su `variantId` | `setIsLoading(true)` al inicio del efecto | Mismo criterio que la carga de la lista: nada de `setState` síncrono dentro de un efecto (renders en cascada, y el lint `set-state-in-effect` lo marca) |
+| Guardar la respuesta junto con el `variantId` que la pidió | Guardar solo el detalle | Si el usuario cierra y abre otro producto rápido, el detalle viejo no se muestra como si fuera del nuevo, ni siquiera un instante |
+| Nombre y tamaño desde la fila ya cargada | Pedirlos otra vez con el detalle | Ya están en pantalla; pedirlos de nuevo es más datos para mostrar lo mismo |
+| El detalle vive en `features/shopping-list/` | Ponerlo de una vez en `components/` | Hoy lo usa solo la lista. HU-53 (Sprint 3) es el segundo consumidor real y ahí se promueve, igual que el buscador en SCRUM-120 |
+| Botón de detalle hermano del `QuantityStepper` | Hacer clickeable la fila | La fila completa es la que va a tachar (HU-36e); un botón adentro de otro es HTML inválido y el click dispararía las dos acciones |
