@@ -1,19 +1,19 @@
 import {
+  PASSWORD_MIN_LENGTH,
   PASSWORD_PATTERN,
   PASSWORD_RULE,
   PASSWORD_RULES,
   PASSWORD_STRENGTH_LEVEL,
   PASSWORD_STRENGTH_THRESHOLD,
-  REGISTRO_PASSWORD_MIN_LENGTH,
-} from "../constants/registro.constants";
-import type { PasswordRuleType, PasswordStrengthLevelType } from "../constants/registro.constants";
-import type { PasswordStrength } from "../models/PasswordStrength.interface";
+} from "@/constants";
+import type { PasswordRuleType, PasswordStrengthLevelType } from "@/constants";
+import type { PasswordStrength } from "@/types/password.types";
 
 // Una función por regla: agregar una regla nueva es agregar una entrada aquí y en las constantes.
 const RULE_CHECK: Record<PasswordRuleType, (password: string) => boolean> = {
   [PASSWORD_RULE.DIGIT]: (password) => PASSWORD_PATTERN.DIGIT.test(password),
   [PASSWORD_RULE.LOWERCASE]: (password) => PASSWORD_PATTERN.LOWERCASE.test(password),
-  [PASSWORD_RULE.MIN_LENGTH]: (password) => password.length >= REGISTRO_PASSWORD_MIN_LENGTH,
+  [PASSWORD_RULE.MIN_LENGTH]: (password) => password.length >= PASSWORD_MIN_LENGTH,
   [PASSWORD_RULE.SPECIAL]: (password) => PASSWORD_PATTERN.SPECIAL.test(password),
   [PASSWORD_RULE.UPPERCASE]: (password) => PASSWORD_PATTERN.UPPERCASE.test(password),
 };
