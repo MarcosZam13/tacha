@@ -257,7 +257,7 @@ features/recipes/
     RecipeCard.tsx                     + botón "Eliminar" junto a "Editar"
     RecipeDeleteDialog.tsx             nuevo: Modal de confirmación (nombre, aviso, error, Eliminar/Cancelar)
     models/RecipeCardProps.interface.ts        + onDeleteRequest
-    models/RecipeDeleteDialogProps.interface.ts nuevo
+    models/RecipeDeleteDialogProps.type.ts     nuevo: Omit<RecipeDeletionViewModel, "onDeleteRequest">
   hooks/
     useRecipeDeletion.ts               nuevo: estado de la eliminación + confirmar/cancelar/borrar
     useRecipeCatalogViewModel.ts       + usa useRecipeDeletion y quita la receta borrada del estado

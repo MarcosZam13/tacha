@@ -53,8 +53,8 @@ Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), e
 - [x] 5. Modelos en `models/recipe-deletion.types.ts` y `models/recipe-deletion.interfaces.ts`: `RecipeDeletionTarget`, `RecipeDeletionState`, `RecipeDeletionViewModel`, `DeleteRecipePayload` / `DeleteRecipeResponse`. (`deletion` en `RecipeCatalogViewModel` pasa a la tarea 7, junto con el hook que lo devuelve, para que cada commit compile.)
 - [x] 6. Servicio: `deleteRecipe()`, y `saveRecipe()` devuelve `null` con `P0002`. Incluye el cambio de `useRecipeEditor` (despacha `NOT_FOUND` con `null`), que estaba en la tarea 7: sin él, este commit trataría una receta no encontrada como guardada.
 - [x] 7. Hooks: `useRecipeDeletion` (pedir, cancelar, confirmar, reintentar, ignorar doble clic y cerrar a mitad); `useRecipeCatalogViewModel` lo compone (y `deletion` se suma a `RecipeCatalogViewModel`) y quita la receta borrada.
-- [ ] 8. Presentación: `RecipeDeleteDialog` (+ props), botón "Eliminar" en `RecipeCard` (con el nombre en `sr-only`), y `RecipeCatalog` conecta el diálogo.
-- [ ] 9. `npx tsc --noEmit`, `npm run lint` y `npm run build`.
+- [x] 8. Presentación: `RecipeDeleteDialog` (+ props), botón "Eliminar" en `RecipeCard` (con el nombre en `sr-only`), y `RecipeCatalog` conecta el diálogo.
+- [x] 9. `npx tsc --noEmit`, `npm run lint` y `npm run build`.
 - [ ] 10. Validar en el navegador los casos de aceptación de HU-64b (SPEC §13), incluido "al recargar, la receta borrada no vuelve", la receta ajena desde la consola con otra sesión y guardar en el editor una receta borrada en otra pestaña. Depende de la tarea 3.
 - [ ] 11. Revisión con los subagentes `code-reviewer` y `security-reviewer` (toca RLS), corregir lo que salga y completar los pasos de prueba manual del PR antes de pasarlo a `waiting qa`.
 
