@@ -38,10 +38,13 @@ export const RECIPES_DB = {
   },
 } as const;
 
-// Código de Postgres para "texto con formato inválido": es lo que responde
-// cuando el id de la URL no es un uuid. Se trata igual que "no encontrada".
+// Códigos de Postgres que el servicio traduce a "no encontrada":
+// INVALID_TEXT_REPRESENTATION: el id de la URL no es un uuid.
+// NO_DATA_FOUND: save_recipe no encontró la receta a editar (no existe, se
+// borró en otra pestaña o es ajena; 007_save_recipe.sql).
 export const POSTGRES_ERROR_CODE = {
   INVALID_TEXT_REPRESENTATION: "22P02",
+  NO_DATA_FOUND: "P0002",
 } as const;
 
 // Espejo de los check de la base (006_create_recipes.sql y 008_harden_recipes.sql):
@@ -177,4 +180,24 @@ export const RECIPE_TEXT = {
   SERVINGS_SINGULAR: "porción",
   TABS_LABEL: "Secciones de recetas",
   TITLE: "Recetas",
+} as const;
+
+// Estados de la eliminación (models/RecipeDeletionState.type.ts).
+export const RECIPE_DELETION_STATUS = {
+  CONFIRMING: "confirming",
+  DELETING: "deleting",
+  FAILED: "failed",
+  IDLE: "idle",
+} as const;
+
+// TRIGGER es el botón de la tarjeta (abre el diálogo); CONFIRM, el del
+// diálogo (borra). Hoy dicen lo mismo, pero son dos botones distintos.
+export const RECIPE_DELETE_TEXT = {
+  CANCEL: "Cancelar",
+  CONFIRM: "Eliminar",
+  DELETING: "Eliminando…",
+  DIALOG_TITLE: "¿Eliminar esta receta?",
+  ERROR: "No se pudo eliminar la receta. Intenta de nuevo.",
+  IRREVERSIBLE_NOTICE: "Se borra con todos sus ingredientes y no se puede deshacer.",
+  TRIGGER: "Eliminar",
 } as const;

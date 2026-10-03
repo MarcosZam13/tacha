@@ -49,7 +49,7 @@ Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), e
 - [x] 1. SPEC (migrada a la plantilla de 15 secciones) y plan de la historia.
 - [x] 2. Migración `010_delete_recipes.sql`: `grant delete` y política de delete en `recipes` para el dueño.
 - [ ] 3. Aplicar `010` en Supabase (SQL Editor) y verificar que la política existe (`pg_policies` de `recipes` con `cmd = DELETE`). Bloquea la validación de la tarea 10, no el código.
-- [ ] 4. Constantes: `RECIPE_DELETION_STATUS`, `RECIPE_DELETE_TEXT` y `POSTGRES_ERROR_CODE.NO_DATA_FOUND`.
+- [x] 4. Constantes: `RECIPE_DELETION_STATUS`, `RECIPE_DELETE_TEXT` y `POSTGRES_ERROR_CODE.NO_DATA_FOUND`.
 - [ ] 5. Modelos: `RecipeDeletionTarget`, `RecipeDeletionState`, `RecipeDeletionViewModel`, `DeleteRecipePayload` / `DeleteRecipeResponse`; `deletion` en `RecipeCatalogViewModel`.
 - [ ] 6. Servicio: `deleteRecipe()`, y `saveRecipe()` devuelve `null` con `P0002`.
 - [ ] 7. Hooks: `useRecipeDeletion` (pedir, cancelar, confirmar, reintentar, ignorar doble clic y cerrar a mitad); `useRecipeCatalogViewModel` lo compone y quita la receta borrada; `useRecipeEditor` despacha `NOT_FOUND` cuando guardar devuelve `null`.
