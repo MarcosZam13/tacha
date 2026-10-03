@@ -1,10 +1,10 @@
 # Feature: Login
 
-Cubre SCRUM-45 (HU-22) y SCRUM-46 (HU-23). Las historias SCRUM-47 a 49 agregan su sección a este spec cuando se empiecen.
+Cubre SCRUM-45 (HU-22), SCRUM-46 (HU-23) y SCRUM-47 (HU-24). Las historias SCRUM-48 y 49 agregan su sección a este spec cuando se empiecen.
 
 ## 1. Objetivo
 
-Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados. Mientras escribe la contraseña puede mostrarla u ocultarla para comprobar que la ingresó bien.
+Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados. Mientras escribe la contraseña puede mostrarla u ocultarla para comprobar que la ingresó bien. Cuando el intento falla, recibe un mensaje claro que le explica qué pasó: uno genérico si las credenciales son incorrectas (sin revelar cuál campo falló) y uno propio si la cuenta no está verificada o está bloqueada, para poder reintentar o saber a quién acudir.
 
 ## 2. Alcance
 
@@ -14,6 +14,7 @@ Incluye:
 - Inicio de sesión con Supabase Auth y redirección a la app al tener éxito.
 - Mensaje de error cuando el reCAPTCHA no se completa o falla.
 - Botón con ícono de ojo en el campo de contraseña para alternar entre texto oculto (puntos) y visible (texto plano). Oculto por defecto.
+- Mensaje genérico para credenciales incorrectas y mensajes específicos para cuenta no verificada, cuenta bloqueada y demasiados intentos. Los mensajes son visibles y no bloquean el formulario: el usuario puede corregir y reintentar.
 
 No incluye: ver [14](#14-casos-fuera-de-alcance).
 
@@ -28,7 +29,9 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 
 - Éxito: la sesión queda guardada en el navegador y se redirige a la ruta principal.
 - Error de reCAPTCHA: mensaje propio, sin intentar autenticar.
-- Error de credenciales u otro: un mensaje genérico. Solo se distinguen "correo sin verificar" y "demasiados intentos"; el resto de los mensajes específicos son de SCRUM-47.
+- Error de credenciales: un único mensaje genérico, igual para correo inexistente y contraseña incorrecta.
+- Error con causa conocida: un mensaje propio para "correo sin verificar", "cuenta bloqueada" y "demasiados intentos".
+- Cualquier otro fallo: el mensaje de error inesperado.
 - El formulario queda editable para reintentar; el widget se reinicia tras cada intento fallido.
 - El campo de contraseña cambia su tipo entre `password` y `text`, y el ícono entre ojo y ojo tachado. El valor escrito no se pierde al alternar.
 
@@ -42,6 +45,9 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - La contraseña está oculta por defecto y cada vez que se monta la pantalla.
 - Alternar la visibilidad es solo de presentación: no cambia el valor, no valida ni envía nada, y no persiste entre visitas.
 - El botón de visibilidad nunca envía el formulario.
+- El mensaje para credenciales incorrectas no distingue entre correo inexistente y contraseña incorrecta, para no revelar qué correos tienen cuenta.
+- Los mensajes específicos (correo sin verificar, cuenta bloqueada) solo salen cuando el servidor los informa con su código. Un código desconocido se muestra como error inesperado, nunca como credenciales incorrectas.
+- Un mensaje de error no bloquea el formulario: los campos siguen editables, el botón vuelve a habilitarse al completar el reCAPTCHA, y el mensaje anterior se borra al iniciar el siguiente intento.
 
 ## 6. Estados
 
@@ -58,8 +64,9 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 | reCAPTCHA sin completar | El botón está deshabilitado; si se fuerza el envío, "Confirmá que no sos un robot." |
 | reCAPTCHA rechazado por Google o vencido | "No pudimos validar el reCAPTCHA. Intentá de nuevo." |
 | Correo sin verificar (contraseña correcta) | "Confirmá tu correo antes de iniciar sesión." |
+| Cuenta bloqueada | "Tu cuenta está bloqueada. Contactá al equipo de Tacha." |
 | Demasiados intentos (rate limit de Supabase Auth) | "Demasiados intentos. Esperá un momento e intentá de nuevo." |
-| Credenciales incorrectas u otro fallo de Supabase | Mensaje genérico de credenciales (SCRUM-47 lo refina) |
+| Credenciales incorrectas (correo inexistente o contraseña incorrecta) | "Correo o contraseña incorrectos." (el mismo mensaje en ambos casos) |
 | Edge Function caída o sin red | "No pudimos iniciar sesión. Intentá de nuevo en unos minutos." |
 | El script de Google no carga | Mensaje que explica que el reCAPTCHA no cargó; el botón sigue deshabilitado |
 
@@ -106,7 +113,8 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - 200 `{ session: { access_token, refresh_token, ... } }`
 - 400 `{ code: "captcha_failed" }` si Google no valida el token
 - 401 `{ code: "email_not_confirmed" }` si la contraseña es correcta pero el correo no se verificó
-- 401 `{ code: "invalid_credentials" }` ante cualquier otro fallo de credenciales (SCRUM-47 abrirá los casos restantes, como cuenta bloqueada)
+- 401 `{ code: "user_banned" }` si la cuenta está bloqueada (usuario baneado en Supabase Auth)
+- 401 `{ code: "invalid_credentials" }` ante cualquier otro fallo de credenciales (correo inexistente o contraseña incorrecta)
 - 429 `{ code: "rate_limited" }` si Supabase Auth limita los intentos
 - 400 `{ code: "invalid_request" }` si falta algún campo
 - 500 `{ code: "server_misconfigured" }` si falta el secret de reCAPTCHA
@@ -132,12 +140,19 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Caso 13: alternar la visibilidad conserva lo escrito y no envía el formulario.
 - Caso 14: el botón se alcanza con Tab y se activa con Enter o espacio; su `aria-label` cambia según la acción disponible.
 - Caso 15: con la contraseña vacía, el botón de enviar sigue deshabilitado y el ojo funciona igual (alterna aunque no haya texto escrito).
+- Caso 16: con un correo que no existe, se muestra "Correo o contraseña incorrectos.".
+- Caso 17: con un correo que existe y una contraseña incorrecta, se muestra exactamente el mismo mensaje que en el caso 16 (no se puede deducir qué falló).
+- Caso 18: con una cuenta bloqueada y la contraseña correcta, se muestra el mensaje de cuenta bloqueada, no el de credenciales incorrectas.
+- Caso 19: tras cualquiera de los mensajes de error, los campos siguen editables, el widget se reinicia y, al completarlo de nuevo, se puede reintentar; el mensaje anterior desaparece al iniciar el nuevo intento.
+- Caso 20: el mensaje de error se anuncia con `role="alert"` y no depende solo del color.
+- Caso 21: si el servidor devuelve un código que el cliente no conoce, se muestra el mensaje de error inesperado, no el de credenciales incorrectas.
 
 ## 14. Casos fuera de alcance
 
 - Mostrar/ocultar contraseña en el registro, la recuperación o la actualización de contraseña: la HU-23 es solo del login.
 - Recordar la preferencia de visibilidad, o volver a ocultar la contraseña tras un tiempo.
-- Mensajes específicos de cuenta bloqueada (SCRUM-47). "Inactiva" no existe en Supabase Auth y no se implementa.
+- Mensaje específico de cuenta "inactiva": Supabase Auth no tiene un estado de inactividad distinto del baneo (un usuario baneado se muestra como bloqueado). Modelarlo exigiría una tabla de perfil con un estado de cuenta, que es una decisión de producto aparte; no se implementa.
+- Enlace o botón para reenviar el correo de verificación desde el login, desbloqueo de la cuenta desde la app, y un canal de soporte propio: los mensajes solo informan.
 - Feedback de contraseña débil o vencida (SCRUM-48).
 - Guard de rutas y expiración de sesión (SCRUM-49); cierre por inactividad (HU-27).
 - "¿Olvidaste tu contraseña?" (HU-28), login con Google o Facebook.
@@ -146,4 +161,5 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 ## 15. Notas de implementación
 
 - Supabase Auth no integra Google reCAPTCHA de forma nativa (solo hCaptcha y Turnstile). Por eso la verificación va en una Edge Function. **Límite conocido:** quien llame directo al endpoint de Auth de Supabase con la anon key se salta el captcha; cerrarlo requiere el captcha nativo del proyecto.
+- Los códigos `email_not_confirmed` y `user_banned` solo se distinguen del genérico si la contraseña es correcta (Supabase verifica la contraseña antes de revelar el estado de la cuenta). Hay que confirmarlo probando con un usuario baneado y una contraseña errónea: si el resultado es `invalid_credentials`, no se enumeran cuentas. Si no lo fuera, los mensajes específicos filtrarían qué correos existen y habría que volver a mostrar el genérico.
 - Mientras el equipo no registre el reCAPTCHA real, se usan las claves de prueba que publica Google (la casilla siempre pasa); se cambian por las reales sin tocar código.

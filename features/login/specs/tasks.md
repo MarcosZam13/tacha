@@ -27,6 +27,15 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 6. `Login.tsx` usa `PasswordInput` para el campo de contraseña.
 - [x] 7. Validar los casos 11 a 15 del SPEC en el navegador (incluido el teclado); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
-## SCRUM-47, 48, 49
+## SCRUM-47: mensajes de error en el login
+
+- [ ] 1. Constantes: `ACCOUNT_BLOCKED` en `LOGIN_ERROR_MESSAGE`, `LOGIN_RESULT` y `LOGIN_API_CODE`; entradas en `LOGIN_API_CODE_RESULT` y `LOGIN_RESULT_MESSAGE` (`constants/login.constants.ts`).
+- [ ] 2. Edge Function: reenviar `user_banned` junto con `email_not_confirmed` y colapsar el resto a `invalid_credentials` (`supabase/functions/login-with-recaptcha/index.ts`).
+- [ ] 3. Redesplegar la función: `npx supabase functions deploy login-with-recaptcha --use-api`.
+- [ ] 4. Crear en Supabase un usuario de prueba y banearlo (Authentication → Users) para poder probar el caso 18.
+- [ ] 5. Verificar la nota del SPEC §15: con ese usuario baneado y una contraseña errónea, la respuesta debe ser `invalid_credentials`.
+- [ ] 6. Validar los casos 16 a 21 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+## SCRUM-48, 49
 
 Se agregan cuando cada historia se empiece.
