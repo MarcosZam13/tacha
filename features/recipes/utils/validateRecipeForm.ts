@@ -1,8 +1,6 @@
 import type { NullableUndefined } from "@/types/nullable.types";
 import { RECIPE_FORM_ERROR, RECIPE_FORM_LIMIT, RECIPE_FORM_PATTERN } from "../constants/recipes.constants";
-import type { RecipeEditorErrors } from "../models/RecipeEditorErrors.interface";
-import type { RecipeEditorIngredient } from "../models/RecipeEditorIngredient.interface";
-import type { RecipeEditorValues } from "../models/RecipeEditorValues.interface";
+import type { RecipeEditorErrors, RecipeEditorIngredient, RecipeEditorValues } from "../models/recipe-editor.interfaces";
 import { normalizeDecimal } from "./normalizeDecimal";
 
 const validateName = (name: string): NullableUndefined<string> => {

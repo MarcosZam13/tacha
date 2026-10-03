@@ -1,9 +1,10 @@
 "use client";
 
 import { ProductSearch } from "@/components/product-search/ProductSearch";
-import { Spinner } from "@/components/ui";
+import { Modal, Spinner } from "@/components/ui";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
+import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
 import { useShoppingListViewModel } from "./hooks/useShoppingListViewModel";
 
@@ -56,10 +57,15 @@ export const ShoppingList = (): React.JSX.Element => {
               row={row}
               onDecrease={() => viewModel.onDecreaseQuantity(row.item.id)}
               onIncrease={() => viewModel.onIncreaseQuantity(row.item.id)}
+              onOpenDetail={() => viewModel.onOpenDetail(row.item.id)}
             />
           ))}
         </ul>
       ) : null}
+
+      <Modal isOpen={viewModel.detail !== null} onClose={viewModel.onCloseDetail} title={viewModel.detail?.productName}>
+        {viewModel.detail ? <ShoppingListItemDetail detail={viewModel.detail} onClose={viewModel.onCloseDetail} /> : null}
+      </Modal>
     </main>
   );
 };

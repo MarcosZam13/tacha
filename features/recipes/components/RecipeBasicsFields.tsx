@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui";
 import { RECIPE_EDITOR_TEXT } from "../constants/recipes.constants";
-import type { RecipeBasicsFieldsProps } from "./models/RecipeBasicsFieldsProps.interface";
+import type { RecipeBasicsFieldsProps } from "./models/RecipeBasicsFieldsProps.type";
 
 /** Nombre y porciones base de la receta. Solo presentación. */
 export const RecipeBasicsFields = ({

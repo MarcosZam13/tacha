@@ -15,11 +15,11 @@ import type {
 } from "../constants/registro.constants";
 import type { RegistroFormErrors, RegistroFormValues } from "../models/RegistroFormValues.interface";
 import type { RegistroManualViewModel } from "../models/RegistroManualViewModel.interface";
+import { normalizeEmail } from "@/utils/email.utils";
 import { evaluatePasswordStrength } from "../utils/evaluatePasswordStrength";
 import {
   hasRegistroErrors,
   isRegistroFormComplete,
-  normalizeRegistroEmail,
   validateRegistroForm,
   validatePasswordsMatch,
 } from "../utils/validateRegistroForm";
@@ -80,7 +80,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
     setSubmitError(undefined);
 
     const result = await registerUser({
-      email: normalizeRegistroEmail(values.email),
+      email: normalizeEmail(values.email),
       name: values.name.trim(),
       password: values.password,
     }).catch((): RegisterResultType => REGISTER_RESULT.ERROR);
@@ -115,7 +115,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
     isSuccess: status === REGISTRO_SUBMIT_STATUS.SUCCESS,
     isTermsModalOpen,
     passwordStrength,
-    registeredEmail: normalizeRegistroEmail(values.email),
+    registeredEmail: normalizeEmail(values.email),
     submitError,
     values,
   };

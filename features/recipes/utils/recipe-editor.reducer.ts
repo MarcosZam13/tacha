@@ -1,8 +1,6 @@
 import { RECIPE_EDITOR_ACTION, RECIPE_EDITOR_STATUS, RECIPE_EDITOR_TEXT } from "../constants/recipes.constants";
-import type { RecipeEditorAction } from "../models/RecipeEditorAction.type";
-import type { RecipeEditorErrors } from "../models/RecipeEditorErrors.interface";
-import type { RecipeEditorIngredient } from "../models/RecipeEditorIngredient.interface";
-import type { RecipeEditorState } from "../models/RecipeEditorState.interface";
+import type { RecipeEditorAction } from "../models/recipe-editor.types";
+import type { RecipeEditorErrors, RecipeEditorIngredient, RecipeEditorState } from "../models/recipe-editor.interfaces";
 
 const NO_ERRORS: RecipeEditorErrors = { quantityByProductId: {} };
 
