@@ -27,6 +27,30 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 6. `Login.tsx` usa `PasswordInput` para el campo de contraseña.
 - [x] 7. Validar los casos 11 a 15 del SPEC en el navegador (incluido el teclado); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
-## SCRUM-47, 48, 49
+## SCRUM-48: aviso de contraseña débil en el login
+
+**Parte 1: promover el código de fortaleza (sin cambiar el comportamiento del registro)**
+
+- [ ] 1. `constants/password.constants.ts` con las constantes de fortaleza movidas desde `registro.constants.ts`, y su export en `constants/index.ts`.
+- [ ] 2. `types/password.types.ts` con `PasswordStrength`.
+- [ ] 3. `utils/password.utils.ts` con `evaluatePasswordStrength`.
+- [ ] 4. `components/password-strength-meter/` con el medidor y su modelo de props.
+- [ ] 5. Actualizar los imports de `registro-manual` y borrar las copias viejas.
+- [ ] 6. Validar que el registro funciona igual (medidor, requisitos, coincidencia de contraseñas); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+**Parte 2: el aviso y el cambio de contraseña**
+
+- [ ] 7. Constantes del login: textos, mensajes de error, resultados del cambio, estados y códigos de Supabase (`constants/login.constants.ts`).
+- [ ] 8. Modelos: valores y errores del formulario, parámetros del servicio, retorno del ViewModel y props de los minis componentes.
+- [ ] 9. Validación pura (`utils/validateChangePasswordForm.ts`).
+- [ ] 10. Servicio (`services/password.service.ts`).
+- [ ] 11. ViewModel del cambio (`hooks/useChangePasswordViewModel.ts`).
+- [ ] 12. `useLoginViewModel.ts`: evaluar la contraseña tras un login exitoso y fijar la fase `weak-password`.
+- [ ] 13. Componentes: `WeakPasswordNotice`, `ChangePasswordForm`, `PasswordChangedNotice` y `WeakPasswordFlow`.
+- [ ] 14. `Login.tsx` muestra `WeakPasswordFlow` cuando la fase es `weak-password`.
+- [ ] 15. Preparar en Supabase una cuenta verificada con contraseña débil (por ejemplo `12345678`) para probar.
+- [ ] 16. Validar los casos 22 a 30 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+## SCRUM-47, 49
 
 Se agregan cuando cada historia se empiece.
