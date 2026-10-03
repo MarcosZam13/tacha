@@ -264,12 +264,10 @@ features/recipes/
     useRecipeCatalogViewModel.ts       + usa useRecipeDeletion y quita la receta borrada del estado
     useRecipeEditor.ts                 + "no encontrada" al guardar → estado notFound
   models/
-    RecipeDeletionTarget.type.ts       nuevo: Pick<RecipeSummary, "id" | "name">
-    RecipeDeletionState.type.ts        nuevo: unión idle / confirming / deleting / failed
-    RecipeDeletionViewModel.interface.ts nuevo: lo que useRecipeDeletion le entrega al catálogo
+    recipe-deletion.types.ts           nuevo: RecipeDeletionTarget (Pick<RecipeSummary, "id" | "name">)
+                                         y RecipeDeletionState (idle / confirming / deleting / failed)
+    recipe-deletion.interfaces.ts      nuevo: RecipeDeletionViewModel, DeleteRecipePayload, DeleteRecipeResponse
     RecipeCatalogViewModel.interface.ts  + deletion: RecipeDeletionViewModel
-    DeleteRecipePayload.interface.ts   nuevo: { recipeId }
-    DeleteRecipeResponse.interface.ts  nuevo: { recipeId }
   services/
     recipes.service.ts                 + deleteRecipe(); saveRecipe() devuelve null si la receta no existe
   constants/recipes.constants.ts       + RECIPE_DELETION_STATUS, RECIPE_DELETE_TEXT, POSTGRES_ERROR_CODE.NO_DATA_FOUND
@@ -329,6 +327,7 @@ Una sola petición a PostgREST (`.delete().eq("id", recipeId)`), sin `.select()`
 | El catálogo le pasa `onDeleted` al hook | El hook modifica las recetas directo | El hook de eliminación no conoce la forma del estado del catálogo; solo avisa qué id se borró |
 | "Eliminar" de la tarjeta con `Button` secundario, el del diálogo con `destructive` | Rojo en los dos lugares | El rojo marca la acción que de verdad borra; en la tarjeta solo abre el diálogo. Una grilla de botones rojos además compite con el contenido |
 | Nombre de la receta dentro del botón como texto `sr-only` | Agregar `aria-label` al `Button` compartido | Logra lo mismo para el lector de pantalla ("Eliminar Tres leches") sin cambiar un primitivo que usan otras features |
+| Modelos agrupados por pantalla y por sintaxis: `recipe-deletion.types.ts` + `recipe-deletion.interfaces.ts` | Un archivo por tipo (como estaba `models/`) / un solo archivo por pantalla | Un archivo por tipo dejaba 16 archivos de pocas líneas y costaba encontrar las cosas. Separar `types` de `interfaces` mantiene la convención de sufijos del repo (`.type.ts` / `.interface.ts`). Nombre en kebab-case plural, como `types/catalog.types.ts`, porque cada archivo tiene varios tipos. El resto de `models/` se agrupa igual en un commit `refactor` |
 | Diálogo como mini componente presentacional con props | Que el diálogo llame al hook por su cuenta | Sigue el patrón de la feature: el ViewModel decide, los componentes dibujan. El diálogo no sabe de Supabase |
 | `P0002` al guardar → estado `notFound` del editor | Mostrarlo como error de guardado y dejar el formulario | Reintentar nunca va a funcionar (la receta no existe); la pantalla de "no encontrada" ya existe y lleva de vuelta al catálogo |
 | `saveRecipe()` devuelve `null` si no la encuentra | Lanzar un error tipado propio | Es la misma convención que `getRecipeForEditing()`; quien llama distingue con un `if`, sin revisar códigos de Postgres fuera del servicio |
