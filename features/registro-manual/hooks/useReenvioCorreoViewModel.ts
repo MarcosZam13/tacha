@@ -9,7 +9,8 @@ import {
 } from "../constants/registro.constants";
 import type { ResendResultType } from "../constants/registro.constants";
 import type { ReenvioCorreoViewModel } from "../models/ReenvioCorreoViewModel.interface";
-import { normalizeRegistroEmail, validateEmail } from "../utils/validateRegistroForm";
+import { normalizeEmail } from "@/utils/email.utils";
+import { validateEmail } from "../utils/validateRegistroForm";
 
 export const useReenvioCorreoViewModel = (): ReenvioCorreoViewModel => {
   const [email, setEmail] = useState<string>("");
@@ -26,7 +27,7 @@ export const useReenvioCorreoViewModel = (): ReenvioCorreoViewModel => {
     setIsSending(true);
     setFeedbackMessage(undefined);
 
-    const result = await resendVerificationEmail(normalizeRegistroEmail(email)).catch(
+    const result = await resendVerificationEmail(normalizeEmail(email)).catch(
       (): ResendResultType => RESEND_RESULT.ERROR,
     );
 

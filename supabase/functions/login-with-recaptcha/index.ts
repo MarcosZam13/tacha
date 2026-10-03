@@ -10,10 +10,13 @@ const RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
 const RECAPTCHA_SECRET_ENV = "RECAPTCHA_SECRET_KEY";
 const RECAPTCHA_TIMEOUT_MS = 5000;
 const HTTP_RATE_LIMITED = 429;
+// Código de Supabase Auth cuando la contraseña es correcta pero el correo no se confirmó.
+const SUPABASE_EMAIL_NOT_CONFIRMED = "email_not_confirmed";
 
 // Mismos valores que LOGIN_API_CODE del cliente: Deno no puede importar de features/.
 const ERROR_CODE = {
   CAPTCHA_FAILED: "captcha_failed",
+  EMAIL_NOT_CONFIRMED: "email_not_confirmed",
   INVALID_CREDENTIALS: "invalid_credentials",
   INVALID_REQUEST: "invalid_request",
   METHOD_NOT_ALLOWED: "method_not_allowed",
@@ -61,6 +64,9 @@ Deno.serve(async (req) => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error?.status === HTTP_RATE_LIMITED) {
     return jsonResponse({ code: ERROR_CODE.RATE_LIMITED }, HTTP_RATE_LIMITED);
+  }
+  if (error?.code === SUPABASE_EMAIL_NOT_CONFIRMED) {
+    return jsonResponse({ code: ERROR_CODE.EMAIL_NOT_CONFIRMED }, 401);
   }
   if (error || !data.session) return jsonResponse({ code: ERROR_CODE.INVALID_CREDENTIALS }, 401);
 

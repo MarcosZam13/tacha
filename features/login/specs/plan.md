@@ -35,6 +35,8 @@ app/login/page.tsx                   ruta delgada: solo renderiza <Login />
 .env.example                         + NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 supabase/README.md                   + la función y su secret
 .gitignore                           + supabase/.temp/ (lo crea `supabase link`)
+constants/email.constants.ts         EMAIL_PATTERN, compartido con registro-manual (+ barrel constants/index.ts)
+utils/email.utils.ts                 normalizeEmail, compartido con registro-manual
 ```
 
 ### Datos
@@ -57,8 +59,9 @@ Completo la casilla → callback de Google en `useRecaptchaWidgetViewModel` → 
 | Validación reusa patrón del registro | Copiar la regex | Una sola fuente del formato de correo; si cambia, cambia en los dos |
 | Claves de prueba de Google por ahora | Esperar las reales | Sin claves reales no se puede probar nada; cambiarlas es solo variables de entorno |
 | Redirección a la ruta principal definida en constante | `"/"` escrito en el hook | La ruta real puede cambiar; una constante se corrige en un solo lugar |
-| Todo fallo de credenciales sale como `invalid_credentials` (401) | Reenviar el `error.code` de Supabase | El SPEC §7 pide un mensaje genérico; reenviar códigos adelanta SCRUM-47 y le dice a un llamador directo que la contraseña era válida (`email_not_confirmed`) |
-| El límite de intentos de Supabase sale como `rate_limited` (429) | Tratarlo como credenciales malas | Es otro problema: el usuario debe esperar, no corregir la contraseña |
+| Los fallos de credenciales salen como `invalid_credentials` (401), salvo `email_not_confirmed` | Reenviar siempre el `error.code` de Supabase | Un usuario con la contraseña correcta que no verificó el correo no debe ver "contraseña incorrecta" (pedido de QA). El costo: un llamador directo aprende que esa contraseña era válida; es inherente a que HU-24 pida un mensaje de cuenta no verificada. El resto de los códigos (cuenta bloqueada) se abre en SCRUM-47 |
+| El límite de intentos de Supabase sale como `rate_limited` (429), con su propio mensaje | Tratarlo como credenciales malas o como error inesperado | Es otro problema: el usuario debe esperar, no corregir la contraseña |
+| `EMAIL_PATTERN` y `normalizeEmail` en `constants/` y `utils/` | Importarlos desde `registro-manual` | Login es el segundo consumidor real; una feature no debe depender de las constantes internas de otra (project-structure) |
 | Sin secret la función responde `server_misconfigured` (500) | Mandar `secret=""` a Google | Un secret faltante es un error nuestro; mostrarlo como "captcha inválido" esconde la causa |
 | Timeout de 5 s al llamar a Google | `fetch` sin límite | Si Google se cuelga, la petición ocuparía recursos hasta el tope de la plataforma; sigue siendo fail-closed |
 

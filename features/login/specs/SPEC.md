@@ -26,7 +26,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 
 - Éxito: la sesión queda guardada en el navegador y se redirige a la ruta principal.
 - Error de reCAPTCHA: mensaje propio, sin intentar autenticar.
-- Error de credenciales u otro: un mensaje genérico (los mensajes específicos son de SCRUM-47).
+- Error de credenciales u otro: un mensaje genérico. Solo se distinguen "correo sin verificar" y "demasiados intentos"; el resto de los mensajes específicos son de SCRUM-47.
 - El formulario queda editable para reintentar; el widget se reinicia tras cada intento fallido.
 
 ## 5. Reglas de negocio
@@ -48,6 +48,8 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 | Campo vacío o correo inválido | Error bajo el campo |
 | reCAPTCHA sin completar | El botón está deshabilitado; si se fuerza el envío, "Confirmá que no sos un robot." |
 | reCAPTCHA rechazado por Google o vencido | "No pudimos validar el reCAPTCHA. Intentá de nuevo." |
+| Correo sin verificar (contraseña correcta) | "Confirmá tu correo antes de iniciar sesión." |
+| Demasiados intentos (rate limit de Supabase Auth) | "Demasiados intentos. Esperá un momento e intentá de nuevo." |
 | Credenciales incorrectas u otro fallo de Supabase | Mensaje genérico de credenciales (SCRUM-47 lo refina) |
 | Edge Function caída o sin red | "No pudimos iniciar sesión. Intentá de nuevo en unos minutos." |
 | El script de Google no carga | Mensaje que explica que el reCAPTCHA no cargó; el botón sigue deshabilitado |
@@ -79,7 +81,7 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 
 - `services/supabase.client.ts` (`getSupabaseClient`).
 - `@/components/ui` (`Input`, `Button`).
-- `features/registro-manual/constants/registro.constants.ts` (patrón de correo) y `features/registro-manual/utils/validateRegistroForm.ts` (`normalizeRegistroEmail`): se importan tal cual. Se promueven a `constants/` y a un util compartido cuando SCRUM-48 sea el segundo consumidor de la evaluación de contraseña.
+- `constants/email.constants.ts` (`EMAIL_PATTERN`) y `utils/email.utils.ts` (`normalizeEmail`): compartidos con `features/registro-manual/` (promovidos desde ahí al tener un segundo consumidor).
 - `supabase/functions/login-with-recaptcha/` (nueva).
 - Variables: `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (cliente) y secret `RECAPTCHA_SECRET_KEY` (Edge Function).
 
@@ -88,7 +90,8 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 **Edge Function `login-with-recaptcha`**, `POST`, body `{ email, password, captchaToken }`:
 - 200 `{ session: { access_token, refresh_token, ... } }`
 - 400 `{ code: "captcha_failed" }` si Google no valida el token
-- 401 `{ code: "invalid_credentials" }` ante cualquier fallo de credenciales (SCRUM-47 abrirá los casos específicos)
+- 401 `{ code: "email_not_confirmed" }` si la contraseña es correcta pero el correo no se verificó
+- 401 `{ code: "invalid_credentials" }` ante cualquier otro fallo de credenciales (SCRUM-47 abrirá los casos restantes, como cuenta bloqueada)
 - 429 `{ code: "rate_limited" }` si Supabase Auth limita los intentos
 - 400 `{ code: "invalid_request" }` si falta algún campo
 - 500 `{ code: "server_misconfigured" }` si falta el secret de reCAPTCHA
@@ -107,11 +110,13 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 - Caso 6: credenciales incorrectas con reCAPTCHA válido muestra el mensaje genérico y el formulario sigue editable.
 - Caso 7: tras un intento fallido el widget se reinicia y hay que completarlo de nuevo.
 - Caso 8: si la Edge Function no responde, se muestra el mensaje de error inesperado.
+- Caso 9: con la contraseña correcta pero el correo sin verificar, se muestra el mensaje de correo sin verificar, no el de credenciales incorrectas.
+- Caso 10: si Supabase limita los intentos, se muestra el mensaje de demasiados intentos.
 
 ## 14. Casos fuera de alcance
 
 - Mostrar/ocultar contraseña (SCRUM-46).
-- Mensajes específicos: cuenta no verificada, bloqueada (SCRUM-47). "Inactiva" no existe en Supabase Auth y no se implementa.
+- Mensajes específicos de cuenta bloqueada (SCRUM-47). "Inactiva" no existe en Supabase Auth y no se implementa.
 - Feedback de contraseña débil o vencida (SCRUM-48).
 - Guard de rutas y expiración de sesión (SCRUM-49); cierre por inactividad (HU-27).
 - "¿Olvidaste tu contraseña?" (HU-28), login con Google o Facebook.

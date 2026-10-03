@@ -1,6 +1,6 @@
 import type { NullableUndefined } from "@/types/nullable.types";
-import { REGISTRO_EMAIL_PATTERN } from "@/features/registro-manual/constants/registro.constants";
-import { normalizeRegistroEmail } from "@/features/registro-manual/utils/validateRegistroForm";
+import { EMAIL_PATTERN } from "@/constants";
+import { normalizeEmail } from "@/utils/email.utils";
 import { LOGIN_ERROR_MESSAGE, LOGIN_FIELD } from "../constants/login.constants";
 import type { LoginFormErrors, LoginFormValues } from "../models/LoginFormValues.interface";
 
@@ -9,9 +9,9 @@ export const isLoginFormComplete = (values: LoginFormValues): boolean =>
   values.email.length > 0 && values.password.length > 0;
 
 const validateEmail = (email: string): NullableUndefined<string> =>
-  normalizeRegistroEmail(email).length === 0
+  normalizeEmail(email).length === 0
     ? LOGIN_ERROR_MESSAGE.EMAIL_REQUIRED
-    : !REGISTRO_EMAIL_PATTERN.test(normalizeRegistroEmail(email))
+    : !EMAIL_PATTERN.test(normalizeEmail(email))
       ? LOGIN_ERROR_MESSAGE.EMAIL_INVALID
       : undefined;
 

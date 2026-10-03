@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { NullableUndefined } from "@/types/nullable.types";
-import { normalizeRegistroEmail } from "@/features/registro-manual/utils/validateRegistroForm";
+import { normalizeEmail } from "@/utils/email.utils";
 import {
   LOGIN_ERROR_MESSAGE,
   LOGIN_RESULT,
@@ -43,7 +43,7 @@ export const useLoginViewModel = (): LoginViewModel => {
 
     const result = await loginWithRecaptcha({
       captchaToken: token,
-      email: normalizeRegistroEmail(values.email),
+      email: normalizeEmail(values.email),
       password: values.password,
     }).catch((): LoginResultType => LOGIN_RESULT.ERROR);
 
