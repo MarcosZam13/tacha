@@ -3,6 +3,7 @@ import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
+import type { ItemDetail } from "../models/ItemDetail.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import { formatSizeLabel } from "../utils/formatSizeLabel";
 
@@ -81,4 +82,26 @@ export const changeItemQuantity = async (
   if (error) throw error;
 
   return listItem.quantity_requested;
+};
+
+/**
+ * Marcas de la variante y el último precio de cada marca en cada tienda, en
+ * una sola petición. No pide sesión: como la búsqueda, lee catálogo público.
+ * Los precios vienen de una vista, y la base no garantiza que sus columnas
+ * no sean null: se descartan las filas incompletas en vez de mostrar "₡0".
+ */
+export const getItemDetail = async (variantId: string): Promise<ItemDetail> => {
+  const { data: variant, error } = await getSupabaseClient()
+    .from(SHOPPING_LIST_DB.TABLE.VARIANTS)
+    .select(SHOPPING_LIST_DB.ITEM_DETAIL_SELECT)
+    .eq("id", variantId)
+    .single();
+  if (error) throw error;
+
+  return {
+    brands: variant.product_brands.map((brand) => brand.name),
+    storePrices: variant.latest_prices.flatMap(({ price, stores }) =>
+      price !== null && stores ? [{ price, storeName: stores.display_name }] : [],
+    ),
+  };
 };
