@@ -400,7 +400,7 @@ No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/lista
   - `anon` sin permisos; `authenticated` solo puede actualizar `quantity_needed` y `quantity_missing` (mismo criterio que la `005` y la `008`).
 - **RPC `add_recipe_to_general_list(target_recipe_id uuid) returns jsonb`**, `security invoker` y `search_path` vacío, como `save_recipe`:
   1. Sin sesión → error `42501`. La receta no se ve (no existe o es ajena) → `P0002`.
-  2. Busca o crea la lista general (mismo `insert ... on conflict do nothing` que `add_item_to_general_list`) y la bloquea con `select ... for update`: dos agregados al mismo tiempo se hacen uno detrás del otro, así el "disponible" de la regla 20 no se cuenta dos veces.
+  2. Busca o crea la lista general (mismo `insert ... on conflict do nothing` que `add_item_to_general_list`) y toma un bloqueo de transacción sobre su id (`pg_advisory_xact_lock`): dos agregados al mismo tiempo se hacen uno detrás del otro, así el "disponible" de la regla 20 no se cuenta dos veces. No es `select ... for update` porque `for update` también exige una política de update en `lists`, y no la hay.
   3. Recorre los ingredientes en orden (`position`) y aplica las reglas 19 a 22 de la SPEC con las presentaciones del producto y sus filas en la lista.
   4. Suma unidades con `insert ... on conflict (list_id, product_catalog_variant_id) do update set quantity_requested = quantity_requested + n`, el mismo merge de la `004`.
   5. Registra lo pedido y lo que falta con `insert ... on conflict (...) do update` sumando.
@@ -426,7 +426,8 @@ No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/lista
 | Decisión | Alternativa | Por qué esta |
 |---|---|---|
 | Una RPC con todas las reglas | Calcular en el cliente y mandar varias escrituras | Todo o nada en una transacción, y documento-proyecto §6 pide que la unificación de cantidades viva en la base. En el cliente, dos pestañas podrían calcular el mismo "disponible" a la vez |
-| Bloquear la lista general (`for update`) dentro de la RPC | Nada | Sin el bloqueo, dos recetas agregadas al mismo tiempo verían el mismo "disponible" y ninguna registraría faltante (el caso de las dos recetas sobre la misma leche) |
+| Bloqueo de transacción sobre la lista (`pg_advisory_xact_lock`) dentro de la RPC | Nada / `select ... for update` | Sin bloqueo, dos recetas agregadas al mismo tiempo verían el mismo "disponible" y ninguna registraría faltante (el caso de las dos recetas sobre la misma leche). `for update` no sirve: con RLS exige una política de update en `lists`, que no existe, y no encontraría la fila |
+| Solo cuentan las presentaciones con cantidad base mayor que 0 | Todas | Con cantidad 0 no hay cuenta posible (división por cero en el redondeo de los conteos); si el producto no tiene ninguna usable, se trata como "sin presentación" (regla 26) |
 | Tabla aparte para lo pedido y lo que falta | Columnas en `list_items` | Una fila de la lista puede tener varias recetas; no se toca la tabla de Marcos; las cascadas borran los registros solas (SPEC §12) |
 | Guardar lo pedido aunque alcance (faltante 0) | Guardar solo los faltantes | Es lo que permite descontar lo que ya pidieron otras recetas (regla 20) |
 | `unique` con la unidad | `unique (list_item_id, recipe_id)` | Si la receta cambia de unidad entre un agregado y otro, no se suman ml con g en el mismo registro |

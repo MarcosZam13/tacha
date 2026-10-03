@@ -68,7 +68,7 @@ Bloqueado / fuera de esta historia:
 
 - [x] 1. SPEC (huecos de HU-65 decididos con el responsable; CA-04 redefinido con Marcos).
 - [x] 2. Plan y tareas.
-- [ ] 3. Migración `013_add_recipe_to_list.sql`: tabla `list_item_recipe_requirements` (checks, `unique`, índice, RLS, permisos) y RPC `add_recipe_to_general_list` con las reglas 17 a 26.
+- [x] 3. Migración `013_add_recipe_to_list.sql`: tabla `list_item_recipe_requirements` (checks, `unique`, índice, RLS, permisos) y RPC `add_recipe_to_general_list` con las reglas 17 a 26.
 - [ ] 4. Aplicar `013` en Supabase (SQL Editor), regenerar `types/database.types.ts` y probar la RPC en el SQL Editor con los casos de §13 (conteo, alcanza, no alcanza, dos recetas sobre la misma leche, producto que no está, unidades distintas, sin presentación, receta ajena). Bloquea la validación de la tarea 10, no el código del cliente.
 - [ ] 5. Constantes: estados de agregar, textos, RPC y clave de `localStorage`.
 - [ ] 6. Modelos en `models/recipe-list-addition.interfaces.ts` y `models/recipe-list-addition.types.ts`.
