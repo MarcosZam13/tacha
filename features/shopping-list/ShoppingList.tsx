@@ -6,6 +6,7 @@ import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
+import { UndoToast } from "./components/UndoToast";
 import { useShoppingListViewModel } from "./hooks/useShoppingListViewModel";
 
 /**
@@ -46,6 +47,11 @@ export const ShoppingList = (): React.JSX.Element => {
           {viewModel.quantityErrorMessage}
         </p>
       ) : null}
+      {viewModel.removeErrorMessage ? (
+        <p role="alert" className="font-body text-sm text-red-600">
+          {viewModel.removeErrorMessage}
+        </p>
+      ) : null}
 
       {viewModel.isLoading ? <Spinner /> : null}
       {viewModel.isEmpty ? <ShoppingListEmptyState /> : null}
@@ -58,10 +64,13 @@ export const ShoppingList = (): React.JSX.Element => {
               onDecrease={() => viewModel.onDecreaseQuantity(row.item.id)}
               onIncrease={() => viewModel.onIncreaseQuantity(row.item.id)}
               onOpenDetail={() => viewModel.onOpenDetail(row.item.id)}
+              onRemove={() => viewModel.onRemoveItem(row.item.id)}
             />
           ))}
         </ul>
       ) : null}
+
+      {viewModel.isUndoRemoveVisible ? <UndoToast onUndo={viewModel.onUndoRemove} /> : null}
 
       <Modal isOpen={viewModel.detail !== null} onClose={viewModel.onCloseDetail} title={viewModel.detail?.productName}>
         {viewModel.detail ? <ShoppingListItemDetail detail={viewModel.detail} onClose={viewModel.onCloseDetail} /> : null}
