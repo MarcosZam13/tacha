@@ -1,10 +1,10 @@
 # Feature: Login
 
-Cubre SCRUM-45 (HU-22). Las historias SCRUM-46 a 49 agregan su sección a este spec cuando se empiecen.
+Cubre SCRUM-45 (HU-22) y SCRUM-46 (HU-23). Las historias SCRUM-47 a 49 agregan su sección a este spec cuando se empiecen.
 
 ## 1. Objetivo
 
-Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados.
+Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados. Mientras escribe la contraseña puede mostrarla u ocultarla para comprobar que la ingresó bien.
 
 ## 2. Alcance
 
@@ -13,6 +13,7 @@ Incluye:
 - Verificación del token de reCAPTCHA en el servidor (Edge Function) antes de intentar la autenticación.
 - Inicio de sesión con Supabase Auth y redirección a la app al tener éxito.
 - Mensaje de error cuando el reCAPTCHA no se completa o falla.
+- Botón con ícono de ojo en el campo de contraseña para alternar entre texto oculto (puntos) y visible (texto plano). Oculto por defecto.
 
 No incluye: ver [14](#14-casos-fuera-de-alcance).
 
@@ -21,6 +22,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - email: string
 - password: string
 - captchaToken: string (lo entrega el widget de Google al completarse; vence a los ~2 minutos)
+- Clic o activación por teclado (Enter o espacio) del botón de visibilidad de la contraseña
 
 ## 4. Salidas
 
@@ -28,6 +30,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - Error de reCAPTCHA: mensaje propio, sin intentar autenticar.
 - Error de credenciales u otro: un mensaje genérico. Solo se distinguen "correo sin verificar" y "demasiados intentos"; el resto de los mensajes específicos son de SCRUM-47.
 - El formulario queda editable para reintentar; el widget se reinicia tras cada intento fallido.
+- El campo de contraseña cambia su tipo entre `password` y `text`, y el ícono entre ojo y ojo tachado. El valor escrito no se pierde al alternar.
 
 ## 5. Reglas de negocio
 
@@ -36,10 +39,15 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - El servidor rechaza el intento si Google no valida el token, aunque el cliente lo haya enviado: la validación del cliente es solo comodidad.
 - Un token de reCAPTCHA sirve para un solo intento; tras un intento (exitoso o no) se pide uno nuevo.
 - El correo se normaliza (trim + minúsculas) antes de enviarlo.
+- La contraseña está oculta por defecto y cada vez que se monta la pantalla.
+- Alternar la visibilidad es solo de presentación: no cambia el valor, no valida ni envía nada, y no persiste entre visitas.
+- El botón de visibilidad nunca envía el formulario.
 
 ## 6. Estados
 
 Unión derivada de constantes: `idle | submitting | error | success`. El estado del widget (`token` presente o no) es aparte: se deriva de `captchaToken`, no es un booleano más.
+
+La visibilidad de la contraseña es un estado local del campo (oculta o visible). El tipo del input (`password` o `text`) se deriva de él, no se guarda aparte.
 
 ## 7. Errores
 
@@ -57,7 +65,8 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 ## 8. UI esperada
 
 - Título "Iniciar sesión".
-- Input de correo, input de contraseña (`Input` de `@/components/ui`).
+- Input de correo (`Input` de `@/components/ui`) e input de contraseña (`PasswordInput`, local de la feature, con la misma apariencia que `Input`).
+- Botón con ícono de ojo a la derecha del campo de contraseña: ojo abierto cuando está oculta, ojo tachado cuando está visible.
 - Widget reCAPTCHA.
 - Botón "Iniciar sesión" (`Button`), con texto "Ingresando..." mientras envía.
 - Mensaje de error general con `role="alert"`.
@@ -68,12 +77,17 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 - Cada input con su label asociado (ya lo hace `Input`).
 - Errores en texto, no solo en color; el error general con `role="alert"`.
 - El widget de Google trae su propio soporte de teclado; el botón deshabilitado no depende solo del color.
+- El botón de visibilidad es un `<button type="button">` alcanzable con Tab, con `aria-label` que dice la acción ("Mostrar contraseña" / "Ocultar contraseña"). No depende solo del ícono.
+- El label de la contraseña se asocia al input con `htmlFor`; el botón queda fuera del `<label>` (un botón dentro de un label es HTML inválido).
+- El error del campo se enlaza al input con `aria-describedby` y `aria-invalid`.
 
 ## 10. Restricciones técnicas
 
 - TypeScript estricto, sin `any`; Tailwind con tokens `tacha-*`.
 - ViewModel + `constants/`; sin magic strings (constants-standards); sin `if` como en el registro (ternarios y mapas).
 - Sin librería de formularios ni wrapper de reCAPTCHA: el script de Google se carga con un hook propio.
+- Sin librería de íconos: el ojo es un SVG en línea.
+- No se modifica `Input` ni nada de `components/ui/`: `PasswordInput` es un componente local de la feature. Se promueve a `components/ui/` solo cuando una segunda feature lo necesite.
 - La secret key de reCAPTCHA vive solo como secret de Supabase, nunca con prefijo `NEXT_PUBLIC_` (security-practices). La site key sí es pública.
 - Skills: component-architecture, constants-standards, clean-code-practices, project-structure, security-practices.
 
@@ -112,10 +126,16 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 - Caso 8: si la Edge Function no responde, se muestra el mensaje de error inesperado.
 - Caso 9: con la contraseña correcta pero el correo sin verificar, se muestra el mensaje de correo sin verificar, no el de credenciales incorrectas.
 - Caso 10: si Supabase limita los intentos, se muestra el mensaje de demasiados intentos.
+- Caso 11: al abrir `/login`, la contraseña se ve como puntos y el ícono es el ojo abierto.
+- Caso 12: al pulsar el ojo, el texto se ve en claro y el ícono pasa a ojo tachado; al pulsarlo otra vez vuelve a puntos.
+- Caso 13: alternar la visibilidad conserva lo escrito y no envía el formulario.
+- Caso 14: el botón se alcanza con Tab y se activa con Enter o espacio; su `aria-label` cambia según la acción disponible.
+- Caso 15: con la contraseña vacía y error visible, el error sigue mostrándose y el ojo sigue funcionando.
 
 ## 14. Casos fuera de alcance
 
-- Mostrar/ocultar contraseña (SCRUM-46).
+- Mostrar/ocultar contraseña en el registro, la recuperación o la actualización de contraseña: la HU-23 es solo del login.
+- Recordar la preferencia de visibilidad, o volver a ocultar la contraseña tras un tiempo.
 - Mensajes específicos de cuenta bloqueada (SCRUM-47). "Inactiva" no existe en Supabase Auth y no se implementa.
 - Feedback de contraseña débil o vencida (SCRUM-48).
 - Guard de rutas y expiración de sesión (SCRUM-49); cierre por inactividad (HU-27).

@@ -17,6 +17,16 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 11. Validar los casos de aceptación del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 - [ ] 12. (Antes de producción, no bloquea este PR) Reemplazar las claves de prueba por las reales de reCAPTCHA.
 
-## SCRUM-46, 47, 48, 49
+## SCRUM-46: mostrar u ocultar la contraseña
 
-Se agregan cuando cada historia se empiece (dependen de que SCRUM-45 esté mergeada).
+- [ ] 1. Constantes: `INPUT_TYPE` y `PASSWORD_TOGGLE_LABEL`; `LOGIN_FORM_FIELDS` usa `INPUT_TYPE` (`constants/login.constants.ts`).
+- [ ] 2. Modelos: props del campo y retorno de su hook (`models/PasswordInputProps.interface.ts`, `models/PasswordInputViewModel.interface.ts`).
+- [ ] 3. ViewModel del campo (`hooks/usePasswordInputViewModel.ts`).
+- [ ] 4. Ícono (`components/EyeIcon.tsx`).
+- [ ] 5. Presentación: `components/PasswordInput.tsx`.
+- [ ] 6. `Login.tsx` usa `PasswordInput` para el campo de contraseña.
+- [ ] 7. Validar los casos 11 a 15 del SPEC en el navegador (incluido el teclado); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+## SCRUM-47, 48, 49
+
+Se agregan cuando cada historia se empiece.
