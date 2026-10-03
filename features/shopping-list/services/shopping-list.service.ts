@@ -1,11 +1,11 @@
 import type { CatalogBaseUnitType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
+import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
 import type { ItemDetail } from "../models/ItemDetail.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
-import { formatSizeLabel } from "../utils/formatSizeLabel";
 
 /**
  * Trae la lista general del usuario con sus items. Si todavía no tiene lista

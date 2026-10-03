@@ -26,3 +26,9 @@ export interface CatalogSearchVariantRow {
   base_unit: CatalogBaseUnitType;
   variant_id: string;
 }
+
+/** Rango de precio en colones, del más barato al más caro. */
+export interface PriceRange {
+  maxPrice: number;
+  minPrice: number;
+}
