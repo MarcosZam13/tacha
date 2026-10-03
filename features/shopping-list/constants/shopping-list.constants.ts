@@ -80,6 +80,7 @@ export const SHOPPING_LIST_TEXT = {
   ADD_ERROR: "No se pudo añadir el producto. Intenta de nuevo.",
   DECREASE_QUANTITY: "Quitar uno",
   DETAIL_BRANDS: "Marcas",
+  DETAIL_CLOSE: "Cerrar",
   DETAIL_ERROR: "No se pudo cargar el detalle. Intenta de nuevo.",
   DETAIL_NO_BRANDS: "Sin marcas registradas.",
   DETAIL_NO_PRICES: "Todavía no hay precios de referencia.",
@@ -89,6 +90,7 @@ export const SHOPPING_LIST_TEXT = {
   INCREASE_QUANTITY: "Añadir uno",
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
   OPEN_DETAIL: "Ver detalle",
+  OPEN_DETAIL_ICON: "i",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",
 } as const;

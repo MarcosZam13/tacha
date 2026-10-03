@@ -86,7 +86,8 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
 
   const detail = openItem
     ? {
-        brands: itemDetail.detail?.brands ?? [],
+        // Sin repetidos: el scraper puede guardar la misma marca dos veces para una variante.
+        brands: [...new Set(itemDetail.detail?.brands ?? [])],
         errorMessage: itemDetail.errorMessage,
         isLoading: itemDetail.isLoading,
         priceRows: toStorePriceRanges(itemDetail.detail?.storePrices ?? []).map((range) => ({
