@@ -67,5 +67,5 @@ HU-36b
   - Cómo se cumple: la cantidad cambia en cuanto responde la base (sin diálogo de confirmación ni recarga); mientras tanto los botones de esa fila quedan deshabilitados. No es actualización optimista (ver decisiones en [plan.md](plan.md)).
 
 HU-36c
-- [ ] CA-01: el detalle se abre con un botón específico al final de la fila, en la misma zona que los controles de cantidad; tocar la fila no lo abre.
-- [ ] CA-02: el detalle muestra marca, presentación/variante y precio de referencia por supermercado, si existe.
+- [x] CA-01: el detalle se abre con un botón específico al final de la fila, en la misma zona que los controles de cantidad; tocar la fila no lo abre.
+- [x] CA-02: el detalle muestra marca, presentación/variante y precio de referencia por supermercado, si existe.

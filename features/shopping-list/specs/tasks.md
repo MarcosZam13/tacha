@@ -29,9 +29,9 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-64: ver detalle de producto
 
-- [ ] 13. Constantes (consulta del detalle, textos, formato de moneda) y modelos `ItemDetail`, `ItemDetailViewModel`.
-- [ ] 14. `getItemDetail()` en el servicio y utils puros `toStorePriceRanges` y `formatPriceRange`.
-- [ ] 15. `useItemDetail` (pide al cambiar el `variantId`, descarta respuestas viejas, carga derivada) y la fila abierta en el ViewModel.
-- [ ] 16. Botón de detalle en `ShoppingListRow`, `ShoppingListItemDetail` dentro del `Modal`. Validar CA-01..02 de HU-36c; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 13. Constantes (consulta del detalle, textos, formato de moneda) y modelos `ItemDetail`, `ItemDetailViewModel`.
+- [x] 14. `getItemDetail()` en el servicio y utils puros `toStorePriceRanges` y `formatPriceRange`.
+- [x] 15. `useItemDetail` (pide al cambiar el `variantId`, descarta respuestas viejas, carga derivada) y la fila abierta en el ViewModel.
+- [x] 16. Botón de detalle en `ShoppingListRow`, `ShoppingListItemDetail` dentro del `Modal`. Validar CA-01..02 de HU-36c; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.
