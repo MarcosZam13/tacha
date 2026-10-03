@@ -1,10 +1,9 @@
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { POSTGRES_ERROR_CODE, RECIPES_DB } from "../constants/recipes.constants";
-import type { RecipeEditorValues } from "../models/RecipeEditorValues.interface";
-import type { RecipeSummary } from "../models/RecipeSummary.interface";
-import type { SaveRecipePayload } from "../models/SaveRecipePayload.interface";
-import type { SaveRecipeResponse } from "../models/SaveRecipeResponse.interface";
+import type { RecipeSummary } from "../models/recipe-catalog.interfaces";
+import type { DeleteRecipePayload, DeleteRecipeResponse } from "../models/recipe-deletion.interfaces";
+import type { RecipeEditorValues, SaveRecipePayload, SaveRecipeResponse } from "../models/recipe-editor.interfaces";
 import { toRecipeEditorValues } from "../utils/toRecipeEditorValues";
 import { toRecipeSummary } from "../utils/toRecipeSummary";
 
@@ -53,8 +52,10 @@ export const getRecipeForEditing = async (recipeId: string): Promise<NullableRef
 /**
  * Crea o edita una receta con todos sus ingredientes en una sola llamada a
  * save_recipe, que lo hace en una transacción: o se guarda todo o nada.
+ * Devuelve null si la receta a editar ya no existe (por ejemplo, se borró en
+ * otra pestaña) o es ajena: save_recipe responde P0002 en los dos casos.
  */
-export const saveRecipe = async (payload: SaveRecipePayload): Promise<SaveRecipeResponse> => {
+export const saveRecipe = async (payload: SaveRecipePayload): Promise<NullableRef<SaveRecipeResponse>> => {
   await ensureSession();
 
   const { data: savedRecipeId, error } = await getSupabaseClient().rpc(RECIPES_DB.RPC.SAVE_RECIPE, {
@@ -69,7 +70,28 @@ export const saveRecipe = async (payload: SaveRecipePayload): Promise<SaveRecipe
     // Sin id la función crea una receta nueva.
     target_recipe_id: payload.recipeId,
   });
+  if (error?.code === POSTGRES_ERROR_CODE.NO_DATA_FOUND) return null;
   if (error) throw error;
 
   return { recipeId: savedRecipeId };
+};
+
+/**
+ * Borra una receta; sus ingredientes se borran en cascada en la base. Un
+ * solo delete, así que ya es todo o nada (no hace falta una RPC).
+ *
+ * Si la receta ya no existe o es ajena, RLS no la ve: se borran 0 filas y no
+ * hay error. Se responde igual que un borrado correcto, a propósito: para
+ * quien la pidió la receta ya no está, y así no se revela si una ajena existe.
+ */
+export const deleteRecipe = async (payload: DeleteRecipePayload): Promise<DeleteRecipeResponse> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient()
+    .from(RECIPES_DB.TABLE.RECIPES)
+    .delete()
+    .eq(RECIPES_DB.COLUMN.ID, payload.recipeId);
+  if (error) throw error;
+
+  return { recipeId: payload.recipeId };
 };

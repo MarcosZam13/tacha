@@ -1,8 +1,9 @@
 import type { CatalogBaseUnitType } from "@/constants";
 import type { RECIPE_EDITOR_ACTION } from "../constants/recipes.constants";
-import type { RecipeEditorErrors } from "./RecipeEditorErrors.interface";
-import type { RecipeEditorIngredient } from "./RecipeEditorIngredient.interface";
-import type { RecipeEditorValues } from "./RecipeEditorValues.interface";
+import type { RecipeEditorErrors, RecipeEditorIngredient, RecipeEditorValues } from "./recipe-editor.interfaces";
+
+// Types del editor de recetas (SCRUM-95). Las interfaces (formulario,
+// estado, ViewModel y mutación) están en recipe-editor.interfaces.ts.
 
 /**
  * Unión discriminada por `type`: en cada `case` del reducer TypeScript sabe
