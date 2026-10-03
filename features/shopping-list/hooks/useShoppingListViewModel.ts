@@ -1,22 +1,30 @@
+import { useState } from "react";
 import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
 import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
+import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
+import { formatPriceRange } from "../utils/formatPriceRange";
 import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
+import { toStorePriceRanges } from "../utils/toStorePriceRanges";
+import { useItemDetail } from "./useItemDetail";
 import { useShoppingList } from "./useShoppingList";
 
 interface UseShoppingListViewModelReturn {
   addErrorMessage: NullableRef<string>;
   canAddItems: boolean;
+  detail: NullableRef<ItemDetailViewModel>;
   hasItems: boolean;
   hasNoSearchResults: boolean;
   isEmpty: boolean;
   isLoading: boolean;
   isSearching: boolean;
   loadErrorMessage: NullableRef<string>;
+  onCloseDetail: () => void;
   onDecreaseQuantity: (itemId: string) => void;
   onIncreaseQuantity: (itemId: string) => void;
+  onOpenDetail: (itemId: string) => void;
   onQueryChange: (query: string) => void;
   onSelectSearchOption: (variantId: string) => void;
   quantityErrorMessage: NullableRef<string>;
@@ -33,6 +41,11 @@ interface UseShoppingListViewModelReturn {
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const { addItem, changeQuantity, state } = useShoppingList();
   const search = useProductSearch();
+  // Se guarda solo el id de la fila abierta; la fila en sí se busca en la
+  // lista, así el modal siempre muestra la cantidad y el nombre actuales.
+  const [openItemId, setOpenItemId] = useState<NullableRef<string>>(null);
+  const openItem = state.items.find((item) => item.id === openItemId) ?? null;
+  const itemDetail = useItemDetail(openItem?.variantId ?? null);
   // El buscador devuelve productos madre; la lista añade variantes.
   const searchResults = toCatalogSearchResults(search.results);
 
@@ -63,6 +76,29 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     void changeQuantity(itemId, ITEM_QUANTITY.STEP.DECREASE);
   };
 
+  const onOpenDetail = (itemId: string): void => {
+    setOpenItemId(itemId);
+  };
+
+  const onCloseDetail = (): void => {
+    setOpenItemId(null);
+  };
+
+  const detail = openItem
+    ? {
+        // Sin repetidos: el scraper puede guardar la misma marca dos veces para una variante.
+        brands: [...new Set(itemDetail.detail?.brands ?? [])],
+        errorMessage: itemDetail.errorMessage,
+        isLoading: itemDetail.isLoading,
+        priceRows: toStorePriceRanges(itemDetail.detail?.storePrices ?? []).map((range) => ({
+          priceLabel: formatPriceRange(range),
+          storeName: range.storeName,
+        })),
+        productName: openItem.productName,
+        sizeLabel: openItem.sizeLabel,
+      }
+    : null;
+
   const rows = state.items.map((item) => {
     const isPending = state.pendingItemIds.includes(item.id);
     return {
@@ -77,6 +113,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     // Si la lista no se pudo cargar no se ofrece añadir: la pantalla mostraría
     // solo lo recién añadido como si fuera toda la lista.
     canAddItems: !state.loadErrorMessage,
+    detail,
     hasItems: state.items.length > 0,
     hasNoSearchResults: search.hasNoResults,
     // Con error de carga no se dice "tu lista está vacía": no se sabe si lo está.
@@ -84,8 +121,10 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     isLoading: state.isLoading,
     isSearching: search.isSearching,
     loadErrorMessage: state.loadErrorMessage,
+    onCloseDetail,
     onDecreaseQuantity,
     onIncreaseQuantity,
+    onOpenDetail,
     onQueryChange: search.setQuery,
     onSelectSearchOption,
     quantityErrorMessage: state.quantityErrorMessage,
