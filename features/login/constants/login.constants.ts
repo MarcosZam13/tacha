@@ -61,18 +61,20 @@ export const LOGIN_RESULT_MESSAGE: Record<LoginResultType, NullableUndefined<str
   [LOGIN_RESULT.SUCCESS]: undefined,
 };
 
-// Orden visual del formulario; el tipo decide el teclado y si se oculta el texto.
+// Valores del atributo `type` de los inputs del formulario.
 export const INPUT_TYPE = {
   EMAIL: "email",
   PASSWORD: "password",
   TEXT: "text",
 } as const;
 
+// Texto accesible del botón del ojo; dice la acción que ejecutaría el clic.
 export const PASSWORD_TOGGLE_LABEL = {
   HIDE: "Ocultar contraseña",
   SHOW: "Mostrar contraseña",
 } as const;
 
+// Orden visual del formulario; el tipo decide el teclado y si se oculta el texto.
 export const LOGIN_FORM_FIELDS = [
   { field: LOGIN_FIELD.EMAIL, label: LOGIN_LABEL.EMAIL, type: INPUT_TYPE.EMAIL },
   { field: LOGIN_FIELD.PASSWORD, label: LOGIN_LABEL.PASSWORD, type: INPUT_TYPE.PASSWORD },

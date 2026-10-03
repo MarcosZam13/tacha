@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { Button, Input } from "@/components/ui";
-import { RecaptchaWidget } from "./components/RecaptchaWidget";
-import { LOGIN_FORM_FIELDS, LOGIN_LABEL, LOGIN_ROUTE, INPUT_TYPE } from "./constants/login.constants";
-import { useLoginViewModel } from "./hooks/useLoginViewModel";
 import { PasswordInput } from "./components/PasswordInput";
+import { RecaptchaWidget } from "./components/RecaptchaWidget";
+import { INPUT_TYPE, LOGIN_FORM_FIELDS, LOGIN_LABEL, LOGIN_ROUTE } from "./constants/login.constants";
+import { useLoginViewModel } from "./hooks/useLoginViewModel";
 
 /**
  * Pantalla de inicio de sesión. "use client" porque usa hooks y habla con Supabase desde el navegador.
@@ -39,17 +39,17 @@ export const Login = (): React.JSX.Element => {
               errorMessage={errors[field]}
             />
           ) : (
-              <Input
-                key={field}
-                isRequired
-                label={label}
-                type={type}
-                value={values[field]}
-                onChange={handleChange(field)}
-                errorMessage={errors[field]}
-              />
-            ),
-          )}
+            <Input
+              key={field}
+              isRequired
+              label={label}
+              type={type}
+              value={values[field]}
+              onChange={handleChange(field)}
+              errorMessage={errors[field]}
+            />
+          ),
+        )}
 
         <RecaptchaWidget onTokenChange={handleCaptchaTokenChange} resetCount={captchaResetCount} />
 

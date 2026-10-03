@@ -53,7 +53,8 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 
 | Situación | Mensaje |
 |---|---|
-| Campo vacío o correo inválido | Error bajo el campo |
+| Correo con formato inválido | Error bajo el campo |
+| Campo vacío | El botón "Iniciar sesión" está deshabilitado; no se muestra error (los mensajes de campo obligatorio quedan como defensa en la validación) |
 | reCAPTCHA sin completar | El botón está deshabilitado; si se fuerza el envío, "Confirmá que no sos un robot." |
 | reCAPTCHA rechazado por Google o vencido | "No pudimos validar el reCAPTCHA. Intentá de nuevo." |
 | Correo sin verificar (contraseña correcta) | "Confirmá tu correo antes de iniciar sesión." |
@@ -119,8 +120,8 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Caso 1: con reCAPTCHA completo y credenciales correctas, se inicia sesión y se redirige.
 - Caso 2: sin completar el reCAPTCHA el botón está deshabilitado y no se hace ninguna petición.
 - Caso 3: con un token inválido o vencido, el servidor responde `captcha_failed`, se muestra el mensaje de reCAPTCHA y no se intenta autenticar.
-- Caso 4: correo vacío o con formato inválido muestra el error bajo el campo.
-- Caso 5: contraseña vacía muestra el error bajo el campo.
+- Caso 4: un correo con formato inválido muestra el error bajo el campo; con el correo vacío, el botón "Iniciar sesión" queda deshabilitado.
+- Caso 5: con la contraseña vacía, el botón "Iniciar sesión" queda deshabilitado y no se envía nada.
 - Caso 6: credenciales incorrectas con reCAPTCHA válido muestra el mensaje genérico y el formulario sigue editable.
 - Caso 7: tras un intento fallido el widget se reinicia y hay que completarlo de nuevo.
 - Caso 8: si la Edge Function no responde, se muestra el mensaje de error inesperado.
@@ -130,7 +131,7 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Caso 12: al pulsar el ojo, el texto se ve en claro y el ícono pasa a ojo tachado; al pulsarlo otra vez vuelve a puntos.
 - Caso 13: alternar la visibilidad conserva lo escrito y no envía el formulario.
 - Caso 14: el botón se alcanza con Tab y se activa con Enter o espacio; su `aria-label` cambia según la acción disponible.
-- Caso 15: con la contraseña vacía y error visible, el error sigue mostrándose y el ojo sigue funcionando.
+- Caso 15: con la contraseña vacía, el botón de enviar sigue deshabilitado y el ojo funciona igual (alterna aunque no haya texto escrito).
 
 ## 14. Casos fuera de alcance
 
