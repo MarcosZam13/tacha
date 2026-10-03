@@ -15,6 +15,7 @@ features/login/
     useLoginViewModel.ts             estado del formulario, handlers, envío y reinicio del widget
     useRecaptchaWidgetViewModel.ts   carga el script de Google, dibuja el widget, entrega el token
   models/
+    EyeIconProps.interface.ts
     LoginFormValues.interface.ts     valores y errores del formulario
     LoginViewModel.interface.ts      lo que devuelve el hook
     LoginParams.interface.ts         parámetros del servicio
@@ -76,3 +77,42 @@ Completo la casilla → callback de Google en `useRecaptchaWidgetViewModel` → 
 - Reemplazar las claves de prueba de Google por las reales (site key y secret). Con la secret de prueba la verificación acepta cualquier token y el captcha no protege nada.
 - Revisar el rate limit de Supabase Auth (Authentication → Rate Limits): es el único freno de fuerza bruta contra el endpoint de Auth directo.
 - CORS de las Edge Functions está en `*` (`supabase/functions/_shared/http.ts`, compartido con las de ingesta); restringirlo al dominio de la app cuando exista.
+
+## SCRUM-46: mostrar u ocultar la contraseña
+
+### Archivos
+
+```
+features/login/
+  Login.tsx                          + usa PasswordInput para el campo de contraseña e Input para el resto
+  components/
+    PasswordInput.tsx                campo de contraseña con botón de visibilidad (solo presentación)
+    EyeIcon.tsx                      SVG del ojo, con o sin tachado
+  hooks/
+    usePasswordInputViewModel.ts     id del campo, visibilidad, tipo del input derivado y toggle
+  models/
+    PasswordInputProps.interface.ts        props del campo
+    PasswordInputViewModel.interface.ts    lo que devuelve el hook
+  constants/
+    login.constants.ts               + INPUT_TYPE, PASSWORD_TOGGLE_LABEL; LOGIN_FORM_FIELDS usa INPUT_TYPE
+```
+
+No se toca `components/ui/` ni ningún archivo fuera de `features/login/`. Sin datos nuevos: no hay tablas, RPC ni cambios en la Edge Function.
+
+### Flujo
+
+Clic en el ojo → `onClick` de `PasswordInput.tsx` → `toggleVisibility` en `usePasswordInputViewModel.ts` → cambia `isVisible` → el hook recalcula `inputType` (`text` o `password`) y `PasswordInput` re-renderiza con otro `type`, otro ícono y otro `aria-label`. El valor sigue en el estado de `useLoginViewModel` (`values.password`), que el toggle nunca toca.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| `PasswordInput` local de la feature, sin tocar `Input` | Agregar un prop `trailingAction` a `Input` | `Input` lo usan otras pantallas; cambiar su estructura (hoy un `<label>` que envuelve todo) arriesga romper el trabajo de los demás por una historia de login |
+| Componente local, no en `components/ui/` | Crearlo directo como primitivo compartido | Con un solo consumidor no hay segundo uso que justifique el costo de mantenerlo compartido; se promueve cuando el registro lo pida |
+| Botón fuera del `<label>`, con `<label htmlFor>` y `useId` | Botón dentro del label, como hace `Input` | Un botón dentro de un `<label>` es HTML inválido, y el clic en el ojo podría enfocar el input |
+| Estado de visibilidad dentro de `PasswordInput` (su propio hook) | Subirlo a `useLoginViewModel` | Solo afecta a este campo; subirlo obliga al ViewModel del formulario a conocer un detalle visual |
+| `inputType` derivado de `isVisible` | Guardarlo en un segundo `useState` | Dos estados que deben ir juntos pueden contradecirse; uno derivado no |
+| `aria-label` que cambia ("Mostrar" / "Ocultar"), sin `aria-pressed` | `aria-pressed` con etiqueta fija | Con las dos cosas el lector de pantalla anuncia algo contradictorio; la etiqueta que describe la acción es la más clara |
+| SVG en línea para el ojo | Librería de íconos | Son dos dibujos; instalar una dependencia por eso es el patrón que AGENTS.md pide evitar |
+| `type="button"` en el ojo | Dejar el tipo por defecto | Dentro de un `<form>` el tipo por defecto es `submit`: pulsar el ojo enviaría el formulario |
+| Visibilidad no persiste | Guardarla en `localStorage` | La contraseña visible por defecto en la siguiente visita sería un riesgo de seguridad (hombro, pantalla compartida) sin ningún beneficio |
