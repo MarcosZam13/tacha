@@ -37,7 +37,7 @@ Confirmado directamente contra el proyecto de Supabase, no es una descripción d
 |---|---|---|---|
 | `categories` | ✅ con policy pública de lectura | 0 | Vacía — nadie ha insertado categorías todavía |
 | `stores` | ✅ con policy pública de lectura | 3 | Sembrada: maxipali, walmart, masxmenos |
-| `household_store_preferences` | ✅ con policies (lectura pública + insert/update/delete temporales) | 0 | Ver sección 6 |
+| `household_store_preferences` | ✅ con policies (lectura pública temporal; escritura cerrada desde la migración 009) | 0 | Ver sección 6 |
 | `product_catalog` | ✅ con policy pública de lectura | 0 | Vacía — ver sección 2 |
 | `product_catalog_variants` | ✅ con policy pública de lectura | 0 | Vacía |
 | `product_brands` | ✅ con policy pública de lectura | 0 | Vacía |
@@ -217,7 +217,7 @@ where coalesce(hsp.visible, true) = true;
 
 El `coalesce(..., true)` es la parte importante: sin fila explícita, la tienda se considera visible. Solo se necesita insertar una fila cuando el usuario decide **ocultar** una tienda (`visible = false`) — no hace falta poblar las 3 filas por household de antemano.
 
-Las policies de RLS de esta tabla son temporales (`using (true)` en todas las operaciones) porque el módulo `households`/`household_members` de otro integrante del equipo todavía no existe en este proyecto de Supabase. Cuando exista, hay que reemplazar esas policies por una que verifique membresía real. Está anotado como TODO en `schema.sql`.
+Las policies de RLS de esta tabla son temporales. La lectura es pública (`using (true)`); la escritura abierta se borró en la migración 009 (SCRUM-123, 2026-10-02), así que hoy nadie escribe desde el cliente (`42501`). Falta la política de escritura por membresía en `household_members` (SCRUM-127). Está anotado como TODO en `schema.sql`.
 
 ## 7. Qué NO está construido — para no asumir que existe
 

@@ -31,7 +31,7 @@ Tacha habla con Supabase directo desde el cliente (PostgREST/RPC con la anon key
 - Acciones de admin del household (eliminar miembro, transferir admin) se chequean en la política o en una función `security definer` que verifica el rol del que llama, no en el componente.
 - Escalamiento de privilegios: en inserts/updates, el cliente no puede fijar `owner_id`, `role` o `household_id` a su gusto. Usar `with check` en la política o un default `auth.uid()`.
 - Funciones `security definer` validan permisos adentro y fijan `search_path`; si no, saltan RLS para cualquiera que las llame.
-- Deuda abierta conocida: `household_store_preferences` tiene RLS abierto (ver `docs/catalogo-scraping/TICKET-seguridad-household-store-preferences.md`). Se cierra cuando exista el módulo de household.
+- Deuda abierta conocida: `household_store_preferences` tiene lectura pública (`using (true)`); la escritura se cerró en la migración 009 (SCRUM-123) y no tiene política hasta que se agregue la de membresía (SCRUM-127, ver `docs/catalogo-scraping/TICKET-seguridad-household-store-preferences.md`). Mientras tanto, cualquier upsert desde el cliente falla con `42501`.
 
 ## 4. Validación de input e inyección
 
