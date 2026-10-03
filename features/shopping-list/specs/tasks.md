@@ -19,7 +19,8 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## Pendiente cuando el proyecto tenga runner de tests
 
-- [ ] Tests unitarios de `utils/shopping-list.reducer.ts` (función pura) y de `hooks/useProductSearch.ts` (debounce y descarte de respuestas viejas), según unit-testing-standards.
+- [x] Tests unitarios de `utils/shopping-list.reducer.ts` (función pura): `tests/shopping-list.reducer.test.ts`, SCRUM-128.
+- [ ] Tests de `hooks/useProductSearch.ts` (debounce y descarte de respuestas viejas), con fake timers, según unit-testing-standards.
 
 ## SCRUM-63: ajustar cantidad
 

@@ -112,7 +112,7 @@ Tu `.env.local` no está en git: se mantiene al cambiar de rama.
 **3. Correrlo**
 
 ```bash
-npx tsc --noEmit && npm run lint && npm run build   # lo mismo que revisa el CI
+npx tsc --noEmit && npm run lint && npm test && npm run build   # lo mismo que revisa el CI
 npm run dev
 ```
 
@@ -157,7 +157,7 @@ Sprints de una semana, de lunes a lunes; la revisión es el lunes en que cierra 
 Una historia pasa a `Done` solo si:
 
 - [ ] El código sigue los skills de [AGENTS.md](AGENTS.md), incluida la estructura de carpetas (`app/` solo rutas)
-- [ ] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan (el CI corre lint y build en cada PR)
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan (el CI corre lint, tests y build en cada PR)
 - [ ] Tiene tests del camino feliz + al menos un caso negativo o límite ([qa-testing-practices](.agents/skills/qa-testing-practices/SKILL.md))
 - [ ] Si toca auth, household, RLS, formularios o variables de entorno: se revisó con [security-practices](.agents/skills/security-practices/SKILL.md) (o el subagente `security-reviewer`)
 - [ ] El PR usa la plantilla, con pasos de prueba manual, y otra persona del equipo lo aprobó
