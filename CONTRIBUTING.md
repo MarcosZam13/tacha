@@ -121,6 +121,7 @@ npm run dev
 - La sección **"How should this be manually tested?"** del PR, paso por paso.
 - Los **criterios de aceptación** del `specs/SPEC.md` de la feature y de la historia en Jira, uno por uno.
 - Además del camino feliz: vacíos, errores de red, textos largos, doble click, recargar la página (ver [qa-testing-practices §2](.agents/skills/qa-testing-practices/SKILL.md)).
+- Si la feature tiene pruebas de punta a punta (`specs/E2E.md`), correr las suyas: `npx playwright test e2e/features/<feature> --project=chromium`. La primera vez en la máquina: `npx playwright install chromium`. Corren contra la base compartida y cada test limpia lo que crea (ver [playwright-e2e](.agents/skills/playwright-e2e/SKILL.md)).
 
 **5. Veredicto: label y tarjeta de Jira en el mismo momento**
 
