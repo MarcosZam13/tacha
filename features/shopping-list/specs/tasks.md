@@ -34,4 +34,12 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 15. `useItemDetail` (pide al cambiar el `variantId`, descarta respuestas viejas, carga derivada) y la fila abierta en el ViewModel.
 - [x] 16. Botón de detalle en `ShoppingListRow`, `ShoppingListItemDetail` dentro del `Modal`. Validar CA-01..02 de HU-36c; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-65: eliminar producto
+
+- [ ] 17. Migración `011_delete_list_items.sql` (política de borrado del dueño) y aplicarla; verificar con otro `sub` que borra 0 filas.
+- [ ] 18. Constantes (duración del toast, textos, acciones del reducer) y `deleteListItem()` en el servicio.
+- [ ] 19. Reducer: `ITEM_REMOVED` y `REMOVE_FAILED`; `removeItem` en `useShoppingList`.
+- [ ] 20. `useItemRemoval` (item pendiente, temporizador, deshacer, borrar el anterior, borrar al salir) y su uso en el ViewModel.
+- [ ] 21. Botón de eliminar en `ShoppingListRow` y `UndoToast`. Validar CA-01..03 de HU-36d; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

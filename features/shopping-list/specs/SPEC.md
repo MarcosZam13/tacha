@@ -1,8 +1,8 @@
-# Lista general: buscar, añadir, ajustar cantidad y ver detalle
+# Lista general: buscar, añadir, ajustar cantidad, ver detalle y eliminar
 
 Historias: [SCRUM-62 / HU-36a](https://tacha.atlassian.net/browse/SCRUM-62) (buscar y añadir producto) · [SCRUM-63 / HU-36b](https://tacha.atlassian.net/browse/SCRUM-63) (ajustar cantidad). Sprint 1.
 
-[SCRUM-64 / HU-36c](https://tacha.atlassian.net/browse/SCRUM-64) (ver detalle de producto). Sprint 2.
+[SCRUM-64 / HU-36c](https://tacha.atlassian.net/browse/SCRUM-64) (ver detalle de producto) · [SCRUM-65 / HU-36d](https://tacha.atlassian.net/browse/SCRUM-65) (eliminar producto). Sprint 2.
 
 ## Intención
 
@@ -16,10 +16,13 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 - Controles "+" y "−" en cada fila; "−" nunca baja de 1.
 - La lista se guarda en Supabase (`lists` + `list_items`) y se carga al abrir la pantalla.
 - Un botón de detalle al final de cada fila, al lado de los controles de cantidad. Abre un modal con el nombre y la presentación del producto, sus marcas y el precio de referencia por supermercado (rango entre marcas, del más barato al más caro). Si no hay marcas o precios, lo dice en vez de dejar el espacio vacío.
+- Un botón de eliminar al final de cada fila, hermano de los demás controles. Al tocarlo la fila desaparece al instante y aparece un toast "Producto eliminado" con "Deshacer" durante unos segundos. Deshacer devuelve la fila tal como estaba. El borrado en la base se hace cuando el toast vence, no al tocar el botón.
 
 ## Fuera de alcance (y por qué)
 
-- Tachar y eliminar: son HU-36d/e (SCRUM-65 y SCRUM-66), Sprint 2.
+- Tachar: es HU-36e (SCRUM-66), Sprint 2.
+- Toast compartido para otras pantallas: hoy solo lo usa la lista. Se promueve a `components/ui` cuando aparezca el segundo consumidor real.
+- Garantizar el borrado si se cierra la pestaña antes de que venza el toast: el producto queda en la lista (no se pierde nada, solo hay que volver a borrarlo). Resolverlo pediría mandar la petición durante el cierre de la página, que el navegador no garantiza.
 - Filtrar los precios por las tiendas que sigue el household: depende de households y de `household_store_preferences`, que son de otra historia. El detalle muestra las tres tiendas.
 - Detalle desde el catálogo (foto, logos, "Agregar a mi lista"): es HU-53 (SCRUM-85), Sprint 3. Si reusa esta vista, se promueve a una carpeta compartida en ese momento (segundo consumidor real).
 - Listas de household: los households se construyen este mismo sprint (otra persona); por ahora `household_id` siempre es `null`.
@@ -35,6 +38,8 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 5. Los controles de cantidad no pueden estar anidados dentro de otro botón (HTML inválido, y en Sprint 2 la fila completa tacha).
 6. El botón de detalle tampoco: es hermano de los controles de cantidad, en la misma zona excluida de la fila.
 7. El detalle se pide al abrirlo, no junto con la lista. Una respuesta de un detalle anterior nunca se muestra en el detalle de otro producto.
+8. Eliminar tampoco puede estar anidado en la fila. Solo el dueño de la lista puede borrar sus items (RLS, migración `011`).
+9. Deshacer no escribe en la base: mientras el toast está visible el item sigue guardado y solo se oculta en pantalla.
 
 ## Casos límite y errores
 
@@ -46,6 +51,12 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 - Variante sin marcas o sin precios: el detalle lo dice ("Sin marcas registradas", "Todavía no hay precios de referencia").
 - Error al pedir el detalle: mensaje de error dentro del modal; la lista sigue igual.
 - Abrir un detalle, cerrarlo y abrir otro antes de que responda el primero: solo se muestra el del segundo.
+- Eliminar un producto mientras otro todavía tiene el toast: el anterior se borra en ese momento y el toast pasa a ser del nuevo (un solo toast a la vez).
+- Error al borrar en la base: la fila vuelve y aparece un mensaje de error.
+- Eliminar mientras su cantidad se está guardando: el botón de eliminar de esa fila está deshabilitado hasta que responda.
+- Volver a añadir desde el buscador un producto que tiene el toast de eliminado: se cancela el borrado y se le suma 1, como a cualquier producto que ya está en la lista.
+- Salir de la pantalla con un toast activo: el borrado se manda en ese momento.
+- Eliminar el último producto: aparece el estado de lista vacía.
 
 ## Restricciones
 
@@ -69,3 +80,8 @@ HU-36b
 HU-36c
 - [x] CA-01: el detalle se abre con un botón específico al final de la fila, en la misma zona que los controles de cantidad; tocar la fila no lo abre.
 - [x] CA-02: el detalle muestra marca, presentación/variante y precio de referencia por supermercado, si existe.
+
+HU-36d
+- [ ] CA-01: cada producto de la lista tiene una acción de eliminar.
+- [ ] CA-02: al eliminar, el producto se quita de la lista de inmediato.
+- [ ] CA-03: aparece un toast breve "Producto eliminado" con opción de deshacer.
