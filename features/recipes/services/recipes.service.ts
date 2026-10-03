@@ -1,10 +1,8 @@
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { POSTGRES_ERROR_CODE, RECIPES_DB } from "../constants/recipes.constants";
-import type { RecipeEditorValues } from "../models/RecipeEditorValues.interface";
-import type { RecipeSummary } from "../models/RecipeSummary.interface";
-import type { SaveRecipePayload } from "../models/SaveRecipePayload.interface";
-import type { SaveRecipeResponse } from "../models/SaveRecipeResponse.interface";
+import type { RecipeEditorValues, SaveRecipePayload, SaveRecipeResponse } from "../models/recipe-editor.interfaces";
+import type { RecipeSummary } from "../models/recipe-catalog.interfaces";
 import { toRecipeEditorValues } from "../utils/toRecipeEditorValues";
 import { toRecipeSummary } from "../utils/toRecipeSummary";
 

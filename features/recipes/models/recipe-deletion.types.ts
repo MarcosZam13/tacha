@@ -1,5 +1,5 @@
 import type { RECIPE_DELETION_STATUS } from "../constants/recipes.constants";
-import type { RecipeSummary } from "./RecipeSummary.interface";
+import type { RecipeSummary } from "./recipe-catalog.interfaces";
 
 // Types de la eliminación de una receta (SCRUM-96). Las interfaces están en
 // recipe-deletion.interfaces.ts.

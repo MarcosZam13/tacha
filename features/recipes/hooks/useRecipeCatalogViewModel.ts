@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { RECIPE_CATALOG_STATUS, RECIPE_TEXT } from "../constants/recipes.constants";
-import type { RecipeCatalogState } from "../models/RecipeCatalogState.type";
-import type { RecipeCatalogViewModel } from "../models/RecipeCatalogViewModel.interface";
+import type { RecipeCatalogState } from "../models/recipe-catalog.types";
+import type { RecipeCatalogViewModel } from "../models/recipe-catalog.interfaces";
 import { getRecipeSummaries } from "../services/recipes.service";
 
 /**

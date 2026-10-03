@@ -1,5 +1,8 @@
 import type { RECIPE_CATALOG_STATUS } from "../constants/recipes.constants";
-import type { RecipeSummary } from "./RecipeSummary.interface";
+import type { RecipeSummary } from "./recipe-catalog.interfaces";
+
+// Types del catálogo de recetas (SCRUM-94). Las interfaces están en
+// recipe-catalog.interfaces.ts.
 
 /**
  * Unión discriminada por `status`: la pantalla está en uno solo de estos

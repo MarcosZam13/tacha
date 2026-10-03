@@ -9,7 +9,7 @@ export const RECIPE_CATALOG = {
   MAIN_INGREDIENTS_LIMIT: 3,
 } as const;
 
-// Estados de la pantalla (models/RecipeCatalogState.type.ts).
+// Estados de la pantalla (RecipeCatalogState en models/recipe-catalog.types.ts).
 export const RECIPE_CATALOG_STATUS = {
   ERROR: "error",
   LOADING: "loading",
@@ -86,7 +86,7 @@ export const RECIPE_UNIT_OPTIONS = [
   { label: RECIPE_UNIT_LABEL[CATALOG_BASE_UNIT.UNIT], value: CATALOG_BASE_UNIT.UNIT },
 ] as const satisfies ReadonlyArray<{ label: string; value: CatalogBaseUnitType }>;
 
-// Estados del editor (models/RecipeEditorState.interface.ts).
+// Estados del editor (RecipeEditorState en models/recipe-editor.interfaces.ts).
 export const RECIPE_EDITOR_STATUS = {
   EDITING: "editing",
   LOADING: "loading",
@@ -182,7 +182,7 @@ export const RECIPE_TEXT = {
   TITLE: "Recetas",
 } as const;
 
-// Estados de la eliminación (models/RecipeDeletionState.type.ts).
+// Estados de la eliminación (RecipeDeletionState en models/recipe-deletion.types.ts).
 export const RECIPE_DELETION_STATUS = {
   CONFIRMING: "confirming",
   DELETING: "deleting",

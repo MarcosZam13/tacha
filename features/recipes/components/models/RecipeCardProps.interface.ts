@@ -1,4 +1,4 @@
-import type { RecipeSummary } from "../../models/RecipeSummary.interface";
+import type { RecipeSummary } from "../../models/recipe-catalog.interfaces";
 
 export interface RecipeCardProps {
   recipe: RecipeSummary;

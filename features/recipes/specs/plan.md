@@ -17,11 +17,11 @@ features/recipes/
     models/RecipesTabsProps.interface.ts
   hooks/
     useRecipeCatalogViewModel.ts       carga inicial (useEffect) y deriva lo que dibuja la pantalla
-  models/
-    RecipeRow.interface.ts             forma de una receta tal como la devuelve la consulta
-    RecipeSummary.interface.ts         una receta lista para la tarjeta (textos ya armados)
-    RecipeCatalogState.type.ts         unión loading / error / ready
-    RecipeCatalogViewModel.interface.ts lo que el ViewModel le entrega a RecipeCatalog.tsx
+  models/                              (agrupados por pantalla en SCRUM-96; antes, un archivo por tipo)
+    recipe-catalog.interfaces.ts       RecipeRow: forma de una receta tal como la devuelve la consulta
+                                       RecipeSummary: una receta lista para la tarjeta (textos ya armados)
+                                       RecipeCatalogViewModel: lo que el ViewModel le entrega a RecipeCatalog.tsx
+    recipe-catalog.types.ts            RecipeCatalogState: unión loading / error / ready
   services/
     recipes.service.ts                 getRecipeSummaries(): consulta + adaptación fila → RecipeSummary
   utils/
@@ -132,18 +132,17 @@ features/recipes/
   hooks/
     useRecipeEditorViewModel.ts        facade: une useRecipeEditor + useProductSearch + navegación
     useRecipeEditor.ts                 useReducer + carga para editar (useEffect) + guardar
-  models/
-    RecipeEditorIngredient.interface.ts  un ingrediente en el formulario (cantidad como texto)
-    RecipeEditorValues.interface.ts      nombre, porciones (texto) e ingredientes
-    RecipeEditorErrors.interface.ts      un mensaje por campo; los de ingrediente por productId
-    RecipeEditorState.interface.ts       status + values + errores + mensajes
-    RecipeEditorAction.type.ts           unión discriminada de acciones del reducer
-    RecipeEditorRow.interface.ts         receta tal como la devuelve la consulta de edición
-    SaveRecipePayload.interface.ts       lo que se manda a save_recipe
-    SaveRecipeResponse.interface.ts      lo que devuelve (el id guardado)
-    RecipeEditorViewModel.interface.ts   lo que el ViewModel le entrega a RecipeEditor.tsx
-    RecipeIngredientRowViewModel.interface.ts  una fila de ingrediente lista para dibujar (con su error)
-    RecipeEditorProps.interface.ts       recipeId opcional: sin id es receta nueva
+  models/                              (agrupados por pantalla en SCRUM-96; antes, un archivo por tipo)
+    recipe-editor.interfaces.ts          RecipeEditorProps: recipeId opcional, sin id es receta nueva
+                                         RecipeEditorRow: receta tal como la devuelve la consulta de edición
+                                         RecipeEditorIngredient: un ingrediente en el formulario (cantidad como texto)
+                                         RecipeEditorValues: nombre, porciones (texto) e ingredientes
+                                         RecipeEditorErrors: un mensaje por campo; los de ingrediente por productId
+                                         RecipeEditorState: status + values + errores + mensajes
+                                         RecipeIngredientRowViewModel: una fila de ingrediente lista para dibujar (con su error)
+                                         RecipeEditorViewModel: lo que el ViewModel le entrega a RecipeEditor.tsx
+                                         SaveRecipePayload / SaveRecipeResponse: lo que se manda a save_recipe y lo que devuelve
+    recipe-editor.types.ts               RecipeEditorAction: unión discriminada de acciones del reducer
   services/
     recipes.service.ts                 + getRecipeForEditing(), saveRecipe()
   utils/
@@ -267,7 +266,7 @@ features/recipes/
     recipe-deletion.types.ts           nuevo: RecipeDeletionTarget (Pick<RecipeSummary, "id" | "name">)
                                          y RecipeDeletionState (idle / confirming / deleting / failed)
     recipe-deletion.interfaces.ts      nuevo: RecipeDeletionViewModel, DeleteRecipePayload, DeleteRecipeResponse
-    RecipeCatalogViewModel.interface.ts  + deletion: RecipeDeletionViewModel
+    recipe-catalog.interfaces.ts       + deletion: RecipeDeletionViewModel en RecipeCatalogViewModel
   services/
     recipes.service.ts                 + deleteRecipe(); saveRecipe() devuelve null si la receta no existe
   constants/recipes.constants.ts       + RECIPE_DELETION_STATUS, RECIPE_DELETE_TEXT, POSTGRES_ERROR_CODE.NO_DATA_FOUND
