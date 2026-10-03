@@ -1,6 +1,6 @@
 # Plan técnico: recetas
 
-Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md). Las secciones de arriba son de SCRUM-94 (catálogo); [SCRUM-95](#scrum-95-crear-o-editar-una-receta) (crear o editar) está al final.
+Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md). Las secciones de arriba son de SCRUM-94 (catálogo); después vienen [SCRUM-95](#scrum-95-crear-o-editar-una-receta) (crear o editar) y [SCRUM-96](#scrum-96-eliminar-una-receta) (eliminar).
 
 > **Verificado el 2026-09-25** contra la base real: no existen `recipes`, `recipe_ingredients` ni `households`. El catálogo tiene 28 productos madre (casi todos lácteos, del scraping de "leche") y se puede leer con cualquier rol, así que el join `recipe_ingredients → product_catalog` funciona con la sesión anónima.
 
@@ -239,6 +239,110 @@ Sin fila → "no encontrada" (no existe o es de otro usuario: RLS no la devuelve
 - **Productos personalizados de otro household:** `recipe_ingredients.product_catalog_id` acepta cualquier producto del catálogo. Hoy no importa porque `product_catalog` se lee público, pero cuando los productos de household ("Mis productos") tengan RLS propia, el insert de ingredientes tiene que exigir que el producto sea visible para quien guarda (si no, se podría ligar el id de un producto ajeno y leer su nombre desde la receta).
 - **Sin límite de ingredientes por receta:** `save_recipe` acepta cualquier cantidad (solo la acota el `unique` por producto). No es explotable más allá de ensuciar tus propias recetas; si hiciera falta, un tope en la función (ej. 100).
 - **Sesiones anónimas:** cualquiera puede generar sesiones anónimas y crear recetas (solo lo limita el rate limit de Supabase por IP). Deuda conocida de `ensureSession`; se cierra con el login real.
-- **Para SCRUM-96:** la política de delete de `recipes` tiene que ser `using (owner_id = (select auth.uid()))` (los ingredientes se borran en cascada). Si una receta se borra mientras otra pestaña la edita, `save_recipe` responde `P0002`; conviene mostrarlo como "no encontrada" en vez del error genérico.
+- **Para SCRUM-96** (se resuelve en [esa sección](#scrum-96-eliminar-una-receta)): la política de delete de `recipes` tiene que ser `using (owner_id = (select auth.uid()))` (los ingredientes se borran en cascada). Si una receta se borra mientras otra pestaña la edita, `save_recipe` responde `P0002`; conviene mostrarlo como "no encontrada" en vez del error genérico.
 - **Para households:** el `household_id is null` del `with check` del update va a bloquear las recetas compartidas: hay que sumar políticas de miembros y la FK, no solo quitar el `is null` (sin FK se podría colgar de un household ajeno). Un miembro que no es el dueño nunca debe poder cambiar `owner_id` (ya cubierto por los permisos por columna de `008`).
 - **Estilo de links:** "+ Nueva receta" y "Cancelar" repiten las clases del `Button` primario y secundario porque son links. Si otra feature necesita lo mismo, conviene un primitivo `ButtonLink` en `components/ui`.
+
+---
+
+## SCRUM-96: eliminar una receta
+
+> **Verificado el 2026-10-02** contra el repo: `recipes` tiene RLS con políticas de select (`006`), insert y update (`007`), y ninguna de delete. `recipe_ingredients.recipe_id` ya es `on delete cascade` (`006`). La `009` está tomada (`009_close_store_preferences_writes.sql`), así que esta historia usa la `010`. `meal_plans` no existe (SCRUM-100).
+
+### Archivos
+
+```
+features/recipes/
+  RecipeCatalog.tsx                    + <RecipeDeleteDialog> y pasa onDeleteRequest a cada tarjeta
+  components/
+    RecipeCard.tsx                     + botón "Eliminar" junto a "Editar"
+    RecipeDeleteDialog.tsx             nuevo: Modal de confirmación (nombre, aviso, error, Eliminar/Cancelar)
+    models/RecipeCardProps.interface.ts        + onDeleteRequest
+    models/RecipeDeleteDialogProps.interface.ts nuevo
+  hooks/
+    useRecipeDeletion.ts               nuevo: estado de la eliminación + confirmar/cancelar/borrar
+    useRecipeCatalogViewModel.ts       + usa useRecipeDeletion y quita la receta borrada del estado
+    useRecipeEditor.ts                 + "no encontrada" al guardar → estado notFound
+  models/
+    RecipeDeletionTarget.type.ts       nuevo: Pick<RecipeSummary, "id" | "name">
+    RecipeDeletionState.type.ts        nuevo: unión idle / confirming / deleting / failed
+    RecipeDeletionViewModel.interface.ts nuevo: lo que useRecipeDeletion le entrega al catálogo
+    RecipeCatalogViewModel.interface.ts  + deletion: RecipeDeletionViewModel
+    DeleteRecipePayload.interface.ts   nuevo: { recipeId }
+    DeleteRecipeResponse.interface.ts  nuevo: { recipeId }
+  services/
+    recipes.service.ts                 + deleteRecipe(); saveRecipe() devuelve null si la receta no existe
+  constants/recipes.constants.ts       + RECIPE_DELETION_STATUS, RECIPE_DELETE_TEXT, POSTGRES_ERROR_CODE.NO_DATA_FOUND
+
+supabase/migrations/010_delete_recipes.sql   política de delete en recipes para el dueño
+```
+
+No cambian: `types/database.types.ts` (una política no aparece en los tipos generados), `supabase/schema.sql` (no tiene las tablas de recetas) ni `docs/documento-proyecto.md` (no hay columnas ni tablas nuevas).
+
+### Datos
+
+**Migración `010_delete_recipes.sql`:**
+
+```sql
+grant delete on public.recipes to authenticated;
+
+create policy "owner deletes own recipes"
+  on public.recipes for delete
+  to authenticated
+  using (owner_id = (select auth.uid()));
+```
+
+- **Política:** solo el dueño borra. `(select auth.uid())` igual que en `007`: Postgres la evalúa una vez por consulta, no una vez por fila.
+- **`grant delete` explícito:** hoy `authenticated` ya lo tiene por el default de Supabase (la `008` solo restringió insert y update), pero escribirlo deja el permiso visible en el repo en vez de depender de un default que no se ve. Es idempotente.
+- **Ingredientes:** se borran por el `on delete cascade` de `006`. Las acciones en cascada de una FK no pasan por RLS, así que no hace falta tocar las políticas de `recipe_ingredients`.
+- `anon` sigue sin permisos (el `revoke all` de `006`).
+
+**Borrar desde el cliente:**
+
+```
+delete from recipes where id = {recipeId}
+```
+
+Una sola petición a PostgREST (`.delete().eq("id", recipeId)`), sin `.select()`: el resultado no cambia lo que hace la pantalla (SPEC regla 16), así que no hace falta saber cuántas filas borró.
+
+**"No encontrada" al guardar:** `save_recipe` ya responde `P0002` cuando la receta no existe o es ajena (`007`). `saveRecipe()` lo traduce a `null`, igual que `getRecipeForEditing()` traduce `22P02`.
+
+### Flujo
+
+1. **Pedir:** tarjeta → "Eliminar" → `onDeleteRequest({ id, name })` → estado `confirming` con esa receta → `RecipeDeleteDialog` se abre con el nombre.
+2. **Cancelar:** "Cancelar", clic fuera o Escape → `onDeleteCancel` → `idle`. Si está en `deleting`, se ignora: el diálogo no se cierra a mitad.
+3. **Confirmar:** "Eliminar" del diálogo → `onDeleteConfirm`. Si ya está en `deleting`, se ignora (doble clic). Si no → `deleting` (botones deshabilitados, "Eliminando…") → `deleteRecipe({ recipeId })`:
+   - **éxito:** `onDeleted(recipeId)` → el catálogo filtra la receta de su estado `ready` → `idle`. Si era la última, el catálogo deriva `isEmpty` y muestra el estado vacío solo.
+   - **error:** `failed` con la misma receta → el diálogo muestra el error. "Eliminar" reintenta (`failed` → `deleting`); "Cancelar" vuelve a `idle`.
+4. **Editor en otra pestaña:** "Guardar receta" → `saveRecipe()` devuelve `null` → `useRecipeEditor` despacha `NOT_FOUND` (la acción ya existe) → la pantalla muestra "No encontramos esa receta." con el link de volver.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| `delete` directo con PostgREST | RPC `delete_recipe` | Es una sola sentencia: ya es atómica y la cascada borra los ingredientes. Una RPC sumaría una función que mantener sin hacer nada más; `save_recipe` existe porque ahí sí hay varias escrituras |
+| Sin `.select()` después del delete | Pedir las filas borradas para distinguir "borrada" de "no existía" | La pantalla hace lo mismo en los dos casos (SPEC regla 16), y no distinguirlos evita revelar si una receta ajena existe |
+| `grant delete` explícito en la migración | Confiar en el default de Supabase | El permiso queda escrito en el repo. Si alguien hace un `revoke` general como en `008`, el borrado no se rompe en silencio |
+| Hook propio `useRecipeDeletion`, compuesto por el ViewModel del catálogo | Meter el estado de la eliminación en `useRecipeCatalogViewModel` | Carga y eliminación son dos responsabilidades; separadas, cada hook se lee en una pantalla y la eliminación se puede reusar (ej. en SCRUM-100) sin arrastrar la carga del catálogo (component-architecture §5, Facade) |
+| `useState` con una unión de 4 estados | `useReducer` | Son pocas transiciones y sin reglas cruzadas entre campos; el editor usa reducer porque tiene muchas acciones con reglas. La unión igual impide "eliminando sin receta" |
+| Quitar la receta del estado local al borrar | Volver a pedir el catálogo completo | Una petición menos y sin parpadeo de "cargando"; la base ya confirmó el borrado |
+| El catálogo le pasa `onDeleted` al hook | El hook modifica las recetas directo | El hook de eliminación no conoce la forma del estado del catálogo; solo avisa qué id se borró |
+| "Eliminar" de la tarjeta con `Button` secundario, el del diálogo con `destructive` | Rojo en los dos lugares | El rojo marca la acción que de verdad borra; en la tarjeta solo abre el diálogo. Una grilla de botones rojos además compite con el contenido |
+| Nombre de la receta dentro del botón como texto `sr-only` | Agregar `aria-label` al `Button` compartido | Logra lo mismo para el lector de pantalla ("Eliminar Tres leches") sin cambiar un primitivo que usan otras features |
+| Diálogo como mini componente presentacional con props | Que el diálogo llame al hook por su cuenta | Sigue el patrón de la feature: el ViewModel decide, los componentes dibujan. El diálogo no sabe de Supabase |
+| `P0002` al guardar → estado `notFound` del editor | Mostrarlo como error de guardado y dejar el formulario | Reintentar nunca va a funcionar (la receta no existe); la pantalla de "no encontrada" ya existe y lleva de vuelta al catálogo |
+| `saveRecipe()` devuelve `null` si no la encuentra | Lanzar un error tipado propio | Es la misma convención que `getRecipeForEditing()`; quien llama distingue con un `if`, sin revisar códigos de Postgres fuera del servicio |
+
+### Seguridad
+
+- El control real es la política de delete: aunque alguien llame a `.delete()` desde la consola con el id de una receta ajena, RLS no la ve y no se borra nada.
+- El cliente solo manda el id; nunca `owner_id`.
+- Riesgo a vigilar: si la política faltara o estuviera mal, el delete no daría error (0 filas) y la tarjeta igual desaparecería. Por eso el caso de aceptación "al recargar, la receta borrada no vuelve" es obligatorio en la validación.
+- Con households (pendiente), los miembros van a necesitar su propia política de delete; no basta con sumar la de lectura. Va junto con las de [la integración](#integración-con-households-pendiente).
+
+### Deuda conocida
+
+- **Sin tests automatizados** (no hay runner): lo primero a cubrir es `useRecipeDeletion` (transiciones, doble clic, reintento) y la tarjeta + diálogo con un Page Object.
+- **Otra pestaña con el catálogo abierto** sigue mostrando la receta borrada hasta recargar (no hay Realtime en recetas). Si la intenta borrar ahí, se quita sin error (regla 16).
+- **El `Modal` compartido no atrapa el foco** (anotado en su propio hook): con el teclado se puede salir del diálogo con Tab. Es del primitivo, no de esta historia.
+- **CA-02 bloqueado:** el aviso por asignaciones en el plan llega con SCRUM-100 (contrato en la SPEC, sección 15).
