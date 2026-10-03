@@ -56,7 +56,7 @@ Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), e
 - [x] 8. Presentación: `RecipeDeleteDialog` (+ props), botón "Eliminar" en `RecipeCard` (con el nombre en `sr-only`), y `RecipeCatalog` conecta el diálogo.
 - [x] 9. `npx tsc --noEmit`, `npm run lint` y `npm run build`.
 - [x] 10. Validar en el navegador los casos de aceptación de HU-64b (SPEC §13), incluido "al recargar, la receta borrada no vuelve", la receta ajena desde la consola con otra sesión y guardar en el editor una receta borrada en otra pestaña. Depende de la tarea 3.
-- [ ] 11. Revisión con los subagentes `code-reviewer` y `security-reviewer` (toca RLS), corregir lo que salga y completar los pasos de prueba manual del PR antes de pasarlo a `waiting qa`.
+- [x] 11. Revisión con los subagentes `code-reviewer` y `security-reviewer` (toca RLS), corregir lo que salga y completar los pasos de prueba manual del PR antes de pasarlo a `waiting qa`.
 
 Bloqueado / fuera de esta historia:
 
