@@ -45,8 +45,6 @@ export const REGISTRO_ERROR_MESSAGE = {
   UNEXPECTED: "No pudimos crear tu cuenta. Intentá de nuevo en unos minutos.",
 } as const;
 
-export const REGISTRO_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export const REGISTRO_PASSWORD_MIN_LENGTH = 8;
 
 export const REGISTRO_SUBMIT_STATUS = {

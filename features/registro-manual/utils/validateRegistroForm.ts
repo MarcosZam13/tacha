@@ -1,6 +1,7 @@
 import type { NullableUndefined } from "@/types/nullable.types";
+import { EMAIL_PATTERN } from "@/constants";
+import { normalizeEmail } from "@/utils/email.utils";
 import {
-  REGISTRO_EMAIL_PATTERN,
   REGISTRO_ERROR_MESSAGE,
   REGISTRO_FIELD,
   REGISTRO_PASSWORD_MIN_LENGTH,
@@ -9,10 +10,6 @@ import type {
   RegistroFormErrors,
   RegistroFormValues,
 } from "../models/RegistroFormValues.interface";
-
-// Recorta espacios y pasa a minúsculas
-export const normalizeRegistroEmail = (email: string): string =>
-  email.trim().toLowerCase();
 
 // Habilita el botón
 export const isRegistroFormComplete = (values: RegistroFormValues): boolean =>
@@ -25,9 +22,9 @@ export const validateName = (name: string): NullableUndefined<string> =>
   name.trim().length === 0 ? REGISTRO_ERROR_MESSAGE.NAME_REQUIRED : undefined;
 
 export const validateEmail = (email: string): NullableUndefined<string> =>
-  normalizeRegistroEmail(email).length === 0
+  normalizeEmail(email).length === 0
     ? REGISTRO_ERROR_MESSAGE.EMAIL_REQUIRED
-    : !REGISTRO_EMAIL_PATTERN.test(normalizeRegistroEmail(email))
+    : !EMAIL_PATTERN.test(normalizeEmail(email))
       ? REGISTRO_ERROR_MESSAGE.EMAIL_INVALID
       : undefined;
 
