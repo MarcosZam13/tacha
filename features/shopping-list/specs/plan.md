@@ -151,7 +151,7 @@ Flujo: tocar el botón de detalle → el ViewModel guarda la fila abierta → `u
 
 > **Verificado el 2026-10-03** contra la base real: `list_items` tiene RLS con políticas de select, insert y update del dueño, pero ninguna de delete, así que hoy un delete borra 0 filas sin error. `authenticated` ya tiene el privilegio `delete` (default de Supabase).
 
-Migración `011_delete_list_items.sql`: `grant delete` explícito y política `for delete to authenticated` con el mismo criterio que select y update (el item es de una lista cuyo `owner_id` es `auth.uid()`). Sin cambio de columnas, así que `types/database.types.ts` no se regenera.
+Migración `012_delete_list_items.sql`: `grant delete` explícito y política `for delete to authenticated` con el mismo criterio que select y update (el item es de una lista cuyo `owner_id` es `auth.uid()`). Sin cambio de columnas, así que `types/database.types.ts` no se regenera. Lleva el número `012` porque `011` es de SCRUM-56 (households); las dos ya estaban aplicadas en la base, el número solo ordena los archivos.
 
 ```
 features/shopping-list/
@@ -167,7 +167,7 @@ features/shopping-list/
     shopping-list.service.ts           + deleteListItem(itemId)
   utils/
     shopping-list.reducer.ts           + ITEM_REMOVED, REMOVE_FAILED
-supabase/migrations/011_delete_list_items.sql
+supabase/migrations/012_delete_list_items.sql
 ```
 
 Flujo: tocar eliminar → `requestRemoval(itemId)` guarda el id pendiente (si había otro pendiente, ese se borra ya) → el ViewModel filtra esa fila de `rows` y muestra el toast → efecto con `setTimeout` de la duración del toast:

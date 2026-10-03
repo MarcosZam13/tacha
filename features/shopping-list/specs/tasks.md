@@ -36,7 +36,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-65: eliminar producto
 
-- [x] 17. Migración `011_delete_list_items.sql` (política de borrado del dueño) y aplicarla; verificar con otro `sub` que borra 0 filas.
+- [x] 17. Migración `012_delete_list_items.sql` (política de borrado del dueño) y aplicarla; verificar con otro `sub` que borra 0 filas.
 - [x] 18. Constantes (duración del toast, textos, acciones del reducer) y `deleteListItem()` en el servicio.
 - [x] 19. Reducer: `ITEM_REMOVED` y `REMOVE_FAILED`; `removeItem` en `useShoppingList`.
 - [x] 20. `useItemRemoval` (item pendiente, temporizador, deshacer, borrar el anterior, borrar al salir) y su uso en el ViewModel.

@@ -38,7 +38,7 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 5. Los controles de cantidad no pueden estar anidados dentro de otro botón (HTML inválido, y en Sprint 2 la fila completa tacha).
 6. El botón de detalle tampoco: es hermano de los controles de cantidad, en la misma zona excluida de la fila.
 7. El detalle se pide al abrirlo, no junto con la lista. Una respuesta de un detalle anterior nunca se muestra en el detalle de otro producto.
-8. Eliminar tampoco puede estar anidado en la fila. Solo el dueño de la lista puede borrar sus items (RLS, migración `011`).
+8. Eliminar tampoco puede estar anidado en la fila. Solo el dueño de la lista puede borrar sus items (RLS, migración `012`).
 9. Deshacer no escribe en la base: mientras el toast está visible el item sigue guardado y solo se oculta en pantalla.
 
 ## Casos límite y errores
