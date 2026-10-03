@@ -3,16 +3,22 @@ import { SHOPPING_LIST_ACTION, SHOPPING_LIST_TEXT } from "../constants/shopping-
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
 import type { ShoppingListState } from "../models/ShoppingListState.interface";
-import { addItemToGeneralList, changeItemQuantity, getGeneralList } from "../services/shopping-list.service";
+import {
+  addItemToGeneralList,
+  changeItemQuantity,
+  deleteListItem,
+  getGeneralList,
+} from "../services/shopping-list.service";
 import { INITIAL_SHOPPING_LIST_STATE, shoppingListReducer } from "../utils/shopping-list.reducer";
 
 interface UseShoppingListReturn {
   addItem: (searchResult: CatalogSearchResult) => Promise<void>;
   changeQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
+  removeItem: (itemId: string) => Promise<void>;
   state: ShoppingListState;
 }
 
-/** Estado de la lista general: carga al montar, añade productos y cambia cantidades vía servicio. */
+/** Estado de la lista general: carga al montar, añade, cambia cantidades y borra productos vía servicio. */
 export const useShoppingList = (): UseShoppingListReturn => {
   const [state, dispatch] = useReducer(shoppingListReducer, INITIAL_SHOPPING_LIST_STATE);
 
@@ -61,5 +67,15 @@ export const useShoppingList = (): UseShoppingListReturn => {
     }
   };
 
-  return { addItem, changeQuantity, state };
+  // Se llama cuando vence el plazo para deshacer (useItemRemoval), no al tocar eliminar.
+  const removeItem = async (itemId: string): Promise<void> => {
+    try {
+      await deleteListItem(itemId);
+      dispatch({ itemId, type: SHOPPING_LIST_ACTION.ITEM_REMOVED });
+    } catch {
+      dispatch({ errorMessage: SHOPPING_LIST_TEXT.REMOVE_ERROR, type: SHOPPING_LIST_ACTION.REMOVE_FAILED });
+    }
+  };
+
+  return { addItem, changeQuantity, removeItem, state };
 };

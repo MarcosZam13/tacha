@@ -18,6 +18,12 @@ export const ITEM_QUANTITY = {
 export type ItemQuantityStepType =
   (typeof ITEM_QUANTITY.STEP)[keyof typeof ITEM_QUANTITY.STEP];
 
+// Cuánto se ve el toast de "Producto eliminado". Es también el plazo para
+// deshacer: el borrado en la base sale recién cuando vence.
+export const ITEM_REMOVAL = {
+  UNDO_WINDOW_MS: 5000,
+} as const;
+
 // Espejo del check de lists.type en la base (documento-proyecto §6).
 export const LIST_TYPE = {
   DATE: "date",
@@ -60,12 +66,14 @@ export const SHOPPING_LIST_DB = {
 // Acciones del reducer de la lista (utils/shopping-list.reducer.ts).
 export const SHOPPING_LIST_ACTION = {
   ADD_FAILED: "addFailed",
+  ITEM_REMOVED: "itemRemoved",
   ITEM_UPSERTED: "itemUpserted",
   LOADED: "loaded",
   LOAD_FAILED: "loadFailed",
   QUANTITY_CHANGED: "quantityChanged",
   QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
+  REMOVE_FAILED: "removeFailed",
 } as const;
 
 // Precios del catálogo: colones, sin decimales (los súper no cobran céntimos).
@@ -91,6 +99,11 @@ export const SHOPPING_LIST_TEXT = {
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
   OPEN_DETAIL: "Ver detalle",
   OPEN_DETAIL_ICON: "i",
+  REMOVE_ERROR: "No se pudo eliminar el producto. Intenta de nuevo.",
+  REMOVE_ITEM: "Eliminar",
+  REMOVE_ITEM_ICON: "✕",
+  REMOVED_TOAST: "Producto eliminado",
+  UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",
 } as const;
