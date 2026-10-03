@@ -69,6 +69,19 @@ export interface RecipeEditorState {
   values: RecipeEditorValues;
 }
 
+/** Lo que useRecipeEditor le entrega al ViewModel: el estado y una función por cada cambio. */
+export interface UseRecipeEditorReturn {
+  addIngredient: (ingredient: RecipeEditorIngredient) => void;
+  changeBaseServings: (baseServings: string) => void;
+  changeIngredientQuantity: (productId: string, quantity: string) => void;
+  changeIngredientUnit: (productId: string, unit: CatalogBaseUnitType) => void;
+  changeName: (name: string) => void;
+  removeIngredient: (productId: string) => void;
+  /** Valida y guarda. Devuelve true si se guardó, para que quien llama navegue. */
+  save: () => Promise<boolean>;
+  state: RecipeEditorState;
+}
+
 /**
  * Un ingrediente listo para dibujar: el mismo del formulario más su error.
  * Extiende en vez de copiar los campos, así si el ingrediente gana uno nuevo

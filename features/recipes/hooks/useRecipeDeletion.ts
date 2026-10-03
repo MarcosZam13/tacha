@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { RECIPE_DELETE_TEXT, RECIPE_DELETION_STATUS } from "../constants/recipes.constants";
-import type { RecipeDeletionViewModel } from "../models/recipe-deletion.interfaces";
+import type { RecipeDeletionViewModel, UseRecipeDeletionParams } from "../models/recipe-deletion.interfaces";
 import type { RecipeDeletionState, RecipeDeletionTarget } from "../models/recipe-deletion.types";
 import { deleteRecipe } from "../services/recipes.service";
-
-interface UseRecipeDeletionParams {
-  /** Se llama cuando la base confirmó el borrado, para que el catálogo quite la receta. */
-  onDeleted: (recipeId: string) => void;
-}
 
 const IDLE_STATE: RecipeDeletionState = { status: RECIPE_DELETION_STATUS.IDLE };
 

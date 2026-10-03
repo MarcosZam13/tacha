@@ -4,6 +4,12 @@ import type { RecipeDeletionTarget } from "./recipe-deletion.types";
 // Interfaces de la eliminación de una receta (SCRUM-96). Los types (la
 // receta elegida y la unión de estados) están en recipe-deletion.types.ts.
 
+/** Lo que recibe useRecipeDeletion desde el ViewModel del catálogo. */
+export interface UseRecipeDeletionParams {
+  /** Se llama cuando la base confirmó el borrado, para que el catálogo quite la receta. */
+  onDeleted: (recipeId: string) => void;
+}
+
 /** Lo que useRecipeDeletion le entrega al catálogo: el diálogo y el botón de cada tarjeta. */
 export interface RecipeDeletionViewModel {
   /** Mensaje de error dentro del diálogo; null si no falló. */
