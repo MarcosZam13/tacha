@@ -43,6 +43,9 @@ export const SHOPPING_LIST_DB = {
   // valida al compilar, que es lo mismo que buscaría la constante.
   GENERAL_LIST_SELECT:
     "list_items(id, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+  // Detalle de una variante: sus marcas y el último precio de cada marca en
+  // cada tienda (la vista latest_prices ya se queda con el más reciente).
+  ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
   RPC: {
     ADD_ITEM_TO_GENERAL_LIST: "add_item_to_general_list",
     CHANGE_ITEM_QUANTITY: "change_item_quantity",
@@ -50,6 +53,7 @@ export const SHOPPING_LIST_DB = {
   TABLE: {
     LISTS: "lists",
     LIST_ITEMS: "list_items",
+    VARIANTS: "product_catalog_variants",
   },
 } as const;
 
@@ -64,12 +68,27 @@ export const SHOPPING_LIST_ACTION = {
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
 } as const;
 
+// Precios del catálogo: colones, sin decimales (los súper no cobran céntimos).
+export const PRICE_FORMAT = {
+  CURRENCY: "CRC",
+  LOCALE: "es-CR",
+  MAX_FRACTION_DIGITS: 0,
+  RANGE_SEPARATOR: " – ",
+} as const;
+
 export const SHOPPING_LIST_TEXT = {
   ADD_ERROR: "No se pudo añadir el producto. Intenta de nuevo.",
   DECREASE_QUANTITY: "Quitar uno",
+  DETAIL_BRANDS: "Marcas",
+  DETAIL_ERROR: "No se pudo cargar el detalle. Intenta de nuevo.",
+  DETAIL_NO_BRANDS: "Sin marcas registradas.",
+  DETAIL_NO_PRICES: "Todavía no hay precios de referencia.",
+  DETAIL_PRESENTATION: "Presentación",
+  DETAIL_PRICES: "Precio de referencia por supermercado",
   EMPTY_LIST: "Tu lista está vacía. Busca un producto para empezar.",
   INCREASE_QUANTITY: "Añadir uno",
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
+  OPEN_DETAIL: "Ver detalle",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",
 } as const;
