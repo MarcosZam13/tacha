@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CategoryLabel, Chip } from "@/components/ui";
-import { RECIPE_TEXT } from "../constants/recipes.constants";
+import { Button, CategoryLabel, Chip } from "@/components/ui";
+import { BUTTON_VARIANT } from "@/constants";
+import { RECIPE_DELETE_TEXT, RECIPE_TEXT } from "../constants/recipes.constants";
 import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
 
 /**
@@ -11,8 +12,12 @@ import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
  * La foto usa next/image con `unoptimized`: sirve cualquier URL sin
  * configurar dominios en next.config.ts (el lugar de las fotos se decide en
  * SCRUM-95, cuando se puedan subir).
+ *
+ * "Eliminar" solo abre la confirmación (no borra), por eso va en secundario.
+ * Lleva el nombre de la receta oculto (sr-only) para el lector de pantalla:
+ * hay un "Eliminar" por tarjeta y así se distinguen.
  */
-export const RecipeCard = ({ recipe }: RecipeCardProps): React.JSX.Element => (
+export const RecipeCard = ({ onDeleteRequest, recipe }: RecipeCardProps): React.JSX.Element => (
   <li>
     <article className="flex h-full flex-col overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface">
       {recipe.imageUrl ? (
@@ -58,13 +63,19 @@ export const RecipeCard = ({ recipe }: RecipeCardProps): React.JSX.Element => (
           </section>
         ) : null}
 
-        {/* mt-auto: el link queda al pie aunque las tarjetas tengan alturas distintas. */}
-        <Link
-          href={recipe.editPath}
-          className="mt-auto self-start font-body text-sm font-semibold text-tacha-teal hover:underline"
-        >
-          {RECIPE_TEXT.EDIT}
-        </Link>
+        {/* mt-auto: las acciones quedan al pie aunque las tarjetas tengan alturas distintas. */}
+        <div className="mt-auto flex items-center justify-between gap-3">
+          <Link
+            href={recipe.editPath}
+            className="font-body text-sm font-semibold text-tacha-teal hover:underline"
+          >
+            {RECIPE_TEXT.EDIT}
+          </Link>
+          <Button variant={BUTTON_VARIANT.SECONDARY} onClick={() => onDeleteRequest(recipe)}>
+            {RECIPE_DELETE_TEXT.TRIGGER}
+            <span className="sr-only"> {recipe.name}</span>
+          </Button>
+        </div>
       </div>
     </article>
   </li>

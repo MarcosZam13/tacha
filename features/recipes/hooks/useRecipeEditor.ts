@@ -1,25 +1,11 @@
 import { useEffect, useReducer } from "react";
-import type { CatalogBaseUnitType } from "@/constants";
 import type { NullableUndefined } from "@/types/nullable.types";
 import { RECIPE_EDITOR_ACTION, RECIPE_EDITOR_STATUS } from "../constants/recipes.constants";
-import type { RecipeEditorIngredient } from "../models/RecipeEditorIngredient.interface";
-import type { RecipeEditorState } from "../models/RecipeEditorState.interface";
+import type { UseRecipeEditorReturn } from "../models/recipe-editor.interfaces";
 import { getRecipeForEditing, saveRecipe } from "../services/recipes.service";
 import { createInitialRecipeEditorState, recipeEditorReducer } from "../utils/recipe-editor.reducer";
 import { toSaveRecipePayload } from "../utils/toSaveRecipePayload";
 import { hasRecipeFormErrors, validateRecipeForm } from "../utils/validateRecipeForm";
-
-interface UseRecipeEditorReturn {
-  addIngredient: (ingredient: RecipeEditorIngredient) => void;
-  changeBaseServings: (baseServings: string) => void;
-  changeIngredientQuantity: (productId: string, quantity: string) => void;
-  changeIngredientUnit: (productId: string, unit: CatalogBaseUnitType) => void;
-  changeName: (name: string) => void;
-  removeIngredient: (productId: string) => void;
-  /** Valida y guarda. Devuelve true si se guardó, para que quien llama navegue. */
-  save: () => Promise<boolean>;
-  state: RecipeEditorState;
-}
 
 /**
  * Estado del formulario de receta: carga la receta si se está editando,
@@ -66,7 +52,13 @@ export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeE
 
     dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_STARTED });
     try {
-      await saveRecipe(toSaveRecipePayload(state.values, recipeId));
+      const savedRecipe = await saveRecipe(toSaveRecipePayload(state.values, recipeId));
+      // La receta se borró mientras se editaba (otra pestaña): reintentar no
+      // sirve, así que se muestra "no encontrada" en vez de un error de guardado.
+      if (!savedRecipe) {
+        dispatch({ type: RECIPE_EDITOR_ACTION.NOT_FOUND });
+        return false;
+      }
       return true;
     } catch {
       dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_FAILED });
