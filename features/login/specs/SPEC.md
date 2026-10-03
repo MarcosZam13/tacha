@@ -79,7 +79,7 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 
 - `services/supabase.client.ts` (`getSupabaseClient`).
 - `@/components/ui` (`Input`, `Button`).
-- `features/registro-manual/constants/registro.constants.ts`: patrón de correo y mínimo de contraseña (se importa tal cual; se promueve a `constants/` cuando SCRUM-48 sea el segundo consumidor de la evaluación de contraseña).
+- `features/registro-manual/constants/registro.constants.ts` (patrón de correo) y `features/registro-manual/utils/validateRegistroForm.ts` (`normalizeRegistroEmail`): se importan tal cual. Se promueven a `constants/` y a un util compartido cuando SCRUM-48 sea el segundo consumidor de la evaluación de contraseña.
 - `supabase/functions/login-with-recaptcha/` (nueva).
 - Variables: `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (cliente) y secret `RECAPTCHA_SECRET_KEY` (Edge Function).
 
@@ -88,8 +88,10 @@ Unión derivada de constantes: `idle | submitting | error | success`. El estado 
 **Edge Function `login-with-recaptcha`**, `POST`, body `{ email, password, captchaToken }`:
 - 200 `{ session: { access_token, refresh_token, ... } }`
 - 400 `{ code: "captcha_failed" }` si Google no valida el token
-- 401 `{ code: <código de Supabase Auth> }` si las credenciales fallan (p. ej. `invalid_credentials`)
+- 401 `{ code: "invalid_credentials" }` ante cualquier fallo de credenciales (SCRUM-47 abrirá los casos específicos)
+- 429 `{ code: "rate_limited" }` si Supabase Auth limita los intentos
 - 400 `{ code: "invalid_request" }` si falta algún campo
+- 500 `{ code: "server_misconfigured" }` si falta el secret de reCAPTCHA
 
 **Google siteverify:** `POST https://www.google.com/recaptcha/api/siteverify` con `secret` y `response`; responde `{ success: boolean }`.
 

@@ -21,6 +21,7 @@ El catálogo real (`product_catalog`, `product_catalog_variants`, `product_brand
 | `ingest-maxipali/index.ts` | Puerta HTTP de MaxiPali. |
 | `ingest-walmart/index.ts` | Puerta HTTP de Walmart CR. |
 | `ingest-masxmenos/index.ts` | Puerta HTTP de MasXMenos. |
+| `login-with-recaptcha/index.ts` | Login: verifica el reCAPTCHA con Google y luego autentica con Supabase. |
 
 ## Deploy
 
@@ -30,7 +31,10 @@ Desde el SQL Editor del dashboard de Supabase, correr primero `schema.sql` compl
 supabase functions deploy ingest-maxipali
 supabase functions deploy ingest-walmart
 supabase functions deploy ingest-masxmenos
+supabase functions deploy login-with-recaptcha
 ```
+
+`login-with-recaptcha` necesita además el secret `RECAPTCHA_SECRET_KEY` (Dashboard → Edge Functions → Secrets o `supabase secrets set RECAPTCHA_SECRET_KEY=...`) y se despliega con la CLI para que el slug sea el nombre de la carpeta y se resuelva `_shared/`.
 
 ## Probar en Postman
 
