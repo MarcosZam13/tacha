@@ -142,7 +142,7 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Caso 15: con la contraseña vacía, el botón de enviar sigue deshabilitado y el ojo funciona igual (alterna aunque no haya texto escrito).
 - Caso 16: con un correo que no existe, se muestra "Correo o contraseña incorrectos.".
 - Caso 17: con un correo que existe y una contraseña incorrecta, se muestra exactamente el mismo mensaje que en el caso 16 (no se puede deducir qué falló).
-- Caso 18: con una cuenta bloqueada y la contraseña correcta, se muestra el mensaje de cuenta bloqueada, no el de credenciales incorrectas.
+- Caso 18: con una cuenta bloqueada se muestra el mensaje de cuenta bloqueada, no el de credenciales incorrectas, con cualquier contraseña (Supabase comprueba el ban antes de la contraseña; ver §15).
 - Caso 19: tras cualquiera de los mensajes de error, los campos siguen editables, el widget se reinicia y, al completarlo de nuevo, se puede reintentar; el mensaje anterior desaparece al iniciar el nuevo intento.
 - Caso 20: el mensaje de error se anuncia con `role="alert"` y no depende solo del color.
 - Caso 21: si el servidor devuelve un código que el cliente no conoce, se muestra el mensaje de error inesperado, no el de credenciales incorrectas.
@@ -161,5 +161,9 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 ## 15. Notas de implementación
 
 - Supabase Auth no integra Google reCAPTCHA de forma nativa (solo hCaptcha y Turnstile). Por eso la verificación va en una Edge Function. **Límite conocido:** quien llame directo al endpoint de Auth de Supabase con la anon key se salta el captcha; cerrarlo requiere el captcha nativo del proyecto.
-- Los códigos `email_not_confirmed` y `user_banned` solo se distinguen del genérico si la contraseña es correcta (Supabase verifica la contraseña antes de revelar el estado de la cuenta). Hay que confirmarlo probando con un usuario baneado y una contraseña errónea: si el resultado es `invalid_credentials`, no se enumeran cuentas. Si no lo fuera, los mensajes específicos filtrarían qué correos existen y habría que volver a mostrar el genérico.
+- **Enumeración de cuentas, verificado probando contra el proyecto de Supabase (SCRUM-47):**
+  - `email_not_confirmed` solo aparece con la contraseña correcta: con una incorrecta sale el mensaje genérico. No se filtra nada.
+  - `user_banned` aparece **aunque la contraseña sea incorrecta**: Supabase comprueba el ban antes de la contraseña. Quien conozca un correo puede saber si esa cuenta existe y está bloqueada.
+  - Limitación aceptada: lo ve igual cualquiera que llame directo al endpoint de Auth con la anon key, así que dejar de reenviarlo desde la función no cerraría la fuga y sí incumpliría el criterio de la HU-24 (mensaje de cuenta bloqueada). Afecta solo a cuentas baneadas, que un administrador marca a mano; para el resto, correo inexistente y contraseña incorrecta siguen siendo indistinguibles.
+- Quien ya tiene un par correo/contraseña válido puede saber si la cuenta está sin verificar: es inherente a que la HU-24 pida ese mensaje.
 - Mientras el equipo no registre el reCAPTCHA real, se usan las claves de prueba que publica Google (la casilla siempre pasa); se cambian por las reales sin tocar código.

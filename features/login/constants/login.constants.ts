@@ -18,6 +18,7 @@ export const LOGIN_LABEL = {
 } as const;
 
 export const LOGIN_ERROR_MESSAGE = {
+  ACCOUNT_BLOCKED: "Tu cuenta está bloqueada. Contactá al equipo de Tacha.",
   CAPTCHA_FAILED: "No pudimos validar el reCAPTCHA. Intentá de nuevo.",
   CAPTCHA_REQUIRED: "Confirmá que no sos un robot.",
   EMAIL_INVALID: "Ingresá un correo válido.",
@@ -42,6 +43,7 @@ export type LoginSubmitStatusType =
 
 // Lo que devuelve el servicio; el ViewModel lo traduce a mensaje con el mapa de abajo.
 export const LOGIN_RESULT = {
+  ACCOUNT_BLOCKED: "account-blocked",
   CAPTCHA_FAILED: "captcha-failed",
   EMAIL_NOT_CONFIRMED: "email-not-confirmed",
   ERROR: "error",
@@ -53,6 +55,7 @@ export const LOGIN_RESULT = {
 export type LoginResultType = (typeof LOGIN_RESULT)[keyof typeof LOGIN_RESULT];
 
 export const LOGIN_RESULT_MESSAGE: Record<LoginResultType, NullableUndefined<string>> = {
+  [LOGIN_RESULT.ACCOUNT_BLOCKED]: LOGIN_ERROR_MESSAGE.ACCOUNT_BLOCKED,
   [LOGIN_RESULT.CAPTCHA_FAILED]: LOGIN_ERROR_MESSAGE.CAPTCHA_FAILED,
   [LOGIN_RESULT.EMAIL_NOT_CONFIRMED]: LOGIN_ERROR_MESSAGE.EMAIL_NOT_CONFIRMED,
   [LOGIN_RESULT.ERROR]: LOGIN_ERROR_MESSAGE.UNEXPECTED,
@@ -91,6 +94,7 @@ export const LOGIN_FUNCTION = {
 
 // Códigos que devuelve la Edge Function en el campo `code` de sus errores.
 export const LOGIN_API_CODE = {
+  ACCOUNT_BLOCKED: "user_banned",
   CAPTCHA_FAILED: "captcha_failed",
   EMAIL_NOT_CONFIRMED: "email_not_confirmed",
   INVALID_CREDENTIALS: "invalid_credentials",
@@ -98,6 +102,7 @@ export const LOGIN_API_CODE = {
 } as const;
 
 export const LOGIN_API_CODE_RESULT: Partial<Record<string, LoginResultType>> = {
+  [LOGIN_API_CODE.ACCOUNT_BLOCKED]: LOGIN_RESULT.ACCOUNT_BLOCKED,
   [LOGIN_API_CODE.CAPTCHA_FAILED]: LOGIN_RESULT.CAPTCHA_FAILED,
   [LOGIN_API_CODE.EMAIL_NOT_CONFIRMED]: LOGIN_RESULT.EMAIL_NOT_CONFIRMED,
   [LOGIN_API_CODE.INVALID_CREDENTIALS]: LOGIN_RESULT.INVALID_CREDENTIALS,
