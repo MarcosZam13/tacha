@@ -65,7 +65,13 @@ export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeE
 
     dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_STARTED });
     try {
-      await saveRecipe(toSaveRecipePayload(state.values, recipeId));
+      const savedRecipe = await saveRecipe(toSaveRecipePayload(state.values, recipeId));
+      // La receta se borró mientras se editaba (otra pestaña): reintentar no
+      // sirve, así que se muestra "no encontrada" en vez de un error de guardado.
+      if (!savedRecipe) {
+        dispatch({ type: RECIPE_EDITOR_ACTION.NOT_FOUND });
+        return false;
+      }
       return true;
     } catch {
       dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_FAILED });
