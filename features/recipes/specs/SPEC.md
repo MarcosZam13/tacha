@@ -214,27 +214,27 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - [x] CA-01: un botón "+ Nueva receta" abre un formulario con nombre, porciones base e ingredientes (búsqueda estilo catálogo).
 - [x] CA-02: por cada ingrediente, el usuario primero elige el producto (ej. "Leche") y después le asigna cantidad con su unidad (ej. "500 ml"); el ingrediente queda ligado al producto desde ese paso.
 - [x] CA-03: cada ingrediente se elige de entre los productos del catálogo, no se escribe como texto libre.
-- [ ] CA-04 (**parcial**): quien creó la receta la puede **editar** (SCRUM-95) y **eliminar** (SCRUM-96, pendiente). Falta que lo haga **cualquier miembro del household** si es compartida (integración con households).
+- [ ] CA-04 (**parcial**): quien creó la receta la puede **editar** (SCRUM-95) y **eliminar** (SCRUM-96). Falta que lo haga **cualquier miembro del household** si es compartida (integración con households).
 - [x] Cada error de validación de la [sección 7](#7-errores) se muestra y no llama a la base.
 - [x] Doble clic en "Guardar receta": se crea una sola receta.
 - [x] Receta ajena o id inválido por URL: "No encontramos esa receta."
 
 ### HU-64b (SCRUM-96)
 
-- [ ] CA-01: cada receta del catálogo tiene una acción "Eliminar" que abre una confirmación; solo al confirmar se borra la receta con sus ingredientes, y deja de verse en el catálogo.
+- [x] CA-01: cada receta del catálogo tiene una acción "Eliminar" que abre una confirmación; solo al confirmar se borra la receta con sus ingredientes, y deja de verse en el catálogo.
 - [ ] CA-02 (**bloqueado por SCRUM-100**): si la receta está asignada a algún espacio del plan semanal, el diálogo lo avisa antes de eliminarla. Hoy el plan no existe, así que ninguna receta puede estar asignada; el aviso se suma cuando SCRUM-100 cree `meal_plans` (contrato en la [sección 15](#15-notas-de-implementación)).
-- [ ] Cancelar (botón, clic fuera o Escape): no se borra nada.
-- [ ] Doble clic en "Eliminar" del diálogo: una sola petición.
-- [ ] Falla de red: el diálogo muestra el error, la tarjeta sigue y se puede reintentar.
-- [ ] Borrar la última receta: se ve el catálogo vacío.
-- [ ] Receta ya borrada en otra pestaña: la tarjeta se quita sin error.
-- [ ] Al recargar la página, la receta borrada no vuelve (el borrado llegó a la base).
-- [ ] Otra sesión, llamando al delete con el id de una receta ajena desde la consola: no se borra nada.
-- [ ] Editar en otra pestaña una receta ya borrada y guardar: "No encontramos esa receta."
+- [x] Cancelar (botón, clic fuera o Escape): no se borra nada.
+- [x] Doble clic en "Eliminar" del diálogo: una sola petición.
+- [x] Falla de red: el diálogo muestra el error, la tarjeta sigue y se puede reintentar.
+- [x] Borrar la última receta: se ve el catálogo vacío.
+- [x] Receta ya borrada en otra pestaña: la tarjeta se quita sin error.
+- [x] Al recargar la página, la receta borrada no vuelve (el borrado llegó a la base).
+- [x] Otra sesión, llamando al delete con el id de una receta ajena: no se borra nada. Verificado en el SQL Editor con `role authenticated` y el `sub` de otro usuario dentro de una transacción con `rollback`: 0 filas; con el `sub` del dueño, 1 fila.
+- [x] Editar en otra pestaña una receta ya borrada y guardar: "No encontramos esa receta."
 
 ### Todas
 
-- [ ] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
+- [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
 
 ## 14. Casos fuera de alcance
 
