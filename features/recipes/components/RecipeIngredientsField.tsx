@@ -2,7 +2,7 @@ import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { CategoryLabel } from "@/components/ui";
 import { RECIPE_EDITOR_TEXT, RECIPE_TEXT } from "../constants/recipes.constants";
 import { RecipeIngredientRow } from "./RecipeIngredientRow";
-import type { RecipeIngredientsFieldProps } from "./models/RecipeIngredientsFieldProps.interface";
+import type { RecipeIngredientsFieldProps } from "./models/RecipeIngredientsFieldProps.type";
 
 /**
  * Sección de ingredientes: el buscador compartido del catálogo arriba (CA-01,

@@ -128,7 +128,7 @@ features/recipes/
     RecipeIngredientsField.tsx         buscador compartido + lista de filas de ingrediente
     RecipeIngredientRow.tsx            producto elegido + cantidad + unidad + "Quitar"
     RecipeEditorActions.tsx            "Guardar" / "Cancelar"
-    models/…Props.interface.ts         props de cada mini componente
+    models/…Props.interface.ts         props de cada mini componente (.type.ts las que son un Pick del ViewModel)
   hooks/
     useRecipeEditorViewModel.ts        facade: une useRecipeEditor + useProductSearch + navegación
     useRecipeEditor.ts                 useReducer + carga para editar (useEffect) + guardar
