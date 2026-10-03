@@ -1,4 +1,5 @@
 import type { NullableRef } from "@/types/nullable.types";
+import type { RecipeDeletionViewModel } from "./recipe-deletion.interfaces";
 
 // Interfaces del catálogo de recetas (SCRUM-94). La unión de estados de la
 // pantalla está en recipe-catalog.types.ts.
@@ -38,6 +39,8 @@ export interface RecipeSummary {
 
 /** Lo que useRecipeCatalogViewModel le entrega a RecipeCatalog.tsx, ya calculado. */
 export interface RecipeCatalogViewModel {
+  /** Eliminación agrupada aparte: solo la usan el diálogo y el botón de cada tarjeta. */
+  deletion: RecipeDeletionViewModel;
   errorMessage: NullableRef<string>;
   hasRecipes: boolean;
   isEmpty: boolean;
