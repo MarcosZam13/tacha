@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { Button, Input } from "@/components/ui";
 import { RecaptchaWidget } from "./components/RecaptchaWidget";
-import { LOGIN_FORM_FIELDS, LOGIN_LABEL, LOGIN_ROUTE } from "./constants/login.constants";
+import { LOGIN_FORM_FIELDS, LOGIN_LABEL, LOGIN_ROUTE, INPUT_TYPE } from "./constants/login.constants";
 import { useLoginViewModel } from "./hooks/useLoginViewModel";
+import { PasswordInput } from "./components/PasswordInput";
 
 /**
  * Pantalla de inicio de sesión. "use client" porque usa hooks y habla con Supabase desde el navegador.
@@ -27,17 +28,28 @@ export const Login = (): React.JSX.Element => {
       <h1 className="font-display text-3xl font-bold text-tacha-text">{LOGIN_LABEL.TITLE}</h1>
 
       <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {LOGIN_FORM_FIELDS.map(({ field, label, type }) => (
-          <Input
-            key={field}
-            isRequired
-            label={label}
-            type={type}
-            value={values[field]}
-            onChange={handleChange(field)}
-            errorMessage={errors[field]}
-          />
-        ))}
+        {LOGIN_FORM_FIELDS.map(({ field, label, type }) =>
+          type === INPUT_TYPE.PASSWORD ? (
+            <PasswordInput
+              key={field}
+              isRequired
+              label={label}
+              value={values[field]}
+              onChange={handleChange(field)}
+              errorMessage={errors[field]}
+            />
+          ) : (
+              <Input
+                key={field}
+                isRequired
+                label={label}
+                type={type}
+                value={values[field]}
+                onChange={handleChange(field)}
+                errorMessage={errors[field]}
+              />
+            ),
+          )}
 
         <RecaptchaWidget onTokenChange={handleCaptchaTokenChange} resetCount={captchaResetCount} />
 

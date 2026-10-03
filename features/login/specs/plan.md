@@ -15,6 +15,7 @@ features/login/
     useLoginViewModel.ts             estado del formulario, handlers, envío y reinicio del widget
     useRecaptchaWidgetViewModel.ts   carga el script de Google, dibuja el widget, entrega el token
   models/
+    EyeIconProps.interface.ts
     LoginFormValues.interface.ts     valores y errores del formulario
     LoginViewModel.interface.ts      lo que devuelve el hook
     LoginParams.interface.ts         parámetros del servicio

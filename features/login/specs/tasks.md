@@ -19,13 +19,13 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-46: mostrar u ocultar la contraseña
 
-- [ ] 1. Constantes: `INPUT_TYPE` y `PASSWORD_TOGGLE_LABEL`; `LOGIN_FORM_FIELDS` usa `INPUT_TYPE` (`constants/login.constants.ts`).
-- [ ] 2. Modelos: props del campo y retorno de su hook (`models/PasswordInputProps.interface.ts`, `models/PasswordInputViewModel.interface.ts`).
-- [ ] 3. ViewModel del campo (`hooks/usePasswordInputViewModel.ts`).
-- [ ] 4. Ícono (`components/EyeIcon.tsx`).
-- [ ] 5. Presentación: `components/PasswordInput.tsx`.
-- [ ] 6. `Login.tsx` usa `PasswordInput` para el campo de contraseña.
-- [ ] 7. Validar los casos 11 a 15 del SPEC en el navegador (incluido el teclado); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 1. Constantes: `INPUT_TYPE` y `PASSWORD_TOGGLE_LABEL`; `LOGIN_FORM_FIELDS` usa `INPUT_TYPE` (`constants/login.constants.ts`).
+- [x] 2. Modelos: props del campo y retorno de su hook (`models/PasswordInputProps.interface.ts`, `models/PasswordInputViewModel.interface.ts`).
+- [x] 3. ViewModel del campo (`hooks/usePasswordInputViewModel.ts`).
+- [x] 4. Ícono (`components/EyeIcon.tsx`).
+- [x] 5. Presentación: `components/PasswordInput.tsx`.
+- [x] 6. `Login.tsx` usa `PasswordInput` para el campo de contraseña.
+- [x] 7. Validar los casos 11 a 15 del SPEC en el navegador (incluido el teclado); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 ## SCRUM-47, 48, 49
 
