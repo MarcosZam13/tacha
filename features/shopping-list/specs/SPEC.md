@@ -82,6 +82,6 @@ HU-36c
 - [x] CA-02: el detalle muestra marca, presentación/variante y precio de referencia por supermercado, si existe.
 
 HU-36d
-- [ ] CA-01: cada producto de la lista tiene una acción de eliminar.
-- [ ] CA-02: al eliminar, el producto se quita de la lista de inmediato.
-- [ ] CA-03: aparece un toast breve "Producto eliminado" con opción de deshacer.
+- [x] CA-01: cada producto de la lista tiene una acción de eliminar.
+- [x] CA-02: al eliminar, el producto se quita de la lista de inmediato.
+- [x] CA-03: aparece un toast breve "Producto eliminado" con opción de deshacer.
