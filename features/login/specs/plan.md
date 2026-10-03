@@ -141,19 +141,20 @@ features/registro-manual/             se borran sus copias y se actualizan los i
 
 ```
 features/login/
-  Login.tsx                            + si la fase es weak-password, muestra WeakPasswordFlow en vez del formulario
+  Login.tsx                            elige entre LoginForm y WeakPasswordFlow según la fase (solo presentación)
   components/
     WeakPasswordFlow.tsx               decide entre aviso, formulario y confirmación según el estado (solo presentación)
     WeakPasswordNotice.tsx             título, explicación y los botones "Cambiar contraseña" / "Ahora no"
     ChangePasswordForm.tsx             nueva + repetir (con PasswordInput), medidor, guardar y volver
     PasswordChangedNotice.tsx          confirmación con "Continuar"
     FocusedHeading.tsx                 título que recibe el foco al aparecer (lo usan los tres pasos)
+    LoginForm.tsx                      formulario de inicio de sesión (extraído de Login.tsx)
     models/                            props de los minis componentes (WeakPasswordFlow, WeakPasswordNotice,
-                                       PasswordChangedNotice, ChangePasswordForm, FocusedHeading)
+                                       PasswordChangedNotice, ChangePasswordForm, FocusedHeading, LoginForm)
   hooks/
     useLoginViewModel.ts               + usa getStatusAfterLogin, limpia la contraseña y expone isWeakPassword / handleContinue
     useChangePasswordViewModel.ts      estado del cambio (notice | form | saving | done), valores, errores y envío
-    useFocusOnMount.ts                 ref que recibe el foco al montarse (accesibilidad)
+    useFocusHeadingOnMount.ts          ref de un título que recibe el foco al montarse (accesibilidad)
   models/
     ChangePasswordFormValues.interface.ts · ChangePasswordViewModel.interface.ts
   services/

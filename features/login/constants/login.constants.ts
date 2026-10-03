@@ -114,7 +114,7 @@ export const RECAPTCHA = {
   SCRIPT_URL: "https://www.google.com/recaptcha/api.js?render=explicit",
 } as const;
 
-// --- SCRUM-48: aviso de contraseña débil y cambio de contraseña ---
+// --- Cambio de contraseña tras un login con contraseña débil ---
 
 // Pasos del cambio de contraseña tras un login con contraseña débil.
 export const CHANGE_PASSWORD_STEP = {
@@ -126,6 +126,14 @@ export const CHANGE_PASSWORD_STEP = {
 
 export type ChangePasswordStepType =
   (typeof CHANGE_PASSWORD_STEP)[keyof typeof CHANGE_PASSWORD_STEP];
+
+// Valores del atributo `autocomplete` de los campos de contraseña: ayudan a los gestores de contraseñas.
+export const AUTOCOMPLETE = {
+  CURRENT_PASSWORD: "current-password",
+  NEW_PASSWORD: "new-password",
+} as const;
+
+export type AutocompleteType = (typeof AUTOCOMPLETE)[keyof typeof AUTOCOMPLETE];
 
 export const CHANGE_PASSWORD_FIELD = {
   CONFIRM_PASSWORD: "confirmPassword",
@@ -152,6 +160,8 @@ export const CHANGE_PASSWORD_LABEL = {
   SAVING: "Guardando...",
 } as const;
 
+// PASSWORD_REQUIRED, PASSWORD_TOO_SHORT, PASSWORD_TOO_WEAK y CONFIRM_REQUIRED no se muestran: el medidor
+// lista los requisitos y el botón de guardar queda deshabilitado. La validación pura los usa para decir qué falla.
 export const CHANGE_PASSWORD_ERROR_MESSAGE = {
   CONFIRM_REQUIRED: "Repetí la nueva contraseña.",
   PASSWORDS_MISMATCH: "Las contraseñas no coinciden.",

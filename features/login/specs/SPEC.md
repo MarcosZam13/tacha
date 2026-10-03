@@ -103,7 +103,7 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 - El botón de visibilidad es un `<button type="button">` alcanzable con Tab, con `aria-label` que dice la acción ("Mostrar contraseña" / "Ocultar contraseña"). No depende solo del ícono.
 - El label de la contraseña se asocia al input con `htmlFor`; el botón queda fuera del `<label>` (un botón dentro de un label es HTML inválido).
 - El error del campo se enlaza al input con `aria-describedby` y `aria-invalid`.
-- Al aparecer el aviso, el foco se mueve a su título para que lectores de pantalla y teclado lo encuentren; el aviso y la confirmación se anuncian como estado (`role="status"`) y los errores del cambio con `role="alert"`.
+- Al aparecer el aviso, el foco se mueve a su título para que lectores de pantalla y teclado lo encuentren; el mensaje del aviso y el de la confirmación se marcan como estado (`role="status"`) y los errores del cambio con `role="alert"`. Los campos de contraseña declaran `autocomplete` (`current-password` en el login, `new-password` en el cambio) para los gestores de contraseñas.
 - El medidor ya trae su `role="progressbar"` y escribe el nivel con palabras, no solo con color.
 
 ## 10. Restricciones técnicas
@@ -180,6 +180,8 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 - Contraseña vencida: no existe una política de vencimiento ni dónde guardar cuándo se cambió la contraseña (Supabase Auth no lo lleva). Modelarlo exigiría una tabla de perfil con una fecha, que es una decisión de producto aparte; no se implementa.
 - Forzar el cambio (el usuario siempre puede continuar con "Ahora no"), recordar que el usuario rechazó el aviso, o endurecer la política de contraseñas del registro.
 - Evaluar la contraseña en el servidor o bloquear el inicio de sesión por contraseña débil.
+- Pedir la contraseña actual para cambiarla: no se pide porque el usuario acaba de iniciar sesión con ella; la protección ante una sesión robada o un equipo desatendido depende del ajuste "Secure password change" del proyecto de Supabase (ver §15).
+- Proteger el formulario de cambio contra un doble envío muy rápido: el botón se deshabilita al re-renderizar y Supabase aplica su propio rate limit.
 - Pantalla de recuperación y de actualización de contraseña por correo (HU-28 y HU-29): este cambio es solo del flujo del login.
 - Guard de rutas y expiración de sesión (SCRUM-49); cierre por inactividad (HU-27).
 - "¿Olvidaste tu contraseña?" (HU-28), login con Google o Facebook.
@@ -188,5 +190,7 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 ## 15. Notas de implementación
 
 - Supabase Auth no integra Google reCAPTCHA de forma nativa (solo hCaptcha y Turnstile). Por eso la verificación va en una Edge Function. **Límite conocido:** quien llame directo al endpoint de Auth de Supabase con la anon key se salta el captcha; cerrarlo requiere el captcha nativo del proyecto.
+- **Cambio de contraseña y configuración de Supabase:** `auth.updateUser` puede ser llamado por cualquier sesión vigente. Con "Secure password change" activo (Authentication → Providers → Email) Supabase exige un inicio de sesión reciente; con él desactivado, una sesión robada podría cambiar la contraseña. Hay que revisar ese ajuste y, si se activa, mapear el código `reauthentication_needed` en `PASSWORD_ERROR_CODE_RESULT` (hoy saldría como el mensaje de error inesperado).
+- **La política de contraseñas vinculante es la del proyecto de Supabase.** El mínimo de 8 caracteres y el nivel intermedio son reglas del cliente: el servidor puede rechazar algo que el cliente acepta (caso cubierto por `weak_password`) y, al revés, el registro todavía permite contraseñas débiles. Endurecer la política solo en el cliente no protege nada.
 - La evaluación de fortaleza en el cliente es ayuda al usuario, no una barrera de seguridad: quien la salte solo evita el aviso, y no obtiene ningún acceso. Por eso no se repite en el servidor.
 - Mientras el equipo no registre el reCAPTCHA real, se usan las claves de prueba que publica Google (la casilla siempre pasa); se cambian por las reales sin tocar código.

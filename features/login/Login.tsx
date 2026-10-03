@@ -1,11 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { Button, Input } from "@/components/ui";
-import { PasswordInput } from "./components/PasswordInput";
-import { RecaptchaWidget } from "./components/RecaptchaWidget";
+import { LoginForm } from "./components/LoginForm";
 import { WeakPasswordFlow } from "./components/WeakPasswordFlow";
-import { INPUT_TYPE, LOGIN_FORM_FIELDS, LOGIN_LABEL, LOGIN_ROUTE } from "./constants/login.constants";
 import { useLoginViewModel } from "./hooks/useLoginViewModel";
 
 /**
@@ -13,75 +9,14 @@ import { useLoginViewModel } from "./hooks/useLoginViewModel";
  * Si el login fue exitoso pero la contraseña es débil, en lugar de entrar a la app muestra el aviso.
  */
 export const Login = (): React.JSX.Element => {
-  const {
-    captchaResetCount,
-    errors,
-    handleCaptchaTokenChange,
-    handleChange,
-    handleContinue,
-    handleSubmit,
-    isSubmitDisabled,
-    isSubmitting,
-    isWeakPassword,
-    submitError,
-    values,
-  } = useLoginViewModel();
+  const viewModel = useLoginViewModel();
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 bg-tacha-bg px-4 py-8">
-      {isWeakPassword ? (
-        <WeakPasswordFlow onContinue={handleContinue} />
+      {viewModel.isWeakPassword ? (
+        <WeakPasswordFlow onContinue={viewModel.handleContinue} />
       ) : (
-        <>
-          <h1 className="font-display text-3xl font-bold text-tacha-text">{LOGIN_LABEL.TITLE}</h1>
-
-          <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {LOGIN_FORM_FIELDS.map(({ field, label, type }) =>
-              type === INPUT_TYPE.PASSWORD ? (
-                <PasswordInput
-                  key={field}
-                  isRequired
-                  label={label}
-                  value={values[field]}
-                  onChange={handleChange(field)}
-                  errorMessage={errors[field]}
-                />
-              ) : (
-                <Input
-                  key={field}
-                  isRequired
-                  label={label}
-                  type={type}
-                  value={values[field]}
-                  onChange={handleChange(field)}
-                  errorMessage={errors[field]}
-                />
-              ),
-            )}
-
-            <RecaptchaWidget
-              onTokenChange={handleCaptchaTokenChange}
-              resetCount={captchaResetCount}
-            />
-
-            {submitError ? (
-              <p role="alert" className="font-body text-sm text-red-600">
-                {submitError}
-              </p>
-            ) : null}
-
-            <Button type="submit" isDisabled={isSubmitDisabled}>
-              {isSubmitting ? LOGIN_LABEL.SUBMITTING : LOGIN_LABEL.SUBMIT}
-            </Button>
-          </form>
-
-          <p className="font-body text-sm text-tacha-textsec">
-            {LOGIN_LABEL.NO_ACCOUNT}{" "}
-            <Link href={LOGIN_ROUTE.REGISTER} className="text-tacha-teal underline">
-              {LOGIN_LABEL.REGISTER_LINK}
-            </Link>
-          </p>
-        </>
+        <LoginForm {...viewModel} />
       )}
     </main>
   );

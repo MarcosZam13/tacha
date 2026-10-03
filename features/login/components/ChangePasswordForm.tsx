@@ -1,7 +1,11 @@
 import { PasswordStrengthMeter } from "@/components/password-strength-meter/PasswordStrengthMeter";
 import { Button } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
-import { CHANGE_PASSWORD_FIELD, CHANGE_PASSWORD_LABEL } from "../constants/login.constants";
+import {
+  AUTOCOMPLETE,
+  CHANGE_PASSWORD_FIELD,
+  CHANGE_PASSWORD_LABEL,
+} from "../constants/login.constants";
 import { FocusedHeading } from "./FocusedHeading";
 import { PasswordInput } from "./PasswordInput";
 import type { ChangePasswordFormProps } from "./models/ChangePasswordFormProps.interface";
@@ -24,6 +28,7 @@ export const ChangePasswordForm = ({
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <PasswordInput
+          autoComplete={AUTOCOMPLETE.NEW_PASSWORD}
           isRequired
           label={CHANGE_PASSWORD_LABEL.NEW_PASSWORD}
           value={values.newPassword}
@@ -34,6 +39,7 @@ export const ChangePasswordForm = ({
       </div>
 
       <PasswordInput
+        autoComplete={AUTOCOMPLETE.NEW_PASSWORD}
         isRequired
         label={CHANGE_PASSWORD_LABEL.CONFIRM_PASSWORD}
         value={values.confirmPassword}

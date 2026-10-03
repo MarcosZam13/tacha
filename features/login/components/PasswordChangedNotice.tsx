@@ -6,9 +6,11 @@ import type { PasswordChangedNoticeProps } from "./models/PasswordChangedNoticeP
 export const PasswordChangedNotice = ({
   onContinue,
 }: PasswordChangedNoticeProps): React.JSX.Element => (
-  <section role="status" className="flex flex-col gap-4">
+  <section className="flex flex-col gap-4">
     <FocusedHeading>{CHANGE_PASSWORD_LABEL.DONE_TITLE}</FocusedHeading>
-    <p className="font-body text-sm text-tacha-textsec">{CHANGE_PASSWORD_LABEL.DONE_MESSAGE}</p>
+    <p role="status" className="font-body text-sm text-tacha-textsec">
+      {CHANGE_PASSWORD_LABEL.DONE_MESSAGE}
+    </p>
 
     <Button onClick={onContinue}>{CHANGE_PASSWORD_LABEL.CONTINUE}</Button>
   </section>

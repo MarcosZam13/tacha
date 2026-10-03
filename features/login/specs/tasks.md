@@ -36,7 +36,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 3. `utils/password.utils.ts` con `evaluatePasswordStrength`.
 - [x] 4. `components/password-strength-meter/` con el medidor y su modelo de props.
 - [x] 5. Actualizar los imports de `registro-manual` y borrar las copias viejas.
-- [ ] 6. Validar que el registro funciona igual (medidor, requisitos, coincidencia de contraseñas); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 6. Validar que el registro funciona igual (medidor, requisitos, coincidencia de contraseñas); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 **Parte 2: el aviso y el cambio de contraseña**
 
@@ -44,12 +44,12 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 8. Modelos: valores y errores del formulario, retorno del ViewModel y props de los minis componentes.
 - [x] 9. Validación pura (`utils/validateChangePasswordForm.ts`) y `utils/getStatusAfterLogin.ts`.
 - [x] 10. Servicio (`services/password.service.ts`).
-- [x] 11. ViewModel del cambio (`hooks/useChangePasswordViewModel.ts`) y `hooks/useFocusOnMount.ts`.
+- [x] 11. ViewModel del cambio (`hooks/useChangePasswordViewModel.ts`) y `hooks/useFocusHeadingOnMount.ts`.
 - [x] 12. `useLoginViewModel.ts`: evaluar la contraseña tras un login exitoso y fijar la fase `weak-password`.
-- [x] 13. Componentes: `FocusedHeading`, `WeakPasswordNotice`, `ChangePasswordForm`, `PasswordChangedNotice` y `WeakPasswordFlow`.
+- [x] 13. Componentes: `FocusedHeading`, `LoginForm`, `WeakPasswordNotice`, `ChangePasswordForm`, `PasswordChangedNotice` y `WeakPasswordFlow`.
 - [x] 14. `Login.tsx` muestra `WeakPasswordFlow` cuando la fase es `weak-password`.
-- [ ] 15. Preparar en Supabase una cuenta verificada con contraseña débil (por ejemplo `12345678`) para probar.
-- [ ] 16. Validar los casos 22 a 30 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [x] 15. Preparar en Supabase una cuenta verificada con contraseña débil (por ejemplo `12345678`) para probar.
+- [x] 16. Validar los casos 22 a 30 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 ## SCRUM-47, 49
 

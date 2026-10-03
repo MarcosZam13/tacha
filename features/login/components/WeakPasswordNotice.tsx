@@ -9,9 +9,11 @@ export const WeakPasswordNotice = ({
   onChangePassword,
   onSkip,
 }: WeakPasswordNoticeProps): React.JSX.Element => (
-  <section role="status" className="flex flex-col gap-4">
+  <section className="flex flex-col gap-4">
     <FocusedHeading>{CHANGE_PASSWORD_LABEL.NOTICE_TITLE}</FocusedHeading>
-    <p className="font-body text-sm text-tacha-textsec">{CHANGE_PASSWORD_LABEL.NOTICE_MESSAGE}</p>
+    <p role="status" className="font-body text-sm text-tacha-textsec">
+      {CHANGE_PASSWORD_LABEL.NOTICE_MESSAGE}
+    </p>
 
     <div className="flex flex-col gap-2">
       <Button onClick={onChangePassword}>{CHANGE_PASSWORD_LABEL.CHANGE}</Button>
