@@ -1,6 +1,8 @@
-# Lista general: buscar, añadir y ajustar cantidad
+# Lista general: buscar, añadir, ajustar cantidad y ver detalle
 
 Historias: [SCRUM-62 / HU-36a](https://tacha.atlassian.net/browse/SCRUM-62) (buscar y añadir producto) · [SCRUM-63 / HU-36b](https://tacha.atlassian.net/browse/SCRUM-63) (ajustar cantidad). Sprint 1.
+
+[SCRUM-64 / HU-36c](https://tacha.atlassian.net/browse/SCRUM-64) (ver detalle de producto). Sprint 2.
 
 ## Intención
 
@@ -13,10 +15,13 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 - Al elegir un resultado, se añade a la lista general del usuario con cantidad 1. Si esa variante ya está, se le suma 1 en vez de duplicar la fila (regla de merge que vive en la base, documento-proyecto §6).
 - Controles "+" y "−" en cada fila; "−" nunca baja de 1.
 - La lista se guarda en Supabase (`lists` + `list_items`) y se carga al abrir la pantalla.
+- Un botón de detalle al final de cada fila, al lado de los controles de cantidad. Abre un modal con el nombre y la presentación del producto, sus marcas y el precio de referencia por supermercado (rango entre marcas, del más barato al más caro). Si no hay marcas o precios, lo dice en vez de dejar el espacio vacío.
 
 ## Fuera de alcance (y por qué)
 
-- Tachar, eliminar, ver detalle: son HU-36c/d/e, Sprint 2.
+- Tachar y eliminar: son HU-36d/e (SCRUM-65 y SCRUM-66), Sprint 2.
+- Filtrar los precios por las tiendas que sigue el household: depende de households y de `household_store_preferences`, que son de otra historia. El detalle muestra las tres tiendas.
+- Detalle desde el catálogo (foto, logos, "Agregar a mi lista"): es HU-53 (SCRUM-85), Sprint 3. Si reusa esta vista, se promueve a una carpeta compartida en ese momento (segundo consumidor real).
 - Listas de household: los households se construyen este mismo sprint (otra persona); por ahora `household_id` siempre es `null`.
 - Registro e inicio de sesión: los construye otra persona. Mientras tanto se usa una sesión anónima de Supabase para tener un `auth.uid()` real y que RLS funcione.
 - Buscador compartido con otras features: se promueve a `components/` (compartido) cuando exista el segundo consumidor real (ej. "Mis grupos").
@@ -28,6 +33,8 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 3. El estado de la lista se maneja con `useReducer`: todas las reglas de cómo cambia la lista en un reducer puro.
 4. Las búsquedas viejas nunca pisan a las nuevas (race condition).
 5. Los controles de cantidad no pueden estar anidados dentro de otro botón (HTML inválido, y en Sprint 2 la fila completa tacha).
+6. El botón de detalle tampoco: es hermano de los controles de cantidad, en la misma zona excluida de la fila.
+7. El detalle se pide al abrirlo, no junto con la lista. Una respuesta de un detalle anterior nunca se muestra en el detalle de otro producto.
 
 ## Casos límite y errores
 
@@ -36,6 +43,9 @@ Que el usuario arme su lista general buscando productos del catálogo real y aju
 - Error de red o de Supabase al buscar, añadir o cambiar cantidad: mensaje de error, la lista no queda en un estado inventado.
 - Usuario escribe rápido: solo cuenta la última búsqueda.
 - Añadir la misma variante dos veces: una sola fila con cantidad 2.
+- Variante sin marcas o sin precios: el detalle lo dice ("Sin marcas registradas", "Todavía no hay precios de referencia").
+- Error al pedir el detalle: mensaje de error dentro del modal; la lista sigue igual.
+- Abrir un detalle, cerrarlo y abrir otro antes de que responda el primero: solo se muestra el del segundo.
 
 ## Restricciones
 
@@ -55,3 +65,7 @@ HU-36b
 - [x] CA-03: "−" resta 1 y no baja de 1.
 - [x] CA-04: el cambio se ve de inmediato, sin confirmación, y tocar los controles no dispara ninguna otra acción de la fila.
   - Cómo se cumple: la cantidad cambia en cuanto responde la base (sin diálogo de confirmación ni recarga); mientras tanto los botones de esa fila quedan deshabilitados. No es actualización optimista (ver decisiones en [plan.md](plan.md)).
+
+HU-36c
+- [ ] CA-01: el detalle se abre con un botón específico al final de la fila, en la misma zona que los controles de cantidad; tocar la fila no lo abre.
+- [ ] CA-02: el detalle muestra marca, presentación/variante y precio de referencia por supermercado, si existe.

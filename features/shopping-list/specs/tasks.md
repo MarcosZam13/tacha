@@ -27,4 +27,11 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 10. `changeItemQuantity()` en el servicio; acciones `QUANTITY_CHANGE_STARTED` / `QUANTITY_CHANGED` / `QUANTITY_CHANGE_FAILED` y `pendingItemIds` en el reducer; `changeQuantity` en `useShoppingList` y el ViewModel.
 - [x] 11. `QuantityStepper` dentro de `ShoppingListRow`. Validar CA-01..04 de HU-36b; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-64: ver detalle de producto
+
+- [ ] 13. Constantes (consulta del detalle, textos, formato de moneda) y modelos `ItemDetail`, `ItemDetailViewModel`.
+- [ ] 14. `getItemDetail()` en el servicio y utils puros `toStorePriceRanges` y `formatPriceRange`.
+- [ ] 15. `useItemDetail` (pide al cambiar el `variantId`, descarta respuestas viejas, carga derivada) y la fila abierta en el ViewModel.
+- [ ] 16. Botón de detalle en `ShoppingListRow`, `ShoppingListItemDetail` dentro del `Modal`. Validar CA-01..02 de HU-36c; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.
