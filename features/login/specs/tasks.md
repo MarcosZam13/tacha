@@ -31,23 +31,23 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 **Parte 1: promover el código de fortaleza (sin cambiar el comportamiento del registro)**
 
-- [ ] 1. `constants/password.constants.ts` con las constantes de fortaleza movidas desde `registro.constants.ts`, y su export en `constants/index.ts`.
-- [ ] 2. `types/password.types.ts` con `PasswordStrength`.
-- [ ] 3. `utils/password.utils.ts` con `evaluatePasswordStrength`.
-- [ ] 4. `components/password-strength-meter/` con el medidor y su modelo de props.
-- [ ] 5. Actualizar los imports de `registro-manual` y borrar las copias viejas.
+- [x] 1. `constants/password.constants.ts` con las constantes de fortaleza movidas desde `registro.constants.ts`, y su export en `constants/index.ts`.
+- [x] 2. `types/password.types.ts` con `PasswordStrength`.
+- [x] 3. `utils/password.utils.ts` con `evaluatePasswordStrength`.
+- [x] 4. `components/password-strength-meter/` con el medidor y su modelo de props.
+- [x] 5. Actualizar los imports de `registro-manual` y borrar las copias viejas.
 - [ ] 6. Validar que el registro funciona igual (medidor, requisitos, coincidencia de contraseñas); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
 **Parte 2: el aviso y el cambio de contraseña**
 
-- [ ] 7. Constantes del login: textos, mensajes de error, resultados del cambio, estados y códigos de Supabase (`constants/login.constants.ts`).
-- [ ] 8. Modelos: valores y errores del formulario, parámetros del servicio, retorno del ViewModel y props de los minis componentes.
-- [ ] 9. Validación pura (`utils/validateChangePasswordForm.ts`).
-- [ ] 10. Servicio (`services/password.service.ts`).
-- [ ] 11. ViewModel del cambio (`hooks/useChangePasswordViewModel.ts`).
-- [ ] 12. `useLoginViewModel.ts`: evaluar la contraseña tras un login exitoso y fijar la fase `weak-password`.
-- [ ] 13. Componentes: `WeakPasswordNotice`, `ChangePasswordForm`, `PasswordChangedNotice` y `WeakPasswordFlow`.
-- [ ] 14. `Login.tsx` muestra `WeakPasswordFlow` cuando la fase es `weak-password`.
+- [x] 7. Constantes del login: textos, mensajes de error, resultados del cambio, estados y códigos de Supabase (`constants/login.constants.ts`).
+- [x] 8. Modelos: valores y errores del formulario, retorno del ViewModel y props de los minis componentes.
+- [x] 9. Validación pura (`utils/validateChangePasswordForm.ts`) y `utils/getStatusAfterLogin.ts`.
+- [x] 10. Servicio (`services/password.service.ts`).
+- [x] 11. ViewModel del cambio (`hooks/useChangePasswordViewModel.ts`) y `hooks/useFocusOnMount.ts`.
+- [x] 12. `useLoginViewModel.ts`: evaluar la contraseña tras un login exitoso y fijar la fase `weak-password`.
+- [x] 13. Componentes: `FocusedHeading`, `WeakPasswordNotice`, `ChangePasswordForm`, `PasswordChangedNotice` y `WeakPasswordFlow`.
+- [x] 14. `Login.tsx` muestra `WeakPasswordFlow` cuando la fase es `weak-password`.
 - [ ] 15. Preparar en Supabase una cuenta verificada con contraseña débil (por ejemplo `12345678`) para probar.
 - [ ] 16. Validar los casos 22 a 30 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 

@@ -147,16 +147,20 @@ features/login/
     WeakPasswordNotice.tsx             título, explicación y los botones "Cambiar contraseña" / "Ahora no"
     ChangePasswordForm.tsx             nueva + repetir (con PasswordInput), medidor, guardar y volver
     PasswordChangedNotice.tsx          confirmación con "Continuar"
-    models/                            props de los minis componentes
+    FocusedHeading.tsx                 título que recibe el foco al aparecer (lo usan los tres pasos)
+    models/                            props de los minis componentes (WeakPasswordFlow, WeakPasswordNotice,
+                                       PasswordChangedNotice, ChangePasswordForm, FocusedHeading)
   hooks/
-    useLoginViewModel.ts               + tras un login exitoso evalúa la contraseña escrita y fija la fase
+    useLoginViewModel.ts               + usa getStatusAfterLogin, limpia la contraseña y expone isWeakPassword / handleContinue
     useChangePasswordViewModel.ts      estado del cambio (notice | form | saving | done), valores, errores y envío
+    useFocusOnMount.ts                 ref que recibe el foco al montarse (accesibilidad)
   models/
-    ChangePasswordFormValues.interface.ts · ChangePasswordViewModel.interface.ts · ChangePasswordParams.interface.ts
+    ChangePasswordFormValues.interface.ts · ChangePasswordViewModel.interface.ts
   services/
     password.service.ts                updateUserPassword(): auth.updateUser, devuelve un resultado
   utils/
     validateChangePasswordForm.ts      validación pura: obligatoria, largo, coincidencia y nivel mínimo
+    getStatusAfterLogin.ts             resultado del login + contraseña → estado (error, éxito o contraseña débil)
   constants/
     login.constants.ts                 + textos, mensajes, resultados, estados y códigos de error de Supabase
 ```
@@ -165,7 +169,7 @@ Sin tablas, RLS, RPC ni Edge Functions nuevas.
 
 ### Flujo
 
-Escribo una contraseña débil e inicio sesión → `submitLogin` en `useLoginViewModel.ts` recibe `SUCCESS` del servicio → evalúa `values.password` con `evaluatePasswordStrength` (`utils/password.utils.ts`) → nivel débil → fase `weak-password` en lugar de `router.push` → `Login.tsx` pinta `WeakPasswordFlow` → "Cambiar contraseña" → `useChangePasswordViewModel` pasa a `form` → escribo la nueva (el medidor reacciona) → guardar → `validateChangePasswordForm` → `updateUserPassword` (`password.service.ts`) → `auth.updateUser` → resultado → `done` → "Continuar" lleva a la app. "Ahora no" va directo a la app.
+Escribo una contraseña débil e inicio sesión → `submitLogin` en `useLoginViewModel.ts` recibe `SUCCESS` del servicio → `getStatusAfterLogin` evalúa `values.password` con `evaluatePasswordStrength` (`utils/password.utils.ts`) → nivel débil → fase `weak-password` (y la contraseña escrita se borra del estado) en lugar de `router.push` → `Login.tsx` pinta `WeakPasswordFlow` → "Cambiar contraseña" → `useChangePasswordViewModel` pasa a `form` → escribo la nueva (el medidor reacciona) → guardar → `validateChangePasswordForm` → `updateUserPassword` (`password.service.ts`) → `auth.updateUser` → resultado → `done` → "Continuar" lleva a la app. "Ahora no" va directo a la app.
 
 ### Decisiones
 
