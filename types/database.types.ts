@@ -86,6 +86,51 @@ export type Database = {
           },
         ]
       }
+      list_item_recipe_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          list_item_id: string
+          quantity_missing: number
+          quantity_needed: number
+          quantity_unit: string
+          recipe_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_item_id: string
+          quantity_missing: number
+          quantity_needed: number
+          quantity_unit: string
+          recipe_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_item_id?: string
+          quantity_missing?: number
+          quantity_needed?: number
+          quantity_unit?: string
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_item_recipe_requirements_list_item_id_fkey"
+            columns: ["list_item_id"]
+            isOneToOne: false
+            referencedRelation: "list_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_item_recipe_requirements_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           created_at: string
@@ -593,6 +638,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      add_recipe_to_general_list: {
+        Args: { target_recipe_id: string }
+        Returns: Json
       }
       change_item_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
