@@ -75,7 +75,7 @@ Bloqueado / fuera de esta historia:
 - [x] 7. Servicios: `addRecipeToList()` en `recipes.service.ts` (con `toAddRecipeToListResponse` y `P0002` → `null`) y `added-recipes.storage.ts`.
 - [x] 8. Hooks: `useRecipeListAddition` (pedir, confirmar o cancelar la repetición, agregar, doble clic) y su composición en `useRecipeCatalogViewModel` (+ `listAddition` en `RecipeCatalogViewModel`, en el mismo commit para que compile). Incluye `toAddToListSummaryText`, que estaba en la tarea 9: el hook arma el resumen.
 - [x] 9. Presentación: botón en `RecipeCard`, `RecipeAddToListResult`, `RecipeRepeatAddDialog` y la conexión en `RecipeCatalog`.
-- [ ] 10. `docs/documento-proyecto.md`: §4.9.1 (reglas de conteo y de producto que no está en la lista) y §6 (tabla nueva).
+- [x] 10. `docs/documento-proyecto.md`: §4.9.1 (reglas de conteo y de producto que no está en la lista) y §6 (tabla nueva).
 - [ ] 11. `npx tsc --noEmit`, `npm run lint` y `npm run build`.
 - [ ] 12. Validar en el navegador los casos de §13 de HU-65 y, en el SQL Editor, los registros que quedan en `list_item_recipe_requirements` y la RLS con otra sesión. Depende de la tarea 4.
 - [ ] 13. Revisión con `code-reviewer` y `security-reviewer` (tabla nueva con RLS), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
