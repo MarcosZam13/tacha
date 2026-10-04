@@ -18,14 +18,13 @@ features/catalog/
   hooks/
     useCatalogSearchViewModel.ts       envuelve useProductSearch, deriva el estado y las tarjetas
   models/
-    CatalogCardData.interface.ts       una tarjeta lista para dibujar (textos ya armados)
-    CatalogSearchState.type.ts         unión idle / loading / error / empty / ready
-    CatalogSearchViewModel.interface.ts lo que el ViewModel le entrega a CatalogSearch.tsx
+    catalog-search.interfaces.ts       CatalogCardData (tarjeta lista para dibujar) y CatalogSearchViewModel (lo que el ViewModel entrega)
   utils/
     toCatalogCards.ts                  adapter puro: CatalogProduct[] → CatalogCardData[] (una por variante)
-    getOverallPriceRange.ts            rango por tienda → { minPrice, maxPrice } global (ignora null)
+    getOverallPriceRange.ts            rango por tienda → { minPrice, maxPrice } global (null si no hay tiendas)
+    getCatalogSearchStatus.ts          deriva el estado idle / loading / error / empty / ready (en ese orden de prioridad: error, loading, empty, ready, idle)
   constants/
-    catalog-search.constants.ts        textos, tabs, estados, ruta y columnas de la grilla
+    catalog-search.constants.ts        textos, tabs, estados (y su tipo CatalogSearchStatusType), ruta; la grilla se define con clases en CatalogSearch.tsx
   specs/  SPEC.md · plan.md · tasks.md
 
 app/catalogo/page.tsx                  ruta delgada: solo renderiza <CatalogSearch />
@@ -64,8 +63,10 @@ price_ranges: Record<string, { min: number | null; max: number | null }> | null;
 
 // CatalogProductVariant (lo que devuelve searchCatalog): + dos campos
 imageUrl: NullableRef<string>;
-priceRangeByStore: NullableRef<Record<string, CatalogPriceRange>>;
+priceRangeByStore: Record<string, PriceRange>;   // el servicio descarta las tiendas con min o max nulos
 ```
+
+`CatalogSearchPriceRangeRow { max, min }` (ambos `number | null`) describe cada tienda en la fila de la RPC.
 
 Lista y recetas no leen los campos nuevos, así que no cambian de comportamiento.
 
@@ -73,9 +74,9 @@ Lista y recetas no leen los campos nuevos, así que no cambian de comportamiento
 
 1. El usuario escribe en la barra → `setQuery` de `useProductSearch`.
 2. El hook recorta el término; si es buscable (≥ 2) espera 300 ms sin teclas y llama a `searchCatalog(term)`.
-3. `searchCatalog` llama a la RPC y mapea cada producto madre y cada variante (ahora con foto y precios por tienda).
+3. `searchCatalog` llama a la RPC y mapea cada producto madre y cada variante (ahora con foto y precios por tienda, sin las tiendas de precio nulo).
 4. `useCatalogSearchViewModel` toma `results` y los pasa por `toCatalogCards` (una tarjeta por variante: tamaño con el formateador, rango global con `getOverallPriceRange` + `formatPriceRange`, inicial para el marcador).
-5. El ViewModel deriva `status` (idle / loading / error / empty / ready) de lo que ya expone el hook; `CatalogSearch.tsx` dibuja según ese estado.
+5. El ViewModel deriva `status` con `getCatalogSearchStatus` a partir de lo que ya expone el hook; `CatalogSearch.tsx` dibuja según ese estado.
 6. Un término nuevo cancela el timer y descarta la respuesta vieja (comportamiento del hook).
 
 ## Decisiones
@@ -111,6 +112,18 @@ Tomadas por Daniel (orquestador) tras valorar su impacto en el resto del proyect
 | Mensaje guía antes de escribir. El listado inicial va en SCRUM-84 con una RPC nueva | Cambiar el contrato de `search_catalog` | Respuesta de Marcos: HU-51 no pide listado inicial, y "ver todo Lácteos" sin texto es otra consulta |
 | No tocar `docs/documento-proyecto.md` | Documentar la ruta y la regla de 2 letras | No cambia el modelo de datos ni una decisión de producto nueva |
 | Nota neutral sobre SCRUM-126 en Developer Notes de la PR | Omitirla | Evita que QA reporte por error la marca en el nombre como defecto de CA-02 |
+
+### Desviaciones respecto al plan original (2026-10-03, durante la implementación)
+
+El comportamiento y los criterios de la SPEC no cambiaron; solo la forma interna. Se registran para que el plan describa lo que realmente hay en el repo.
+
+| Plan original | Implementado | Por qué |
+|---|---|---|
+| Un archivo por modelo (`CatalogCardData.interface.ts`, `CatalogSearchState.type.ts`, …) | Un solo `models/catalog-search.interfaces.ts` con `CatalogCardData` y `CatalogSearchViewModel` | Es la convención de agrupar por pantalla que ya usa recetas. Los tipos de las props siguen en `components/models/` |
+| `CatalogSearchState` como tipo propio en `models/` | `CatalogSearchStatusType` derivado de `CATALOG_SEARCH_STATUS` en las constantes | `constants-standards`: los tipos de unión se derivan del objeto `as const` con `typeof/keyof`, no se escriben a mano |
+| `priceRangeByStore` nullable; `getOverallPriceRange` ignora los `null` | El servicio descarta las tiendas con `min` o `max` nulos, así `priceRangeByStore` es `Record<string, PriceRange>` sin nulos | El dato nulo se resuelve una sola vez, en el adapter, y el resto del código no necesita revisarlo. SCRUM-85 recibe el mismo dato ya limpio |
+| El ViewModel deriva `status` en línea | `utils/getCatalogSearchStatus.ts`, función pura | Es una regla con prioridades (error, loading, empty, ready, idle); aislada se puede probar sin React |
+| `CatalogCardData` incluía ya el rango como objeto | Incluye `priceLabel` (texto ya formateado) y `placeholderInitial` | La tarjeta solo dibuja; el formato queda en el adapter |
 
 ## Qué skills aplican
 
