@@ -72,7 +72,7 @@ Bloqueado / fuera de esta historia:
 - [x] 4. Aplicar `013` en Supabase (SQL Editor), regenerar `types/database.types.ts` y probar la RPC en el SQL Editor con los casos de §13 (conteo, alcanza, no alcanza, dos recetas sobre la misma leche, producto que no está, unidades distintas, sin presentación, receta ajena). Bloquea la validación de la tarea 10, no el código del cliente.
 - [x] 5. Constantes: estados de agregar, textos, RPC y clave de `localStorage`.
 - [x] 6. Modelos en `models/recipe-list-addition.interfaces.ts` y `models/recipe-list-addition.types.ts`.
-- [ ] 7. Servicios: `addRecipeToList()` en `recipes.service.ts` (con `toAddRecipeToListResponse` y `P0002` → `null`) y `added-recipes.storage.ts`.
+- [x] 7. Servicios: `addRecipeToList()` en `recipes.service.ts` (con `toAddRecipeToListResponse` y `P0002` → `null`) y `added-recipes.storage.ts`.
 - [ ] 8. Hooks: `useRecipeListAddition` (pedir, confirmar o cancelar la repetición, agregar, doble clic) y su composición en `useRecipeCatalogViewModel` (+ `listAddition` en `RecipeCatalogViewModel`, en el mismo commit para que compile).
 - [ ] 9. Presentación: botón en `RecipeCard`, `RecipeAddToListFeedback` (con `toAddToListSummaryText`), `RecipeRepeatAddDialog` y la conexión en `RecipeCatalog`.
 - [ ] 10. `docs/documento-proyecto.md`: §4.9.1 (reglas de conteo y de producto que no está en la lista) y §6 (tabla nueva).

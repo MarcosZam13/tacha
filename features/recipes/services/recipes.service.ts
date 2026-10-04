@@ -4,6 +4,12 @@ import { POSTGRES_ERROR_CODE, RECIPES_DB } from "../constants/recipes.constants"
 import type { RecipeSummary } from "../models/recipe-catalog.interfaces";
 import type { DeleteRecipePayload, DeleteRecipeResponse } from "../models/recipe-deletion.interfaces";
 import type { RecipeEditorValues, SaveRecipePayload, SaveRecipeResponse } from "../models/recipe-editor.interfaces";
+import type {
+  AddRecipeToListPayload,
+  AddRecipeToListResponse,
+  AddRecipeToListRow,
+} from "../models/recipe-list-addition.interfaces";
+import { toAddRecipeToListResponse } from "../utils/toAddRecipeToListResponse";
 import { toRecipeEditorValues } from "../utils/toRecipeEditorValues";
 import { toRecipeSummary } from "../utils/toRecipeSummary";
 
@@ -94,4 +100,26 @@ export const deleteRecipe = async (payload: DeleteRecipePayload): Promise<Delete
   if (error) throw error;
 
   return { recipeId: payload.recipeId };
+};
+
+/**
+ * Agrega los ingredientes de una receta a la lista general con una sola
+ * llamada a add_recipe_to_general_list, que hace todo en una transacción: las
+ * cantidades, los faltantes y la lista si no existía (reglas 17 a 26 de la SPEC).
+ * Devuelve null si la receta no se encontró (se borró en otra pestaña o es
+ * ajena): la RPC responde P0002 en los dos casos.
+ */
+export const addRecipeToList = async (
+  payload: AddRecipeToListPayload,
+): Promise<NullableRef<AddRecipeToListResponse>> => {
+  await ensureSession();
+
+  const { data: addedRecipeRow, error } = await getSupabaseClient().rpc(RECIPES_DB.RPC.ADD_RECIPE_TO_GENERAL_LIST, {
+    target_recipe_id: payload.recipeId,
+  });
+  if (error?.code === POSTGRES_ERROR_CODE.NO_DATA_FOUND) return null;
+  if (error) throw error;
+
+  // La RPC devuelve jsonb: la base no le da tipo, lo fija el contrato de la función (013).
+  return toAddRecipeToListResponse(addedRecipeRow as unknown as AddRecipeToListRow);
 };
