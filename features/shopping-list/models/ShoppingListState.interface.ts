@@ -9,4 +9,5 @@ export interface ShoppingListState {
   /** Filas con un cambio de cantidad esperando respuesta: sus botones se deshabilitan. */
   pendingItemIds: string[];
   quantityErrorMessage: NullableRef<string>;
+  removeErrorMessage: NullableRef<string>;
 }
