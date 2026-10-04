@@ -1,5 +1,6 @@
 import type { NullableRef } from "@/types/nullable.types";
 import type { RecipeDeletionViewModel } from "./recipe-deletion.interfaces";
+import type { RecipeListAdditionViewModel } from "./recipe-list-addition.interfaces";
 
 // Interfaces del catálogo de recetas (SCRUM-94). La unión de estados de la
 // pantalla está en recipe-catalog.types.ts.
@@ -45,5 +46,7 @@ export interface RecipeCatalogViewModel {
   hasRecipes: boolean;
   isEmpty: boolean;
   isLoading: boolean;
+  /** Agregar a la lista agrupado aparte: lo usan el botón de cada tarjeta y el diálogo de repetir. */
+  listAddition: RecipeListAdditionViewModel;
   recipes: RecipeSummary[];
 }
