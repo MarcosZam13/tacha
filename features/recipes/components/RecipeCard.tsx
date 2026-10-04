@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button, CategoryLabel, Chip } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
-import { RECIPE_DELETE_TEXT, RECIPE_TEXT } from "../constants/recipes.constants";
+import { RECIPE_ADD_TO_LIST_TEXT, RECIPE_DELETE_TEXT, RECIPE_TEXT } from "../constants/recipes.constants";
+import { RecipeAddToListResult } from "./RecipeAddToListResult";
 import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
 
 /**
@@ -15,9 +16,15 @@ import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
  *
  * "Eliminar" solo abre la confirmación (no borra), por eso va en secundario.
  * Lleva el nombre de la receta oculto (sr-only) para el lector de pantalla:
- * hay un "Eliminar" por tarjeta y así se distinguen.
+ * hay un "Eliminar" por tarjeta y así se distinguen. Lo mismo con "Agregar
+ * receta a lista", que no aparece si la receta no tiene ingredientes.
  */
-export const RecipeCard = ({ onDeleteRequest, recipe }: RecipeCardProps): React.JSX.Element => (
+export const RecipeCard = ({
+  addToList,
+  onAddToListRequest,
+  onDeleteRequest,
+  recipe,
+}: RecipeCardProps): React.JSX.Element => (
   <li>
     <article className="flex h-full flex-col overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface">
       {recipe.imageUrl ? (
@@ -64,17 +71,29 @@ export const RecipeCard = ({ onDeleteRequest, recipe }: RecipeCardProps): React.
         ) : null}
 
         {/* mt-auto: las acciones quedan al pie aunque las tarjetas tengan alturas distintas. */}
-        <div className="mt-auto flex items-center justify-between gap-3">
-          <Link
-            href={recipe.editPath}
-            className="font-body text-sm font-semibold text-tacha-teal hover:underline"
-          >
-            {RECIPE_TEXT.EDIT}
-          </Link>
-          <Button variant={BUTTON_VARIANT.SECONDARY} onClick={() => onDeleteRequest(recipe)}>
-            {RECIPE_DELETE_TEXT.TRIGGER}
-            <span className="sr-only"> {recipe.name}</span>
-          </Button>
+        <div className="mt-auto flex flex-col gap-3">
+          {recipe.hasIngredients ? (
+            <div className="flex flex-col gap-2">
+              <Button isDisabled={addToList.isDisabled} onClick={() => onAddToListRequest(recipe)}>
+                {addToList.isAdding ? RECIPE_ADD_TO_LIST_TEXT.ADDING : RECIPE_ADD_TO_LIST_TEXT.TRIGGER}
+                <span className="sr-only"> {recipe.name}</span>
+              </Button>
+              {addToList.feedback ? <RecipeAddToListResult feedback={addToList.feedback} /> : null}
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href={recipe.editPath}
+              className="font-body text-sm font-semibold text-tacha-teal hover:underline"
+            >
+              {RECIPE_TEXT.EDIT}
+            </Link>
+            <Button variant={BUTTON_VARIANT.SECONDARY} onClick={() => onDeleteRequest(recipe)}>
+              {RECIPE_DELETE_TEXT.TRIGGER}
+              <span className="sr-only"> {recipe.name}</span>
+            </Button>
+          </div>
         </div>
       </div>
     </article>

@@ -48,14 +48,20 @@ export interface RecipeAddToListFeedback {
   recipeId: string;
 }
 
+/** Lo que necesita una tarjeta para su botón "Agregar receta a lista" y su resumen. */
+export interface RecipeCardAddToList {
+  /** Resumen o error de esta receta; null si la última acción fue de otra receta o no hubo ninguna. */
+  feedback: NullableRef<RecipeAddToListFeedback>;
+  /** true solo en la tarjeta que se está agregando ("Agregando…"). */
+  isAdding: boolean;
+  /** true en todas las tarjetas mientras se agrega cualquier receta: una a la vez. */
+  isDisabled: boolean;
+}
+
 /** Lo que useRecipeListAddition le entrega al catálogo: el botón de cada tarjeta y el diálogo de repetir. */
 export interface RecipeListAdditionViewModel {
-  /** Receta que se está agregando ahora, para mostrar "Agregando…" solo en su tarjeta. */
-  addingRecipeId: NullableRef<string>;
-  /** Resumen o error de la última receta agregada; null si no hay nada que mostrar. */
-  feedback: NullableRef<RecipeAddToListFeedback>;
-  /** Mientras agrega se deshabilitan todos los botones: una receta a la vez. */
-  isAdding: boolean;
+  /** Estado del botón y del resumen de una tarjeta, ya calculado para esa receta. */
+  getRecipeAddToList: (recipeId: string) => RecipeCardAddToList;
   isRepeatDialogOpen: boolean;
   onAddRequest: (recipe: RecipeListAdditionTarget) => void;
   onRepeatCancel: () => void;

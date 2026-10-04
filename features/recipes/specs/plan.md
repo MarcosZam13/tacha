@@ -357,11 +357,11 @@ Una sola petición a PostgREST (`.delete().eq("id", recipeId)`), sin `.select()`
 features/recipes/
   RecipeCatalog.tsx                    + diálogo de repetir y respuesta de "agregar" por tarjeta
   components/
-    RecipeCard.tsx                     + botón "Agregar receta a lista" y RecipeAddToListFeedback
-    RecipeAddToListFeedback.tsx        nuevo: resumen (role="status") o error (role="alert") + link "Ver lista"
+    RecipeCard.tsx                     + botón "Agregar receta a lista" y RecipeAddToListResult
+    RecipeAddToListResult.tsx          nuevo: resumen (role="status") o error (role="alert") + link "Ver lista"
     RecipeRepeatAddDialog.tsx          nuevo: Modal "Ya agregaste X a tu lista. ¿Agregarla otra vez?"
-    models/RecipeCardProps.interface.ts        + props de agregar
-    models/RecipeAddToListFeedbackProps.interface.ts  nuevo
+    models/RecipeCardProps.interface.ts        + addToList (RecipeCardAddToList) y onAddToListRequest
+    models/RecipeAddToListResultProps.interface.ts  nuevo
     models/RecipeRepeatAddDialogProps.type.ts  nuevo: Pick del ViewModel
   hooks/
     useRecipeListAddition.ts           nuevo: estado de agregar (unión de 5) + confirmación + llamada al servicio

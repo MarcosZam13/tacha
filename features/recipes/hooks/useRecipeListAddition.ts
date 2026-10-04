@@ -1,6 +1,11 @@
 import { useState } from "react";
+import type { NullableRef } from "@/types/nullable.types";
 import { RECIPE_ADD_TO_LIST_TEXT, RECIPE_LIST_ADDITION_STATUS } from "../constants/recipes.constants";
-import type { RecipeListAdditionViewModel } from "../models/recipe-list-addition.interfaces";
+import type {
+  RecipeAddToListFeedback,
+  RecipeCardAddToList,
+  RecipeListAdditionViewModel,
+} from "../models/recipe-list-addition.interfaces";
 import type { RecipeListAdditionState, RecipeListAdditionTarget } from "../models/recipe-list-addition.types";
 import { hasAddedRecipe, rememberAddedRecipe } from "../services/added-recipes.storage";
 import { addRecipeToList } from "../services/recipes.service";
@@ -57,7 +62,7 @@ export const useRecipeListAddition = (): RecipeListAdditionViewModel => {
     setState(IDLE_STATE);
   };
 
-  const getFeedback = (): RecipeListAdditionViewModel["feedback"] => {
+  const getFeedback = (): NullableRef<RecipeAddToListFeedback> => {
     if (state.status === RECIPE_LIST_ADDITION_STATUS.ADDED) {
       return { isError: false, messages: toAddToListSummaryText(state.response), recipeId: state.recipe.id };
     }
@@ -67,12 +72,20 @@ export const useRecipeListAddition = (): RecipeListAdditionViewModel => {
     return null;
   };
 
+  // Se calcula una vez por render y cada tarjeta se queda con lo suyo.
+  const feedback = getFeedback();
+  const addingRecipeId = isAdding ? state.recipe.id : null;
+
+  const getRecipeAddToList = (recipeId: string): RecipeCardAddToList => ({
+    feedback: feedback?.recipeId === recipeId ? feedback : null,
+    isAdding: addingRecipeId === recipeId,
+    isDisabled: isAdding,
+  });
+
   const isConfirmingRepeat = state.status === RECIPE_LIST_ADDITION_STATUS.CONFIRMING_REPEAT;
 
   return {
-    addingRecipeId: isAdding ? state.recipe.id : null,
-    feedback: getFeedback(),
-    isAdding,
+    getRecipeAddToList,
     isRepeatDialogOpen: isConfirmingRepeat,
     onAddRequest,
     onRepeatCancel,
