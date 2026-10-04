@@ -31,6 +31,7 @@ export const RECIPES_DB = {
   EDITOR_SELECT:
     "id, name, base_servings, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
   RPC: {
+    ADD_RECIPE_TO_GENERAL_LIST: "add_recipe_to_general_list",
     SAVE_RECIPE: "save_recipe",
   },
   TABLE: {
@@ -120,6 +121,10 @@ export const RECIPE_ROUTE = {
   CATALOG: RECIPES_BASE_PATH,
   EDIT_SEGMENT: "editar",
   NEW: `${RECIPES_BASE_PATH}/nueva`,
+  // Ruta de la lista general (app/lista/), para el link "Ver lista" de SCRUM-97.
+  // No hay una constante de rutas compartida: se promueve a constants/ cuando
+  // otra feature también la necesite.
+  SHOPPING_LIST: "/lista",
 } as const;
 
 export const RECIPE_FORM_ERROR = {
@@ -200,4 +205,38 @@ export const RECIPE_DELETE_TEXT = {
   ERROR: "No se pudo eliminar la receta. Intenta de nuevo.",
   IRREVERSIBLE_NOTICE: "Se borra con todos sus ingredientes y no se puede deshacer.",
   TRIGGER: "Eliminar",
+} as const;
+
+// Estados de agregar una receta a la lista (RecipeListAdditionState en
+// models/recipe-list-addition.types.ts).
+export const RECIPE_LIST_ADDITION_STATUS = {
+  ADDED: "added",
+  ADDING: "adding",
+  CONFIRMING_REPEAT: "confirmingRepeat",
+  FAILED: "failed",
+  IDLE: "idle",
+} as const;
+
+export const RECIPE_ADD_TO_LIST_TEXT = {
+  ADDING: "Agregando…",
+  ALREADY_COVERED: "Tu lista ya tenía lo necesario para esta receta.",
+  CANCEL: "Cancelar",
+  ERROR: "No se pudo agregar la receta a tu lista. Intenta de nuevo.",
+  MISSING_PREFIX: "Te falta comprar:",
+  NOT_FOUND: "No encontramos esa receta.",
+  REPEAT_CONFIRM: "Agregar otra vez",
+  REPEAT_DIALOG_TITLE: "¿Agregar otra vez a tu lista?",
+  REPEAT_NOTICE: "Ya agregaste esta receta a tu lista. Si la agregas otra vez, se vuelven a sumar sus ingredientes.",
+  SKIPPED_PREFIX: "No se pudieron agregar:",
+  // Separa los productos dentro de "Te falta comprar: …" y "No se pudieron agregar: …".
+  SUMMARY_SEPARATOR: ", ",
+  SUCCESS: "Agregaste la receta a tu lista.",
+  TRIGGER: "Agregar receta a lista",
+  VIEW_LIST: "Ver lista",
+} as const;
+
+// Recetas ya agregadas desde este navegador (regla 27 de la SPEC). Con prefijo
+// de la app: localStorage es compartido por todo el dominio.
+export const RECIPE_ADDED_STORAGE = {
+  KEY: "tacha.recipes.addedToList",
 } as const;
