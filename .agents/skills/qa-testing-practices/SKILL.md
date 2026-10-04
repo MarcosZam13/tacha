@@ -98,6 +98,6 @@ Qué significa "terminamos de probar" (ej. todos los casos críticos/altos pasan
 
 1. Identificar la historia de Jira primero: todo caso y todo bug se amarra a una.
 2. Escribir funcional + negativo + límite antes de decir que la cobertura está completa.
-3. Si un flujo es visible para el usuario, preguntarse si además del test unitario necesita una prueba de punta a punta.
+3. Si un flujo es visible para el usuario, preguntarse si además del test unitario necesita una prueba de punta a punta. Si la necesita, cómo se escribe (`E2E.md` de la feature, tests en `e2e/`, IDs `E2E-<FEATURE>-nn` en el nombre del test) y cómo se diagnostica una falla es de [playwright-e2e](../playwright-e2e/SKILL.md); no se repite acá. Para QA alcanza con correr lo que tocó el PR: `npx playwright test e2e/features/<feature> --project=chromium`. Si un E2E encontró el bug, el nombre del test (con su ID) y la traza (`npx playwright show-trace ...`) van como evidencia, y los pasos manuales igual se escriben.
 4. Al pasar un PR a `waiting qa`, la sección "How should this be manually tested?" del PR ya tiene que traer los pasos manuales.
 5. Para hacerle QA a un PR ajeno (traer la rama, correrlo, veredicto con label + Jira, volver a la rama propia), seguir el paso a paso de [CONTRIBUTING.md §5.1](../../../CONTRIBUTING.md#51-cómo-hacerle-qa-a-un-pr-de-otra-persona). Quien hace QA prueba y reporta; nunca commitea en la rama del autor.
