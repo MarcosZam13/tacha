@@ -85,6 +85,22 @@ export const changeItemQuantity = async (
 };
 
 /**
+ * Borra un item de la lista general. Si ya no existe (otra pestaña lo
+ * borró) o no es del usuario, RLS no lo ve: se borran 0 filas sin error, y se
+ * trata igual que un borrado correcto. Para quien lo pidió el producto ya no
+ * está, y así no se revela si existe un item ajeno.
+ */
+export const deleteListItem = async (itemId: string): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient()
+    .from(SHOPPING_LIST_DB.TABLE.LIST_ITEMS)
+    .delete()
+    .eq("id", itemId);
+  if (error) throw error;
+};
+
+/**
  * Marcas de la variante y el último precio de cada marca en cada tienda, en
  * una sola petición. No pide sesión: como la búsqueda, lee catálogo público.
  * Los precios vienen de una vista, y la base no garantiza que sus columnas
