@@ -146,3 +146,76 @@ Intento con una cuenta bloqueada → `signInWithPassword` en la Edge Function de
 | "Cuenta inactiva" fuera de alcance | Inventar un estado de inactividad | Supabase Auth no lo tiene; modelarlo exige una tabla de perfil con estado de cuenta, que es una decisión de producto (documento del proyecto) y no de esta historia |
 | Los mensajes solo informan, sin enlaces de reenvío ni soporte | Botón "reenviar correo" en el login | La HU-24 pide explicar por qué falló el login; el reenvío ya existe en `/registro` y agregarlo acá amplía el alcance |
 | Texto de cuenta bloqueada sin canal de contacto específico | Poner un correo o enlace de soporte | No existe todavía un canal de soporte definido (hoy solo hay el Instagram del pie de página); inventar uno sería contenido falso |
+
+## SCRUM-48: aviso de contraseña débil en el login
+
+### Archivos
+
+**Parte 1: promover a la raíz el código de fortaleza de contraseña** (login es el segundo consumidor, `project-structure`). Es un movimiento sin cambio de comportamiento; `registro-manual` solo cambia sus imports.
+
+```
+constants/password.constants.ts       PASSWORD_RULE(S), PASSWORD_PATTERN, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENT_MESSAGE,
+                                      PASSWORD_STRENGTH_LEVEL/THRESHOLD/LABEL y PASSWORD_LABEL (+ barrel constants/index.ts)
+types/password.types.ts               PasswordStrength
+utils/password.utils.ts               evaluatePasswordStrength
+components/password-strength-meter/
+  PasswordStrengthMeter.tsx           el medidor de la barra (solo presentación)
+  models/PasswordStrengthMeterProps.interface.ts
+
+features/registro-manual/             se borran sus copias y se actualizan los imports de:
+  constants/registro.constants.ts · utils/validateRegistroForm.ts · hooks/useRegistroManualViewModel.ts
+  models/RegistroManualViewModel.interface.ts · RegistroManual.tsx
+```
+
+**Parte 2: el aviso y el cambio de contraseña en el login**
+
+```
+features/login/
+  Login.tsx                            elige entre LoginForm y WeakPasswordFlow según la fase (solo presentación)
+  components/
+    WeakPasswordFlow.tsx               decide entre aviso, formulario y confirmación según el estado (solo presentación)
+    WeakPasswordNotice.tsx             título, explicación y los botones "Cambiar contraseña" / "Ahora no"
+    ChangePasswordForm.tsx             nueva + repetir (con PasswordInput), medidor, guardar y volver
+    PasswordChangedNotice.tsx          confirmación con "Continuar"
+    FocusedHeading.tsx                 título que recibe el foco al aparecer (lo usan los tres pasos)
+    LoginForm.tsx                      formulario de inicio de sesión (extraído de Login.tsx)
+    models/                            props de los minis componentes (WeakPasswordFlow, WeakPasswordNotice,
+                                       PasswordChangedNotice, ChangePasswordForm, FocusedHeading, LoginForm)
+  hooks/
+    useLoginViewModel.ts               + usa getStatusAfterLogin, limpia la contraseña y expone isWeakPassword / handleContinue
+    useChangePasswordViewModel.ts      estado del cambio (notice | form | saving | done), valores, errores y envío
+    useFocusHeadingOnMount.ts          ref de un título que recibe el foco al montarse (accesibilidad)
+  models/
+    ChangePasswordFormValues.interface.ts · ChangePasswordViewModel.interface.ts
+  services/
+    password.service.ts                updateUserPassword(): auth.updateUser, devuelve un resultado
+  utils/
+    validateChangePasswordForm.ts      validación pura: obligatoria, largo, coincidencia y nivel mínimo
+    getStatusAfterLogin.ts             resultado del login + contraseña → estado (error, éxito o contraseña débil)
+  constants/
+    login.constants.ts                 + textos, mensajes, resultados, estados y códigos de error de Supabase
+```
+
+Sin tablas, RLS, RPC ni Edge Functions nuevas.
+
+### Flujo
+
+Escribo una contraseña débil e inicio sesión → `submitLogin` en `useLoginViewModel.ts` recibe `SUCCESS` del servicio → `getStatusAfterLogin` evalúa `values.password` con `evaluatePasswordStrength` (`utils/password.utils.ts`) → nivel débil → fase `weak-password` (y la contraseña escrita se borra del estado) en lugar de `router.push` → `Login.tsx` pinta `WeakPasswordFlow` → "Cambiar contraseña" → `useChangePasswordViewModel` pasa a `form` → escribo la nueva (el medidor reacciona) → guardar → `validateChangePasswordForm` → `updateUserPassword` (`password.service.ts`) → `auth.updateUser` → resultado → `done` → "Continuar" lleva a la app. "Ahora no" va directo a la app.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Evaluar la fortaleza en el cliente, después de un login exitoso | Evaluarla en la Edge Function y devolver una bandera | Es una ayuda al usuario, no una barrera: quien la salte solo evita el aviso. Hacerlo en el servidor obligaría a mover la lógica de reglas a Deno y duplicarla, con la contraseña viajando por más código |
+| Evaluar solo si el login fue exitoso | Evaluar al escribir, antes de enviar | Evaluar antes revelaría la fortaleza de contraseñas de un intento fallido y mostraría el aviso a quien no entró |
+| Promover el código de fortaleza a la raíz (`constants/`, `types/`, `utils/`, `components/`) | Importarlo desde `registro-manual` | Login es el segundo consumidor real; una feature no debe depender de los archivos internos de otra. Se hace igual que con el correo y con el buscador de productos (SCRUM-120) |
+| Mover sin cambiar comportamiento, en una tarea aparte | Aprovechar para refactorizar el registro | Si el registro cambia de comportamiento junto con la mudanza, no se sabe si un fallo es de la mudanza o del cambio; se valida el registro igual que antes |
+| Aviso no bloqueante con "Ahora no" | Obligar a cambiar la contraseña | La HU pide "ofrecer"; forzar el cambio sería una política de seguridad que nadie definió |
+| El aviso reaparece en cada login débil | Recordar que el usuario lo rechazó (localStorage o base de datos) | Guardar la decisión necesita almacenamiento y una política (¿cuánto dura?); sin eso, el costo es solo ver el aviso otra vez |
+| La nueva contraseña debe alcanzar el nivel intermedio | Aceptar cualquiera | Cambiar una contraseña débil por otra débil no cumple el propósito del aviso |
+| `auth.updateUser` desde el cliente | Edge Function para cambiar la contraseña | Supabase ya autoriza el cambio con la sesión del usuario; una función nueva sería código y despliegue sin ganar seguridad |
+| No pedir la contraseña actual | Pedirla de nuevo | Acaba de escribirla para iniciar sesión; pedirla otra vez es fricción sin ganancia |
+| Hook propio para el cambio (`useChangePasswordViewModel`) | Meterlo en `useLoginViewModel` | El ViewModel del login ya maneja el envío, el reCAPTCHA y los errores; sumarle un segundo formulario lo convierte en un god ViewModel |
+| Unión de estados `notice | form | saving | done` | Booleanos `isChanging`, `isSaving`, `isDone` | Tres booleanos admiten combinaciones imposibles (guardando y terminado a la vez); la unión no |
+| "Contraseña vencida" fuera de alcance | Inventar una fecha de vencimiento | Supabase Auth no la lleva; exigiría una tabla de perfil con una fecha y una política de duración, que son decisiones de producto |
+| Reusar `PasswordInput` (HU-23) para los dos campos nuevos | Un campo nuevo sin ojo | Ya existe, y el usuario escribe una contraseña nueva: es cuando más ayuda verla |

@@ -36,6 +36,28 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 5. Verificar la nota del SPEC §15 con un usuario baneado y otro sin verificar, cada uno con contraseña incorrecta y correcta. Resultado: sin verificar solo se revela con la contraseña correcta; baneado se revela con cualquier contraseña (limitación aceptada, documentada en §15 y en el plan).
 - [ ] 6. Validar los casos 16 a 21 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
-## SCRUM-48, 49
+## SCRUM-48: aviso de contraseña débil en el login
 
-Se agregan cuando cada historia se empiece.
+**Parte 1: promover el código de fortaleza (sin cambiar el comportamiento del registro)**
+
+- [x] 1. `constants/password.constants.ts` con las constantes de fortaleza movidas desde `registro.constants.ts`, y su export en `constants/index.ts`.
+- [x] 2. `types/password.types.ts` con `PasswordStrength`.
+- [x] 3. `utils/password.utils.ts` con `evaluatePasswordStrength`.
+- [x] 4. `components/password-strength-meter/` con el medidor y su modelo de props.
+- [x] 5. Actualizar los imports de `registro-manual` y borrar las copias viejas.
+- [x] 6. Validar que el registro funciona igual (medidor, requisitos, coincidencia de contraseñas); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+**Parte 2: el aviso y el cambio de contraseña**
+
+- [x] 7. Constantes del login: textos, mensajes de error, resultados del cambio, estados y códigos de Supabase (`constants/login.constants.ts`).
+- [x] 8. Modelos: valores y errores del formulario, retorno del ViewModel y props de los minis componentes.
+- [x] 9. Validación pura (`utils/validateChangePasswordForm.ts`) y `utils/getStatusAfterLogin.ts`.
+- [x] 10. Servicio (`services/password.service.ts`).
+- [x] 11. ViewModel del cambio (`hooks/useChangePasswordViewModel.ts`) y `hooks/useFocusHeadingOnMount.ts`.
+- [x] 12. `useLoginViewModel.ts`: evaluar la contraseña tras un login exitoso y fijar la fase `weak-password`.
+- [x] 13. Componentes: `FocusedHeading`, `LoginForm`, `WeakPasswordNotice`, `ChangePasswordForm`, `PasswordChangedNotice` y `WeakPasswordFlow`.
+- [x] 14. `Login.tsx` muestra `WeakPasswordFlow` cuando la fase es `weak-password`.
+- [x] 15. Preparar en Supabase una cuenta verificada con contraseña débil (por ejemplo `12345678`) para probar.
+- [x] 16. Validar los casos 22 a 30 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+El guard de sesión (SCRUM-49) tiene sus propias tareas en `features/session-guard/specs/tasks.md`.

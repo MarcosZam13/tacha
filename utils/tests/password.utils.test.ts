@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  PASSWORD_MIN_LENGTH,
   PASSWORD_RULE,
   PASSWORD_RULES,
   PASSWORD_STRENGTH_LEVEL,
-  REGISTRO_PASSWORD_MIN_LENGTH,
-} from "../constants/registro.constants";
-import { evaluatePasswordStrength } from "../utils/evaluatePasswordStrength";
+} from "@/constants";
+import { evaluatePasswordStrength } from "../password.utils";
 
 describe("evaluatePasswordStrength", () => {
   it("rates a password that meets every rule as strong", () => {
@@ -47,8 +47,8 @@ describe("evaluatePasswordStrength", () => {
   });
 
   it("requires exactly the minimum length, not one more", () => {
-    const atMinimum = "a".repeat(REGISTRO_PASSWORD_MIN_LENGTH);
-    const belowMinimum = "a".repeat(REGISTRO_PASSWORD_MIN_LENGTH - 1);
+    const atMinimum = "a".repeat(PASSWORD_MIN_LENGTH);
+    const belowMinimum = "a".repeat(PASSWORD_MIN_LENGTH - 1);
 
     expect(evaluatePasswordStrength(atMinimum).missingRules).not.toContain(PASSWORD_RULE.MIN_LENGTH);
     expect(evaluatePasswordStrength(belowMinimum).missingRules).toContain(PASSWORD_RULE.MIN_LENGTH);

@@ -1,4 +1,4 @@
-import type { PasswordRuleType, PasswordStrengthLevelType } from "../constants/registro.constants";
+import type { PasswordRuleType, PasswordStrengthLevelType } from "@/constants";
 
 export interface PasswordStrength {
   level: PasswordStrengthLevelType;

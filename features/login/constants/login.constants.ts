@@ -1,3 +1,4 @@
+import { PASSWORD_MIN_LENGTH } from "@/constants";
 import type { NullableUndefined } from "@/types/nullable.types";
 
 export const LOGIN_FIELD = {
@@ -36,6 +37,7 @@ export const LOGIN_SUBMIT_STATUS = {
   IDLE: "idle",
   SUBMITTING: "submitting",
   SUCCESS: "success",
+  WEAK_PASSWORD: "weak-password",
 } as const;
 
 export type LoginSubmitStatusType =
@@ -116,3 +118,94 @@ export const RECAPTCHA = {
   SCRIPT_ID: "google-recaptcha-script",
   SCRIPT_URL: "https://www.google.com/recaptcha/api.js?render=explicit",
 } as const;
+
+// --- Cambio de contraseña tras un login con contraseña débil ---
+
+// Pasos del cambio de contraseña tras un login con contraseña débil.
+export const CHANGE_PASSWORD_STEP = {
+  DONE: "done",
+  FORM: "form",
+  NOTICE: "notice",
+  SAVING: "saving",
+} as const;
+
+export type ChangePasswordStepType =
+  (typeof CHANGE_PASSWORD_STEP)[keyof typeof CHANGE_PASSWORD_STEP];
+
+// Valores del atributo `autocomplete` de los campos de contraseña: ayudan a los gestores de contraseñas.
+export const AUTOCOMPLETE = {
+  CURRENT_PASSWORD: "current-password",
+  NEW_PASSWORD: "new-password",
+} as const;
+
+export type AutocompleteType = (typeof AUTOCOMPLETE)[keyof typeof AUTOCOMPLETE];
+
+export const CHANGE_PASSWORD_FIELD = {
+  CONFIRM_PASSWORD: "confirmPassword",
+  NEW_PASSWORD: "newPassword",
+} as const;
+
+export type ChangePasswordFieldType =
+  (typeof CHANGE_PASSWORD_FIELD)[keyof typeof CHANGE_PASSWORD_FIELD];
+
+export const CHANGE_PASSWORD_LABEL = {
+  BACK: "Volver",
+  CHANGE: "Cambiar contraseña",
+  CONFIRM_PASSWORD: "Repetir nueva contraseña",
+  CONTINUE: "Continuar",
+  DONE_MESSAGE: "Tu contraseña se actualizó correctamente.",
+  DONE_TITLE: "Contraseña actualizada",
+  FORM_TITLE: "Nueva contraseña",
+  NEW_PASSWORD: "Nueva contraseña",
+  NOTICE_MESSAGE:
+    "Tu contraseña es fácil de adivinar. Te recomendamos cambiarla por una más segura.",
+  NOTICE_TITLE: "Tu contraseña es débil",
+  NOT_NOW: "Ahora no",
+  SAVE: "Guardar contraseña",
+  SAVING: "Guardando...",
+} as const;
+
+// PASSWORD_REQUIRED, PASSWORD_TOO_SHORT, PASSWORD_TOO_WEAK y CONFIRM_REQUIRED no se muestran: el medidor
+// lista los requisitos y el botón de guardar queda deshabilitado. La validación pura los usa para decir qué falla.
+export const CHANGE_PASSWORD_ERROR_MESSAGE = {
+  CONFIRM_REQUIRED: "Repetí la nueva contraseña.",
+  PASSWORDS_MISMATCH: "Las contraseñas no coinciden.",
+  PASSWORD_REQUIRED: "La nueva contraseña es obligatoria.",
+  PASSWORD_TOO_SHORT: `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`,
+  PASSWORD_TOO_WEAK: "Elegí una contraseña más segura.",
+  REJECTED: "La contraseña no cumple los requisitos de seguridad.",
+  SAME_PASSWORD: "La nueva contraseña debe ser distinta de la actual.",
+  UNEXPECTED: "No pudimos actualizar tu contraseña. Intentá de nuevo en unos minutos.",
+} as const;
+
+// Lo que devuelve el servicio de cambio de contraseña.
+export const PASSWORD_UPDATE_RESULT = {
+  ERROR: "error",
+  REJECTED: "rejected",
+  SAME_PASSWORD: "same-password",
+  SUCCESS: "success",
+} as const;
+
+export type PasswordUpdateResultType =
+  (typeof PASSWORD_UPDATE_RESULT)[keyof typeof PASSWORD_UPDATE_RESULT];
+
+export const PASSWORD_UPDATE_RESULT_MESSAGE: Record<
+  PasswordUpdateResultType,
+  NullableUndefined<string>
+> = {
+  [PASSWORD_UPDATE_RESULT.ERROR]: CHANGE_PASSWORD_ERROR_MESSAGE.UNEXPECTED,
+  [PASSWORD_UPDATE_RESULT.REJECTED]: CHANGE_PASSWORD_ERROR_MESSAGE.REJECTED,
+  [PASSWORD_UPDATE_RESULT.SAME_PASSWORD]: CHANGE_PASSWORD_ERROR_MESSAGE.SAME_PASSWORD,
+  [PASSWORD_UPDATE_RESULT.SUCCESS]: undefined,
+};
+
+// Códigos de error de Supabase Auth al actualizar la contraseña.
+export const SUPABASE_PASSWORD_ERROR_CODE = {
+  SAME_PASSWORD: "same_password",
+  WEAK_PASSWORD: "weak_password",
+} as const;
+
+export const PASSWORD_ERROR_CODE_RESULT: Partial<Record<string, PasswordUpdateResultType>> = {
+  [SUPABASE_PASSWORD_ERROR_CODE.SAME_PASSWORD]: PASSWORD_UPDATE_RESULT.SAME_PASSWORD,
+  [SUPABASE_PASSWORD_ERROR_CODE.WEAK_PASSWORD]: PASSWORD_UPDATE_RESULT.REJECTED,
+};

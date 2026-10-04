@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  REGISTRO_ERROR_MESSAGE,
-  REGISTRO_FIELD,
-  REGISTRO_PASSWORD_MIN_LENGTH,
-} from "../constants/registro.constants";
+import { PASSWORD_MIN_LENGTH } from "@/constants";
+import { REGISTRO_ERROR_MESSAGE, REGISTRO_FIELD } from "../constants/registro.constants";
 import type { RegistroFormValues } from "../models/RegistroFormValues.interface";
 import {
   hasRegistroErrors,
@@ -45,8 +42,8 @@ describe("validateRegistroForm", () => {
   });
 
   it("accepts a password of exactly the minimum length and rejects one character less", () => {
-    const atMinimum = "a".repeat(REGISTRO_PASSWORD_MIN_LENGTH);
-    const belowMinimum = "a".repeat(REGISTRO_PASSWORD_MIN_LENGTH - 1);
+    const atMinimum = "a".repeat(PASSWORD_MIN_LENGTH);
+    const belowMinimum = "a".repeat(PASSWORD_MIN_LENGTH - 1);
 
     const atMinimumErrors = validateRegistroForm({ ...VALID_VALUES, confirmPassword: atMinimum, password: atMinimum });
     const belowMinimumErrors = validateRegistroForm({

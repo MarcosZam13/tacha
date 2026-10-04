@@ -36,6 +36,8 @@ app/registro/page.tsx                  ruta delgada: solo renderiza <RegistroMan
 
 ## SCRUM-39: feedback de seguridad de contraseña
 
+> Movido en SCRUM-48: el medidor vive ahora en `components/password-strength-meter/`, la evaluación en `utils/password.utils.ts`, las reglas en `constants/password.constants.ts` y el tipo en `types/password.types.ts`, porque el login es el segundo consumidor. Las rutas de abajo son las originales.
+
 ```
 features/registro-manual/
   components/PasswordStrengthMeter.tsx   barra + etiqueta + requisitos que faltan (solo presentación)

@@ -16,7 +16,7 @@ import type {
 import type { RegistroFormErrors, RegistroFormValues } from "../models/RegistroFormValues.interface";
 import type { RegistroManualViewModel } from "../models/RegistroManualViewModel.interface";
 import { normalizeEmail } from "@/utils/email.utils";
-import { evaluatePasswordStrength } from "../utils/evaluatePasswordStrength";
+import { evaluatePasswordStrength } from "@/utils/password.utils";
 import {
   hasRegistroErrors,
   isRegistroFormComplete,

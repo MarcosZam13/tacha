@@ -1,8 +1,8 @@
 import type { FormEvent } from "react";
 import type { NullableUndefined } from "@/types/nullable.types";
+import type { PasswordStrength } from "@/types/password.types";
 import type { RegistroFieldType } from "../constants/registro.constants";
 import type { RegistroFormErrors, RegistroFormValues } from "./RegistroFormValues.interface";
-import type { PasswordStrength } from "./PasswordStrength.interface";
 
 export interface RegistroManualViewModel {
   errors: RegistroFormErrors;

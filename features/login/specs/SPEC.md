@@ -1,10 +1,10 @@
 # Feature: Login
 
-Cubre SCRUM-45 (HU-22), SCRUM-46 (HU-23) y SCRUM-47 (HU-24). Las historias SCRUM-48 y 49 agregan su sección a este spec cuando se empiecen.
+Cubre SCRUM-45 (HU-22), SCRUM-46 (HU-23), SCRUM-47 (HU-24) y SCRUM-48 (HU-25). El guard de sesión (SCRUM-49) tiene su propio spec en `features/session-guard/specs/`.
 
 ## 1. Objetivo
 
-Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados. Mientras escribe la contraseña puede mostrarla u ocultarla para comprobar que la ingresó bien. Cuando el intento falla, recibe un mensaje claro que le explica qué pasó: uno genérico si las credenciales son incorrectas (sin revelar cuál campo falló) y uno propio si la cuenta no está verificada o está bloqueada, para poder reintentar o saber a quién acudir.
+Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados. Mientras escribe la contraseña puede mostrarla u ocultarla para comprobar que la ingresó bien. Cuando el intento falla, recibe un mensaje claro que le explica qué pasó: uno genérico si las credenciales son incorrectas (sin revelar cuál campo falló) y uno propio si la cuenta no está verificada o está bloqueada, para poder reintentar o saber a quién acudir. Si inicia sesión con una contraseña débil, el sistema se lo avisa y le ofrece cambiarla en ese mismo momento, sin obligarlo.
 
 ## 2. Alcance
 
@@ -15,6 +15,7 @@ Incluye:
 - Mensaje de error cuando el reCAPTCHA no se completa o falla.
 - Botón con ícono de ojo en el campo de contraseña para alternar entre texto oculto (puntos) y visible (texto plano). Oculto por defecto.
 - Mensaje genérico para credenciales incorrectas y mensajes específicos para cuenta no verificada, cuenta bloqueada y demasiados intentos. Los mensajes son visibles y no bloquean el formulario: el usuario puede corregir y reintentar.
+- Aviso de contraseña débil tras un inicio de sesión exitoso, con la opción de cambiarla desde el mismo flujo (formulario de nueva contraseña con medidor de fortaleza) o de continuar sin cambiarla.
 
 No incluye: ver [14](#14-casos-fuera-de-alcance).
 
@@ -24,6 +25,8 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - password: string
 - captchaToken: string (lo entrega el widget de Google al completarse; vence a los ~2 minutos)
 - Clic o activación por teclado (Enter o espacio) del botón de visibilidad de la contraseña
+- newPassword: string y confirmNewPassword: string (formulario de cambio de contraseña)
+- Decisión del usuario ante el aviso: cambiar la contraseña o continuar ("Ahora no")
 
 ## 4. Salidas
 
@@ -34,6 +37,9 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - Cualquier otro fallo: el mensaje de error inesperado.
 - El formulario queda editable para reintentar; el widget se reinicia tras cada intento fallido.
 - El campo de contraseña cambia su tipo entre `password` y `text`, y el ícono entre ojo y ojo tachado. El valor escrito no se pierde al alternar.
+- Contraseña débil: en lugar de ir directo a la app, se muestra un aviso con "Cambiar contraseña" y "Ahora no".
+- Cambio exitoso: la contraseña queda actualizada, se confirma con un mensaje y el usuario continúa a la app.
+- "Ahora no": el usuario continúa a la app con su contraseña actual.
 
 ## 5. Reglas de negocio
 
@@ -48,12 +54,20 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - El mensaje para credenciales incorrectas no distingue entre correo inexistente y contraseña incorrecta, para no revelar qué correos tienen cuenta.
 - Los mensajes específicos (correo sin verificar, cuenta bloqueada) solo salen cuando el servidor los informa con su código. Un código desconocido se muestra como error inesperado, nunca como credenciales incorrectas.
 - Un mensaje de error no bloquea el formulario: los campos siguen editables, el botón vuelve a habilitarse al completar el reCAPTCHA, y el mensaje anterior se borra al iniciar el siguiente intento.
+- Una contraseña es débil si su nivel de fortaleza es el más bajo (cumple 2 o menos de las 5 reglas: 8 caracteres, minúscula, mayúscula, número y carácter especial). Se usa la misma evaluación que el registro.
+- La fortaleza se evalúa solo después de un inicio de sesión exitoso, con la contraseña que el usuario acaba de escribir. Un intento fallido nunca revela la fortaleza.
+- La contraseña escrita se evalúa en memoria: no se guarda, no se envía a otro lugar ni se escribe en logs.
+- El aviso no bloquea: "Ahora no" siempre está disponible. Reaparece en cada inicio de sesión con contraseña débil mientras no se cambie.
+- La nueva contraseña es obligatoria, tiene al menos el largo mínimo, coincide con su repetición y alcanza al menos el nivel intermedio de fortaleza. El botón de guardar queda deshabilitado mientras no se cumpla.
+- El cambio usa la sesión que acaba de crearse; no se pide la contraseña actual otra vez.
 
 ## 6. Estados
 
 Unión derivada de constantes: `idle | submitting | error | success`. El estado del widget (`token` presente o no) es aparte: se deriva de `captchaToken`, no es un booleano más.
 
 La visibilidad de la contraseña es un estado local del campo (oculta o visible). El tipo del input (`password` o `text`) se deriva de él, no se guarda aparte.
+
+Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso o formulario de cambio) además de `success`. El cambio de contraseña tiene su propia unión derivada de constantes: `notice | form | saving | done`. Ninguno de los dos se modela con booleanos sueltos.
 
 ## 7. Errores
 
@@ -69,6 +83,11 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 | Credenciales incorrectas (correo inexistente o contraseña incorrecta) | "Correo o contraseña incorrectos." (el mismo mensaje en ambos casos) |
 | Edge Function caída o sin red | "No pudimos iniciar sesión. Intentá de nuevo en unos minutos." |
 | El script de Google no carga | Mensaje que explica que el reCAPTCHA no cargó; el botón sigue deshabilitado |
+| Nueva contraseña vacía, corta o débil | El botón de guardar está deshabilitado y el medidor lista los requisitos que faltan |
+| Las contraseñas nuevas no coinciden | "Las contraseñas no coinciden." bajo el campo de repetir |
+| La nueva contraseña es igual a la actual | "La nueva contraseña debe ser distinta de la actual." |
+| Supabase rechaza la nueva contraseña por su propia política | "La contraseña no cumple los requisitos de seguridad." |
+| Fallo de red u otro error al actualizar | "No pudimos actualizar tu contraseña. Intentá de nuevo en unos minutos." y el formulario sigue editable |
 
 ## 8. UI esperada
 
@@ -79,6 +98,9 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Botón "Iniciar sesión" (`Button`), con texto "Ingresando..." mientras envía.
 - Mensaje de error general con `role="alert"`.
 - Enlace a `/registro` para quien no tiene cuenta.
+- Aviso de contraseña débil: título, explicación, botón "Cambiar contraseña" y botón "Ahora no".
+- Formulario de cambio: dos campos de contraseña con el botón de ojo (los mismos de la HU-23), el medidor de fortaleza bajo la nueva contraseña, botón "Guardar contraseña" ("Guardando..." mientras envía), un mensaje de error general y una forma de volver al aviso.
+- Confirmación de éxito con un botón "Continuar".
 
 ## 9. Accesibilidad
 
@@ -88,6 +110,8 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - El botón de visibilidad es un `<button type="button">` alcanzable con Tab, con `aria-label` que dice la acción ("Mostrar contraseña" / "Ocultar contraseña"). No depende solo del ícono.
 - El label de la contraseña se asocia al input con `htmlFor`; el botón queda fuera del `<label>` (un botón dentro de un label es HTML inválido).
 - El error del campo se enlaza al input con `aria-describedby` y `aria-invalid`.
+- Al aparecer el aviso, el foco se mueve a su título para que lectores de pantalla y teclado lo encuentren; el mensaje del aviso y el de la confirmación se marcan como estado (`role="status"`) y los errores del cambio con `role="alert"`. Los campos de contraseña declaran `autocomplete` (`current-password` en el login, `new-password` en el cambio) para los gestores de contraseñas.
+- El medidor ya trae su `role="progressbar"` y escribe el nivel con palabras, no solo con color.
 
 ## 10. Restricciones técnicas
 
@@ -96,6 +120,8 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Sin librería de formularios ni wrapper de reCAPTCHA: el script de Google se carga con un hook propio.
 - Sin librería de íconos: el ojo es un SVG en línea.
 - No se modifica `Input` ni nada de `components/ui/`: `PasswordInput` es un componente local de la feature. Se promueve a `components/ui/` solo cuando una segunda feature lo necesite.
+- El código de fortaleza de contraseña (reglas, constantes, evaluación y medidor) se promueve a la raíz porque login es el segundo consumidor: `constants/`, `types/`, `utils/` y `components/`. `registro-manual` pasa a importarlo de ahí sin cambiar su comportamiento.
+- Sin librerías nuevas y sin Edge Function nueva: el cambio usa `supabase.auth.updateUser`.
 - La secret key de reCAPTCHA vive solo como secret de Supabase, nunca con prefijo `NEXT_PUBLIC_` (security-practices). La site key sí es pública.
 - Skills: component-architecture, constants-standards, clean-code-practices, project-structure, security-practices.
 
@@ -105,6 +131,8 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - `@/components/ui` (`Input`, `Button`).
 - `constants/email.constants.ts` (`EMAIL_PATTERN`) y `utils/email.utils.ts` (`normalizeEmail`): compartidos con `features/registro-manual/` (promovidos desde ahí al tener un segundo consumidor).
 - `supabase/functions/login-with-recaptcha/` (nueva).
+- Código compartido promovido desde `features/registro-manual/`: `constants/password.constants.ts`, `types/password.types.ts`, `utils/password.utils.ts` (`evaluatePasswordStrength`) y `components/password-strength-meter/`.
+- `PasswordInput` y el servicio de Supabase de la HU-22 y HU-23.
 - Variables: `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (cliente) y secret `RECAPTCHA_SECRET_KEY` (Edge Function).
 
 ## 12. Contratos externos
@@ -122,6 +150,8 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 **Google siteverify:** `POST https://www.google.com/recaptcha/api/siteverify` con `secret` y `response`; responde `{ success: boolean }`.
 
 **Supabase Auth:** `signInWithPassword` dentro de la función; el cliente guarda la sesión con `auth.setSession`. No hay tablas ni RLS nuevas.
+
+**Cambio de contraseña (SCRUM-48):** `supabase.auth.updateUser({ password })` desde el cliente, con la sesión recién creada. Errores relevantes de Supabase Auth: `same_password` (igual a la actual) y `weak_password` (incumple la política configurada en el proyecto). No hay tablas ni RLS nuevas.
 
 ## 13. Casos de aceptación
 
@@ -146,6 +176,15 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Caso 19: tras cualquiera de los mensajes de error, los campos siguen editables, el widget se reinicia y, al completarlo de nuevo, se puede reintentar; el mensaje anterior desaparece al iniciar el nuevo intento.
 - Caso 20: el mensaje de error se anuncia con `role="alert"` y no depende solo del color.
 - Caso 21: si el servidor devuelve un código que el cliente no conoce, se muestra el mensaje de error inesperado, no el de credenciales incorrectas.
+- Caso 22: con una contraseña de nivel débil (por ejemplo `12345678`), un inicio de sesión exitoso muestra el aviso de contraseña débil en lugar de ir directo a la app.
+- Caso 23: con una contraseña de nivel intermedio o fuerte, el inicio de sesión va directo a la app, sin aviso.
+- Caso 24: un intento fallido (credenciales incorrectas) nunca muestra el aviso ni revela la fortaleza.
+- Caso 25: "Ahora no" lleva a la app sin cambiar la contraseña; en el siguiente inicio de sesión con la misma contraseña el aviso vuelve a aparecer.
+- Caso 26: "Cambiar contraseña" abre el formulario; mientras la nueva contraseña no cumpla (vacía, corta, débil o distinta de su repetición) el botón de guardar está deshabilitado y el medidor lista lo que falta.
+- Caso 27: con una nueva contraseña válida, se actualiza, se muestra la confirmación y "Continuar" lleva a la app; en el siguiente inicio de sesión con la contraseña nueva ya no aparece el aviso.
+- Caso 28: una nueva contraseña igual a la actual muestra el mensaje de que debe ser distinta y el formulario sigue editable.
+- Caso 29: si el servicio falla (sin red), se muestra el mensaje de error y se puede reintentar.
+- Caso 30: se puede volver del formulario al aviso sin perder la sesión.
 
 ## 14. Casos fuera de alcance
 
@@ -153,7 +192,12 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
 - Recordar la preferencia de visibilidad, o volver a ocultar la contraseña tras un tiempo.
 - Mensaje específico de cuenta "inactiva": Supabase Auth no tiene un estado de inactividad distinto del baneo (un usuario baneado se muestra como bloqueado). Modelarlo exigiría una tabla de perfil con un estado de cuenta, que es una decisión de producto aparte; no se implementa.
 - Enlace o botón para reenviar el correo de verificación desde el login, desbloqueo de la cuenta desde la app, y un canal de soporte propio: los mensajes solo informan.
-- Feedback de contraseña débil o vencida (SCRUM-48).
+- Contraseña vencida: no existe una política de vencimiento ni dónde guardar cuándo se cambió la contraseña (Supabase Auth no lo lleva). Modelarlo exigiría una tabla de perfil con una fecha, que es una decisión de producto aparte; no se implementa.
+- Forzar el cambio (el usuario siempre puede continuar con "Ahora no"), recordar que el usuario rechazó el aviso, o endurecer la política de contraseñas del registro.
+- Evaluar la contraseña en el servidor o bloquear el inicio de sesión por contraseña débil.
+- Pedir la contraseña actual para cambiarla: no se pide porque el usuario acaba de iniciar sesión con ella; la protección ante una sesión robada o un equipo desatendido depende del ajuste "Secure password change" del proyecto de Supabase (ver §15).
+- Proteger el formulario de cambio contra un doble envío muy rápido: el botón se deshabilita al re-renderizar y Supabase aplica su propio rate limit.
+- Pantalla de recuperación y de actualización de contraseña por correo (HU-28 y HU-29): este cambio es solo del flujo del login.
 - Guard de rutas y expiración de sesión (SCRUM-49); cierre por inactividad (HU-27).
 - "¿Olvidaste tu contraseña?" (HU-28), login con Google o Facebook.
 - Límite de intentos propio: lo aplica Supabase (rate limit de Auth).
@@ -166,4 +210,7 @@ La visibilidad de la contraseña es un estado local del campo (oculta o visible)
   - `user_banned` aparece **aunque la contraseña sea incorrecta**: Supabase comprueba el ban antes de la contraseña. Quien conozca un correo puede saber si esa cuenta existe y está bloqueada.
   - Limitación aceptada: lo ve igual cualquiera que llame directo al endpoint de Auth con la anon key, así que dejar de reenviarlo desde la función no cerraría la fuga y sí incumpliría el criterio de la HU-24 (mensaje de cuenta bloqueada). Afecta solo a cuentas baneadas, que un administrador marca a mano; para el resto, correo inexistente y contraseña incorrecta siguen siendo indistinguibles.
 - Quien ya tiene un par correo/contraseña válido puede saber si la cuenta está sin verificar: es inherente a que la HU-24 pida ese mensaje.
+- **Cambio de contraseña y configuración de Supabase:** `auth.updateUser` puede ser llamado por cualquier sesión vigente. Con "Secure password change" activo (Authentication → Providers → Email) Supabase exige un inicio de sesión reciente; con él desactivado, una sesión robada podría cambiar la contraseña. Hay que revisar ese ajuste y, si se activa, mapear el código `reauthentication_needed` en `PASSWORD_ERROR_CODE_RESULT` (hoy saldría como el mensaje de error inesperado).
+- **La política de contraseñas vinculante es la del proyecto de Supabase.** El mínimo de 8 caracteres y el nivel intermedio son reglas del cliente: el servidor puede rechazar algo que el cliente acepta (caso cubierto por `weak_password`) y, al revés, el registro todavía permite contraseñas débiles. Endurecer la política solo en el cliente no protege nada.
+- La evaluación de fortaleza en el cliente es ayuda al usuario, no una barrera de seguridad: quien la salte solo evita el aviso, y no obtiene ningún acceso. Por eso no se repite en el servidor.
 - Mientras el equipo no registre el reCAPTCHA real, se usan las claves de prueba que publica Google (la casilla siempre pasa); se cambian por las reales sin tocar código.
