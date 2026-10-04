@@ -11,6 +11,7 @@ import { EyeIcon } from "./EyeIcon";
  * `Input`, pero el botón va fuera del <label> (un botón dentro de un label es HTML inválido).
  */
 export const PasswordInput = ({
+  autoComplete,
   errorMessage,
   isRequired = false,
   label,
@@ -37,6 +38,7 @@ export const PasswordInput = ({
           id={inputId}
           type={inputType}
           value={value}
+          autoComplete={autoComplete}
           required={isRequired}
           aria-invalid={Boolean(errorMessage)}
           aria-describedby={errorMessage ? errorId : undefined}

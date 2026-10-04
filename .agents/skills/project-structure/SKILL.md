@@ -29,7 +29,7 @@ tacha/
 └── tsconfig.json   "paths": { "@/*": ["./*"] }
 ```
 
-Cuando haga falta, se agregan al mismo nivel: `services/` (llamadas a Supabase/APIs), `hooks/` (hooks usados por 2+ features), `providers/` (providers globales, ej. sesión), `store/`, `utils/`. Crearlas solo cuando exista el primer archivo real, no por adelantado.
+Cuando haga falta, se agregan al mismo nivel: `services/` (llamadas a Supabase/APIs), `hooks/` (hooks usados por 2+ features), `providers/` (providers globales, ej. sesión), `store/`, `utils/`, `e2e/` (pruebas de punta a punta con Playwright, ver `playwright-e2e`). Crearlas solo cuando exista el primer archivo real, no por adelantado.
 
 ### Qué se permite dentro de `app/`
 

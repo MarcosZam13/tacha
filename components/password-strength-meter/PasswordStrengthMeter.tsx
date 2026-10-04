@@ -1,10 +1,10 @@
 import {
+  PASSWORD_LABEL,
   PASSWORD_REQUIREMENT_MESSAGE,
   PASSWORD_STRENGTH_LABEL,
   PASSWORD_STRENGTH_LEVEL,
-  REGISTRO_LABEL,
-} from "../constants/registro.constants";
-import type { PasswordStrengthLevelType } from "../constants/registro.constants";
+} from "@/constants";
+import type { PasswordStrengthLevelType } from "@/constants";
 import type { PasswordStrengthMeterProps } from "./models/PasswordStrengthMeterProps.interface";
 
 const LEVEL_BAR_CLASS_NAME: Record<PasswordStrengthLevelType, string> = {
@@ -28,7 +28,7 @@ export const PasswordStrengthMeter = ({
     <div className="flex flex-col gap-2 font-body text-sm">
       <div
         role="progressbar"
-        aria-label={REGISTRO_LABEL.PASSWORD_STRENGTH}
+        aria-label={PASSWORD_LABEL.STRENGTH}
         aria-valuemin={0}
         aria-valuemax={totalRules}
         aria-valuenow={metCount}
@@ -46,7 +46,7 @@ export const PasswordStrengthMeter = ({
       </div>
 
       <p aria-live="polite" className="font-medium text-tacha-text">
-        {REGISTRO_LABEL.PASSWORD_STRENGTH}: {levelLabel}
+        {PASSWORD_LABEL.STRENGTH}: {levelLabel}
       </p>
 
       {missingRules.length > 0 ? (

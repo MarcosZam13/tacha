@@ -10,8 +10,6 @@ const RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
 const RECAPTCHA_SECRET_ENV = "RECAPTCHA_SECRET_KEY";
 const RECAPTCHA_TIMEOUT_MS = 5000;
 const HTTP_RATE_LIMITED = 429;
-// Código de Supabase Auth cuando la contraseña es correcta pero el correo no se confirmó.
-const SUPABASE_EMAIL_NOT_CONFIRMED = "email_not_confirmed";
 
 // Mismos valores que LOGIN_API_CODE del cliente: Deno no puede importar de features/.
 const ERROR_CODE = {
@@ -22,7 +20,15 @@ const ERROR_CODE = {
   METHOD_NOT_ALLOWED: "method_not_allowed",
   RATE_LIMITED: "rate_limited",
   SERVER_MISCONFIGURED: "server_misconfigured",
+  USER_BANNED: "user_banned",
 } as const;
+
+// Códigos de Supabase Auth que se reenvían tal cual porque el usuario puede entenderlos y actuar.
+// Cualquier otro fallo de credenciales sale como invalid_credentials.
+const FORWARDED_AUTH_CODES: readonly string[] = [
+  ERROR_CODE.EMAIL_NOT_CONFIRMED,
+  ERROR_CODE.USER_BANNED,
+];
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -65,8 +71,8 @@ Deno.serve(async (req) => {
   if (error?.status === HTTP_RATE_LIMITED) {
     return jsonResponse({ code: ERROR_CODE.RATE_LIMITED }, HTTP_RATE_LIMITED);
   }
-  if (error?.code === SUPABASE_EMAIL_NOT_CONFIRMED) {
-    return jsonResponse({ code: ERROR_CODE.EMAIL_NOT_CONFIRMED }, 401);
+  if (error?.code && FORWARDED_AUTH_CODES.includes(error.code)) {
+    return jsonResponse({ code: error.code }, 401);
   }
   if (error || !data.session) return jsonResponse({ code: ERROR_CODE.INVALID_CREDENTIALS }, 401);
 

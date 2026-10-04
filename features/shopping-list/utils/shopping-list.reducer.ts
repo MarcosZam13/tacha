@@ -11,6 +11,7 @@ export const INITIAL_SHOPPING_LIST_STATE: ShoppingListState = {
   loadErrorMessage: null,
   pendingItemIds: [],
   quantityErrorMessage: null,
+  removeErrorMessage: null,
 };
 
 /**
@@ -21,7 +22,8 @@ export const INITIAL_SHOPPING_LIST_STATE: ShoppingListState = {
  * - carga: solo lo borra una carga exitosa (añadir no lo borra: la lista seguiría incompleta);
  * - añadir: lo borra el siguiente añadido exitoso;
  * - cantidad: es uno para toda la lista y lo borra el siguiente cambio de
- *   cantidad exitoso, de cualquier fila (el último intento es el que importa).
+ *   cantidad exitoso, de cualquier fila (el último intento es el que importa);
+ * - eliminar: lo borra el siguiente borrado exitoso.
  */
 export const shoppingListReducer = (
   state: ShoppingListState,
@@ -70,6 +72,18 @@ export const shoppingListReducer = (
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
         quantityErrorMessage: action.errorMessage,
       };
+
+    case SHOPPING_LIST_ACTION.ITEM_REMOVED:
+      // Sale recién cuando la base confirmó el borrado; hasta ahí solo estaba oculto.
+      return {
+        ...state,
+        items: state.items.filter((item) => item.id !== action.itemId),
+        removeErrorMessage: null,
+      };
+
+    case SHOPPING_LIST_ACTION.REMOVE_FAILED:
+      // items no se toca: el item nunca salió de la lista, así que la fila vuelve sola.
+      return { ...state, removeErrorMessage: action.errorMessage };
 
     default:
       return state;
