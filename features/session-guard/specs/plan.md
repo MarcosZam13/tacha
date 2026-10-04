@@ -13,7 +13,7 @@ features/session-guard/
     SessionGuardProps.interface.ts     props: children
     SessionGuardViewModel.interface.ts lo que devuelve el hook
   services/
-    session.service.ts                 getCurrentSession() y subscribeToSessionChanges(): hablan con supabase.auth
+    session.service.ts                 subscribeToSessionChanges(): se suscribe a supabase.auth.onAuthStateChange
   utils/
     getSessionStatus.ts                función pura: sesión → checking | authenticated | unauthenticated
     isPublicRoute.ts                   función pura: ruta → ¿es pública?
@@ -33,7 +33,7 @@ Sin tablas, RLS, RPC ni Edge Functions. La duración del token de acceso es un a
 
 ## Flujo
 
-Navego a `/lista` → `app/layout.tsx` renderiza `SessionGuard` → `useSessionGuardViewModel` mira primero el interruptor (`IS_SESSION_GUARD_ENABLED`): apagado, deja pasar. Encendido, `isPublicRoute(pathname)` decide si la ruta es pública; si lo es, deja pasar. Si no, un efecto llama a `getCurrentSession()` (`session.service.ts` → `auth.getSession()`), y `getSessionStatus(session)` calcula el estado. El mismo efecto se suscribe con `subscribeToSessionChanges()` y recalcula el estado ante cada evento. Con estado `unauthenticated` el hook llama a `router.replace("/login")`. `SessionGuard.tsx` pinta los hijos solo si está permitido, un `Spinner` mientras verifica y nada mientras redirige.
+Navego a `/lista` → `app/layout.tsx` renderiza `SessionGuard` → `useSessionGuardViewModel` mira primero el interruptor (`IS_SESSION_GUARD_ENABLED`): apagado, deja pasar. Encendido, un efecto se suscribe con `subscribeToSessionChanges()` (`session.service.ts` → `auth.onAuthStateChange`) al montarse, en todas las rutas; el primer evento (`INITIAL_SESSION`) trae la sesión actual y `getSessionStatus(session)` calcula el estado, que se recalcula con cada evento posterior. `isPublicRoute(pathname)` decide si la ruta es pública; si lo es, deja pasar sin esperar al estado. Con estado `unauthenticated` el hook llama a `router.replace("/login")`. `SessionGuard.tsx` pinta los hijos solo si está permitido, un `Spinner` mientras verifica y nada mientras redirige.
 
 ## Decisiones
 
@@ -44,7 +44,9 @@ Navego a `/lista` → `app/layout.tsx` renderiza `SessionGuard` → `useSessionG
 | Un solo guard en `app/layout.tsx` con lista pública | Un grupo de rutas `(protegido)/` o un guard por página | Mover o editar las páginas de otras historias arriesga conflictos con sus PRs; un punto único se enciende y apaga en un lugar |
 | Lista de rutas públicas (falla cerrado) | Lista de rutas privadas | Una ruta nueva olvidada en la lista de públicas queda protegida; olvidada en una lista de privadas queda abierta |
 | Una sesión anónima no cuenta | Aceptar cualquier sesión | `ensureSession` crea una anónima para cualquiera; si contara, el guard nunca redirigiría a nadie |
-| `getSession()` | `getUser()` en cada navegación | `getSession()` lee local y es instantáneo; `getUser()` hace una petición por navegación. Lo que protege los datos es RLS, no este guard |
+| Sesión local, entregada por `onAuthStateChange` | `getUser()` en cada navegación | La sesión local es instantánea; `getUser()` hace una petición por navegación. Lo que protege los datos es RLS, no este guard |
+| Solo la suscripción, sin `getSession()` aparte | Leer con `getSession()` y además suscribirse | Dos fuentes de la misma verdad admiten una carrera: si llega `SIGNED_OUT` antes de que `getSession()` responda, la respuesta vieja pisa el estado nuevo. `INITIAL_SESSION` ya trae la sesión actual |
+| `try/catch` en la suscripción y "sin sesión" ante un fallo | Dejar que lance | Si faltan las variables de Supabase, un error dentro del efecto rompe todo el layout, incluidas `/` y `/login`; así solo las rutas privadas se redirigen |
 | Suscripción a `onAuthStateChange` | Comprobar solo al montar | Sin la suscripción, un cierre de sesión en otra pestaña o un token que no se puede renovar dejarían al usuario viendo una pantalla privada sin sesión |
 | Estado como unión `checking \| authenticated \| unauthenticated`, calculado por una función pura | Booleanos `isLoading` e `isLoggedIn` | Dos booleanos admiten la combinación "cargando y sin sesión a la vez"; además la función pura se prueba sin React |
 | `router.replace("/login")` | `router.push` | Con `push`, "atrás" devolvería a la pantalla privada y volvería a redirigir (un bucle) |

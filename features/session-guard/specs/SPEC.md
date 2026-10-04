@@ -39,7 +39,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - Una ruta es pública solo si está en la lista de rutas públicas; el resto es privada. Una ruta nueva olvidada en la lista queda protegida (falla cerrado).
 - Una sesión es válida para entrar solo si existe y su usuario no es anónimo.
 - La sesión se lee del almacenamiento local de Supabase; no se valida contra el servidor en cada navegación. El servidor valida el token en cada petición a la base de datos.
-- Si leer la sesión falla, se trata como sin sesión.
+- Si no se puede crear el cliente de Supabase (faltan las variables), se trata como sin sesión.
 - Una ruta privada nunca muestra su contenido antes de saber que hay sesión real.
 - El token de acceso expira según la configuración del proyecto de Supabase; mientras el token de renovación sea válido se renueva solo y el usuario no es interrumpido. Si ya no se puede renovar, la sesión se pierde y se redirige al login.
 - La redirección usa `replace`: el botón "atrás" no devuelve a la pantalla privada.
@@ -55,7 +55,7 @@ Unión derivada de constantes: `checking | authenticated | unauthenticated`. Se 
 |---|---|
 | No hay sesión en una ruta privada | Redirección a `/login` |
 | La sesión es anónima | Redirección a `/login` |
-| Falla la lectura de la sesión | Se trata como sin sesión: redirección a `/login` |
+| No se puede crear el cliente de Supabase (faltan las variables) | Se trata como sin sesión: las rutas privadas redirigen a `/login` y las públicas siguen funcionando |
 | El token se vence y no se puede renovar | Evento `SIGNED_OUT`: redirección a `/login` |
 | Faltan las variables de Supabase | El cliente lanza su error de configuración; con el guard apagado no se llega a leerlas |
 
@@ -90,8 +90,7 @@ Unión derivada de constantes: `checking | authenticated | unauthenticated`. Se 
 ## 12. Contratos externos
 
 **Supabase Auth, desde el cliente:**
-- `auth.getSession()`: devuelve la sesión guardada en el navegador (renueva el token de acceso si venció y el de renovación es válido) o ninguna.
-- `auth.onAuthStateChange(callback)`: avisa de `SIGNED_IN`, `SIGNED_OUT`, `TOKEN_REFRESHED` e `INITIAL_SESSION`; devuelve una suscripción que hay que cancelar al desmontar.
+- `auth.onAuthStateChange(callback)`: al suscribirse entrega la sesión guardada en el navegador (evento `INITIAL_SESSION`, renovando el token de acceso si venció y el de renovación es válido) y después avisa de `SIGNED_IN`, `SIGNED_OUT` y `TOKEN_REFRESHED`; devuelve una suscripción que hay que cancelar al desmontar. El guard no usa `getSession()`: una lectura aparte podía llegar tarde y pisar un evento más nuevo.
 - La sesión expone `user.is_anonymous`.
 
 **Configuración del proyecto de Supabase (manual):** la duración del token de acceso (JWT expiry, por defecto 3600 segundos). El valor vigente se anota en el PR y en §15.
@@ -136,5 +135,10 @@ Documentación:
 - **El guard es del cliente.** Quien lo salte no obtiene datos: Supabase rechaza un token inválido en cada petición y RLS decide qué filas se ven. Tablas con lectura pública (por ejemplo `household_store_preferences`, deuda ya anotada) seguirían legibles aunque el guard esté encendido.
 - **Cuando el guard esté encendido,** las pantallas privadas exigen iniciar sesión también en desarrollo. Los servicios que llaman a `ensureSession` seguirán funcionando: reciben la sesión real y no crean ninguna anónima.
 - **Cada página pública nueva** (About, términos, recuperar contraseña, etc.) debe agregarse a la lista de rutas públicas, o quedará protegida.
-- **Duración del token:** por defecto el token de acceso dura 3600 segundos y el cliente lo renueva solo con el token de renovación, así que la sesión no se corta cada hora mientras el de renovación sea válido. Una duración máxima total de la sesión o un cierre por inactividad serían ajustes aparte (HU-27). Valor configurado en el proyecto: _a completar al revisar el dashboard_.
-- `getSession()` es suficiente para decidir la experiencia de usuario; `getUser()` (que consulta al servidor) se reservaría para decisiones de seguridad, que aquí toma RLS.
+- **Duración del token:** por defecto el token de acceso dura 3600 segundos y el cliente lo renueva solo con el token de renovación, así que la sesión no se corta cada hora mientras el de renovación sea válido. Una duración máxima total de la sesión o un cierre por inactividad serían ajustes aparte (HU-27). Valor configurado en el proyecto: 3600 segundos. 
+- La sesión que usa el guard sale del almacenamiento local, sin validarla contra el servidor; `getUser()` (que consulta al servidor) se reservaría para decisiones de seguridad, que aquí toma RLS.
+- Con el guard encendido el hook se suscribe a los eventos de sesión en todas las rutas, también en las públicas: así el estado no queda viejo al ir de `/login` a una ruta privada. Las rutas públicas igual se muestran sin esperar a la sesión.
+- **El guard es experiencia de usuario, no la barrera de los datos.** Las políticas de `lists`, `list_items`, `recipes` y `recipe_ingredients` son `to authenticated` y una sesión anónima de Supabase tiene ese rol: un visitante puede llamar `signInAnonymously()` desde la consola y escribir sus propias listas y recetas (ve solo las suyas). La mitigación de fondo es desactivar los inicios de sesión anónimos en el proyecto de Supabase cuando el login real esté activo; como defensa extra, exigir `is_anonymous` falso en las políticas y las RPC. Va en un ticket aparte.
+- **Un valor mal escrito apaga el guard en silencio:** `True`, `1` o un nombre equivocado dan "apagado" sin error, y un despliegue que olvide la variable sale con las pantallas privadas abiertas. El valor esperado en producción (`NEXT_PUBLIC_SESSION_GUARD_ENABLED=true`) va en el checklist del despliegue.
+- **Las rutas privadas no hacen consultas de datos en el servidor** mientras el guard sea del cliente: el árbol que genera el servidor viaja en el payload de la página aunque el guard no lo pinte. Los datos se piden en el navegador, con el token.
+- **Al encender el guard:** `ensureSession` guarda en memoria la sesión que resolvió la primera vez; si alguien tenía una anónima e inicia sesión sin recargar, los servicios pueden seguir usando el id viejo hasta recargar. Se corrige invalidando esa sesión guardada cuando cambie el usuario (en `services/supabase.client.ts`, fuera de esta historia).
