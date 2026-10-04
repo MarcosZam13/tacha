@@ -376,6 +376,8 @@ features/recipes/
   utils/
     toAddRecipeToListResponse.ts       nuevo: jsonb de la RPC → AddRecipeToListResponse
     toAddToListSummaryText.ts          nuevo: resumen → textos de la tarjeta ("Te falta comprar: Leche X (600 ml)")
+    formatRecipeQuantity.ts            nuevo: 0.5 + "g" → "0,5 g"; 1 + "unidad" → "1 unidad"
+    validateRecipeForm.ts              + máximo de 50 ingredientes (mismo tope que save_recipe)
   constants/recipes.constants.ts       + estados, textos, RPC, clave de localStorage
 
 supabase/migrations/013_add_recipe_to_list.sql   tabla + RLS + permisos + RPC
@@ -406,6 +408,11 @@ No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/lista
   5. Registra lo pedido y lo que falta con `insert ... on conflict (...) do update` sumando.
   6. Devuelve `{ added: [...], missing: [{ product_name, quantity, unit }], skipped: [...] }`.
   - Solo `authenticated` puede ejecutarla.
+
+- **Funciones auxiliares** (`security invoker`, solo `authenticated`):
+  - `pick_recipe_variant(producto, unidad, cantidad)`: la regla "la más chica que cubre; si ninguna cubre, la más grande", en un solo lugar para conteo y volumen/peso.
+  - `add_units_to_list_item(lista, variante, unidades)`: suma unidades con el merge de la `004` y devuelve la fila. No abre nada que las políticas de `list_items` no permitan ya.
+- **Tope de 50 ingredientes:** `save_recipe` se redefine con el mismo cuerpo de la `007` más ese control, y la RPC también lo revisa, porque `recipe_ingredients` se puede escribir directo (políticas de `007`) sin pasar por `save_recipe`. Sin tope, una receta con cientos de ingredientes haría cara la RPC (varias consultas por ingrediente, con la lista bloqueada). Un `statement_timeout` dentro de la función no serviría: Postgres arma ese límite al empezar la consulta, no lo cambia a mitad.
 
 **Llamada desde el cliente:** `rpc("add_recipe_to_general_list", { target_recipe_id })` → `toAddRecipeToListResponse()` → `AddRecipeToListResponse`. Con `P0002` el servicio devuelve `null`, igual que `saveRecipe()`.
 
@@ -450,3 +457,6 @@ No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/lista
 - **Sin tests automatizados:** hay un runner en camino (SCRUM-128, PR #36). Lo primero a cubrir: `toAddRecipeToListResponse`, `toAddToListSummaryText` y las transiciones de `useRecipeListAddition`. Las reglas de la RPC se prueban en el SQL Editor con casos fijos (tasks).
 - **El faltante no se recalcula** si después cambian las cantidades de la lista (SPEC regla 23): lo resuelve SCRUM-115.
 - **Households:** la RPC usa la lista general personal (`household_id is null`). Cuando la lista sea del household (PR #41 en adelante), la RPC y las políticas de la tabla nueva siguen el mismo cambio que `add_item_to_general_list`.
+- **Insert y update directos en `list_item_recipe_requirements`** (revisión de seguridad, baja): hoy el usuario puede cambiar a mano lo pedido y lo que falta de **su propia** lista, y eso altera el "disponible" de sus próximos agregados. No afecta a nadie más. Con households, un miembro podría falsear los faltantes de otros: revisarlo ahí (quitar insert/update directos y dejar solo la RPC, pasándola a `security definer` con las validaciones adentro).
+- **Topes acumulados** (revisión de seguridad, baja): agregar la misma receta muchísimas veces puede llevar `quantity_needed` a su tope (10 000 000) o `quantity_requested` al máximo de `integer`, y ese agregado falla. Solo afecta al propio usuario; SCRUM-115 abre el borrado de los registros.
+- **La respuesta de la RPC no se valida en el cliente** (revisión de código y de seguridad, baja): se tipa con el contrato de la `013`, igual que `searchCatalog`. Si la RPC cambia de forma, el error aparece en el adapter y no en el borde; un guard de pocas líneas lo resolvería.

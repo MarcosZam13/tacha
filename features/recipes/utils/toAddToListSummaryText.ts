@@ -1,8 +1,9 @@
-import { RECIPE_ADD_TO_LIST_TEXT, RECIPE_UNIT_LABEL } from "../constants/recipes.constants";
+import { RECIPE_ADD_TO_LIST_TEXT } from "../constants/recipes.constants";
 import type { AddRecipeToListMissingItem, AddRecipeToListResponse } from "../models/recipe-list-addition.interfaces";
+import { formatRecipeQuantity } from "./formatRecipeQuantity";
 
 const toMissingItemText = (item: AddRecipeToListMissingItem): string =>
-  `${item.productName} (${item.quantity} ${RECIPE_UNIT_LABEL[item.unit]})`;
+  `${item.productName} (${formatRecipeQuantity(item.quantity, item.unit)})`;
 
 /**
  * Arma las líneas del resumen que ve la tarjeta después de agregar. Función

@@ -78,7 +78,7 @@ Bloqueado / fuera de esta historia:
 - [x] 10. `docs/documento-proyecto.md`: §4.9.1 (reglas de conteo y de producto que no está en la lista) y §6 (tabla nueva).
 - [x] 11. `npx tsc --noEmit`, `npm run lint` y `npm run build`.
 - [x] 12. Validar en el navegador los casos de §13 de HU-65 y, en el SQL Editor, los registros que quedan en `list_item_recipe_requirements` y la RLS con otra sesión. Depende de la tarea 4.
-- [ ] 13. Revisión con `code-reviewer` y `security-reviewer` (tabla nueva con RLS), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
+- [x] 13. Revisión con `code-reviewer` y `security-reviewer` (tabla nueva con RLS), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
 
 Bloqueado / fuera de esta historia:
 

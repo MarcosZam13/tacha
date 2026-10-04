@@ -10,8 +10,7 @@ export const toAddRecipeToListResponse = (row: AddRecipeToListRow): AddRecipeToL
   addedProductNames: row.added,
   missingItems: row.missing.map((item) => ({
     productName: item.product_name,
-    // jsonb guarda "600.00" o "600" según la escala del numeric; Number los deja iguales.
-    quantity: Number(item.quantity),
+    quantity: item.quantity,
     // La RPC copia quantity_unit del ingrediente, que el check de la base limita a las 3 unidades.
     unit: item.unit as CatalogBaseUnitType,
   })),

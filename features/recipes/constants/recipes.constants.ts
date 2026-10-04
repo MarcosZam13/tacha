@@ -48,11 +48,14 @@ export const POSTGRES_ERROR_CODE = {
   NO_DATA_FOUND: "P0002",
 } as const;
 
-// Espejo de los check de la base (006_create_recipes.sql y 008_harden_recipes.sql):
-// la UI avisa antes de mandar, pero la base es la que garantiza.
+// Espejo de los check de la base (006_create_recipes.sql, 008_harden_recipes.sql
+// y save_recipe en 013_add_recipe_to_list.sql): la UI avisa antes de mandar,
+// pero la base es la que garantiza.
 // QUANTITY_MAX: 100 kg / 100 L / 100 000 unidades; además de ser un tope
 // razonable, es lo que hace que la base rechace NaN e Infinity.
+// INGREDIENTS_MAX: agregar una receta a la lista recorre todos sus ingredientes.
 export const RECIPE_FORM_LIMIT = {
+  INGREDIENTS_MAX: 50,
   NAME_MAX_LENGTH: 120,
   QUANTITY_MAX: 100_000,
   SERVINGS_MAX: 50,
@@ -77,6 +80,13 @@ export const RECIPE_UNIT_LABEL = {
   [CATALOG_BASE_UNIT.GRAMS]: "g",
   [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
   [CATALOG_BASE_UNIT.UNIT]: "unidades",
+} as const satisfies Record<CatalogBaseUnitType, string>;
+
+// Singular de cada unidad, para cantidades de exactamente 1 ("1 unidad", no "1 unidades").
+export const RECIPE_UNIT_SINGULAR_LABEL = {
+  [CATALOG_BASE_UNIT.GRAMS]: "g",
+  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
+  [CATALOG_BASE_UNIT.UNIT]: "unidad",
 } as const satisfies Record<CatalogBaseUnitType, string>;
 
 // Opciones del selector de unidad. ml primero a propósito: es la unidad más
@@ -129,6 +139,7 @@ export const RECIPE_ROUTE = {
 
 export const RECIPE_FORM_ERROR = {
   INGREDIENTS_REQUIRED: "Agrega al menos un ingrediente.",
+  INGREDIENTS_TOO_MANY: `La receta puede tener hasta ${RECIPE_FORM_LIMIT.INGREDIENTS_MAX} ingredientes.`,
   NAME_REQUIRED: "Escribe el nombre de la receta.",
   NAME_TOO_LONG: `El nombre puede tener hasta ${RECIPE_FORM_LIMIT.NAME_MAX_LENGTH} caracteres.`,
   QUANTITY_INVALID: `Escribe una cantidad mayor que 0 y de hasta ${RECIPE_FORM_LIMIT.QUANTITY_MAX}.`,

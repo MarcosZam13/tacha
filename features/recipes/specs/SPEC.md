@@ -106,7 +106,7 @@ Lo que no incluye ninguna de las cuatro está en la [sección 14](#14-casos-fuer
 
 5. Nombre obligatorio (no vale solo espacios), de hasta 120 caracteres.
 6. Porciones base: entero entre 1 y 50.
-7. Al menos un ingrediente.
+7. Entre 1 y 50 ingredientes. El máximo se agregó en SCRUM-97: agregar una receta a la lista recorre todos sus ingredientes en la base.
 8. Cada ingrediente sale del catálogo, nunca como texto libre, y no se repite en la misma receta.
 9. Cantidad mayor que 0 y de hasta 100 000; se acepta coma decimal ("0,5").
 10. Unidad `ml`, `g` o `unidad`: las unidades base del catálogo, para poder sumar contra la lista (SCRUM-97).
@@ -165,7 +165,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 | 94 | Falla de red o de Supabase al cargar | "No se pudieron cargar tus recetas. Intenta de nuevo." No se dice "no tienes recetas" porque no se sabe si es cierto |
 | 95 | Nombre vacío, solo espacios o de más de 120 caracteres | Error bajo el campo |
 | 95 | Porciones vacías, 0, negativas, con decimales o más de 50 | Error bajo el campo |
-| 95 | Receta sin ingredientes | Error en la sección de ingredientes |
+| 95 | Receta sin ingredientes, o con más de 50 | Error en la sección de ingredientes |
 | 95 | Cantidad vacía, 0, negativa, no numérica o mayor a 100 000 | Error bajo la fila del ingrediente |
 | 95 | Producto que ya está en la receta | "Ese producto ya está en la receta."; no se duplica |
 | 95 | Falla al guardar | "No se pudo guardar la receta. Intenta de nuevo." El formulario conserva todo y se puede reintentar |

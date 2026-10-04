@@ -72,17 +72,16 @@ export const useRecipeListAddition = (): RecipeListAdditionViewModel => {
     return null;
   };
 
-  // Se calcula una vez por render y cada tarjeta se queda con lo suyo.
+  // Valores derivados: se calculan una vez por render y cada tarjeta se queda con lo suyo.
   const feedback = getFeedback();
   const addingRecipeId = isAdding ? state.recipe.id : null;
+  const isConfirmingRepeat = state.status === RECIPE_LIST_ADDITION_STATUS.CONFIRMING_REPEAT;
 
   const getRecipeAddToList = (recipeId: string): RecipeCardAddToList => ({
     feedback: feedback?.recipeId === recipeId ? feedback : null,
     isAdding: addingRecipeId === recipeId,
     isDisabled: isAdding,
   });
-
-  const isConfirmingRepeat = state.status === RECIPE_LIST_ADDITION_STATUS.CONFIRMING_REPEAT;
 
   return {
     getRecipeAddToList,
