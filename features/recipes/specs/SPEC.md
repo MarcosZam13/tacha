@@ -310,22 +310,24 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 
 ### HU-65 (SCRUM-97)
 
-- [ ] CA-01: cada receta del catálogo tiene un botón "Agregar receta a lista".
-- [ ] CA-02: un producto que ya está en la lista no se duplica como otra fila: los conteos se suman en su fila, y en volumen o peso lo que hay en la fila cuenta para la receta.
-- [ ] CA-03: un ingrediente de conteo se suma directo hasta cubrir la receta y no deja aviso ("3 cebollas" → +3; "3 huevos" con cartones de 6 y 12 → +1 cartón de 6).
-- [ ] CA-04: un ingrediente de volumen o peso que no alcanza deja registrado su faltante por receta (lista con 1 L, receta de 1800 ml → faltante 800 ml), y el resumen de la tarjeta lo nombra. Mostrarlo bajo el producto en `/lista` es de SCRUM-114.
-- [ ] CA-05: al agregar no se abre ninguna ventana para decidir qué comprar; solo aparece el resumen en la tarjeta.
-- [ ] Volumen o peso que alcanza (lista con 1 L, receta de 800 ml): no se suma nada y no hay faltante.
-- [ ] Dos recetas sobre la misma leche (1 L en la lista, 800 ml cada una): la primera no tiene faltante y la segunda tiene 600 ml.
-- [ ] Producto de volumen o peso que no está en la lista: se agrega 1 unidad de la más chica que cubre, o de la más grande con su faltante si ninguna cubre.
-- [ ] Unidades que no coinciden ("200 g" de un producto en ml): se registra el faltante completo (200 g).
-- [ ] Receta ya agregada desde este navegador: aparece la confirmación; "Agregar otra vez" la agrega de nuevo y "Cancelar" no cambia nada.
-- [ ] Ingrediente sin presentación en el catálogo: el resumen lo nombra y el resto se agrega.
-- [ ] Falla de red: la lista queda igual que antes (nada a medias) y la tarjeta muestra el error.
-- [ ] Receta borrada en otra pestaña: "No encontramos esa receta."
-- [ ] Doble clic en "Agregar receta a lista": una sola petición.
-- [ ] Borrar la receta (SCRUM-96) borra sus registros; las cantidades que ya se habían sumado a la lista quedan.
-- [ ] Otra sesión no puede agregar una receta ajena a su lista ni leer o escribir registros ajenos.
+Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Editor con un script de prueba dentro de una transacción con `rollback` (lo marcado "SQL"; el catálogo real casi no tiene conteos ni productos con varias presentaciones, así que esas reglas se probaron con productos de prueba).
+
+- [x] CA-01: cada receta del catálogo tiene un botón "Agregar receta a lista". (navegador)
+- [x] CA-02: un producto que ya está en la lista no se duplica como otra fila: los conteos se suman en su fila, y en volumen o peso lo que hay en la fila cuenta para la receta. (navegador y SQL)
+- [x] CA-03: un ingrediente de conteo se suma directo hasta cubrir la receta y no deja aviso ("3 cebollas" → +3; "3 huevos" con cartones de 6 y 12 → +1 cartón de 6). (SQL)
+- [x] CA-04: un ingrediente de volumen o peso que no alcanza deja registrado su faltante por receta (lista con 1 L, receta de 1800 ml → faltante 800 ml), y el resumen de la tarjeta lo nombra. Mostrarlo bajo el producto en `/lista` es de SCRUM-114. (navegador: "Te falta comprar: Leche Dos Pinos Pinito - 1000 ml (800 ml)"; SQL: registros)
+- [x] CA-05: al agregar no se abre ninguna ventana para decidir qué comprar; solo aparece el resumen en la tarjeta. (navegador)
+- [x] Volumen o peso que alcanza (lista con 1 L, receta de 800 ml): no se suma nada y no hay faltante. (navegador: "Tu lista ya tenía lo necesario para esta receta."; SQL)
+- [x] Dos recetas sobre la misma leche (1 L en la lista, 800 ml cada una): la primera no tiene faltante y la segunda tiene 600 ml. (SQL)
+- [x] Producto de volumen o peso que no está en la lista: se agrega 1 unidad de la más chica que cubre, o de la más grande con su faltante si ninguna cubre. (navegador y SQL)
+- [x] Unidades que no coinciden ("200 g" de un producto en ml): se registra el faltante completo (200 g). (SQL)
+- [x] Receta ya agregada desde este navegador: aparece la confirmación; "Agregar otra vez" la agrega de nuevo y "Cancelar" no cambia nada. (navegador: cancelar no llamó a la base; confirmar sí)
+- [x] Ingrediente sin presentación en el catálogo: el resumen lo nombra y el resto se agrega. (SQL)
+- [x] Falla de red: la lista queda igual que antes (nada a medias) y la tarjeta muestra el error. (navegador, con la red simulada caída)
+- [x] Receta borrada en otra pestaña: "No encontramos esa receta." (navegador)
+- [x] Doble clic en "Agregar receta a lista": una sola petición. (navegador: 1 llamada a la RPC)
+- [x] Borrar la receta (SCRUM-96) borra sus registros; las cantidades que ya se habían sumado a la lista quedan. (SQL)
+- [x] Otra sesión no puede agregar una receta ajena a su lista ni leer o escribir registros ajenos. (SQL: 0 registros visibles y `P0002`)
 
 ### Todas
 
