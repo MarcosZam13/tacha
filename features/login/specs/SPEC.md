@@ -1,10 +1,10 @@
 # Feature: Login
 
-Cubre SCRUM-45 (HU-22), SCRUM-46 (HU-23) y SCRUM-48 (HU-25). Las historias SCRUM-47 y 49 agregan su sección a este spec cuando se empiecen.
+Cubre SCRUM-45 (HU-22), SCRUM-46 (HU-23), SCRUM-47 (HU-24) y SCRUM-48 (HU-25). El guard de sesión (SCRUM-49) tiene su propio spec en `features/session-guard/specs/`.
 
 ## 1. Objetivo
 
-Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados. Mientras escribe la contraseña puede mostrarla u ocultarla para comprobar que la ingresó bien. Si inicia sesión con una contraseña débil, el sistema se lo avisa y le ofrece cambiarla en ese mismo momento, sin obligarlo.
+Un visitante con cuenta verificada inicia sesión con correo y contraseña, y antes de que el sistema procese el intento debe superar un reCAPTCHA, para proteger la cuenta contra ataques automatizados. Mientras escribe la contraseña puede mostrarla u ocultarla para comprobar que la ingresó bien. Cuando el intento falla, recibe un mensaje claro que le explica qué pasó: uno genérico si las credenciales son incorrectas (sin revelar cuál campo falló) y uno propio si la cuenta no está verificada o está bloqueada, para poder reintentar o saber a quién acudir. Si inicia sesión con una contraseña débil, el sistema se lo avisa y le ofrece cambiarla en ese mismo momento, sin obligarlo.
 
 ## 2. Alcance
 
@@ -14,6 +14,7 @@ Incluye:
 - Inicio de sesión con Supabase Auth y redirección a la app al tener éxito.
 - Mensaje de error cuando el reCAPTCHA no se completa o falla.
 - Botón con ícono de ojo en el campo de contraseña para alternar entre texto oculto (puntos) y visible (texto plano). Oculto por defecto.
+- Mensaje genérico para credenciales incorrectas y mensajes específicos para cuenta no verificada, cuenta bloqueada y demasiados intentos. Los mensajes son visibles y no bloquean el formulario: el usuario puede corregir y reintentar.
 - Aviso de contraseña débil tras un inicio de sesión exitoso, con la opción de cambiarla desde el mismo flujo (formulario de nueva contraseña con medidor de fortaleza) o de continuar sin cambiarla.
 
 No incluye: ver [14](#14-casos-fuera-de-alcance).
@@ -31,7 +32,9 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 
 - Éxito: la sesión queda guardada en el navegador y se redirige a la ruta principal.
 - Error de reCAPTCHA: mensaje propio, sin intentar autenticar.
-- Error de credenciales u otro: un mensaje genérico. Solo se distinguen "correo sin verificar" y "demasiados intentos"; el resto de los mensajes específicos son de SCRUM-47.
+- Error de credenciales: un único mensaje genérico, igual para correo inexistente y contraseña incorrecta.
+- Error con causa conocida: un mensaje propio para "correo sin verificar", "cuenta bloqueada" y "demasiados intentos".
+- Cualquier otro fallo: el mensaje de error inesperado.
 - El formulario queda editable para reintentar; el widget se reinicia tras cada intento fallido.
 - El campo de contraseña cambia su tipo entre `password` y `text`, y el ícono entre ojo y ojo tachado. El valor escrito no se pierde al alternar.
 - Contraseña débil: en lugar de ir directo a la app, se muestra un aviso con "Cambiar contraseña" y "Ahora no".
@@ -48,6 +51,9 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - La contraseña está oculta por defecto y cada vez que se monta la pantalla.
 - Alternar la visibilidad es solo de presentación: no cambia el valor, no valida ni envía nada, y no persiste entre visitas.
 - El botón de visibilidad nunca envía el formulario.
+- El mensaje para credenciales incorrectas no distingue entre correo inexistente y contraseña incorrecta, para no revelar qué correos tienen cuenta.
+- Los mensajes específicos (correo sin verificar, cuenta bloqueada) solo salen cuando el servidor los informa con su código. Un código desconocido se muestra como error inesperado, nunca como credenciales incorrectas.
+- Un mensaje de error no bloquea el formulario: los campos siguen editables, el botón vuelve a habilitarse al completar el reCAPTCHA, y el mensaje anterior se borra al iniciar el siguiente intento.
 - Una contraseña es débil si su nivel de fortaleza es el más bajo (cumple 2 o menos de las 5 reglas: 8 caracteres, minúscula, mayúscula, número y carácter especial). Se usa la misma evaluación que el registro.
 - La fortaleza se evalúa solo después de un inicio de sesión exitoso, con la contraseña que el usuario acaba de escribir. Un intento fallido nunca revela la fortaleza.
 - La contraseña escrita se evalúa en memoria: no se guarda, no se envía a otro lugar ni se escribe en logs.
@@ -72,8 +78,9 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 | reCAPTCHA sin completar | El botón está deshabilitado; si se fuerza el envío, "Confirmá que no sos un robot." |
 | reCAPTCHA rechazado por Google o vencido | "No pudimos validar el reCAPTCHA. Intentá de nuevo." |
 | Correo sin verificar (contraseña correcta) | "Confirmá tu correo antes de iniciar sesión." |
+| Cuenta bloqueada | "Tu cuenta está bloqueada. Contactá al equipo de Tacha." |
 | Demasiados intentos (rate limit de Supabase Auth) | "Demasiados intentos. Esperá un momento e intentá de nuevo." |
-| Credenciales incorrectas u otro fallo de Supabase | Mensaje genérico de credenciales (SCRUM-47 lo refina) |
+| Credenciales incorrectas (correo inexistente o contraseña incorrecta) | "Correo o contraseña incorrectos." (el mismo mensaje en ambos casos) |
 | Edge Function caída o sin red | "No pudimos iniciar sesión. Intentá de nuevo en unos minutos." |
 | El script de Google no carga | Mensaje que explica que el reCAPTCHA no cargó; el botón sigue deshabilitado |
 | Nueva contraseña vacía, corta o débil | El botón de guardar está deshabilitado y el medidor lista los requisitos que faltan |
@@ -134,7 +141,8 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 - 200 `{ session: { access_token, refresh_token, ... } }`
 - 400 `{ code: "captcha_failed" }` si Google no valida el token
 - 401 `{ code: "email_not_confirmed" }` si la contraseña es correcta pero el correo no se verificó
-- 401 `{ code: "invalid_credentials" }` ante cualquier otro fallo de credenciales (SCRUM-47 abrirá los casos restantes, como cuenta bloqueada)
+- 401 `{ code: "user_banned" }` si la cuenta está bloqueada (usuario baneado en Supabase Auth)
+- 401 `{ code: "invalid_credentials" }` ante cualquier otro fallo de credenciales (correo inexistente o contraseña incorrecta)
 - 429 `{ code: "rate_limited" }` si Supabase Auth limita los intentos
 - 400 `{ code: "invalid_request" }` si falta algún campo
 - 500 `{ code: "server_misconfigured" }` si falta el secret de reCAPTCHA
@@ -162,6 +170,12 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 - Caso 13: alternar la visibilidad conserva lo escrito y no envía el formulario.
 - Caso 14: el botón se alcanza con Tab y se activa con Enter o espacio; su `aria-label` cambia según la acción disponible.
 - Caso 15: con la contraseña vacía, el botón de enviar sigue deshabilitado y el ojo funciona igual (alterna aunque no haya texto escrito).
+- Caso 16: con un correo que no existe, se muestra "Correo o contraseña incorrectos.".
+- Caso 17: con un correo que existe y una contraseña incorrecta, se muestra exactamente el mismo mensaje que en el caso 16 (no se puede deducir qué falló).
+- Caso 18: con una cuenta bloqueada se muestra el mensaje de cuenta bloqueada, no el de credenciales incorrectas, con cualquier contraseña (Supabase comprueba el ban antes de la contraseña; ver §15).
+- Caso 19: tras cualquiera de los mensajes de error, los campos siguen editables, el widget se reinicia y, al completarlo de nuevo, se puede reintentar; el mensaje anterior desaparece al iniciar el nuevo intento.
+- Caso 20: el mensaje de error se anuncia con `role="alert"` y no depende solo del color.
+- Caso 21: si el servidor devuelve un código que el cliente no conoce, se muestra el mensaje de error inesperado, no el de credenciales incorrectas.
 - Caso 22: con una contraseña de nivel débil (por ejemplo `12345678`), un inicio de sesión exitoso muestra el aviso de contraseña débil en lugar de ir directo a la app.
 - Caso 23: con una contraseña de nivel intermedio o fuerte, el inicio de sesión va directo a la app, sin aviso.
 - Caso 24: un intento fallido (credenciales incorrectas) nunca muestra el aviso ni revela la fortaleza.
@@ -176,7 +190,8 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 
 - Mostrar/ocultar contraseña en el registro, la recuperación o la actualización de contraseña: la HU-23 es solo del login.
 - Recordar la preferencia de visibilidad, o volver a ocultar la contraseña tras un tiempo.
-- Mensajes específicos de cuenta bloqueada (SCRUM-47). "Inactiva" no existe en Supabase Auth y no se implementa.
+- Mensaje específico de cuenta "inactiva": Supabase Auth no tiene un estado de inactividad distinto del baneo (un usuario baneado se muestra como bloqueado). Modelarlo exigiría una tabla de perfil con un estado de cuenta, que es una decisión de producto aparte; no se implementa.
+- Enlace o botón para reenviar el correo de verificación desde el login, desbloqueo de la cuenta desde la app, y un canal de soporte propio: los mensajes solo informan.
 - Contraseña vencida: no existe una política de vencimiento ni dónde guardar cuándo se cambió la contraseña (Supabase Auth no lo lleva). Modelarlo exigiría una tabla de perfil con una fecha, que es una decisión de producto aparte; no se implementa.
 - Forzar el cambio (el usuario siempre puede continuar con "Ahora no"), recordar que el usuario rechazó el aviso, o endurecer la política de contraseñas del registro.
 - Evaluar la contraseña en el servidor o bloquear el inicio de sesión por contraseña débil.
@@ -190,6 +205,11 @@ Tras un inicio de sesión exitoso el login suma una fase: `weak-password` (aviso
 ## 15. Notas de implementación
 
 - Supabase Auth no integra Google reCAPTCHA de forma nativa (solo hCaptcha y Turnstile). Por eso la verificación va en una Edge Function. **Límite conocido:** quien llame directo al endpoint de Auth de Supabase con la anon key se salta el captcha; cerrarlo requiere el captcha nativo del proyecto.
+- **Enumeración de cuentas, verificado probando contra el proyecto de Supabase (SCRUM-47):**
+  - `email_not_confirmed` solo aparece con la contraseña correcta: con una incorrecta sale el mensaje genérico. No se filtra nada.
+  - `user_banned` aparece **aunque la contraseña sea incorrecta**: Supabase comprueba el ban antes de la contraseña. Quien conozca un correo puede saber si esa cuenta existe y está bloqueada.
+  - Limitación aceptada: lo ve igual cualquiera que llame directo al endpoint de Auth con la anon key, así que dejar de reenviarlo desde la función no cerraría la fuga y sí incumpliría el criterio de la HU-24 (mensaje de cuenta bloqueada). Afecta solo a cuentas baneadas, que un administrador marca a mano; para el resto, correo inexistente y contraseña incorrecta siguen siendo indistinguibles.
+- Quien ya tiene un par correo/contraseña válido puede saber si la cuenta está sin verificar: es inherente a que la HU-24 pida ese mensaje.
 - **Cambio de contraseña y configuración de Supabase:** `auth.updateUser` puede ser llamado por cualquier sesión vigente. Con "Secure password change" activo (Authentication → Providers → Email) Supabase exige un inicio de sesión reciente; con él desactivado, una sesión robada podría cambiar la contraseña. Hay que revisar ese ajuste y, si se activa, mapear el código `reauthentication_needed` en `PASSWORD_ERROR_CODE_RESULT` (hoy saldría como el mensaje de error inesperado).
 - **La política de contraseñas vinculante es la del proyecto de Supabase.** El mínimo de 8 caracteres y el nivel intermedio son reglas del cliente: el servidor puede rechazar algo que el cliente acepta (caso cubierto por `weak_password`) y, al revés, el registro todavía permite contraseñas débiles. Endurecer la política solo en el cliente no protege nada.
 - La evaluación de fortaleza en el cliente es ayuda al usuario, no una barrera de seguridad: quien la salte solo evita el aviso, y no obtiene ningún acceso. Por eso no se repite en el servidor.

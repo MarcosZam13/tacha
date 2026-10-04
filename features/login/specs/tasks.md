@@ -27,6 +27,15 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 6. `Login.tsx` usa `PasswordInput` para el campo de contraseña.
 - [x] 7. Validar los casos 11 a 15 del SPEC en el navegador (incluido el teclado); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-47: mensajes de error en el login
+
+- [x] 1. Constantes: `ACCOUNT_BLOCKED` en `LOGIN_ERROR_MESSAGE`, `LOGIN_RESULT` y `LOGIN_API_CODE`; entradas en `LOGIN_API_CODE_RESULT` y `LOGIN_RESULT_MESSAGE` (`constants/login.constants.ts`).
+- [x] 2. Edge Function: reenviar `user_banned` junto con `email_not_confirmed` y colapsar el resto a `invalid_credentials` (`supabase/functions/login-with-recaptcha/index.ts`).
+- [x] 3. Redesplegar la función: `npx supabase functions deploy login-with-recaptcha --use-api`.
+- [x] 4. Crear en Supabase un usuario de prueba y banearlo (Authentication → Users) para poder probar el caso 18.
+- [x] 5. Verificar la nota del SPEC §15 con un usuario baneado y otro sin verificar, cada uno con contraseña incorrecta y correcta. Resultado: sin verificar solo se revela con la contraseña correcta; baneado se revela con cualquier contraseña (limitación aceptada, documentada en §15 y en el plan).
+- [ ] 6. Validar los casos 16 a 21 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
 ## SCRUM-48: aviso de contraseña débil en el login
 
 **Parte 1: promover el código de fortaleza (sin cambiar el comportamiento del registro)**
@@ -51,6 +60,4 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 15. Preparar en Supabase una cuenta verificada con contraseña débil (por ejemplo `12345678`) para probar.
 - [x] 16. Validar los casos 22 a 30 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
-## SCRUM-47, 49
-
-Se agregan cuando cada historia se empiece.
+El guard de sesión (SCRUM-49) tiene sus propias tareas en `features/session-guard/specs/tasks.md`.

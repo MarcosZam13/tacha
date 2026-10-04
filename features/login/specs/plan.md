@@ -117,6 +117,36 @@ Clic en el ojo → `onClick` de `PasswordInput.tsx` → `toggleVisibility` en `u
 | `type="button"` en el ojo | Dejar el tipo por defecto | Dentro de un `<form>` el tipo por defecto es `submit`: pulsar el ojo enviaría el formulario |
 | Visibilidad no persiste | Guardarla en `localStorage` | La contraseña visible por defecto en la siguiente visita sería un riesgo de seguridad (hombro, pantalla compartida) sin ningún beneficio |
 
+## SCRUM-47: mensajes de error en el login
+
+### Archivos
+
+```
+features/login/
+  constants/login.constants.ts       + ACCOUNT_BLOCKED en LOGIN_ERROR_MESSAGE, LOGIN_RESULT y LOGIN_API_CODE; entradas nuevas en los dos mapas
+supabase/functions/login-with-recaptcha/index.ts   reenvía `user_banned` además de `email_not_confirmed`
+features/login/specs/  SPEC.md · plan.md · tasks.md   casos 16 a 21
+```
+
+Sin archivos nuevos, sin tablas, sin cambios en `login.service.ts`, el ViewModel ni `Login.tsx`: el servicio traduce los códigos con `LOGIN_API_CODE_RESULT` y el ViewModel muestra el mensaje con `LOGIN_RESULT_MESSAGE`. Agregar un caso es solo agregar una entrada a los mapas. Eso es lo que se quiere demostrar.
+
+### Flujo
+
+Intento con una cuenta bloqueada → `signInWithPassword` en la Edge Function devuelve `error.code === "user_banned"` → la función lo reenvía en `401 { code: "user_banned" }` → `readErrorCode` en `login.service.ts` lo lee → `LOGIN_API_CODE_RESULT` lo traduce a `LOGIN_RESULT.ACCOUNT_BLOCKED` → `useLoginViewModel` busca el texto en `LOGIN_RESULT_MESSAGE` y lo guarda como `submitError` → `Login.tsx` lo pinta con `role="alert"`. El formulario sigue editable y el widget se reinicia, como en cualquier otro error.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| La función reenvía una lista corta de códigos de Supabase (`email_not_confirmed`, `user_banned`) y colapsa el resto a `invalid_credentials` | Reenviar todo `error.code` | Lo que no es una causa que el usuario pueda entender o resolver no debe filtrarse (mensajes internos, códigos de infraestructura); una lista cerrada también evita que un código nuevo de Supabase cambie lo que ve el usuario sin que nadie lo decida |
+| Mapas de constantes `LOGIN_API_CODE_RESULT` y `LOGIN_RESULT_MESSAGE` | `switch` en el servicio o el ViewModel | Con `Record<LoginResultType, ...>` TypeScript no compila si se agrega un resultado sin su mensaje; con un `switch` se olvida en silencio |
+| Código desconocido se muestra como error inesperado | Tratarlo como credenciales incorrectas | Decirle al usuario "contraseña incorrecta" cuando el problema es otro lo manda a cambiar una contraseña que está bien |
+| Un solo mensaje para correo inexistente y contraseña incorrecta | Mensajes separados | Dos mensajes distintos revelan qué correos tienen cuenta; con uno solo el atacante no aprende nada |
+| Se reenvía `user_banned` aunque Supabase lo devuelva con cualquier contraseña (limitación aceptada, SPEC §15) | Dejar de reenviarlo y mostrar el genérico a los baneados | Supabase comprueba el ban antes de la contraseña, así que quien llame directo a Auth lo ve igual: ocultarlo en la función no cierra la fuga y sí incumple el criterio de cuenta bloqueada de la HU-24. Afecta solo a cuentas baneadas a mano |
+| "Cuenta inactiva" fuera de alcance | Inventar un estado de inactividad | Supabase Auth no lo tiene; modelarlo exige una tabla de perfil con estado de cuenta, que es una decisión de producto (documento del proyecto) y no de esta historia |
+| Los mensajes solo informan, sin enlaces de reenvío ni soporte | Botón "reenviar correo" en el login | La HU-24 pide explicar por qué falló el login; el reenvío ya existe en `/registro` y agregarlo acá amplía el alcance |
+| Texto de cuenta bloqueada sin canal de contacto específico | Poner un correo o enlace de soporte | No existe todavía un canal de soporte definido (hoy solo hay el Instagram del pie de página); inventar uno sería contenido falso |
+
 ## SCRUM-48: aviso de contraseña débil en el login
 
 ### Archivos
