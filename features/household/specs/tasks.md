@@ -112,6 +112,8 @@ Casos borde y negativos:
 
 ## Pendiente cuando el proyecto tenga runner de tests
 
+El runner (Vitest) ya está en `develop` desde SCRUM-128 (PR #36, 2026-10-03). Estos tests de SCRUM-56 siguen pendientes y no son parte de SCRUM-57.
+
 - [ ] Tests del Facade y de `useHouseholdInvite` (crear household, generar, regenerar, respuestas fuera de orden, fallo con relectura del enlace vigente, expirar, copiar con éxito y con fallo) y Page Object de `Household`, según unit-testing-standards.
 
 ## SCRUM-57: unirse a una familia con el enlace
@@ -122,12 +124,15 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 
 - [x] 1.1 Actualizar `specs/SPEC.md` (subsecciones SCRUM-57 en las 15 secciones), `specs/plan.md` (sección SCRUM-57) y `specs/tasks.md` (esta sección).
 - [ ] 1.2 Revisión y aprobación de la documentación.
-- [ ] 1.3 Commit `docs(SCRUM-57): add join household spec, plan and tasks`, push y abrir el PR hacia `develop` con label `in progress` (la tarjeta de Jira en In Progress).
+- [x] 1.3 Commit `docs(SCRUM-57): add join household spec, plan and tasks` (`2d0340a`), push y abrir el PR hacia `develop` con label `in progress`: PR #43.
+- [x] 1.4 Sincronizar la rama con `develop` (merge `c4f4245`, 2026-10-04): trae Vitest, Playwright, el `SessionGuard` y la migración `012`. `tsc`, lint, `npm test` y build pasan.
+- [x] 1.5 Ajustar SPEC, plan y tasks a lo que trajo `develop`: tests obligatorios, `SessionGuard` mergeado, migración provisional `014`, E2E como decisión pendiente.
+- [ ] 1.6 Revisión y aprobación de 1.5; commit `docs`.
 
 ### Etapa 2 — Migración (commit `feat`)
 
-- [ ] 2.1 Revisar otra vez el número libre en `develop` y en las ramas abiertas (hoy: `012` SCRUM-65, `013` SCRUM-97, renumeración de la `011` anunciada por QA); confirmar el número con la dueña de la historia.
-- [ ] 2.2 Escribir `supabase/migrations/0NN_accept_household_invite.sql` con encabezado (ticket, qué hace, por qué) y la RPC de [plan.md](plan.md#datos-1): cuenta registrada, formato, `for share`, vencimiento, `on conflict (user_id) do nothing`, resultados.
+- [ ] 2.1 Revisar otra vez el número libre en `develop` y en las ramas abiertas (al 2026-10-04: `012` en `develop`, `013` en la rama de SCRUM-97, renumeración de la `011` anunciada por QA sin rama; propuesta provisional `014`); confirmar el número con la dueña de la historia.
+- [ ] 2.2 Escribir `supabase/migrations/014_accept_household_invite.sql` (o el número confirmado en 2.1) con encabezado (ticket, qué hace, por qué) y la RPC de [plan.md](plan.md#datos-1): cuenta registrada, formato, `for share`, vencimiento, `on conflict (user_id) do nothing`, resultados.
 - [ ] 2.3 `revoke execute` de `public` y `anon`, `grant` a `authenticated`; sin políticas ni permisos de tabla nuevos.
 - [ ] 2.4 Revisión del SQL con el subagente `security-reviewer`.
 - [ ] 2.5 Revisión y aprobación de la migración; commit.
@@ -145,29 +150,33 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 - [ ] 4.1 Constantes en `household.constants.ts`: `HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE`, `HOUSEHOLD_JOIN_RESULT` (+ tipo), `HOUSEHOLD_JOIN_STATUS`, `HOUSEHOLD_JOIN_TEXT`, `HOUSEHOLD_JOIN_FORM_ERROR`, patrón del token, `HOUSEHOLD_ROUTE.HOUSEHOLD` y `LOGIN` (claves en orden alfabético, `as const`).
 - [ ] 4.2 `utils/extractInviteToken.ts`: enlace completo (con barra final, query o fragmento) o código solo → token; si no, `null`.
 - [ ] 4.3 `acceptHouseholdInvite(inviteToken)` en `household.service.ts`: llama a la RPC, acota el resultado a `HouseholdJoinResultType` y lanza error ante un valor desconocido.
-- [ ] 4.4 `npx tsc --noEmit` y `npm run lint`; revisión y aprobación; commit.
+- [ ] 4.4 Tests de `extractInviteToken` y de `acceptHouseholdInvite` (cliente de Supabase mockeado), según [plan.md](plan.md#pruebas).
+- [ ] 4.5 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit.
 
 ### Etapa 5 — ViewModel de la página (commit `feat`)
 
 - [ ] 5.1 `hooks/useHouseholdInvitationViewModel.ts`: formato → sesión (`hasRegisteredSession`, nunca `ensureSession`) con bandera de cancelación; `onJoin` con guarda `useRef`; mapa resultado → estado; `failed` ante error.
-- [ ] 5.2 `npx tsc --noEmit` y `npm run lint`; revisión y aprobación; commit.
+- [ ] 5.2 Test de `useHouseholdInvitationViewModel` con `renderHook` y el servicio mockeado: formato inválido, sin cuenta, cada resultado, doble clic y falla.
+- [ ] 5.3 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit.
 
 ### Etapa 6 — Página y ruta (commit `feat`)
 
 - [ ] 6.1 `HouseholdInvitation.tsx`: solo presentación; `role="status"` y `role="alert"` siempre montadas; `Link` a `/login` y a `/household`; el token no se muestra.
 - [ ] 6.2 `app/invitacion/[token]/page.tsx`: ruta delgada (`await params`), metadata con título y `referrer: "no-referrer"`.
-- [ ] 6.3 `npx tsc --noEmit`, `npm run lint` y `npm run build`; revisión y aprobación; commit.
+- [ ] 6.3 `tests/HouseholdInvitation.page.ts` (Page Object, sin `expect`) y `tests/HouseholdInvitation.test.tsx` (jsdom).
+- [ ] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; revisión y aprobación; commit.
 
 ### Etapa 7 — Formulario en `/household` (commit `feat`)
 
 - [ ] 7.1 `hooks/useHouseholdJoinForm.ts`: valor, error, `extractInviteToken`, navegar a `/invitacion/<token>`.
 - [ ] 7.2 `components/HouseholdJoinForm.tsx` y `components/models/HouseholdJoinFormProps.interface.ts` (solo presentación, `Input` y `Button`).
 - [ ] 7.3 `useHouseholdViewModel` compone el hook y entrega `join`; `Household.tsx` muestra el formulario en el estado sin familia, junto a "Crea tu familia".
-- [ ] 7.4 `npx tsc --noEmit`, `npm run lint` y `npm run build`; revisión y aprobación; commit.
+- [ ] 7.4 Test de `useHouseholdJoinForm` (router mockeado): vacío y sin token no navegan; enlace o código navegan a `/invitacion/<token>`.
+- [ ] 7.5 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; revisión y aprobación; commit.
 
 ### Etapa 8 — Pruebas y documentación (commits `test` y `docs`)
 
-- [ ] 8.1 Si SCRUM-128 (Vitest) está en `develop`: tests de `extractInviteToken`, de la traducción de resultados y de `useHouseholdInvitationViewModel` con Page Object; commit `test`. Si no, anotarlos en "Pendiente cuando el proyecto tenga runner de tests".
+- [ ] 8.1 Completar los tests de [plan.md](plan.md#pruebas) que no hayan entrado en las etapas 4 a 7 y comprobar que cada CA de SPEC §13 tenga al menos un test (camino feliz + un caso negativo o límite como mínimo, CONTRIBUTING §7); commit `test` si hace falta. Obligatorio.
 - [ ] 8.2 Pruebas manuales de [SPEC §13](SPEC.md#hu-34-scrum-57) con dos cuentas registradas que entran por `/login`; capturas sin el token.
 - [ ] 8.3 `docs/documento-proyecto.md` §4.1 y §6 ([plan.md](plan.md#documento-del-proyecto)); commit `docs`.
 - [ ] 8.4 Marcar en SPEC §13 y en esta lista solo lo que se validó; commit `docs`.
@@ -175,14 +184,15 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 ### Etapa 9 — Revisiones y QA
 
 - [ ] 9.1 Volver a revisar el número de la migración contra `develop` y renombrar si hace falta.
-- [ ] 9.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm run build` (y `npm test` si existe).
+- [ ] 9.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (lo mismo que corre el CI).
 - [ ] 9.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; corregir en commits `fix(SCRUM-57): …`.
 - [ ] 9.4 Completar la descripción del PR con la plantilla (en inglés), pasos de prueba y evidencia; pasar a `waiting qa` y mover la tarjeta de Jira en el mismo momento.
 - [ ] 9.5 Merge solo con `qa accepted` puesto por otra persona.
 
 ### Coordinación con otras historias
 
-- [ ] SCRUM-49 (session guard, Esteban): acordar qué pasa con `/invitacion/<token>` cuando el guard esté encendido (hoy no está en `PUBLIC_ROUTES` y la lista no admite rutas dinámicas).
+- [ ] SCRUM-49 (`SessionGuard`, Esteban; ya en `develop`, apagado por defecto): acordar qué pasa con `/invitacion/<token>` cuando se encienda (no está en `PUBLIC_ROUTES` y la lista no admite rutas dinámicas). Propuesta en [plan.md](plan.md#riesgos-y-deuda-conocida).
+- [ ] E2E (Playwright, SCRUM-129): decidir con el equipo si SCRUM-57 lleva E2E; hoy necesitaría cuentas registradas de prueba en la base compartida. Propuesta en [plan.md](plan.md#pruebas).
 - [ ] SCRUM-45 (login, Esteban): proponer el retorno al enlace después del login como mejora aparte.
 - [ ] QA: confirmar el número final de la migración cuando se resuelva la renumeración de la `011`.
 

@@ -282,6 +282,7 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 - La extracción del token es una función pura en `features/household/utils/`, con el patrón de UUID como constante.
 - Sin cambios en el login (SCRUM-45) ni parámetro `next` de retorno.
 - La migración nueva no toca la `011` ni ninguna otra existente.
+- Tests automáticos con Vitest (`npm test`, ya en `develop` desde SCRUM-128), en `features/household/tests/`: como mínimo el camino feliz y un caso negativo o límite (CONTRIBUTING §7), con Page Object para la UI (unit-testing-standards). Detalle en [plan.md](plan.md#pruebas).
 
 ## 11. Dependencias
 
@@ -391,7 +392,8 @@ Casos de cada flujo:
 - [ ] **Formulario de `/household`:** con el enlace completo navega a `/invitacion/<token>`; con solo el código, también; vacío o sin token válido, error en el campo sin navegar.
 - [ ] **Seguridad en la base** (SQL Editor, simulando usuarios, con `rollback`): anónimo y sin sesión rechazados con `42501`; ningún parámetro permite elegir familia, usuario ni rol; `select` directo a `household_invite_links` sigue sin acceso; `insert` directo en `household_members` sigue sin permiso.
 - [ ] El token no aparece en la página ni en la consola.
-- [ ] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
+- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite, según [plan.md](plan.md#pruebas).
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
 
 ## 14. Casos fuera de alcance
 
@@ -425,5 +427,6 @@ Casos de cada flujo:
 - **Cómo se obtuvo la sesión de prueba (SCRUM-56):** cuando se probó (2026-10-01 y 2026-10-02), el login (SCRUM-45) todavía no estaba en la rama de SCRUM-56. Se creó un usuario confirmado en Supabase Auth y su sesión se cargó en el navegador. El login (`/login`) entró con la sincronización del 2026-10-03; probar `/household` entrando por ahí queda pendiente.
 - **Límite de otra historia (detectado el 2026-09-29):** `/registro/verificado` no guardaba la sesión del usuario que verifica su correo. Ya no impide llegar con una cuenta registrada: desde la sincronización del 2026-10-03 existe el login (`/login`, SCRUM-45).
 - **Deuda para HU-34/HU-34c (M1):** si se borra la cuenta del único administrador, su membresía se borra pero la familia y su enlace quedan. Con SCRUM-57, alguien podría unirse a esa familia sin administrador mientras el enlace siga vigente; se resuelve con HU-34c.
-- **Tests automáticos:** el proyecto no tiene runner de tests en `develop`; los casos de SCRUM-56 se validaron a mano. SCRUM-128 (Vitest) está en curso: si llega a `develop` antes de terminar SCRUM-57, se agregan los tests de [plan.md](plan.md#pruebas).
+- **Tests automáticos:** cuando se hizo SCRUM-56 el proyecto no tenía runner de tests, así que sus casos se validaron a mano y sus tests quedaron pendientes. Vitest llegó a `develop` con SCRUM-128 (PR #36) y la Definition of Done ahora exige tests (CONTRIBUTING §7): SCRUM-57 los incluye ([plan.md](plan.md#pruebas)). Los de SCRUM-56 siguen pendientes y no son parte de esta historia.
+- **E2E (Playwright, SCRUM-129):** decisión pendiente para SCRUM-57; ver [plan.md](plan.md#pruebas).
 - **Spec reorganizada en SCRUM-57** con una subsección por historia en cada sección, como `features/recipes/specs/SPEC.md`. El contenido de SCRUM-56 no cambió, solo se ubicó bajo su subsección.

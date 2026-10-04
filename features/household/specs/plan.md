@@ -179,13 +179,15 @@ Cada etapa termina con una revisión y la aprobación explícita antes de seguir
   - accesibilidad: todo el flujo solo con teclado y los anuncios del lector de pantalla;
   - entrar a `/household` con una sesión iniciada en `/login` (SCRUM-45).
 - **El botón deshabilitado no es una garantía:** deshabilitar "Generar enlace de invitación" / "Generar nuevo enlace" durante la generación solo evita clicks repetidos en la UI. La garantía de un solo link por household es el upsert por la PK en la base.
-- **Tests automáticos:** no hay runner en el repo (decisión de equipo). Ver [tasks.md](tasks.md#pendiente-cuando-el-proyecto-tenga-runner-de-tests).
+- **Tests automáticos:** cuando se hizo SCRUM-56 no había runner en el repo. Vitest llegó con SCRUM-128 (PR #36, 2026-10-03), pero los tests de SCRUM-56 siguen pendientes. Ver [tasks.md](tasks.md#pendiente-cuando-el-proyecto-tenga-runner-de-tests).
 - **Enlazar `/household`** desde el Perfil (HU-30), el sidebar y el onboarding cuando existan.
 - **Integración con otras tablas:** FKs de `lists.household_id` y `recipes.household_id`, políticas de miembros en esas tablas, y la política de escritura por membresía en `household_store_preferences`: la migración `009` (SCRUM-123) ya cerró la escritura pública, pero dejó pendiente esa política (`docs/catalogo-scraping/TICKET-seguridad-household-store-preferences.md`). Ya es posible una vez aplicada la migración `011`, pero corresponde a sus historias o dueños: se avisa al equipo.
 
 ## SCRUM-57: unirse a una familia con el enlace
 
 > **Verificado el 2026-10-03** contra `develop` en `1d85109` (con SCRUM-56 mergeada): existen `households`, `household_members` (PK `user_id`) y `household_invite_links` (PK `household_id`, `token uuid unique`), sin políticas ni permisos en la de invitaciones y sin `insert` para el cliente en `household_members`. No existe `app/invitacion/`. `HOUSEHOLD_ROUTE.INVITATION = "/invitacion"` y los enlaces generados apuntan a `/invitacion/<token>`. `/login` (SCRUM-45) guarda la sesión con `auth.setSession` y siempre vuelve a `/`. Migraciones en `develop`: `001` a `011`.
+>
+> **Revisado el 2026-10-04**, con la rama sincronizada con `develop` (`b6aaf68`, merge `c4f4245`): ya están en `develop` Vitest (SCRUM-128, PR #36), Playwright (SCRUM-129, PR #40), el `SessionGuard` (SCRUM-49, PR #42) y la migración `012_delete_list_items.sql` (SCRUM-65, PR #34). Nada de eso tocó `features/household`. Las secciones de abajo ya tienen esos cambios.
 
 ### Archivos
 
@@ -215,8 +217,15 @@ features/household/
                                                HOUSEHOLD_JOIN_STATUS, HOUSEHOLD_JOIN_TEXT, HOUSEHOLD_JOIN_FORM_ERROR,
                                                patrón del token, HOUSEHOLD_ROUTE.HOUSEHOLD y LOGIN
   specs/  SPEC.md · plan.md · tasks.md       actualizados (esta sección)
+  tests/                                     nueva carpeta (ver "Pruebas")
+    extractInviteToken.test.ts               función pura, entorno Node
+    household.service.test.ts                acceptHouseholdInvite con el cliente de Supabase mockeado
+    useHouseholdInvitationViewModel.test.ts  hook con renderHook y el servicio mockeado
+    HouseholdInvitation.page.ts              Page Object de la página de invitación
+    HouseholdInvitation.test.tsx             componente (jsdom) a través del Page Object
+    useHouseholdJoinForm.test.ts             validación del campo y navegación (router mockeado)
 
-supabase/migrations/0NN_accept_household_invite.sql   nueva (número en la sección siguiente)
+supabase/migrations/014_accept_household_invite.sql   nueva; número provisional (ver la sección siguiente)
 types/database.types.ts                     + Functions.accept_household_invite (a mano, verificada contra la base)
 docs/documento-proyecto.md                  §4.1 y §6 (ver "Documento del proyecto")
 ```
@@ -227,10 +236,10 @@ Los tipos de retorno de los hooks se declaran dentro de cada hook, como en `useH
 
 ### Número de la migración
 
-- En `develop` (2026-10-03): `001` a `011`.
-- En ramas abiertas de otras historias: `012_delete_list_items.sql` (SCRUM-65) y `013_add_recipe_to_list.sql` (SCRUM-97).
-- Quien hace QA anunció que va a corregir la numeración de la `011`; todavía no hay rama con ese cambio.
-- **Propuesta provisional: `014_accept_household_invite.sql`.** Se vuelve a revisar `develop` y las ramas abiertas justo antes de crear el archivo (etapa 2) y otra vez antes del merge; si cambió, se renombra el archivo (como pasó con la `011`).
+- En `develop` (revisado el 2026-10-04): `001` a `012`. La `012_delete_list_items.sql` (SCRUM-65) se mergeó en el PR #34.
+- En ramas abiertas de otras historias: `013_add_recipe_to_list.sql` (SCRUM-97). La rama de SCRUM-98 trae la misma `012` que ya está en `develop`.
+- Quien hace QA anunció que va a corregir la numeración de la `011`; al 2026-10-04 todavía no hay rama con ese cambio.
+- **Propuesta provisional: `014_accept_household_invite.sql`** (la `013` la usa SCRUM-97). Se vuelve a revisar `develop` y las ramas abiertas justo antes de crear el archivo (etapa 2) y otra vez antes del merge; si cambió, se renombra el archivo (como pasó con la `011`).
 - El número del archivo no afecta a la base: la función se aplica a mano en el SQL Editor y se llama por su nombre.
 
 ### Datos
@@ -343,19 +352,31 @@ Los UUID y tokens reales que se usen en estas pruebas no se commitean ni se pega
 
 - **Manuales** (con dos cuentas registradas que entran por `/login`): todos los casos de [SPEC §13](SPEC.md#13-casos-de-aceptación), con evidencia sin el token.
 - **Base:** los casos de [Cómo se prueba la RPC](#cómo-se-prueba-la-rpc), con `rollback`.
-- **Automáticas:** `develop` no tiene runner. Si SCRUM-128 (Vitest + Testing Library) se mergea antes de terminar esta historia, se agregan en `features/household/tests/`: `extractInviteToken` (enlace completo, con barra final, query o fragmento, código solo, vacío, basura), la traducción de resultados de la RPC y `useHouseholdInvitationViewModel` (formato inválido, sin cuenta, unirse, doble clic, falla), con Page Object según unit-testing-standards. Si no llega, quedan en "Pendiente cuando el proyecto tenga runner de tests".
-- **E2E (SCRUM-129, Playwright):** fuera de esta historia salvo que se mergee antes y el equipo lo pida.
+- **Automáticas (obligatorias):** Vitest está en `develop` desde SCRUM-128 y la Definition of Done exige tests del camino feliz y de al menos un caso negativo o límite (CONTRIBUTING §7); el CI corre `npm test` en cada PR. Van en `features/household/tests/` (unit-testing-standards §2), sin red real: el cliente de Supabase y el router se mockean (§5). Entorno Node por defecto y `// @vitest-environment jsdom` en la primera línea de los tests de componente.
+
+  | Qué | Archivo | Casos | Cubre |
+  |---|---|---|---|
+  | `extractInviteToken` | `extractInviteToken.test.ts` | enlace completo, con barra final, con query o fragmento, código solo, mayúsculas, vacío, texto sin token, UUID mal formado | CA-01 (pegar), regla 12 |
+  | `acceptHouseholdInvite` | `household.service.test.ts` | cada resultado conocido se devuelve igual; un valor desconocido lanza error; un error de Supabase se propaga | CA-02, CA-03, CA-05 |
+  | `useHouseholdInvitationViewModel` | `useHouseholdInvitationViewModel.test.ts` | formato inválido → `invalid` sin llamar a nada; sin cuenta → `noAccount`; `joined`; `expired`; `in_other_household`; doble clic → una sola llamada; falla → `failed` | CA-01 a CA-05, casos 6 a 8 |
+  | `HouseholdInvitation` | `HouseholdInvitation.page.ts` + `HouseholdInvitation.test.tsx` | "Unirme" deshabilitado mientras procesa; "Iniciar sesión" apunta a `/login`; "Ir a mi familia" apunta a `/household`; el token no aparece en el texto | CA-04, casos 6 y 7 |
+  | `useHouseholdJoinForm` | `useHouseholdJoinForm.test.ts` | vacío y sin token → error y no navega; enlace o código → navega a `/invitacion/<token>` | CA-01 (pegar) |
+
+  Las pruebas de la RPC no son unitarias: se hacen en la base (arriba).
+- **E2E (Playwright, SCRUM-129) — decisión pendiente.** Según playwright-e2e y CONTRIBUTING §5.1, las E2E se corren solo si la feature tiene `specs/E2E.md`, y hoy `household` no lo tiene. El soporte actual (`e2e/support/supabase.ts`) usa usuarios **anónimos**, y este flujo necesita dos cuentas **registradas** en la base compartida (una administradora con enlace y otra sin familia), además de limpiar la membresía creada. **Propuesta:** no agregar E2E en SCRUM-57, cubrir el flujo con los tests de arriba más las pruebas manuales, y dejar anotado que una E2E necesita que el equipo defina usuarios de prueba registrados. Si se decide que sí, primero se escribe `features/household/specs/E2E.md` y la tabla de verificación del SPEC, como pide playwright-e2e.
 
 ### Dependencias con SCRUM-56 y otras ramas
 
-| Dependencia | Estado (2026-10-03) | Efecto en SCRUM-57 |
+| Dependencia | Estado (2026-10-04) | Efecto en SCRUM-57 |
 |---|---|---|
 | SCRUM-56: tablas, enlaces, `hasRegisteredSession`, `/household` | Mergeada en `develop`; migración `011` aplicada en la base compartida | Base de esta historia; no se modifica |
 | SCRUM-45: `/login` | En `develop` | Se usa como destino de "Iniciar sesión"; no se modifica |
-| SCRUM-49: session guard (Esteban) | Rama abierta, detrás de `NEXT_PUBLIC_SESSION_GUARD_ENABLED` | Con el guard encendido, toda ruta fuera de `PUBLIC_ROUTES` (lista exacta) redirige a `/login` sin sesión registrada. `/invitacion/<token>` quedaría protegida: el usuario iría al login sin ver el aviso de volver a abrir el enlace. Hay que coordinar si `/invitacion/...` se agrega como ruta pública (la lista hoy no admite rutas dinámicas) |
-| SCRUM-128: Vitest | Rama abierta | Define si esta historia agrega tests automáticos |
-| SCRUM-65 y SCRUM-97: migraciones `012` y `013` | Ramas abiertas | Definen el número de la migración de esta historia |
-| Renumeración de la `011` (QA) | Anunciada, sin rama | Puede mover los números; se revisa antes de crear y antes de mergear |
+| SCRUM-49: `SessionGuard` (Esteban) | **Mergeada** (PR #42). Envuelve todo en `app/layout.tsx`; **apagado por defecto**: solo actúa con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=true` (en `.env.example` está comentada) | Encendido, toda ruta fuera de `PUBLIC_ROUTES` (lista exacta: `/`, `/login`, `/registro`, `/registro/verificado`) redirige a `/login` sin sesión registrada (los anónimos cuentan como sin sesión). `/invitacion/<token>` y `/household` quedarían protegidas: se iría al login sin ver el aviso de volver a abrir el enlace. **Pendiente coordinar** con Esteban (ver Riesgos) |
+| SCRUM-128: Vitest | **Mergeada** (PR #36) | Tests automáticos obligatorios (ver Pruebas) |
+| SCRUM-129: Playwright | **Mergeada** (PR #40) | E2E disponibles; decisión pendiente (ver Pruebas) |
+| SCRUM-65: migración `012` | **Mergeada** (PR #34) | Ocupa la `012` |
+| SCRUM-97: migración `013` | Rama abierta | Ocupa la `013`; por eso la propuesta es la `014` |
+| Renumeración de la `011` (QA) | Anunciada, sin rama al 2026-10-04 | Puede mover los números; se revisa antes de crear y antes de mergear |
 
 ### Documento del proyecto
 
@@ -380,20 +401,20 @@ El PR se abre con el primer commit y queda en `in progress` hasta el final. Cada
 | 5 | `feat(SCRUM-57): add invitation view model` | ViewModel de la página |
 | 6 | `feat(SCRUM-57): add invitation page and route` | Pantalla y `app/invitacion/[token]` |
 | 7 | `feat(SCRUM-57): add join with invitation form to household screen` | Formulario en `/household` |
-| 8 | `test(SCRUM-57): cover token extraction and invitation view model` | Solo si el runner está en `develop` |
+| 8 | `test(SCRUM-57): cover invitation flow and join form` | Tests de [Pruebas](#pruebas) que no hayan entrado en los commits 4 a 7. Obligatorio: la historia no pasa a `waiting qa` sin ellos |
 | 9 | `docs(SCRUM-57): update project document for joining a household` | `docs/documento-proyecto.md` |
 | 10 | `docs(SCRUM-57): record manual and database tests` | SPEC §13 y tasks |
 
-Lo que salga de las revisiones va en commits `fix(SCRUM-57): …` aparte. No se commitean `.env*`, capturas, scripts SQL de prueba con UUID o tokens reales, `.next/` ni el bloque que `next dev` agrega a `AGENTS.md`.
+Los tests de una pieza pueden ir en el mismo commit que la pieza (ej. `extractInviteToken` con su test en el commit 4); el commit 8 junta los que falten. Lo que salga de las revisiones va en commits `fix(SCRUM-57): …` aparte. No se commitean `.env*`, capturas, scripts SQL de prueba con UUID o tokens reales, `.next/` ni el bloque que `next dev` agrega a `AGENTS.md`.
 
-**Antes de pasar a `waiting qa`:** `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm run build` (y `npm test` si existe), pruebas manuales y de la base, subagentes `code-reviewer`, `security-reviewer` y `qa-checker`, descripción del PR completa con la plantilla (en inglés) y la tarjeta de Jira movida en el mismo momento.
+**Antes de pasar a `waiting qa`:** `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` (lo mismo que corre el CI), pruebas manuales y de la base, subagentes `code-reviewer`, `security-reviewer` y `qa-checker`, descripción del PR completa con la plantilla (en inglés) y la tarjeta de Jira movida en el mismo momento.
 
 ### Riesgos y deuda conocida
 
-- **Session guard (SCRUM-49):** ver la tabla de dependencias. Si se mergea encendido antes que esta historia, `/invitacion/...` redirige al login y el caso "sin cuenta" no se ve como está especificado.
+- **`SessionGuard` (SCRUM-49, ya en `develop`):** hoy está apagado por defecto y no cambia nada. Si el equipo lo enciende, `/invitacion/...` redirige al login y el caso "sin cuenta" no se ve como está especificado (el resultado es parecido: termina en `/login`, pero sin el aviso de volver a abrir el enlace). **Decisión pendiente**, a coordinar con Esteban: (a) aceptarlo así, sin tocar el guard; o (b) que `isPublicRoute` admita el prefijo `/invitacion/` (cambio en `features/session-guard`, fuera de esta historia). Propuesta: (a) y avisarle.
 - **Volver al enlace después del login:** la persona tiene que reabrir el enlace a mano. Mejora a coordinar con SCRUM-45.
 - **Familia sin administrador:** si el único admin borra su cuenta, la familia y su enlace quedan (deuda M1 de SCRUM-56), y con esta historia alguien podría unirse a ella mientras el enlace esté vigente. Se resuelve con HU-34c.
 - **Lista personal al unirse (HU-34b):** hasta que exista, quien se une no elige qué hacer con su lista.
 - **Sin rate limit propio** en la RPC (ver Seguridad).
 - **Número de la migración** sujeto a cambios hasta el merge.
-- **Sin tests automáticos** si SCRUM-128 no llega a tiempo.
+- **Sin E2E** si se aprueba la propuesta de [Pruebas](#pruebas): el flujo completo con dos cuentas reales queda cubierto por pruebas manuales hasta que el equipo defina usuarios de prueba registrados.
