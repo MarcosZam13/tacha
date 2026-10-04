@@ -113,3 +113,81 @@ Casos borde y negativos:
 ## Pendiente cuando el proyecto tenga runner de tests
 
 - [ ] Tests del Facade y de `useHouseholdInvite` (crear household, generar, regenerar, respuestas fuera de orden, fallo con relectura del enlace vigente, expirar, copiar con éxito y con fallo) y Page Object de `Household`, según unit-testing-standards.
+
+## SCRUM-57: unirse a una familia con el enlace
+
+Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compila por sí solo, y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1 y queda en `in progress` hasta la etapa 9.
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Actualizar `specs/SPEC.md` (subsecciones SCRUM-57 en las 15 secciones), `specs/plan.md` (sección SCRUM-57) y `specs/tasks.md` (esta sección).
+- [ ] 1.2 Revisión y aprobación de la documentación.
+- [ ] 1.3 Commit `docs(SCRUM-57): add join household spec, plan and tasks`, push y abrir el PR hacia `develop` con label `in progress` (la tarjeta de Jira en In Progress).
+
+### Etapa 2 — Migración (commit `feat`)
+
+- [ ] 2.1 Revisar otra vez el número libre en `develop` y en las ramas abiertas (hoy: `012` SCRUM-65, `013` SCRUM-97, renumeración de la `011` anunciada por QA); confirmar el número con la dueña de la historia.
+- [ ] 2.2 Escribir `supabase/migrations/0NN_accept_household_invite.sql` con encabezado (ticket, qué hace, por qué) y la RPC de [plan.md](plan.md#datos-1): cuenta registrada, formato, `for share`, vencimiento, `on conflict (user_id) do nothing`, resultados.
+- [ ] 2.3 `revoke execute` de `public` y `anon`, `grant` a `authenticated`; sin políticas ni permisos de tabla nuevos.
+- [ ] 2.4 Revisión del SQL con el subagente `security-reviewer`.
+- [ ] 2.5 Revisión y aprobación de la migración; commit.
+
+### Etapa 3 — Aplicar y tipos (commit `feat`)
+
+- [ ] 3.1 La dueña de la historia aplica la migración en el SQL Editor de la base compartida (con aprobación explícita) y avisa al equipo.
+- [ ] 3.2 Verificar en la base: la función existe, es `security definer`, `search_path` vacío, `authenticated` la ejecuta y `anon` no (`pg_proc`, `has_function_privilege`).
+- [ ] 3.3 Probar la RPC simulando usuarios con `rollback` (casos de [plan.md](plan.md#cómo-se-prueba-la-rpc)).
+- [ ] 3.4 Agregar `accept_household_invite` a `types/database.types.ts` a mano y compararlo con la firma real.
+- [ ] 3.5 Revisión y aprobación; commit.
+
+### Etapa 4 — Constantes, util y servicio (commit `feat`)
+
+- [ ] 4.1 Constantes en `household.constants.ts`: `HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE`, `HOUSEHOLD_JOIN_RESULT` (+ tipo), `HOUSEHOLD_JOIN_STATUS`, `HOUSEHOLD_JOIN_TEXT`, `HOUSEHOLD_JOIN_FORM_ERROR`, patrón del token, `HOUSEHOLD_ROUTE.HOUSEHOLD` y `LOGIN` (claves en orden alfabético, `as const`).
+- [ ] 4.2 `utils/extractInviteToken.ts`: enlace completo (con barra final, query o fragmento) o código solo → token; si no, `null`.
+- [ ] 4.3 `acceptHouseholdInvite(inviteToken)` en `household.service.ts`: llama a la RPC, acota el resultado a `HouseholdJoinResultType` y lanza error ante un valor desconocido.
+- [ ] 4.4 `npx tsc --noEmit` y `npm run lint`; revisión y aprobación; commit.
+
+### Etapa 5 — ViewModel de la página (commit `feat`)
+
+- [ ] 5.1 `hooks/useHouseholdInvitationViewModel.ts`: formato → sesión (`hasRegisteredSession`, nunca `ensureSession`) con bandera de cancelación; `onJoin` con guarda `useRef`; mapa resultado → estado; `failed` ante error.
+- [ ] 5.2 `npx tsc --noEmit` y `npm run lint`; revisión y aprobación; commit.
+
+### Etapa 6 — Página y ruta (commit `feat`)
+
+- [ ] 6.1 `HouseholdInvitation.tsx`: solo presentación; `role="status"` y `role="alert"` siempre montadas; `Link` a `/login` y a `/household`; el token no se muestra.
+- [ ] 6.2 `app/invitacion/[token]/page.tsx`: ruta delgada (`await params`), metadata con título y `referrer: "no-referrer"`.
+- [ ] 6.3 `npx tsc --noEmit`, `npm run lint` y `npm run build`; revisión y aprobación; commit.
+
+### Etapa 7 — Formulario en `/household` (commit `feat`)
+
+- [ ] 7.1 `hooks/useHouseholdJoinForm.ts`: valor, error, `extractInviteToken`, navegar a `/invitacion/<token>`.
+- [ ] 7.2 `components/HouseholdJoinForm.tsx` y `components/models/HouseholdJoinFormProps.interface.ts` (solo presentación, `Input` y `Button`).
+- [ ] 7.3 `useHouseholdViewModel` compone el hook y entrega `join`; `Household.tsx` muestra el formulario en el estado sin familia, junto a "Crea tu familia".
+- [ ] 7.4 `npx tsc --noEmit`, `npm run lint` y `npm run build`; revisión y aprobación; commit.
+
+### Etapa 8 — Pruebas y documentación (commits `test` y `docs`)
+
+- [ ] 8.1 Si SCRUM-128 (Vitest) está en `develop`: tests de `extractInviteToken`, de la traducción de resultados y de `useHouseholdInvitationViewModel` con Page Object; commit `test`. Si no, anotarlos en "Pendiente cuando el proyecto tenga runner de tests".
+- [ ] 8.2 Pruebas manuales de [SPEC §13](SPEC.md#hu-34-scrum-57) con dos cuentas registradas que entran por `/login`; capturas sin el token.
+- [ ] 8.3 `docs/documento-proyecto.md` §4.1 y §6 ([plan.md](plan.md#documento-del-proyecto)); commit `docs`.
+- [ ] 8.4 Marcar en SPEC §13 y en esta lista solo lo que se validó; commit `docs`.
+
+### Etapa 9 — Revisiones y QA
+
+- [ ] 9.1 Volver a revisar el número de la migración contra `develop` y renombrar si hace falta.
+- [ ] 9.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm run build` (y `npm test` si existe).
+- [ ] 9.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; corregir en commits `fix(SCRUM-57): …`.
+- [ ] 9.4 Completar la descripción del PR con la plantilla (en inglés), pasos de prueba y evidencia; pasar a `waiting qa` y mover la tarjeta de Jira en el mismo momento.
+- [ ] 9.5 Merge solo con `qa accepted` puesto por otra persona.
+
+### Coordinación con otras historias
+
+- [ ] SCRUM-49 (session guard, Esteban): acordar qué pasa con `/invitacion/<token>` cuando el guard esté encendido (hoy no está en `PUBLIC_ROUTES` y la lista no admite rutas dinámicas).
+- [ ] SCRUM-45 (login, Esteban): proponer el retorno al enlace después del login como mejora aparte.
+- [ ] QA: confirmar el número final de la migración cuando se resuelva la renumeración de la `011`.
+
+### Fuera de esta historia
+
+- [ ] Salir de la familia (HU-34c, SCRUM-58).
+- [ ] Decidir qué pasa con la lista personal al unirse (HU-34b, SCRUM-59).
+- [ ] Vista previa del nombre de la familia antes de aceptar.
