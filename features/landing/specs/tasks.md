@@ -28,3 +28,37 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 
 ## Pendiente cuando el proyecto tenga runner de tests
 - [ ] Tests de componentes según unit-testing-standards.
+
+
+## SCRUM-25: información introductoria
+- [x] 1. SPEC con la plantilla de 15 secciones, plan y tareas.
+- [x] 2. PlatformFeature, constantes, IntroSection en Landing.
+- [x] 3. Probar en 320px y desktop, claro y oscuro; tsc, lint, test, build.
+
+## SCRUM-26: leer más (bloqueada por SCRUM-25)
+- [x] 1. MoreInfoSection y enlace "Leer más".
+- [x] 2. Probar.
+
+
+## SCRUM-27: testimonios (bloqueada por SCRUM-26)
+- [ ] 1. Modelo, constantes, ViewModel, carrusel.
+- [ ] 2. Tests con Page Object.
+- [ ] 3. Probar.
+
+## SCRUM-29: demo de uso (bloqueada por SCRUM-27)
+- [ ] 1. DemoSection con el texto "Aquí va la demo".
+- [ ] 2. Probar.
+- [ ] Pendiente: video real (CA-03 a CA-05).
+
+## SCRUM-32: términos y condiciones (bloqueada por SCRUM-29)
+- [ ] 1. PublicLayout y refactor de Landing.
+- [ ] 2. terms.constants, Terms, ruta /terminos.
+- [ ] 3. BackButton + ViewModel + test.
+- [ ] 4. Enlace en el footer y PUBLIC_ROUTES.
+
+## SCRUM-34: misión y visión (bloqueada por SCRUM-32)
+- [ ] 1. About, MissionVisionSection, ruta /nosotros, enlaces "Nosotros", PUBLIC_ROUTES.
+
+## SCRUM-35: información de la organización (bloqueada por SCRUM-34)
+- [ ] 1. OrganizationSection.
+
