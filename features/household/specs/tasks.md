@@ -120,21 +120,23 @@ El runner (Vitest) ya está en `develop` desde SCRUM-128 (PR #36, 2026-10-03). E
 
 Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compila por sí solo, y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1 y queda en `in progress` hasta la etapa 9.
 
+> **Orden real (2026-10-05):** la capa Web (etapas 4 a 7) se hizo antes de aplicar la migración (etapa 3). Mientras la RPC no exista, `acceptHouseholdInvite` es solo el contrato y lanza un error a propósito; los tests mockean el servicio. Los commits agrupan las etapas así: (1) constantes + `extractInviteToken`, (2) contrato del servicio + ViewModel, (3) página y ruta, (4) formulario en `/household`, (5) docs de vencimiento.
+
 ### Etapa 1 — Specs (commit `docs`)
 
 - [x] 1.1 Actualizar `specs/SPEC.md` (subsecciones SCRUM-57 en las 15 secciones), `specs/plan.md` (sección SCRUM-57) y `specs/tasks.md` (esta sección).
-- [ ] 1.2 Revisión y aprobación de la documentación.
+- [x] 1.2 Revisión y aprobación de la documentación (aprobada al commitear `2d0340a`).
 - [x] 1.3 Commit `docs(SCRUM-57): add join household spec, plan and tasks` (`2d0340a`), push y abrir el PR hacia `develop` con label `in progress`: PR #43.
 - [x] 1.4 Sincronizar la rama con `develop` (merge `c4f4245`, 2026-10-04): trae Vitest, Playwright, el `SessionGuard` y la migración `012`. `tsc`, lint, `npm test` y build pasan.
 - [x] 1.5 Ajustar SPEC, plan y tasks a lo que trajo `develop`: tests obligatorios, `SessionGuard` mergeado, migración provisional `014`, E2E como decisión pendiente.
-- [ ] 1.6 Revisión y aprobación de 1.5; commit `docs`.
+- [x] 1.6 Revisión y aprobación de 1.5; commit `docs(SCRUM-57): align plan with merged test runner and session guard` (`d48bdfd`).
 
 ### Etapa 2 — Migración (commit `feat`)
 
-- [ ] 2.1 Revisar otra vez el número libre en `develop` y en las ramas abiertas (al 2026-10-04: `012` en `develop`, `013` en la rama de SCRUM-97, renumeración de la `011` anunciada por QA sin rama; propuesta provisional `014`); confirmar el número con la dueña de la historia.
-- [ ] 2.2 Escribir `supabase/migrations/014_accept_household_invite.sql` (o el número confirmado en 2.1) con encabezado (ticket, qué hace, por qué) y la RPC de [plan.md](plan.md#datos-1): cuenta registrada, formato, `for share`, vencimiento, `on conflict (user_id) do nothing`, resultados.
-- [ ] 2.3 `revoke execute` de `public` y `anon`, `grant` a `authenticated`; sin políticas ni permisos de tabla nuevos.
-- [ ] 2.4 Revisión del SQL con el subagente `security-reviewer`.
+- [x] 2.1 Revisar otra vez el número libre en `develop` y en las ramas abiertas. Revisado el 2026-10-05: `develop` llega a la `012`, la rama de SCRUM-97 usa la `013` y no hay rama con la renumeración de la `011`. Confirmado: `014`.
+- [x] 2.2 Escribir `supabase/migrations/014_accept_household_invite.sql` con encabezado (ticket, qué hace, por qué) y la RPC de [plan.md](plan.md#datos-1): cuenta registrada, formato, `for share`, vencimiento con `clock_timestamp()`, `on conflict (user_id) do nothing`, guarda si la membresía desaparece (`P0001`) y los 5 resultados.
+- [x] 2.3 `revoke execute` de `public` y `anon`, `grant` a `authenticated`; sin políticas ni permisos de tabla nuevos.
+- [x] 2.4 Revisión del SQL con el subagente `security-reviewer` (dos rondas, 2026-10-05): sin hallazgos críticos, altos ni bajos después de aplicar `clock_timestamp()` y la guarda del caso nulo; queda como deuda la falta de rate limit (Media, ya aprobada).
 - [ ] 2.5 Revisión y aprobación de la migración; commit.
 
 ### Etapa 3 — Aplicar y tipos (commit `feat`)
@@ -147,32 +149,32 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 
 ### Etapa 4 — Constantes, util y servicio (commit `feat`)
 
-- [ ] 4.1 Constantes en `household.constants.ts`: `HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE`, `HOUSEHOLD_JOIN_RESULT` (+ tipo), `HOUSEHOLD_JOIN_STATUS`, `HOUSEHOLD_JOIN_TEXT`, `HOUSEHOLD_JOIN_FORM_ERROR`, patrón del token, `HOUSEHOLD_ROUTE.HOUSEHOLD` y `LOGIN` (claves en orden alfabético, `as const`).
-- [ ] 4.2 `utils/extractInviteToken.ts`: enlace completo (con barra final, query o fragmento) o código solo → token; si no, `null`.
-- [ ] 4.3 `acceptHouseholdInvite(inviteToken)` en `household.service.ts`: llama a la RPC, acota el resultado a `HouseholdJoinResultType` y lanza error ante un valor desconocido.
-- [ ] 4.4 Tests de `extractInviteToken` y de `acceptHouseholdInvite` (cliente de Supabase mockeado), según [plan.md](plan.md#pruebas).
-- [ ] 4.5 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit.
+- [x] 4.1 Constantes en `household.constants.ts`: `HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE`, `HOUSEHOLD_JOIN_RESULT` (+ tipo), `HOUSEHOLD_JOIN_STATUS`, `HOUSEHOLD_JOIN_TEXT`, `HOUSEHOLD_JOIN_FORM_ERROR`, patrón del token, `HOUSEHOLD_ROUTE.HOUSEHOLD` y `LOGIN` (claves en orden alfabético, `as const`).
+- [x] 4.2 `utils/extractInviteToken.ts`: enlace completo (con barra final, query o fragmento) o código solo → token; si no, `null`.
+- [ ] 4.3 `acceptHouseholdInvite(inviteToken)` en `household.service.ts`: llama a la RPC, acota el resultado a `HouseholdJoinResultType` y lanza error ante un valor desconocido. **Hoy solo existe el contrato** (lanza error a propósito); se conecta después de 3.1–3.4.
+- [ ] 4.4 Tests de `extractInviteToken` (hechos: 10 casos) y de `acceptHouseholdInvite` con el cliente de Supabase mockeado (pendiente, después de 4.3), según [plan.md](plan.md#pruebas).
+- [x] 4.5 `npx tsc --noEmit`, `npm run lint` y `npm test`; commit `feat(SCRUM-57): add invite token extraction and join constants`.
 
 ### Etapa 5 — ViewModel de la página (commit `feat`)
 
-- [ ] 5.1 `hooks/useHouseholdInvitationViewModel.ts`: formato → sesión (`hasRegisteredSession`, nunca `ensureSession`) con bandera de cancelación; `onJoin` con guarda `useRef`; mapa resultado → estado; `failed` ante error.
-- [ ] 5.2 Test de `useHouseholdInvitationViewModel` con `renderHook` y el servicio mockeado: formato inválido, sin cuenta, cada resultado, doble clic y falla.
-- [ ] 5.3 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit.
+- [x] 5.1 `hooks/useHouseholdInvitationViewModel.ts`: formato → sesión (`hasRegisteredSession`, nunca `ensureSession`) con bandera de cancelación; `onJoin` con guarda `useRef`; mapa resultado → estado; `failed` ante error.
+- [x] 5.2 Test de `useHouseholdInvitationViewModel` con `renderHook` y el servicio mockeado: formato inválido, sin cuenta, cada resultado, doble clic y falla.
+- [x] 5.3 `npx tsc --noEmit`, `npm run lint` y `npm test`; commit `feat(SCRUM-57): add invitation view model and service contract` (incluye el contrato del servicio).
 
 ### Etapa 6 — Página y ruta (commit `feat`)
 
-- [ ] 6.1 `HouseholdInvitation.tsx`: solo presentación; `role="status"` y `role="alert"` siempre montadas; `Link` a `/login` y a `/household`; el token no se muestra.
-- [ ] 6.2 `app/invitacion/[token]/page.tsx`: ruta delgada (`await params`), metadata con título y `referrer: "no-referrer"`.
-- [ ] 6.3 `tests/HouseholdInvitation.page.ts` (Page Object, sin `expect`) y `tests/HouseholdInvitation.test.tsx` (jsdom).
-- [ ] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; revisión y aprobación; commit.
+- [x] 6.1 `HouseholdInvitation.tsx`: solo presentación; `role="status"` y `role="alert"` siempre montadas; `Link` a `/login` y a `/household`; el token no se muestra.
+- [x] 6.2 `app/invitacion/[token]/page.tsx`: ruta delgada (`await params`), metadata con título y `referrer: "no-referrer"`.
+- [x] 6.3 `tests/HouseholdInvitation.page.ts` (Page Object, sin `expect`) y `tests/HouseholdInvitation.test.tsx` (jsdom).
+- [x] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; commit `feat(SCRUM-57): add invitation page and route`.
 
 ### Etapa 7 — Formulario en `/household` (commit `feat`)
 
-- [ ] 7.1 `hooks/useHouseholdJoinForm.ts`: valor, error, `extractInviteToken`, navegar a `/invitacion/<token>`.
-- [ ] 7.2 `components/HouseholdJoinForm.tsx` y `components/models/HouseholdJoinFormProps.interface.ts` (solo presentación, `Input` y `Button`).
-- [ ] 7.3 `useHouseholdViewModel` compone el hook y entrega `join`; `Household.tsx` muestra el formulario en el estado sin familia, junto a "Crea tu familia".
-- [ ] 7.4 Test de `useHouseholdJoinForm` (router mockeado): vacío y sin token no navegan; enlace o código navegan a `/invitacion/<token>`.
-- [ ] 7.5 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; revisión y aprobación; commit.
+- [x] 7.1 `hooks/useHouseholdJoinForm.ts`: valor, error, `extractInviteToken`, navegar a `/invitacion/<token>`.
+- [x] 7.2 `components/HouseholdJoinForm.tsx` y `components/models/HouseholdJoinFormProps.interface.ts` (solo presentación, `Input` y `Button`).
+- [x] 7.3 `useHouseholdViewModel` compone el hook y entrega `join`; `Household.tsx` muestra el formulario en el estado sin familia, junto a "Crea tu familia".
+- [x] 7.4 Test de `useHouseholdJoinForm` (router mockeado): vacío y sin token no navegan; enlace o código navegan a `/invitacion/<token>`.
+- [x] 7.5 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; commit `feat(SCRUM-57): add household invitation form`.
 
 ### Etapa 8 — Pruebas y documentación (commits `test` y `docs`)
 
