@@ -3,7 +3,7 @@ import { getSupabaseClient } from "@/services/supabase.client";
 import type { Database } from "@/types/database.types";
 import type { NullableRef } from "@/types/nullable.types";
 import { HOUSEHOLD_DB, HOUSEHOLD_ROUTE } from "../constants/household.constants";
-import type { HouseholdRoleType } from "../constants/household.constants";
+import type { HouseholdJoinResultType, HouseholdRoleType } from "../constants/household.constants";
 import type { HouseholdInvite } from "../models/HouseholdInvite.interface";
 import type { HouseholdMembership } from "../models/HouseholdMembership.interface";
 
@@ -103,4 +103,17 @@ export const createHouseholdInvite = async (): Promise<HouseholdInvite> => {
   if (!inviteRow) throw new Error(`${HOUSEHOLD_DB.RPC.CREATE_HOUSEHOLD_INVITE} no devolvió el enlace`);
 
   return toHouseholdInvite(inviteRow);
+};
+
+/**
+ * Une al usuario actual a la familia del enlace con ese token. El cliente solo
+ * manda el token: quién se une, a qué familia y con qué rol lo decide la base
+ * (accept_household_invite, contrato en specs/SPEC.md §12).
+ *
+ * Pendiente de la etapa de backend de SCRUM-57: la RPC todavía no existe, así
+ * que por ahora falla siempre y la página muestra el error de unión. No se
+ * simula ningún resultado: los tests mockean esta función.
+ */
+export const acceptHouseholdInvite: (inviteToken: string) => Promise<HouseholdJoinResultType> = async () => {
+  throw new Error(`${HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE} todavía no existe en la base`);
 };
