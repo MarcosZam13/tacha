@@ -1,4 +1,5 @@
-import { FOOTER_TEXT, LANDING_SECTION_ID, TACHA_INSTAGRAM } from "../constants/landing.constants";
+import Link from "next/link";
+import { FOOTER_LINKS, FOOTER_TEXT, LANDING_SECTION_ID, TACHA_INSTAGRAM } from "../constants/landing.constants";
 import { Logo } from "./Logo";
 import { SocialLinks } from "./SocialLinks";
 
@@ -29,5 +30,17 @@ export const PublicFooter = (): React.JSX.Element => (
       <Logo />
       <p className="font-body text-sm text-tacha-textsec">{FOOTER_TEXT.DESCRIPTION}</p>
     </section>
+
+    <nav aria-label={FOOTER_TEXT.LEGAL_LABEL} className="border-t border-tacha-border pt-6 md:col-span-3">
+      <ul className="flex flex-wrap gap-4">
+        {FOOTER_LINKS.map(({ href, label }) => (
+          <li key={href}>
+            <Link href={href} className="font-body text-sm text-tacha-textsec hover:text-tacha-teal">
+              {label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   </footer>
 );
