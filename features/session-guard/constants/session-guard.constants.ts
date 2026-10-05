@@ -7,6 +7,7 @@ export const SESSION_GUARD_ROUTE = {
   LOGIN: "/login",
   REGISTER: "/registro",
   REGISTER_VERIFIED: "/registro/verificado",
+  TERMS: "/terminos",
 } as const;
 
 // Rutas que se ven sin sesión. Todo lo que no esté acá exige sesión (falla cerrado).
@@ -16,6 +17,7 @@ export const PUBLIC_ROUTES: readonly string[] = [
   SESSION_GUARD_ROUTE.LOGIN,
   SESSION_GUARD_ROUTE.REGISTER,
   SESSION_GUARD_ROUTE.REGISTER_VERIFIED,
+  SESSION_GUARD_ROUTE.TERMS,
 ];
 
 export const SESSION_STATUS = {
