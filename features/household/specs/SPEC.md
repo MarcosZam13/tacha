@@ -111,7 +111,7 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 
 1. **Solo cuentas registradas.** La página decide con `hasRegisteredSession()` (usa `getSession()`, nunca `ensureSession()`): abrir el enlace no crea usuarios anónimos. Una sesión anónima cuenta igual que no tener sesión. La RPC rechaza igual a quien no tenga `auth.uid()` o tenga `is_anonymous` en el JWT.
 2. **El cliente solo manda el token.** `user_id` sale de `auth.uid()`, `household_id` sale de la fila del enlace y `role` es siempre `'member'`. Ningún valor de esos tres llega desde el cliente.
-3. **Validez del enlace:** el token tiene que existir en `household_invite_links` y su `expires_at` tiene que ser posterior a `now()` de la base. El reloj del navegador no decide nada.
+3. **Validez del enlace:** el token tiene que existir en `household_invite_links` y su `expires_at` tiene que ser posterior a `clock_timestamp()` de la base (la hora real del momento). El reloj del navegador no decide nada.
 4. **Formato:** un token que no tiene formato de UUID es `invalid`, sin consultar la tabla. La página lo detecta antes de mostrar "Unirme" y la RPC lo vuelve a comprobar (no confía en el cliente).
 5. **Enlace regenerado:** el token anterior ya no existe en la base (SCRUM-56, regla de regenerar), así que da `invalid`. Esto cierra lo que SCRUM-56 dejó para HU-34 en su CA-04.
 6. **El enlace sirve para varias personas** mientras esté vigente: aceptarlo no lo consume ni lo cambia.
@@ -342,7 +342,7 @@ accept_household_invite(invite_token text) returns text
 | `joined` | Se agregó a quien llama como `member` de la familia del enlace | Sí, una fila |
 | `already_member` | Quien llama ya es de esa misma familia (doble clic, otra pestaña, o el admin abriendo su propio enlace) | No |
 | `in_other_household` | Quien llama ya es de otra familia (CA-05) | No |
-| `expired` | El enlace existe pero `expires_at <= now()` | No |
+| `expired` | El enlace existe pero `expires_at <= clock_timestamp()` | No |
 | `invalid` | El token no tiene formato de UUID o no existe (incluye un enlace reemplazado al regenerar) | No |
 
 - No se agregan políticas ni permisos de tabla: `household_members` sigue sin `insert` para el cliente y `household_invite_links` sigue cerrada. La única puerta para unirse es la RPC.

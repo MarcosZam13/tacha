@@ -249,7 +249,7 @@ Los tipos de retorno de los hooks se declaran dentro de cada hook, como en `useH
 1. Sin `auth.uid()` o con `is_anonymous` en el JWT → excepción `42501` (mismo bloque que las RPC de la `011`).
 2. `invite_token` nulo o sin formato de UUID (regex) → `'invalid'`. Se compara con regex antes de convertir a `uuid`, así un texto cualquiera no lanza `22P02`.
 3. `select household_id, expires_at from public.household_invite_links where token = invite_token::uuid for share` → sin fila: `'invalid'` (incluye el token reemplazado al regenerar).
-4. `expires_at <= now()` → `'expired'`.
+4. `expires_at <= clock_timestamp()` (la hora real, aunque la llamada haya esperado el bloqueo del paso 3) → `'expired'`.
 5. `insert into public.household_members (user_id, household_id, role) values (auth.uid(), <household del enlace>, 'member') on conflict (user_id) do nothing`.
 6. Si insertó (`found`) → `'joined'`.
 7. Si no insertó, ya tenía membresía: se lee su `household_id` → igual al del enlace: `'already_member'`; distinto: `'in_other_household'`.
@@ -273,7 +273,7 @@ begin
   -- 2. formato del token con regex → 'invalid'
   -- 3. select ... from public.household_invite_links invite
   --      where invite.token = invite_token::uuid for share → sin fila: 'invalid'
-  -- 4. invite_expires_at <= now() → 'expired'
+  -- 4. invite_expires_at <= clock_timestamp() → 'expired'
   -- 5. insert ... on conflict (user_id) do nothing
   -- 6. found → 'joined'
   -- 7. household actual = el del enlace → 'already_member'; si no → 'in_other_household'
@@ -339,7 +339,7 @@ Los UUID y tokens reales que se usen en estas pruebas no se commitean ni se pega
 ### Seguridad
 
 - **Quién llega:** cualquiera con el enlace (visitante, anónimo o registrado). Solo un usuario registrado puede ejecutar la RPC; `anon` no tiene `execute` y los anónimos (`authenticated` con `is_anonymous`) se rechazan adentro.
-- **Lo que decide la base:** `user_id` (`auth.uid()`), `household_id` (fila del enlace), `role` (`'member'` fijo), la validez y el vencimiento (`now()`).
+- **Lo que decide la base:** `user_id` (`auth.uid()`), `household_id` (fila del enlace), `role` (`'member'` fijo), la validez y el vencimiento (`clock_timestamp()`).
 - **Inyección:** el token es un parámetro, se compara con regex y se convierte a `uuid`; no se arma SQL con strings. `search_path = ''` y nombres calificados, como la `011`.
 - **Acceso a los tokens:** sigue cerrado. La RPC no devuelve el token ni el `household_id`: solo el resultado. Tampoco hay forma de listar enlaces.
 - **Una familia por usuario:** la PK `household_members.user_id` + `on conflict do nothing`. La interfaz solo informa.
