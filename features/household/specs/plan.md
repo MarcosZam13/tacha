@@ -363,7 +363,7 @@ Los UUID y tokens reales que se usen en estas pruebas no se commitean ni se pega
   | `useHouseholdJoinForm` | `useHouseholdJoinForm.test.ts` | vacío y sin token → error y no navega; enlace o código → navega a `/invitacion/<token>` | CA-01 (pegar) |
 
   Las pruebas de la RPC no son unitarias: se hacen en la base (arriba).
-- **E2E (Playwright, SCRUM-129) — decisión pendiente.** Según playwright-e2e y CONTRIBUTING §5.1, las E2E se corren solo si la feature tiene `specs/E2E.md`, y hoy `household` no lo tiene. El soporte actual (`e2e/support/supabase.ts`) usa usuarios **anónimos**, y este flujo necesita dos cuentas **registradas** en la base compartida (una administradora con enlace y otra sin familia), además de limpiar la membresía creada. **Propuesta:** no agregar E2E en SCRUM-57, cubrir el flujo con los tests de arriba más las pruebas manuales, y dejar anotado que una E2E necesita que el equipo defina usuarios de prueba registrados. Si se decide que sí, primero se escribe `features/household/specs/E2E.md` y la tabla de verificación del SPEC, como pide playwright-e2e.
+- **E2E (Playwright, SCRUM-129) — decidido: SCRUM-57 no lleva E2E** (decisión de la dueña de la historia, 2026-10-05; ver SPEC §15). Según playwright-e2e y CONTRIBUTING §5.1, las E2E se corren solo si la feature tiene `specs/E2E.md`, y hoy `household` no lo tiene. El soporte actual (`e2e/support/supabase.ts`) usa usuarios **anónimos**, y este flujo necesita dos cuentas **registradas** en la base compartida (una administradora con enlace y otra sin familia), además de limpiar la membresía creada. **Propuesta:** no agregar E2E en SCRUM-57, cubrir el flujo con los tests de arriba más las pruebas manuales, y dejar anotado que una E2E necesita que el equipo defina usuarios de prueba registrados. Si se decide que sí, primero se escribe `features/household/specs/E2E.md` y la tabla de verificación del SPEC, como pide playwright-e2e.
 
 ### Dependencias con SCRUM-56 y otras ramas
 
@@ -373,7 +373,7 @@ Los UUID y tokens reales que se usen en estas pruebas no se commitean ni se pega
 | SCRUM-45: `/login` | En `develop` | Se usa como destino de "Iniciar sesión"; no se modifica |
 | SCRUM-49: `SessionGuard` (Esteban) | **Mergeada** (PR #42). Envuelve todo en `app/layout.tsx`; **apagado por defecto**: solo actúa con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=true` (en `.env.example` está comentada) | Encendido, toda ruta fuera de `PUBLIC_ROUTES` (lista exacta: `/`, `/login`, `/registro`, `/registro/verificado`) redirige a `/login` sin sesión registrada (los anónimos cuentan como sin sesión). `/invitacion/<token>` y `/household` quedarían protegidas: se iría al login sin ver el aviso de volver a abrir el enlace. **Pendiente coordinar** con Esteban (ver Riesgos) |
 | SCRUM-128: Vitest | **Mergeada** (PR #36) | Tests automáticos obligatorios (ver Pruebas) |
-| SCRUM-129: Playwright | **Mergeada** (PR #40) | E2E disponibles; decisión pendiente (ver Pruebas) |
+| SCRUM-129: Playwright | **Mergeada** (PR #40) | E2E disponibles; SCRUM-57 no las usa (ver Pruebas) |
 | SCRUM-65: migración `012` | **Mergeada** (PR #34) | Ocupa la `012` |
 | SCRUM-97: migración `013` | Rama abierta | Ocupa la `013`; por eso la propuesta es la `014` |
 | Renumeración de la `011` (QA) | Anunciada, sin rama al 2026-10-04 | Puede mover los números; se revisa antes de crear y antes de mergear |

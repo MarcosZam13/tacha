@@ -369,31 +369,37 @@ Los casos borde, los negativos, los de otros roles y la entrada con el login rea
 
 ### HU-34 (SCRUM-57)
 
-Ninguno validado todavía. Se prueban con dos cuentas registradas que entran por `/login`: una administradora con enlace vigente y otra sin familia.
+Validados después de aplicar la migración `014` en la base compartida, con tres evidencias distintas (entre paréntesis en cada caso):
+
+- **manual:** pruebas en `http://localhost:3000` hechas por la dueña de la historia, con capturas, usando cuentas registradas de prueba (una administradora con enlace vigente, otra sin familia y otra con su propia familia). Las sesiones se cargaron en el navegador sin pasar por `/login` ([§15](#15-notas-de-implementación));
+- **base:** verificación de la función y pruebas en el SQL Editor simulando usuarios, dentro de una transacción con `rollback`;
+- **test:** tests automáticos de `features/household/tests/`.
 
 Criterios de la historia:
 
-- [ ] **CA-01:** al abrir un enlace vigente, o pegarlo (enlace o código) en "Unirme con una invitación", se comprueba que sea válido y no haya vencido. La comprobación de vencimiento la hace la base con su reloj.
-- [ ] **CA-02:** con un enlace válido, "Unirme" agrega al usuario como `member` de esa familia (una fila en `household_members` con su `user_id`, el `household_id` del enlace y `role = 'member'`).
-- [ ] **CA-03:** con un enlace vencido o no válido se muestra el mensaje que corresponde y no se crea ninguna membresía.
-- [ ] **CA-04:** después de unirse se muestra la confirmación y "Ir a mi familia" lleva a `/household`, donde se ve la familia como miembro.
-- [ ] **CA-05:** con una cuenta que ya es de otra familia, el resultado es `in_other_household`, se muestra el mensaje de salir primero y no cambia ninguna membresía.
+- [x] **CA-01:** al abrir un enlace vigente, o pegarlo (enlace o código) en "Unirme con una invitación", se comprueba que sea válido y no haya vencido. La comprobación de vencimiento la hace la base con su reloj. (manual, base, test)
+- [x] **CA-02:** con un enlace válido, "Unirme" agrega al usuario como `member` de esa familia (una fila en `household_members` con su `user_id`, el `household_id` del enlace y `role = 'member'`). (manual, base, test)
+- [x] **CA-03:** con un enlace vencido o no válido se muestra el mensaje que corresponde y no se crea ninguna membresía. (manual, base, test)
+- [x] **CA-04:** después de unirse se muestra la confirmación y "Ir a mi familia" lleva a `/household`, donde se ve la familia como miembro. (manual, test)
+- [x] **CA-05:** con una cuenta que ya es de otra familia, el resultado es `in_other_household`, se muestra el mensaje de salir primero y no cambia ninguna membresía. (manual, base, test)
 
 Casos de cada flujo:
 
-- [ ] **Enlace reemplazado:** después de que la administradora regenera, el enlace anterior da `invalid`.
-- [ ] **Ya es de esa familia:** la administradora (o un miembro) abre su propio enlace y pulsa "Unirme": aviso `already_member`, sin filas nuevas.
-- [ ] **Sin sesión:** aviso, botón "Iniciar sesión" a `/login`, y no se llama a la RPC.
-- [ ] **Sesión anónima** (creada visitando `/lista` sin cuenta): igual que sin sesión, y abrir la página no crea otro usuario anónimo.
-- [ ] **Doble clic en "Unirme":** una sola membresía; la interfaz termina en `joined`.
-- [ ] **Dos pestañas a la vez:** una termina en `joined` y la otra en `already_member`; una sola fila.
-- [ ] **Token con formato inválido en la URL:** `invalid` sin llamar a la RPC.
-- [ ] **Falla de red al unirse:** mensaje de error, "Unirme" disponible para reintentar.
-- [ ] **Formulario de `/household`:** con el enlace completo navega a `/invitacion/<token>`; con solo el código, también; vacío o sin token válido, error en el campo sin navegar.
-- [ ] **Seguridad en la base** (SQL Editor, simulando usuarios, con `rollback`): anónimo y sin sesión rechazados con `42501`; ningún parámetro permite elegir familia, usuario ni rol; `select` directo a `household_invite_links` sigue sin acceso; `insert` directo en `household_members` sigue sin permiso.
-- [ ] El token no aparece en la página ni en la consola.
-- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite, según [plan.md](plan.md#pruebas).
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+- [x] **Enlace reemplazado:** después de que la administradora regenera, el enlace anterior da `invalid`. (manual, base)
+- [x] **Ya es de esa familia:** la administradora (o un miembro) abre su propio enlace y pulsa "Unirme": aviso `already_member`, sin filas nuevas. (base, test)
+- [x] **Sin sesión:** aviso, botón "Iniciar sesión" a `/login`, y no se llama a la RPC. (manual, test)
+- [x] **Sesión anónima:** igual que sin sesión; la página usa `hasRegisteredSession()` y nunca `ensureSession()`, así que abrirla no crea otro usuario anónimo, y la base rechaza a los anónimos con `42501`. (base, test)
+- [x] **Doble clic en "Unirme":** una sola membresía; la interfaz termina en `joined`. (test: una sola llamada; base: `on conflict (user_id)`)
+- [x] **Dos pestañas a la vez:** una termina en `joined` y la otra en `already_member`; una sola fila. (base: segunda llamada del mismo usuario → `already_member`)
+- [x] **Token con formato inválido en la URL:** `invalid` sin llamar a la RPC. (test)
+- [x] **Falla de red al unirse:** mensaje de error, "Unirme" disponible para reintentar. (test)
+- [x] **Formulario de `/household`:** con el enlace completo navega a `/invitacion/<token>`; con solo el código, también; vacío o sin token válido, error en el campo sin navegar. (test)
+- [x] **Seguridad en la base:** anónimo y sin sesión rechazados con `42501`; ningún parámetro permite elegir familia, usuario ni rol; `select` directo a `household_invite_links` sigue sin acceso; `insert` directo en `household_members` sigue sin permiso. (base; la función además pasó dos revisiones de `security-reviewer`)
+- [x] El token no aparece en la página ni en la consola. (test; la página no lo dibuja y el servicio no lo incluye en sus errores)
+- [x] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite, según [plan.md](plan.md#pruebas): 41 tests en `features/household/tests/`.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+
+No probado: entrar a `/invitacion/<token>` pasando por el login real (`/login`), porque en el entorno local falta la clave de reCAPTCHA de SCRUM-45 ([§15](#15-notas-de-implementación)).
 
 ## 14. Casos fuera de alcance
 
@@ -428,5 +434,7 @@ Casos de cada flujo:
 - **Límite de otra historia (detectado el 2026-09-29):** `/registro/verificado` no guardaba la sesión del usuario que verifica su correo. Ya no impide llegar con una cuenta registrada: desde la sincronización del 2026-10-03 existe el login (`/login`, SCRUM-45).
 - **Deuda para HU-34/HU-34c (M1):** si se borra la cuenta del único administrador, su membresía se borra pero la familia y su enlace quedan. Con SCRUM-57, alguien podría unirse a esa familia sin administrador mientras el enlace siga vigente; se resuelve con HU-34c.
 - **Tests automáticos:** cuando se hizo SCRUM-56 el proyecto no tenía runner de tests, así que sus casos se validaron a mano y sus tests quedaron pendientes. Vitest llegó a `develop` con SCRUM-128 (PR #36) y la Definition of Done ahora exige tests (CONTRIBUTING §7): SCRUM-57 los incluye ([plan.md](plan.md#pruebas)). Los de SCRUM-56 siguen pendientes y no son parte de esta historia.
-- **E2E (Playwright, SCRUM-129):** decisión pendiente para SCRUM-57; ver [plan.md](plan.md#pruebas).
+- **E2E (Playwright, SCRUM-129):** SCRUM-57 no lleva E2E (decisión de la dueña de la historia). El soporte de `e2e/` usa usuarios anónimos y este flujo necesita cuentas registradas en la base compartida; queda cubierto por tests automáticos, pruebas en la base y pruebas manuales. Ver [plan.md](plan.md#pruebas).
+- **Cómo se obtuvo la sesión de prueba (SCRUM-57):** en el entorno local `/login` no permite entrar porque falta `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` en `.env.local` (configuración de SCRUM-45, no de esta historia): sin esa clave el widget de reCAPTCHA no aparece y el botón queda deshabilitado. Las sesiones de las cuentas de prueba se cargaron en el navegador desde la consola, sin cambiar código ni Supabase. Probar el flujo entrando por `/login` queda pendiente.
+- **Riesgo aceptado:** el token viaja en la URL (`/invitacion/<token>`), así que queda en el historial del navegador y en los logs de acceso del hosting. Es propio de un "link de invitación"; lo mitigan el vencimiento de 7 días, la regeneración y `referrer: "no-referrer"`.
 - **Spec reorganizada en SCRUM-57** con una subsección por historia en cada sección, como `features/recipes/specs/SPEC.md`. El contenido de SCRUM-56 no cambió, solo se ubicó bajo su subsección.

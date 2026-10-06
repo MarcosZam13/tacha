@@ -120,7 +120,7 @@ El runner (Vitest) ya está en `develop` desde SCRUM-128 (PR #36, 2026-10-03). E
 
 Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compila por sí solo, y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1 y queda en `in progress` hasta la etapa 9.
 
-> **Orden real (2026-10-05):** la capa Web (etapas 4 a 7) se hizo antes de aplicar la migración (etapa 3). Mientras la RPC no exista, `acceptHouseholdInvite` es solo el contrato y lanza un error a propósito; los tests mockean el servicio. Los commits agrupan las etapas así: (1) constantes + `extractInviteToken`, (2) contrato del servicio + ViewModel, (3) página y ruta, (4) formulario en `/household`, (5) docs de vencimiento.
+> **Orden real (2026-10-05):** la capa Web (etapas 4 a 7) se hizo antes de aplicar la migración (etapa 3). Mientras la RPC no existió, `acceptHouseholdInvite` fue solo el contrato; después de aplicar la `014` se conectó a la RPC real (4.3). Los commits agrupan las etapas así: (1) constantes + `extractInviteToken`, (2) contrato del servicio + ViewModel, (3) página y ruta, (4) formulario en `/household`, (5) docs de vencimiento.
 
 ### Etapa 1 — Specs (commit `docs`)
 
@@ -141,18 +141,18 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 
 ### Etapa 3 — Aplicar y tipos (commit `feat`)
 
-- [ ] 3.1 La dueña de la historia aplica la migración en el SQL Editor de la base compartida (con aprobación explícita) y avisa al equipo.
-- [ ] 3.2 Verificar en la base: la función existe, es `security definer`, `search_path` vacío, `authenticated` la ejecuta y `anon` no (`pg_proc`, `has_function_privilege`).
-- [ ] 3.3 Probar la RPC simulando usuarios con `rollback` (casos de [plan.md](plan.md#cómo-se-prueba-la-rpc)).
-- [ ] 3.4 Agregar `accept_household_invite` a `types/database.types.ts` a mano y compararlo con la firma real.
+- [x] 3.1 La dueña de la historia aplica la migración en el SQL Editor de la base compartida (con aprobación explícita) y avisa al equipo.
+- [x] 3.2 Verificar en la base: la función existe, es `security definer`, `search_path` vacío, `authenticated` la ejecuta y `anon` no (`pg_proc`, `has_function_privilege`).
+- [x] 3.3 Probar la RPC simulando usuarios con `rollback` (casos de [plan.md](plan.md#cómo-se-prueba-la-rpc)).
+- [x] 3.4 Agregar `accept_household_invite` a `types/database.types.ts` a mano y compararlo con la firma real: verificada en el SQL Editor (`accept_household_invite(invite_token text) → text`).
 - [ ] 3.5 Revisión y aprobación; commit.
 
 ### Etapa 4 — Constantes, util y servicio (commit `feat`)
 
 - [x] 4.1 Constantes en `household.constants.ts`: `HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE`, `HOUSEHOLD_JOIN_RESULT` (+ tipo), `HOUSEHOLD_JOIN_STATUS`, `HOUSEHOLD_JOIN_TEXT`, `HOUSEHOLD_JOIN_FORM_ERROR`, patrón del token, `HOUSEHOLD_ROUTE.HOUSEHOLD` y `LOGIN` (claves en orden alfabético, `as const`).
 - [x] 4.2 `utils/extractInviteToken.ts`: enlace completo (con barra final, query o fragmento) o código solo → token; si no, `null`.
-- [ ] 4.3 `acceptHouseholdInvite(inviteToken)` en `household.service.ts`: llama a la RPC, acota el resultado a `HouseholdJoinResultType` y lanza error ante un valor desconocido. **Hoy solo existe el contrato** (lanza error a propósito); se conecta después de 3.1–3.4.
-- [ ] 4.4 Tests de `extractInviteToken` (hechos: 10 casos) y de `acceptHouseholdInvite` con el cliente de Supabase mockeado (pendiente, después de 4.3), según [plan.md](plan.md#pruebas).
+- [x] 4.3 `acceptHouseholdInvite(inviteToken)` en `household.service.ts`: llama a la RPC solo con `{ invite_token }`, acota el resultado a `HouseholdJoinResultType` con una type guard y lanza error ante un valor desconocido, sin incluir el token en el mensaje.
+- [x] 4.4 Tests de `extractInviteToken` (10 casos) y de `household.service.ts` con el cliente de Supabase mockeado: los 5 resultados, la llamada solo con el token, valor desconocido, error de Supabase y `hasRegisteredSession` (sin sesión, anónima, registrada).
 - [x] 4.5 `npx tsc --noEmit`, `npm run lint` y `npm test`; commit `feat(SCRUM-57): add invite token extraction and join constants`.
 
 ### Etapa 5 — ViewModel de la página (commit `feat`)
@@ -178,23 +178,23 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 
 ### Etapa 8 — Pruebas y documentación (commits `test` y `docs`)
 
-- [ ] 8.1 Completar los tests de [plan.md](plan.md#pruebas) que no hayan entrado en las etapas 4 a 7 y comprobar que cada CA de SPEC §13 tenga al menos un test (camino feliz + un caso negativo o límite como mínimo, CONTRIBUTING §7); commit `test` si hace falta. Obligatorio.
-- [ ] 8.2 Pruebas manuales de [SPEC §13](SPEC.md#hu-34-scrum-57) con dos cuentas registradas que entran por `/login`; capturas sin el token.
-- [ ] 8.3 `docs/documento-proyecto.md` §4.1 y §6 ([plan.md](plan.md#documento-del-proyecto)); commit `docs`.
-- [ ] 8.4 Marcar en SPEC §13 y en esta lista solo lo que se validó; commit `docs`.
+- [x] 8.1 Completar los tests de [plan.md](plan.md#pruebas) que no hayan entrado en las etapas 4 a 7 y comprobar que cada CA de SPEC §13 tenga al menos un test (camino feliz + un caso negativo o límite como mínimo, CONTRIBUTING §7); commit `test` si hace falta. Obligatorio.
+- [x] 8.2 Pruebas manuales de [SPEC §13](SPEC.md#hu-34-scrum-57) con cuentas registradas de prueba, con capturas sin el token. Las sesiones se cargaron desde la consola porque `/login` no funciona en local sin la clave de reCAPTCHA (SPEC §15).
+- [x] 8.3 `docs/documento-proyecto.md` §4.1 y §6 ([plan.md](plan.md#documento-del-proyecto)); commit `docs`.
+- [x] 8.4 Marcar en SPEC §13 y en esta lista solo lo que se validó; commit `docs`.
 
 ### Etapa 9 — Revisiones y QA
 
-- [ ] 9.1 Volver a revisar el número de la migración contra `develop` y renombrar si hace falta.
-- [ ] 9.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (lo mismo que corre el CI).
-- [ ] 9.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; corregir en commits `fix(SCRUM-57): …`.
+- [x] 9.1 Volver a revisar el número de la migración contra `develop` y renombrar si hace falta: revisado el 2026-10-06, `develop` llega a la `012` y la rama de SCRUM-97 usa la `013`; la `014` sigue libre.
+- [x] 9.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (lo mismo que corre el CI).
+- [x] 9.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker` (2026-10-06): sin hallazgos de seguridad ni de estructura; se aplicaron sus correcciones menores (nombre de constante, comentarios, tests de `hasRegisteredSession`).
 - [ ] 9.4 Completar la descripción del PR con la plantilla (en inglés), pasos de prueba y evidencia; pasar a `waiting qa` y mover la tarjeta de Jira en el mismo momento.
 - [ ] 9.5 Merge solo con `qa accepted` puesto por otra persona.
 
 ### Coordinación con otras historias
 
 - [ ] SCRUM-49 (`SessionGuard`, Esteban; ya en `develop`, apagado por defecto): acordar qué pasa con `/invitacion/<token>` cuando se encienda (no está en `PUBLIC_ROUTES` y la lista no admite rutas dinámicas). Propuesta en [plan.md](plan.md#riesgos-y-deuda-conocida).
-- [ ] E2E (Playwright, SCRUM-129): decidir con el equipo si SCRUM-57 lleva E2E; hoy necesitaría cuentas registradas de prueba en la base compartida. Propuesta en [plan.md](plan.md#pruebas).
+- [x] E2E (Playwright, SCRUM-129): decidido que SCRUM-57 no lleva E2E (necesitaría cuentas registradas de prueba en la base compartida); ver SPEC §15. Propuesta en [plan.md](plan.md#pruebas).
 - [ ] SCRUM-45 (login, Esteban): proponer el retorno al enlace después del login como mejora aparte.
 - [ ] QA: confirmar el número final de la migración cuando se resuelva la renumeración de la `011`.
 
