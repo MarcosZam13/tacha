@@ -9,6 +9,7 @@ export const LANDING_ROUTE = {
 
 export const LANDING_SECTION_ID = {
   CONTACT: "contacto",
+  DEMO: "demo",
   INTRO: "que-es-tacha",
   MORE_INFO: "mas-informacion",
   TESTIMONIALS: "testimonios",
@@ -46,6 +47,11 @@ export const MORE_INFO_TEXT = {
   // "#top" es un fragmento especial del navegador: sube al inicio de la página sin necesitar un id.
   BACK_TO_TOP_HREF: "#top",
   TITLE: "Tacha en detalle",
+} as const;
+
+// Marcador hasta tener el video de la demo (CA-03 a CA-05 de HU-07 pendientes).
+export const DEMO_TEXT = {
+  PLACEHOLDER: "Aquí va la demo, pendiente",
 } as const;
 
 // La intro muestra `summary` y la información ampliada (HU-04) muestra `detail`:

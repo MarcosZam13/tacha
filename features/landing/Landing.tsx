@@ -1,3 +1,4 @@
+import { DemoSection } from "./components/DemoSection";
 import { HeroSection } from "./components/HeroSection";
 import { IntroSection } from "./components/IntroSection";
 import { MoreInfoSection } from "./components/MoreInfoSection";
@@ -12,6 +13,7 @@ export const Landing = (): React.JSX.Element => (
     <main className="flex-1">
       <HeroSection />
       <IntroSection />
+      <DemoSection />
       <TestimonialsSection />
       <MoreInfoSection />
     </main>

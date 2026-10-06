@@ -46,8 +46,8 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 - [x] 3. Probar.
 
 ## SCRUM-29: demo de uso (bloqueada por SCRUM-27)
-- [ ] 1. DemoSection con el texto "Aquí va la demo".
-- [ ] 2. Probar.
+- [x] 1. DemoSection con el texto "Aquí va la demo, pendiente".
+- [x] 2. Probar.
 - [ ] Pendiente: video real (CA-03 a CA-05).
 
 ## SCRUM-32: términos y condiciones (bloqueada por SCRUM-29)
