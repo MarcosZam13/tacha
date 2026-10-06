@@ -1,4 +1,5 @@
 import { MissionVisionSection } from "./components/MissionVisionSection";
+import { OrganizationSection } from "./components/OrganizationSection";
 import { PublicLayout } from "./components/PublicLayout";
 import { ABOUT_TEXT } from "./constants/landing.constants";
 
@@ -9,5 +10,6 @@ export const About = (): React.JSX.Element => (
       <p className="font-body text-base text-tacha-textsec">{ABOUT_TEXT.DESCRIPTION}</p>
     </header>
     <MissionVisionSection />
+    <OrganizationSection />
   </PublicLayout>
 );

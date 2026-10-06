@@ -1,3 +1,4 @@
+import type { InfoBlock } from "../models/InfoBlock.interface";
 import type { NavLink } from "../models/NavLink.interface";
 import type { PlatformFeature } from "../models/PlatformFeature.interface";
 import type { TestimonialList } from "../models/Testimonial.interface";
@@ -66,6 +67,33 @@ export const ABOUT_TEXT = {
     "Ser la herramienta de referencia en Costa Rica para planificar las compras del hogar de forma colaborativa, transparente y desde cualquier dispositivo.",
   VISION_TITLE: "Visión",
 } as const;
+
+export const ORGANIZATION_TEXT = {
+  TITLE: "Quiénes somos",
+} as const;
+
+export const ORGANIZATION_FACTS: readonly InfoBlock[] = [
+  {
+    id: "origen",
+    text: "Tacha nació en 2026 como proyecto del curso Introducción al Desarrollo Web, cuando notamos que en nuestras casas se repetían compras y nadie sabía cuánto se gastaba.",
+    title: "Cómo nació",
+  },
+  {
+    id: "proposito",
+    text: "Para que comprar en familia sea un trabajo en equipo: una sola lista, precios de referencia y un registro claro de los gastos.",
+    title: "Para qué existe",
+  },
+  {
+    id: "equipo",
+    text: "Un equipo de seis estudiantes que diseña, programa y prueba la plataforma trabajando por sprints con Scrum.",
+    title: "Quiénes la hacen",
+  },
+  {
+    id: "caracteristicas",
+    text: "Precios reales de supermercados costarricenses, uso gratuito y una app que funciona igual en el celular que en la computadora.",
+    title: "Qué nos caracteriza",
+  },
+];
 
 // La intro muestra `summary` y la información ampliada (HU-04) muestra `detail`:
 // salen del mismo objeto para que nunca hablen de cosas distintas.
