@@ -5,6 +5,7 @@ import type { TestimonialList } from "../models/Testimonial.interface";
 export const LANDING_ROUTE = {
   HOME: "/",
   REGISTER: "/registro",
+  TERMS: "/terminos",
 } as const;
 
 export const LANDING_SECTION_ID = {
@@ -123,7 +124,12 @@ export const FOOTER_TEXT = {
   CONTACT_TITLE: "Contacto",
   DESCRIPTION:
     "Listas de compras colaborativas para el hogar: una lista compartida, precios aproximados por supermercado y menos mandados repetidos.",
+  LEGAL_LABEL: "Enlaces legales e institucionales",
   SOCIAL_TITLE: "Seguinos",
+} as const;
+
+export const BACK_BUTTON_TEXT = {
+  LABEL: "← Volver",
 } as const;
 
 export const TACHA_INSTAGRAM = {
@@ -136,4 +142,8 @@ export const TACHA_INSTAGRAM = {
 export const NAV_LINKS: readonly NavLink[] = [
   { href: LANDING_ROUTE.HOME, label: "Inicio" },
   { href: `${LANDING_ROUTE.HOME}#${LANDING_SECTION_ID.CONTACT}`, label: "Contacto" },
+];
+
+export const FOOTER_LINKS: readonly NavLink[] = [
+  { href: LANDING_ROUTE.TERMS, label: "Términos y condiciones" },
 ];

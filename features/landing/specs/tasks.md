@@ -51,13 +51,12 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 - [ ] Pendiente: video real (CA-03 a CA-05).
 
 ## SCRUM-32: términos y condiciones (bloqueada por SCRUM-29)
-- [ ] 1. PublicLayout y refactor de Landing.
-- [ ] 2. terms.constants, Terms, ruta /terminos.
-- [ ] 3. BackButton + ViewModel + test.
-- [ ] 4. Enlace en el footer y PUBLIC_ROUTES.
+- [x] 1. terms.constants, Terms, ruta /terminos.
+- [x] 2. BackButton + ViewModel + test.
+- [x] 3. Enlace en el footer y PUBLIC_ROUTES.
 
 ## SCRUM-34: misión y visión (bloqueada por SCRUM-32)
-- [ ] 1. About, MissionVisionSection, ruta /nosotros, enlaces "Nosotros", PUBLIC_ROUTES.
+- [ ] 1. PublicLayout (Landing, Terms y About), About, MissionVisionSection, ruta /nosotros, enlaces "Nosotros", PUBLIC_ROUTES.
 
 ## SCRUM-35: información de la organización (bloqueada por SCRUM-34)
 - [ ] 1. OrganizationSection.
