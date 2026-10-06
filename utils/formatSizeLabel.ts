@@ -1,4 +1,4 @@
-import { CATALOG_BASE_UNIT_LABEL } from "../constants/shopping-list.constants";
+import { CATALOG_BASE_UNIT_LABEL } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 
 /** 275 + "g" → "275 g"; 1000 + "ml" → "1000 ml". */
