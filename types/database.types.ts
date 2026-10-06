@@ -654,6 +654,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_household_invite: { Args: { invite_token: string }; Returns: string }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
