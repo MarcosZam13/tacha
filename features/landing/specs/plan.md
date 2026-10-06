@@ -42,15 +42,21 @@ features/landing/
     MoreInfoSection.tsx        HU-04
     DemoSection.tsx            HU-07 (marcador)
     TestimonialsSection.tsx    HU-05, server: título + carrusel
-    TestimonialsCarousel.tsx   HU-05, "use client"
-    TestimonialCard.tsx, CarouselArrowButton.tsx
+    TestimonialsCarousel.tsx   HU-05, "use client": tarjeta y flechas en el mismo archivo
     BackButton.tsx             HU-10, "use client"
     MissionVisionSection.tsx   HU-12
     OrganizationSection.tsx    HU-13
-  models/PlatformFeature.interface.ts  forma de un punto de la intro
+  models/
+    PlatformFeature.interface.ts             punto de la intro (summary + detail)
+    Testimonial.interface.ts                 testimonio y TestimonialList (tupla no vacía)
+    TestimonialsCarouselViewModel.interface.ts
+    TermsSection.interface.ts                sección de los términos
+    BackButtonViewModel.interface.ts
+    BrowserNavigation.interface.ts           tipos de la Navigation API (no están en lib.dom)
+    InfoBlock.interface.ts                   tarjeta de "Quiénes somos"
   hooks/useTestimonialsCarouselViewModel.ts, useBackButtonViewModel.ts
-  constants/carousel.constants.ts, terms.constants.ts
-  tests/                       carrusel (Page Object) y BackButton
+  constants/landing.constants.ts, terms.constants.ts
+  tests/                       carrusel (Page Object) y useBackButtonViewModel
 app/terminos/page.tsx, app/nosotros/page.tsx
 
 | Decisión | Alternativa | Por qué esta |
@@ -63,4 +69,8 @@ app/terminos/page.tsx, app/nosotros/page.tsx
 | Solo el carrusel y BackButton son "use client" | Toda la landing cliente | El resto se renderiza en el servidor y manda menos JS |
 | Demo como marcador de texto | Video ahora | El video todavía no existe; la sección queda lista para reemplazar |
 | BackButton con router.back() y fallback a / | Enlace fijo a / | CA-05 pide volver a la página de origen |
+| BackButton decide con navigation.canGoBack (respaldo: document.referrer) | window.history.length | Una pestaña nueva ya arranca con history.length = 2, así que nunca detectaba "abierto directo" y salía de la app (BUG-2 de QA); canGoBack solo cuenta páginas de Tacha |
+| "Volver arriba" con href="#top" | Ancla a la intro (#que-es-tacha) | "#top" sube al inicio de la página sin necesitar un id; la intro no es el inicio (BUG-1 de QA) |
+| Tarjeta y flechas del carrusel dentro de TestimonialsCarousel | Componentes TestimonialCard y CarouselArrowButton | Tienen un solo uso; extraerlos sumaba 5 archivos sin un segundo consumidor |
+| PublicLayout recién en SCRUM-34 | Crearlo en SCRUM-32 | Con dos páginas era adelantarse; con tres (Landing, Terms, About) la estructura repetida ya es duplicación real |
 | About y Términos dentro de features/landing | Features nuevas | Comparten layout y constantes; precedente en recipes/ |
