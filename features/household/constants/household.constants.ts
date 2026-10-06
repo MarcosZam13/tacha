@@ -1,7 +1,8 @@
 // Constantes de la feature household: crear el household y su link de
-// invitación (SCRUM-56) y unirse con ese link (SCRUM-57). Viven dentro de la feature porque ninguna otra las usa
-// todavía; se promueven a constants/ con el segundo consumidor. No confundir
-// con constants/household.constants.ts (preferencias de tiendas).
+// invitación (SCRUM-56) y unirse con ese link (SCRUM-57). Viven dentro de la
+// feature porque ninguna otra las usa todavía; se promueven a constants/ con
+// el segundo consumidor. No confundir con constants/household.constants.ts
+// (preferencias de tiendas).
 
 // Roles de household_members: el mismo dominio que el check de la migración 011.
 export const HOUSEHOLD_ROLE = {
@@ -22,7 +23,7 @@ export const HOUSEHOLD_DB = {
   // types/database.types.ts las valida al compilar.
   MEMBERSHIP_SELECT: "role, households(name)",
   RPC: {
-    // Se crea en la etapa de backend de SCRUM-57 (contrato en specs/SPEC.md §12).
+    // Migración 014 (contrato en specs/SPEC.md §12).
     ACCEPT_HOUSEHOLD_INVITE: "accept_household_invite",
     CREATE_HOUSEHOLD: "create_household",
     CREATE_HOUSEHOLD_INVITE: "create_household_invite",
