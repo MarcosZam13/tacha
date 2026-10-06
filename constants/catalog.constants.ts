@@ -1,4 +1,4 @@
-// Constantes del catálogo compartidas entre features (hoy: lista general y recetas).
+// Constantes del catálogo compartidas entre features (hoy: lista general, recetas y catálogo).
 
 // MIN_QUERY_LENGTH tiene que coincidir con min_search_length de la RPC
 // search_catalog: por debajo la base devuelve 0 filas y no vale la pena llamarla.
@@ -18,6 +18,23 @@ export const CATALOG_BASE_UNIT = {
 
 export type CatalogBaseUnitType =
   (typeof CATALOG_BASE_UNIT)[keyof typeof CATALOG_BASE_UNIT];
+
+// satisfies Record<CatalogBaseUnitType, ...> obliga a tener una etiqueta por
+// cada unidad (si se agrega una unidad arriba, esto deja de compilar) sin
+// perder los tipos literales de as const.
+export const CATALOG_BASE_UNIT_LABEL = {
+  [CATALOG_BASE_UNIT.GRAMS]: "g",
+  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
+  [CATALOG_BASE_UNIT.UNIT]: "u",
+} as const satisfies Record<CatalogBaseUnitType, string>;
+
+// Precios del catálogo: colones, sin decimales (los súper no cobran céntimos).
+export const PRICE_FORMAT = {
+  CURRENCY: "CRC",
+  LOCALE: "es-CR",
+  MAX_FRACTION_DIGITS: 0,
+  RANGE_SEPARATOR: " – ",
+} as const;
 
 export const CATALOG_DB = {
   RPC: {
