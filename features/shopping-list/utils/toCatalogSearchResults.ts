@@ -1,6 +1,6 @@
 import type { CatalogProduct } from "@/types/catalog.types";
+import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
-import { formatSizeLabel } from "./formatSizeLabel";
 
 /**
  * Aplana los productos madre del buscador a una fila por variante, porque lo

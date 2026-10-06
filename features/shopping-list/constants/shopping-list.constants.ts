@@ -1,6 +1,3 @@
-import { CATALOG_BASE_UNIT } from "@/constants";
-import type { CatalogBaseUnitType } from "@/constants";
-
 // Constantes propias de la lista general. Viven dentro de la feature porque
 // ninguna otra las usa todavía; se promueven a constants/ con el segundo consumidor.
 
@@ -32,15 +29,6 @@ export const LIST_TYPE = {
 } as const;
 
 export type ListTypeType = (typeof LIST_TYPE)[keyof typeof LIST_TYPE];
-
-// satisfies Record<CatalogBaseUnitType, ...> obliga a tener una etiqueta por
-// cada unidad (si se agrega una unidad arriba, esto deja de compilar) sin
-// perder los tipos literales de as const.
-export const CATALOG_BASE_UNIT_LABEL = {
-  [CATALOG_BASE_UNIT.GRAMS]: "g",
-  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
-  [CATALOG_BASE_UNIT.UNIT]: "u",
-} as const satisfies Record<CatalogBaseUnitType, string>;
 
 export const SHOPPING_LIST_DB = {
   // Embebe items → variante → producto madre en una sola petición (PostgREST).
@@ -74,14 +62,6 @@ export const SHOPPING_LIST_ACTION = {
   QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
   REMOVE_FAILED: "removeFailed",
-} as const;
-
-// Precios del catálogo: colones, sin decimales (los súper no cobran céntimos).
-export const PRICE_FORMAT = {
-  CURRENCY: "CRC",
-  LOCALE: "es-CR",
-  MAX_FRACTION_DIGITS: 0,
-  RANGE_SEPARATOR: " – ",
 } as const;
 
 export const SHOPPING_LIST_TEXT = {
