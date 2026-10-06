@@ -1,11 +1,11 @@
 import type { CatalogBaseUnitType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
+import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
 import type { ItemDetail } from "../models/ItemDetail.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
-import { formatSizeLabel } from "../utils/formatSizeLabel";
 
 /**
  * Trae la lista general del usuario con sus items. Si todavía no tiene lista
@@ -82,6 +82,22 @@ export const changeItemQuantity = async (
   if (error) throw error;
 
   return listItem.quantity_requested;
+};
+
+/**
+ * Borra un item de la lista general. Si ya no existe (otra pestaña lo
+ * borró) o no es del usuario, RLS no lo ve: se borran 0 filas sin error, y se
+ * trata igual que un borrado correcto. Para quien lo pidió el producto ya no
+ * está, y así no se revela si existe un item ajeno.
+ */
+export const deleteListItem = async (itemId: string): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient()
+    .from(SHOPPING_LIST_DB.TABLE.LIST_ITEMS)
+    .delete()
+    .eq("id", itemId);
+  if (error) throw error;
 };
 
 /**

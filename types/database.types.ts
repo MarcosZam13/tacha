@@ -60,6 +60,64 @@ export type Database = {
         }
         Relationships: []
       }
+      household_invite_links: {
+        Row: {
+          created_at: string
+          expires_at: string
+          household_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          household_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          household_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_invite_links_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_members: {
+        Row: {
+          created_at: string
+          household_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_store_preferences: {
         Row: {
           household_id: string
@@ -85,6 +143,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      households: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       list_item_recipe_requirements: {
         Row: {
@@ -658,6 +734,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_household: { Args: { household_name: string }; Returns: string }
+      create_household_invite: {
+        Args: never
+        Returns: {
+          expires_at: string
+          token: string
+        }[]
+      }
+      get_household_invite: {
+        Args: never
+        Returns: {
+          expires_at: string
+          token: string
+        }[]
       }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }

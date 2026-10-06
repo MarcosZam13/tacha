@@ -1,6 +1,3 @@
-import { CATALOG_BASE_UNIT } from "@/constants";
-import type { CatalogBaseUnitType } from "@/constants";
-
 // Constantes propias de la lista general. Viven dentro de la feature porque
 // ninguna otra las usa todavía; se promueven a constants/ con el segundo consumidor.
 
@@ -18,6 +15,12 @@ export const ITEM_QUANTITY = {
 export type ItemQuantityStepType =
   (typeof ITEM_QUANTITY.STEP)[keyof typeof ITEM_QUANTITY.STEP];
 
+// Cuánto se ve el toast de "Producto eliminado". Es también el plazo para
+// deshacer: el borrado en la base sale recién cuando vence.
+export const ITEM_REMOVAL = {
+  UNDO_WINDOW_MS: 5000,
+} as const;
+
 // Espejo del check de lists.type en la base (documento-proyecto §6).
 export const LIST_TYPE = {
   DATE: "date",
@@ -26,15 +29,6 @@ export const LIST_TYPE = {
 } as const;
 
 export type ListTypeType = (typeof LIST_TYPE)[keyof typeof LIST_TYPE];
-
-// satisfies Record<CatalogBaseUnitType, ...> obliga a tener una etiqueta por
-// cada unidad (si se agrega una unidad arriba, esto deja de compilar) sin
-// perder los tipos literales de as const.
-export const CATALOG_BASE_UNIT_LABEL = {
-  [CATALOG_BASE_UNIT.GRAMS]: "g",
-  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
-  [CATALOG_BASE_UNIT.UNIT]: "u",
-} as const satisfies Record<CatalogBaseUnitType, string>;
 
 export const SHOPPING_LIST_DB = {
   // Embebe items → variante → producto madre en una sola petición (PostgREST).
@@ -60,20 +54,14 @@ export const SHOPPING_LIST_DB = {
 // Acciones del reducer de la lista (utils/shopping-list.reducer.ts).
 export const SHOPPING_LIST_ACTION = {
   ADD_FAILED: "addFailed",
+  ITEM_REMOVED: "itemRemoved",
   ITEM_UPSERTED: "itemUpserted",
   LOADED: "loaded",
   LOAD_FAILED: "loadFailed",
   QUANTITY_CHANGED: "quantityChanged",
   QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
-} as const;
-
-// Precios del catálogo: colones, sin decimales (los súper no cobran céntimos).
-export const PRICE_FORMAT = {
-  CURRENCY: "CRC",
-  LOCALE: "es-CR",
-  MAX_FRACTION_DIGITS: 0,
-  RANGE_SEPARATOR: " – ",
+  REMOVE_FAILED: "removeFailed",
 } as const;
 
 export const SHOPPING_LIST_TEXT = {
@@ -91,6 +79,11 @@ export const SHOPPING_LIST_TEXT = {
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
   OPEN_DETAIL: "Ver detalle",
   OPEN_DETAIL_ICON: "i",
+  REMOVE_ERROR: "No se pudo eliminar el producto. Intenta de nuevo.",
+  REMOVE_ITEM: "Eliminar",
+  REMOVE_ITEM_ICON: "✕",
+  REMOVED_TOAST: "Producto eliminado",
+  UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",
 } as const;

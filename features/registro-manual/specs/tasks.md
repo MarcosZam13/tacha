@@ -22,6 +22,8 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-39: feedback de seguridad de contraseña
 
+> Movido en SCRUM-48 a `components/password-strength-meter/`, `utils/password.utils.ts`, `constants/password.constants.ts` y `types/password.types.ts`. Las rutas de abajo son las originales.
+
 - [x] 1. Constantes: reglas, niveles, etiquetas y mensajes (`constants/registro.constants.ts`).
 - [x] 2. Evaluación pura (`utils/evaluatePasswordStrength.ts`).
 - [x] 3. Mini componente `components/PasswordStrengthMeter.tsx` y su modelo de props.
