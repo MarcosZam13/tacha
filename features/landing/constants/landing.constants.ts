@@ -44,7 +44,9 @@ export const INTRO_TEXT = {
 } as const;
 
 export const MORE_INFO_TEXT = {
-  BACK_TO_INTRO: "Volver arriba",
+  BACK_TO_TOP: "Volver arriba",
+  // "#top" es un fragmento especial del navegador: sube al inicio de la página sin necesitar un id.
+  BACK_TO_TOP_HREF: "#top",
   TITLE: "Tacha en detalle",
 } as const;
 
