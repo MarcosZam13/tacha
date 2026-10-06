@@ -3,11 +3,12 @@
 import { Button, Spinner } from "@/components/ui";
 import { HouseholdCreateForm } from "./components/HouseholdCreateForm";
 import { HouseholdInviteLinkCard } from "./components/HouseholdInviteLinkCard";
+import { HouseholdJoinForm } from "./components/HouseholdJoinForm";
 import { HOUSEHOLD_INVITE_TEXT, HOUSEHOLD_TEXT } from "./constants/household.constants";
 import { useHouseholdViewModel } from "./hooks/useHouseholdViewModel";
 
 /**
- * Pantalla "Mi familia": sin cuenta, crear la familia, miembro, o admin
+ * Pantalla "Mi familia": sin cuenta, crear la familia o unirse con una invitación, miembro, o admin
  * con su enlace de invitación. "use client" porque usa hooks y habla con
  * Supabase desde el navegador (la sesión vive en el navegador).
  */
@@ -44,14 +45,19 @@ export const Household = (): React.JSX.Element => {
         </p>
       ) : null}
 
+      {/* Sin familia: crear una o unirse con una invitación, las dos igual de
+          visibles (DESIGN.md §7.15). */}
       {viewModel.showCreateForm ? (
-        <HouseholdCreateForm
-          isCreating={viewModel.isCreating}
-          name={viewModel.name}
-          nameError={viewModel.nameError}
-          onNameChange={viewModel.onNameChange}
-          onSubmit={viewModel.onCreateSubmit}
-        />
+        <>
+          <HouseholdCreateForm
+            isCreating={viewModel.isCreating}
+            name={viewModel.name}
+            nameError={viewModel.nameError}
+            onNameChange={viewModel.onNameChange}
+            onSubmit={viewModel.onCreateSubmit}
+          />
+          <HouseholdJoinForm {...viewModel.join} />
+        </>
       ) : null}
 
       {viewModel.showMemberNotice ? (
