@@ -9,6 +9,7 @@ export const LANDING_ROUTE = {
 export const LANDING_SECTION_ID = {
   CONTACT: "contacto",
   INTRO: "que-es-tacha",
+  MORE_INFO: "mas-informacion",
 } as const;
 
 export const BRAND_LOGO = {
@@ -33,7 +34,16 @@ export const HERO_TEXT = {
 export const INTRO_TEXT = {
   DESCRIPTION:
     "Una app para que tu casa organice las compras en equipo: todos ven la misma lista, nadie compra dos veces lo mismo y saben cuánto gastan.",
+  READ_MORE: "Leer más",
+  READ_MORE_LABEL: "Leer más sobre Tacha",
   TITLE: "¿Qué es Tacha?",
+} as const;
+
+export const MORE_INFO_TEXT = {
+  BACK_TO_TOP: "Volver arriba",
+  // "#top" es un fragmento especial del navegador: sube al inicio de la página sin necesitar un id.
+  BACK_TO_TOP_HREF: "#top",
+  TITLE: "Tacha en detalle",
 } as const;
 
 // La intro muestra `summary` y la información ampliada (HU-04) muestra `detail`:

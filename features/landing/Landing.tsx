@@ -1,5 +1,6 @@
 import { HeroSection } from "./components/HeroSection";
 import { IntroSection } from "./components/IntroSection";
+import { MoreInfoSection } from "./components/MoreInfoSection";
 import { PublicFooter } from "./components/PublicFooter";
 import { PublicNavbar } from "./components/PublicNavbar";
 
@@ -10,6 +11,7 @@ export const Landing = (): React.JSX.Element => (
     <main className="flex-1">
       <HeroSection />
       <IntroSection />
+      <MoreInfoSection />
     </main>
     <PublicFooter />
   </div>

@@ -15,6 +15,13 @@ export const IntroSection = (): React.JSX.Element => (
           </li>
         ))}
       </ul>
+      <a
+        href={`#${LANDING_SECTION_ID.MORE_INFO}`}
+        aria-label={INTRO_TEXT.READ_MORE_LABEL}
+        className="self-center font-body text-sm font-semibold text-tacha-teal hover:underline"
+      >
+        {INTRO_TEXT.READ_MORE}
+      </a>
     </div>
   </section>
 );

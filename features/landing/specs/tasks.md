@@ -36,8 +36,9 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 - [x] 3. Probar en 320px y desktop, claro y oscuro; tsc, lint, test, build.
 
 ## SCRUM-26: leer más (bloqueada por SCRUM-25)
-- [ ] 1. MoreInfoSection y enlace "Leer más".
-- [ ] 2. Probar.
+- [x] 1. MoreInfoSection y enlace "Leer más".
+- [x] 2. Probar.
+
 
 ## SCRUM-27: testimonios (bloqueada por SCRUM-26)
 - [ ] 1. Modelo, constantes, ViewModel, carrusel.
