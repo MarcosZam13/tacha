@@ -11,10 +11,10 @@ export const MoreInfoSection = (): React.JSX.Element => (
         </article>
       ))}
       <a
-        href={`#${LANDING_SECTION_ID.INTRO}`}
+        href={MORE_INFO_TEXT.BACK_TO_TOP_HREF}
         className="font-body text-sm font-semibold text-tacha-teal hover:underline"
       >
-        {MORE_INFO_TEXT.BACK_TO_INTRO}
+        {MORE_INFO_TEXT.BACK_TO_TOP}
       </a>
     </div>
   </section>
