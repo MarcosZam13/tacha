@@ -41,9 +41,9 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 
 
 ## SCRUM-27: testimonios (bloqueada por SCRUM-26)
-- [ ] 1. Modelo, constantes, ViewModel, carrusel.
-- [ ] 2. Tests con Page Object.
-- [ ] 3. Probar.
+- [x] 1. Modelo, constantes, ViewModel, carrusel.
+- [x] 2. Tests con Page Object.
+- [x] 3. Probar.
 
 ## SCRUM-29: demo de uso (bloqueada por SCRUM-27)
 - [ ] 1. DemoSection con el texto "Aquí va la demo".

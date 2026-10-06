@@ -1,5 +1,6 @@
 import type { NavLink } from "../models/NavLink.interface";
 import type { PlatformFeature } from "../models/PlatformFeature.interface";
+import type { TestimonialList } from "../models/Testimonial.interface";
 
 export const LANDING_ROUTE = {
   HOME: "/",
@@ -10,6 +11,7 @@ export const LANDING_SECTION_ID = {
   CONTACT: "contacto",
   INTRO: "que-es-tacha",
   MORE_INFO: "mas-informacion",
+  TESTIMONIALS: "testimonios",
 } as const;
 
 export const BRAND_LOGO = {
@@ -71,6 +73,43 @@ export const PLATFORM_FEATURES: readonly PlatformFeature[] = [
     title: "Sabé cuánto gastan",
   },
 ];
+
+export const TESTIMONIALS_TEXT = {
+  NEXT_LABEL: "Ver testimonio siguiente",
+  POSITION_SEPARATOR: "de",
+  PREVIOUS_LABEL: "Ver testimonio anterior",
+  REGION_LABEL: "Testimonios",
+  ROLE_DESCRIPTION: "carrusel",
+  TITLE: "Lo que dicen quienes ya la usan",
+} as const;
+
+// PROVISIONAL: reemplazar por testimonios reales, con permiso de quien los da.
+export const TESTIMONIALS: TestimonialList = [
+  {
+    id: "andrea",
+    location: "Heredia",
+    name: "Andrea",
+    quote: "Antes comprábamos dos veces el arroz. Ahora todos vemos la lista y tachamos al momento.",
+  },
+  {
+    id: "jose",
+    location: "Cartago",
+    name: "José",
+    quote: "Me gusta ver antes de salir en qué súper me sale más barata la compra de la semana.",
+  },
+  {
+    id: "valeria",
+    location: "San José",
+    name: "Valeria",
+    quote: "Con mis compañeros de apartamento por fin sabemos quién compró qué y cuánto gastamos.",
+  },
+];
+
+// Trazo SVG de las flechas del carrusel (chevron).
+export const CAROUSEL_ICON_PATH = {
+  NEXT: "m9 18 6-6-6-6",
+  PREVIOUS: "m15 18-6-6 6-6",
+} as const;
 
 export const FOOTER_TEXT = {
   ABOUT_LABEL: "Sobre Tacha",
