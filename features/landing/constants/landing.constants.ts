@@ -132,11 +132,6 @@ export const BACK_BUTTON_TEXT = {
   LABEL: "← Volver",
 } as const;
 
-// Con una sola entrada (pestaña nueva, enlace pegado) no hay página anterior.
-export const BROWSER_HISTORY = {
-  MIN_ENTRIES_TO_GO_BACK: 2,
-} as const;
-
 export const TACHA_INSTAGRAM = {
   HANDLE: "@tacha.2026",
   LINK_LABEL: "Instagram de Tacha (se abre en una pestaña nueva)",
