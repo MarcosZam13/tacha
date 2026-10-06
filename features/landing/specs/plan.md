@@ -37,7 +37,7 @@ features/landing/
   About.tsx                    página /nosotros (HU-12, HU-13)
   Terms.tsx                    página /terminos (HU-10)
   components/
-    PublicLayout.tsx           navbar + main + footer; se extrae en SCRUM-34, cuando haya 3 páginas
+    PublicLayout.tsx           navbar + main + footer (lo usan Landing, Terms y About)
     IntroSection.tsx           HU-03, más el enlace "Leer más" (HU-04)
     MoreInfoSection.tsx        HU-04
     DemoSection.tsx            HU-07 (marcador)

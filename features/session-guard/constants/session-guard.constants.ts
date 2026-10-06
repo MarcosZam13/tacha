@@ -3,6 +3,7 @@
 export const IS_SESSION_GUARD_ENABLED = process.env.NEXT_PUBLIC_SESSION_GUARD_ENABLED === "true";
 
 export const SESSION_GUARD_ROUTE = {
+  ABOUT: "/nosotros",
   HOME: "/",
   LOGIN: "/login",
   REGISTER: "/registro",
@@ -13,6 +14,7 @@ export const SESSION_GUARD_ROUTE = {
 // Rutas que se ven sin sesión. Todo lo que no esté acá exige sesión (falla cerrado).
 // Cada página pública nueva (About, términos, recuperar contraseña...) debe agregarse acá.
 export const PUBLIC_ROUTES: readonly string[] = [
+  SESSION_GUARD_ROUTE.ABOUT,
   SESSION_GUARD_ROUTE.HOME,
   SESSION_GUARD_ROUTE.LOGIN,
   SESSION_GUARD_ROUTE.REGISTER,

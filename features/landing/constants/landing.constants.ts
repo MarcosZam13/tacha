@@ -3,6 +3,7 @@ import type { PlatformFeature } from "../models/PlatformFeature.interface";
 import type { TestimonialList } from "../models/Testimonial.interface";
 
 export const LANDING_ROUTE = {
+  ABOUT: "/nosotros",
   HOME: "/",
   REGISTER: "/registro",
   TERMS: "/terminos",
@@ -53,6 +54,17 @@ export const MORE_INFO_TEXT = {
 // Marcador hasta tener el video de la demo (CA-03 a CA-05 de HU-07 pendientes).
 export const DEMO_TEXT = {
   PLACEHOLDER: "Aquí va la demo, pendiente",
+} as const;
+
+export const ABOUT_TEXT = {
+  DESCRIPTION: "Conocé quiénes somos y hacia dónde vamos.",
+  MISSION:
+    "Ayudar a los hogares costarricenses a organizar sus compras en equipo, con información real de precios, para que gasten menos tiempo y menos dinero.",
+  MISSION_TITLE: "Misión",
+  TITLE: "Sobre Tacha",
+  VISION:
+    "Ser la herramienta de referencia en Costa Rica para planificar las compras del hogar de forma colaborativa, transparente y desde cualquier dispositivo.",
+  VISION_TITLE: "Visión",
 } as const;
 
 // La intro muestra `summary` y la información ampliada (HU-04) muestra `detail`:
@@ -141,9 +153,11 @@ export const TACHA_INSTAGRAM = {
 // Cada sección nueva agrega su enlace acá.
 export const NAV_LINKS: readonly NavLink[] = [
   { href: LANDING_ROUTE.HOME, label: "Inicio" },
+  { href: LANDING_ROUTE.ABOUT, label: "Nosotros" },
   { href: `${LANDING_ROUTE.HOME}#${LANDING_SECTION_ID.CONTACT}`, label: "Contacto" },
 ];
 
 export const FOOTER_LINKS: readonly NavLink[] = [
+  { href: LANDING_ROUTE.ABOUT, label: "Nosotros" },
   { href: LANDING_ROUTE.TERMS, label: "Términos y condiciones" },
 ];

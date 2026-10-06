@@ -56,7 +56,7 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 - [x] 3. Enlace en el footer y PUBLIC_ROUTES.
 
 ## SCRUM-34: misión y visión (bloqueada por SCRUM-32)
-- [ ] 1. PublicLayout (Landing, Terms y About), About, MissionVisionSection, ruta /nosotros, enlaces "Nosotros", PUBLIC_ROUTES.
+- [x] 1. PublicLayout (Landing, Terms y About), About, MissionVisionSection, ruta /nosotros, enlaces "Nosotros", PUBLIC_ROUTES.
 
 ## SCRUM-35: información de la organización (bloqueada por SCRUM-34)
 - [ ] 1. OrganizationSection.
