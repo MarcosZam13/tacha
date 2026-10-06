@@ -4,13 +4,15 @@ import type { RecipeCatalogViewModel } from "../models/recipe-catalog.interfaces
 import type { RecipeCatalogState } from "../models/recipe-catalog.types";
 import { getRecipeSummaries } from "../services/recipes.service";
 import { useRecipeDeletion } from "./useRecipeDeletion";
+import { useRecipeListAddition } from "./useRecipeListAddition";
 
 /**
  * Catálogo de recetas: carga al montar y le entrega a RecipeCatalog.tsx lo
  * que dibuja. En estado solo se guarda lo que no se puede calcular (en qué
  * estado está la carga y, si terminó, las recetas); el resto se deriva.
- * La eliminación vive en su propio hook (useRecipeDeletion); este solo quita
- * de la lista la receta que ese hook avisa que se borró.
+ * La eliminación y agregar a la lista viven en sus propios hooks
+ * (useRecipeDeletion, useRecipeListAddition); este solo quita de la lista la
+ * receta que el primero avisa que se borró.
  */
 export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   // Arranca en "cargando": el efecto nunca tiene que hacer un setState
@@ -28,6 +30,7 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   };
 
   const deletion = useRecipeDeletion({ onDeleted: removeRecipe });
+  const listAddition = useRecipeListAddition();
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -56,6 +59,7 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
     // Con error no se dice "no tienes recetas": no se sabe si es cierto.
     isEmpty: state.status === RECIPE_CATALOG_STATUS.READY && recipes.length === 0,
     isLoading: state.status === RECIPE_CATALOG_STATUS.LOADING,
+    listAddition,
     recipes,
   };
 };

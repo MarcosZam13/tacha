@@ -31,6 +31,7 @@ export const RECIPES_DB = {
   EDITOR_SELECT:
     "id, name, base_servings, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
   RPC: {
+    ADD_RECIPE_TO_GENERAL_LIST: "add_recipe_to_general_list",
     SAVE_RECIPE: "save_recipe",
   },
   TABLE: {
@@ -47,11 +48,14 @@ export const POSTGRES_ERROR_CODE = {
   NO_DATA_FOUND: "P0002",
 } as const;
 
-// Espejo de los check de la base (006_create_recipes.sql y 008_harden_recipes.sql):
-// la UI avisa antes de mandar, pero la base es la que garantiza.
+// Espejo de los check de la base (006_create_recipes.sql, 008_harden_recipes.sql
+// y save_recipe en 013_add_recipe_to_list.sql): la UI avisa antes de mandar,
+// pero la base es la que garantiza.
 // QUANTITY_MAX: 100 kg / 100 L / 100 000 unidades; además de ser un tope
 // razonable, es lo que hace que la base rechace NaN e Infinity.
+// INGREDIENTS_MAX: agregar una receta a la lista recorre todos sus ingredientes.
 export const RECIPE_FORM_LIMIT = {
+  INGREDIENTS_MAX: 50,
   NAME_MAX_LENGTH: 120,
   QUANTITY_MAX: 100_000,
   SERVINGS_MAX: 50,
@@ -76,6 +80,13 @@ export const RECIPE_UNIT_LABEL = {
   [CATALOG_BASE_UNIT.GRAMS]: "g",
   [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
   [CATALOG_BASE_UNIT.UNIT]: "unidades",
+} as const satisfies Record<CatalogBaseUnitType, string>;
+
+// Singular de cada unidad, para cantidades de exactamente 1 ("1 unidad", no "1 unidades").
+export const RECIPE_UNIT_SINGULAR_LABEL = {
+  [CATALOG_BASE_UNIT.GRAMS]: "g",
+  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
+  [CATALOG_BASE_UNIT.UNIT]: "unidad",
 } as const satisfies Record<CatalogBaseUnitType, string>;
 
 // Opciones del selector de unidad. ml primero a propósito: es la unidad más
@@ -120,10 +131,15 @@ export const RECIPE_ROUTE = {
   CATALOG: RECIPES_BASE_PATH,
   EDIT_SEGMENT: "editar",
   NEW: `${RECIPES_BASE_PATH}/nueva`,
+  // Ruta de la lista general (app/lista/), para el link "Ver lista" de SCRUM-97.
+  // No hay una constante de rutas compartida: se promueve a constants/ cuando
+  // otra feature también la necesite.
+  SHOPPING_LIST: "/lista",
 } as const;
 
 export const RECIPE_FORM_ERROR = {
   INGREDIENTS_REQUIRED: "Agrega al menos un ingrediente.",
+  INGREDIENTS_TOO_MANY: `La receta puede tener hasta ${RECIPE_FORM_LIMIT.INGREDIENTS_MAX} ingredientes.`,
   NAME_REQUIRED: "Escribe el nombre de la receta.",
   NAME_TOO_LONG: `El nombre puede tener hasta ${RECIPE_FORM_LIMIT.NAME_MAX_LENGTH} caracteres.`,
   QUANTITY_INVALID: `Escribe una cantidad mayor que 0 y de hasta ${RECIPE_FORM_LIMIT.QUANTITY_MAX}.`,
@@ -200,4 +216,38 @@ export const RECIPE_DELETE_TEXT = {
   ERROR: "No se pudo eliminar la receta. Intenta de nuevo.",
   IRREVERSIBLE_NOTICE: "Se borra con todos sus ingredientes y no se puede deshacer.",
   TRIGGER: "Eliminar",
+} as const;
+
+// Estados de agregar una receta a la lista (RecipeListAdditionState en
+// models/recipe-list-addition.types.ts).
+export const RECIPE_LIST_ADDITION_STATUS = {
+  ADDED: "added",
+  ADDING: "adding",
+  CONFIRMING_REPEAT: "confirmingRepeat",
+  FAILED: "failed",
+  IDLE: "idle",
+} as const;
+
+export const RECIPE_ADD_TO_LIST_TEXT = {
+  ADDING: "Agregando…",
+  ALREADY_COVERED: "Tu lista ya tenía lo necesario para esta receta.",
+  CANCEL: "Cancelar",
+  ERROR: "No se pudo agregar la receta a tu lista. Intenta de nuevo.",
+  MISSING_PREFIX: "Te falta comprar:",
+  NOT_FOUND: "No encontramos esa receta.",
+  REPEAT_CONFIRM: "Agregar otra vez",
+  REPEAT_DIALOG_TITLE: "¿Agregar otra vez a tu lista?",
+  REPEAT_NOTICE: "Ya agregaste esta receta a tu lista. Si la agregas otra vez, se vuelven a sumar sus ingredientes.",
+  SKIPPED_PREFIX: "No se pudieron agregar:",
+  // Separa los productos dentro de "Te falta comprar: …" y "No se pudieron agregar: …".
+  SUMMARY_SEPARATOR: ", ",
+  SUCCESS: "Agregaste la receta a tu lista.",
+  TRIGGER: "Agregar receta a lista",
+  VIEW_LIST: "Ver lista",
+} as const;
+
+// Recetas ya agregadas desde este navegador (regla 27 de la SPEC). Con prefijo
+// de la app: localStorage es compartido por todo el dominio.
+export const RECIPE_ADDED_STORAGE = {
+  KEY: "tacha.recipes.addedToList",
 } as const;
