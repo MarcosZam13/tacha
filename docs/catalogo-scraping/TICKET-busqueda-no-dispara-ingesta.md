@@ -3,6 +3,7 @@
 tipo: ticket de seguimiento (no bloqueante para el PR que lo encontró)
 origen: QA manual de SCRUM-63 (ajuste de cantidad en /lista) por Seph, al probar el buscador de features/shopping-list con un producto que nunca se había scrapeado
 fecha: 2026-09-26
+ticket: SCRUM-126 (https://tacha.atlassian.net/browse/SCRUM-126)
 bloquea: no bloquea SCRUM-63 (esa historia no toca el buscador ni el catálogo) — sí bloquea que el buscador de /lista funcione con productos reales para cualquier término fuera de lo ya scrapeado una vez
 ---
 
@@ -40,7 +41,7 @@ No es un fix de una línea: hay al menos tres decisiones de arquitectura que tom
 
 ## Proceso sugerido, en orden
 
-1. Abrir el ticket en Jira (pendiente — esto no es parte de SCRUM-63) y anotar  número una vez exista. [Actualización 02/10/16 ya se abrió, es el SCRUM-126]
+1. Abrir el ticket en Jira. Hecho: es [SCRUM-126](https://tacha.atlassian.net/browse/SCRUM-126). La decisión está en `DECISION-SCRUM-126-poblacion-del-catalogo.md`.
 2. Resolver las 3 decisiones de arriba y documentarlas (sección de desviaciones, igual que ya se hizo en `reporte-catalogo-scraping.md`).
 3. Escribir una spec nueva con el mismo formato que `specs/spec-01..04` (Intent, In scope, Out of scope, Requirements, Edge cases & errors, Constraints, Acceptance criteria) — es el patrón de Spec-Driven Development que ya sigue el resto del módulo.
 4. Actualizar `referencia-tecnica-catalogo-scraping.md` §7: hoy dice explícitamente que esto no existe; hay que sacarlo de "no construido" (o pasarlo a "en progreso") en cuanto se arranque, para que no quede documentación contradictoria.

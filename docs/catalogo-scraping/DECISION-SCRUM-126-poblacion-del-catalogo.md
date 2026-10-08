@@ -2,88 +2,101 @@
 tipo: registro de decisión (documentación, sin código)
 ticket: SCRUM-126 (https://tacha.atlassian.net/browse/SCRUM-126)
 fecha: 2026-10-02
-estado: propuesta pendiente de aprobación del líder del proyecto
-origen: análisis de SCRUM-126, SCRUM-83, SCRUM-84 y la epic SCRUM-14 hecho el 2026-10-02
-relacionado: TICKET-busqueda-no-dispara-ingesta.md, referencia-tecnica-catalogo-scraping.md
+revisado: 2026-10-08
+estado: decidido según la dirección del líder del proyecto (@MarcosZam13); pendiente de revisión de QA
+origen: TICKET-busqueda-no-dispara-ingesta.md
+relacionado: referencia-tecnica-catalogo-scraping.md, SCRUM-130, SCRUM-131, SCRUM-132, SCRUM-133
 ---
 
 # Decisión SCRUM-126 — Cómo se puebla y se mantiene el catálogo
 
-> El texto de abajo es el análisis completo, copiado sin cambios. La única diferencia son los enlaces de la sección "Sources" a archivos del repo, que se reescribieron como rutas relativas al proyecto (regla de `.agents/skills/project-structure/SKILL.md`, sección 3: ninguna ruta de una máquina en los docs).
+## Contexto
 
----
+**El síntoma.** Buscar en el catálogo solo devuelve resultados para lo que salió de una corrida manual. Con la base consultada en modo lectura el 2026-10-02, `product_catalog` tenía 28 productos y todos coincidían con "leche". Las búsquedas de arroz, huevo, pan, frijol, azúcar, aceite, café y pollo devolvían cero resultados.
 
-Analicé SCRUM-83, 84, 126, la epic SCRUM-14, tus tickets abiertos (SCRUM-83 a 89, 109 a 113 y 126) y el tablero completo. Todo lo que sigue sale de ahí y del código.
+**La causa.** No es un error de una función, es diseño: ningún proceso ejecuta la ingesta.
 
-## 1. Qué se hará en SCRUM-126
+- Las Edge Functions `ingest-*` llenan `product_catalog_staging` y guardan un caché de 6 h por término.
+- `normalize_pending_staging` se invoca de forma explícita, nunca por trigger (spec 03).
+- `search_catalog` es de solo lectura: una búsqueda no dispara scraping.
+- Lo que falte en el catálogo debe cubrirlo el usuario con un producto propio (HU-51 CA-04, HU-56).
 
-SCRUM-126 queda como el ticket de diagnóstico y decisión, **sin código de aplicación**. Su PR es solo de documentación. Entrega:
+**Lo que se encontró al revisar la primera propuesta.**
 
-1. **La decisión escrita en el ticket.** Se elige sembrar el catálogo completo por categorías de VTEX, normalizar asignando categoría y ordenar los resultados por categoría dominante. Se refresca por cron y la cola larga se cubre con una cola diferida. Se descartan la ingesta disparada desde el navegador y el "scrapear al buscar". Todo con sus trade-offs, y con el nombre del líder que la aprueba.
-2. **`TICKET-busqueda-no-dispara-ingesta.md` actualizado** con el número de Jira y los enlaces a los tickets nuevos (es la subtarea 1 del propio ticket).
-3. **Documentado qué proceso llena el catálogo y cada cuánto.** Hoy es solo manual y puntual. La referencia técnica (§7) dice que esto "no existe" y hay que corregirla.
-4. **Criterios de aceptación reajustados.** El criterio "los 8 términos devuelven resultados" no se puede cumplir con un PR de documentación. Se mueve a SCRUM-130, donde se verifica con la lista de términos. Si no se edita, QA lo rechazaría. Editar la descripción en Jira lo hago solo con tu autorización.
+1. **El agrupamiento no sigue el modelo acordado.** El equipo decidió el 2026-08-18 que `product_catalog` sea el "producto madre" (ej. "Leche"), con variantes por tamaño y la marca como detalle ([documento-proyecto.md, sección 4.5](../documento-proyecto.md#45-catálogo-de-productos-y-categorías)). En la práctica, `normalize_staging_row` nombra la madre con el nombre completo del producto y solo reutiliza una existente si la similitud de texto (`pg_trgm`) supera 0.4. Así nunca llega a una madre como "Leche": cada madre actual es un SKU completo (ej. "Leche Dos Pinos Pinito - 1000 ml"). Además `categories` tiene 0 filas y `category_id` es siempre nulo. Cargar más productos con este normalizador multiplicaría madres sueltas.
+2. **Las recetas dependen de las madres.** `recipe_ingredients.product_catalog_id` apunta a `product_catalog` con la acción `NO ACTION`, así que no se puede borrar ni fusionar sin tocar lo que ya se usa.
+3. **Las funciones `ingest-*` no validan quién llama.** El README de `supabase/` documenta que aceptan "anon-or-service-key"; la clave anon es pública, así que cualquiera puede disparar scraping con términos inventados que esquivan el caché.
+4. **Almacenamiento.** `raw_json` pesa cerca de 12 KB por fila (medido). Diez mil productos serían unos 120 MB, contra 500 MB del plan gratuito, y la propuesta inicial no lo recortaba.
+5. **Límites de VTEX.** La API pagina de a 50 resultados y, hasta donde se sabe, limita el desplazamiento cerca de 2 500; no está verificado para estas tiendas.
 
-## 2. Tickets nuevos
+## Decisión
 
-El siguiente número libre hoy es SCRUM-129. Los dejo como hijos de la epic SCRUM-14.
+Se mantiene el modelo **madre + variantes por tamaño + marca como detalle**, porque recetas, listas, grupos y finanzas dependen de él. El catálogo se puebla con un lote mensual sobre una lista curada de madres.
 
-| Ticket | Contenido | Puntos (mi estimación) | Código estimado |
-|---|---|---|---|
-| **SCRUM-129** Ingesta por categoría | Árbol de categorías por tienda y llenado de `categories`; `categoryId` y `page` en `ingest-*`; script de siembra con modo de prueba, ritmo controlado y reanudable; docs y carpeta de scripts | 8 | ~350–450 líneas (TS, SQL y docs) |
-| **SCRUM-130** Normalización con categoría y búsqueda ordenada | `category_id` desde `raw_json`; relleno de lo ya existente; `search_catalog` ordenada por categoría dominante e ignorando acentos; guía de pruebas | 8 | ~300–400 líneas, sobre todo SQL |
-| **SCRUM-131** Mantenimiento y cola larga | Cron de refresco; cola de términos con RPC validado; ruta de debug; estado vacío en la UI | 13 (se parte al planificarlo) | ~700 o más |
+1. **Lista curada de madres.** Un archivo de datos versionado en el repo, de unas 200 a 300 madres en total (ej. "Leche", "Arroz", "Huevos", "Pan cuadrado"). Cada una lleva `name`, `category`, `match_keywords` y `exclude_keywords` (ej. "Leche" excluye "magnesia", "jabón", "chocolate"). Al cargarse, siembra también `categories`. Los IDs de madre deben ser estables: la carga inserta por nombre y nunca borra madres.
+2. **La normalización asigna, no crea.** Cada fila de staging se asigna a una madre de la lista usando palabras clave como señal principal y la ruta de categoría de VTEX (`product.categories` dentro de `raw_json`) como respaldo. Si la fila no encaja con ninguna madre, queda `pending` y no llega al catálogo. Las variantes salen del tamaño y la marca queda como detalle.
+3. **Lote mensual con lo que ya existe.** Un script corre las `ingest-*` actuales usando como término el nombre de cada madre, normaliza esas filas y recorta `raw_json`. No se agregan parámetros a las Edge Functions, no se recorre el árbol de categorías de VTEX y no hay cola de términos largos.
+4. **Lo que no esté en la lista** lo cubre "Mis productos" (HU-56).
+5. **Las `ingest-*` solo aceptan `service_role`.** Es lo que ya usan el script y cualquier proceso programado.
+6. **Limpieza del catálogo actual: opción B con re-seed.** Se borran las recetas de demo, se actualiza el seed de demo a las madres nuevas y se vuelve a correr. Los ingredientes y los ítems de lista reales se reasignan a mano. Las llaves foráneas se quedan en `NO ACTION`, porque evitan que un `DELETE` se lleve recetas sin avisar. Va en un ticket propio, solo después de probar el normalizador nuevo contra las filas de staging y avisando antes al equipo.
+7. **`search_catalog` conserva su contrato y sigue siendo de solo lectura.**
 
-Los puntos usan la escala del tablero (2, 3, 5 y 8; lo más grande hoy es SCRUM-115 con 8). Las líneas las estimo por la estructura del código. Son números míos que el equipo debe confirmar.
+Este PR es solo documentación. El trabajo se reparte en cuatro tickets, hijos de la épica SCRUM-14:
 
-Cambié de dos tickets a tres, y el motivo es de proceso, no de gusto. `CONTRIBUTING` exige una historia por PR y un PR de 16 puntos sería casi imposible de revisar para QA. Separarlo calza con el principio de staging primero: SCRUM-129 solo escribe en staging (inofensivo). SCRUM-130 es el que toca el catálogo compartido, con migraciones y cuidado.
+| Ticket | Alcance | Depende de |
+|---|---|---|
+| [SCRUM-130](https://tacha.atlassian.net/browse/SCRUM-130) | Restringir `ingest-maxipali`, `ingest-walmart` e `ingest-masxmenos` a `service_role`; apagar la página `/debug/scraping-demo`, que las llama desde el navegador | — |
+| [SCRUM-131](https://tacha.atlassian.net/browse/SCRUM-131) | Lista curada de madres, tabla de reglas de mapeo y normalizador que asigna en vez de crear | — |
+| [SCRUM-132](https://tacha.atlassian.net/browse/SCRUM-132) | Script mensual de ingesta (ingestar, normalizar y recortar `raw_json` por término) | SCRUM-130 y SCRUM-131 |
+| [SCRUM-133](https://tacha.atlassian.net/browse/SCRUM-133) | Reset del catálogo, opción B con re-seed | SCRUM-131 probado contra staging |
 
-## 3. Orden de trabajo
+El criterio "las búsquedas de arroz, huevo, pan, frijol, azúcar, aceite, café y pollo devuelven resultados" no puede cumplirse con un PR de documentación; se verifica con la primera corrida de SCRUM-132.
 
-Tu orden: 126 → 83 → 84 → nuevos. **Propongo 126 → 83 → 129 → 130 → 84 → 131.**
+**Ajustes posteriores.** Una auditoría de la base (2026-10-06) agregó criterios de seguridad a SCRUM-130 y SCRUM-131: fijar el `search_path` de las funciones de normalización y de `search_catalog`, revocar a `anon` la ejecución de `normalize_*` y `parse_size_text`, revocar los permisos de escritura de `anon` y `authenticated` sobre las tablas del catálogo (incluido `TRUNCATE`, que RLS no controla), cerrar `get_recent_staging` y decidir qué hacer con la Edge Function `search-products`, que está desplegada pero no existe en el repo. El detalle vive en esos tickets.
 
-- **SCRUM-84 no puede ir antes.** HU-52 exige chips de categoría (CA-01) y combinarlos con el texto (CA-03). Hoy `categories` está vacía y `category_id` es siempre nulo. Sin 129 y 130, la historia se construye sobre la nada, no se puede probar, y por la regla de dependencias de `CONTRIBUTING` quedaría `on hold`.
-- **SCRUM-83 sí puede ir antes.** Consume `search_catalog` y no necesita categorías. SCRUM-130 mantiene el contrato de esa función (misma firma y forma, solo cambia el orden de los resultados), así que no hay retrabajo.
-- **Una sola PR `in progress` por persona.** Una cadena secuencial es lo que las reglas del repo ya imponen.
-- **Consecuencia que debes aceptar:** SCRUM-84 pasa al Sprint 3. Además, tu Sprint 3 ya trae 12 puntos (SCRUM-85, 86 y 87), así que sumar 16 puntos obliga a correr algunas historias de catálogo una semana. SCRUM-85 (detalle con precio por tienda) es la que más se beneficia de tener datos reales, así que conviene que vaya después de SCRUM-130.
+## Alternativas consideradas
 
-## 4. Cómo afecta al equipo
+| Alternativa | Por qué se descartó |
+|---|---|
+| Disparar la ingesta desde el navegador al buscar sin resultados ("scrapear al buscar") | El navegador llamaría a las `ingest-*` con la clave pública, con latencia de segundos por búsqueda y riesgo de que VTEX bloquee las peticiones. Además mantiene abierto el hueco de seguridad. |
+| Una siembra puntual de términos comunes (C1) como solución | Es la más rápida, pero no arregla la causa y, con el normalizador actual, agrega madres sueltas por SKU. |
+| Cargar categorías completas de VTEX y refrescarlas con un cron | Multiplicaría las madres por SKU, depende de límites de paginación sin verificar y el volumen de `raw_json` no cabe cómodamente en el plan. |
+| Cola diferida de términos largos | Se descartó; lo que falte lo cubre "Mis productos". |
+| Asignar `category_id` a las madres actuales y seguir | No las arregla: siguen siendo SKUs completos; la madre debe salir de una lista curada. |
+| Limpieza A: dejar las madres actuales | Deja basura en el buscador. |
+| Limpieza C: fusionar las madres actuales con las nuevas | Mucha lógica de fusión para muy pocos ingredientes reales. |
 
-- **Base compartida.** Las migraciones las aplica el autor (`CONTRIBUTING` §5.1) y el equipo ve el catálogo cambiar de inmediato. Hay que avisar antes de normalizar en masa.
-- **Compatibilidad.** Las Edge Functions necesitan redespliegue, pero los parámetros nuevos son opcionales. El código de Marcos (SCRUM-62, SCRUM-120) y las recetas de Jose siguen funcionando, porque no se borra ni se fusiona nada que ya referencien listas o recetas.
-- **Documentación.** `AGENTS.md` y `project-structure` se actualizan para la carpeta de scripts, y `docs/documento-proyecto.md` si cambia el modelo de datos, todo en el mismo PR.
+## Consecuencias
 
-## 5. Cómo lo percibe el usuario
+**A favor.**
 
-Buscar "arroz", "frijol" o "huevo" devuelve resultados al instante, porque se lee del catálogo ya cargado y no hay espera por scraping. Con "leche", los lácteos aparecen primero, y "azucar" sin tilde encuentra "Azúcar". Cada producto muestra un rango de precio por supermercado, útil para ahorrar. Los precios son aproximados (la historia ya lo dice, HU-51 CA-02) y tan frescos como el último refresco del cron. Lo que no existe en el catálogo se resuelve hoy creando el producto propio (HU-56 CA-04), y con SCRUM-131 también se puede pedir que se agregue.
+- El catálogo vuelve al modelo acordado: buscar "arroz" devuelve una madre con sus variantes por tamaño y el rango de precio por supermercado.
+- Existirán categorías, de las que dependen SCRUM-84 (filtrar por categoría) y SCRUM-87 (crear producto, que pide elegir categoría).
+- El lote mensual y el recorte de `raw_json` mantienen el volumen de datos acotado.
+- Se cierra el acceso público a las `ingest-*`.
 
-## 6. Seguridad: qué cubre y qué no
+**En contra o con riesgo.**
 
-**Cubre:**
-- **Hueco que existe hoy:** el README del módulo dice que las `ingest-*` aceptan "anon-or-service-key". La anon key es pública, así que cualquier visitante puede disparar scraping con búsquedas inventadas que esquivan el caché. SCRUM-129 lo cierra restringiendo esas funciones a `service_role`, que es lo que ya usan el script y el cron. No leí los `index.ts` de las funciones, hay que confirmarlo al implementar.
-- **Parámetros de la ingesta.** `categoryId` y `page` se validan como enteros acotados, sin armar URLs con texto libre.
-- **Funciones de normalización.** Se les revoca la ejecución para `anon` y `authenticated`. Hoy solo las protege el RLS de staging.
-- **`search_catalog`.** Sigue siendo de solo lectura.
-- **Clave del script.** La service role va en `.env.local`, nunca con prefijo `NEXT_PUBLIC_`, y el script falla con un error claro si falta.
-- **Texto e imágenes de VTEX.** Son datos de terceros: se muestran como texto y nunca como HTML.
+- La lista curada es trabajo manual y hay que mantenerla. Lo que no esté en ella no aparece en el catálogo.
+- Los precios pueden tener hasta un mes de antigüedad. La app ya los muestra como aproximados (HU-51 CA-02).
+- Mientras no se ejecute SCRUM-133, las 28 madres actuales conviven con el normalizador nuevo; las recetas y listas existentes siguen funcionando.
+- El reset toca la base compartida: se borran las recetas de demo y hay que reasignar a mano los ingredientes y los ítems de lista reales. Las cifras de recetas, ingredientes y listas cambian a diario, así que se vuelven a contar el día del reset.
+- Cada ticket agrega una migración o un cambio de despliegue en la base compartida. Se avisa al equipo en las notas de desarrollador de cada PR.
+- El tope de 50 resultados por término y el riesgo de bloqueo por parte de las tiendas son límites conocidos; se mitigan con ritmo controlado.
 
-**No cubre:**
-- **Límite por usuario.** No existe hasta SCRUM-131.
-- **Riesgo de bloqueo por parte de las tiendas.** Se mitiga con ritmo bajo y un barrido único, pero no desaparece.
-- **Escritura de `household_store_preferences`.** Es otro ticket (SCRUM-127).
-- **Ruta de debug.** Ocultarla en producción (SCRUM-124) no es un control. Sus escrituras necesitan validación server-side.
+## Fuera del alcance de este PR
 
-## 7. Cómo explicarlo
+- Cualquier código de aplicación, migración o despliegue.
+- Correcciones a `supabase/README.md` y a [referencia-tecnica-catalogo-scraping.md](referencia-tecnica-catalogo-scraping.md) (sección 7), que dicen que la normalización no está implementada y que las `ingest-*` aceptan la clave anon: se actualizan en SCRUM-130 y SCRUM-131.
+- El contenido de la lista curada. Falta definir quién la redacta y qué incluye el primer subconjunto, que debe cubrir los ingredientes de las recetas y listas actuales (se resuelve en SCRUM-131).
 
-> "El catálogo estaba vacío porque ningún proceso lo llenaba: fue una sola búsqueda manual. Lo resolvemos en tres piezas: traer los productos completos de las categorías de supermercado, clasificarlos por categoría al normalizarlos, y mostrarlos priorizando la categoría que mejor coincide. Luego un proceso programado los mantiene al día. Así el usuario encuentra lo que escribiría en su lista de papel, y lo que falte lo agrega sin ayuda de nadie."
+## Sources
 
-Para dejarlo en el ticket falta el nombre del líder que aprueba la decisión. Si estás de acuerdo con este plan y el orden, te lo dejo redactado en inglés para pegar en SCRUM-126 y los tres tickets nuevos. Hasta que me autorices no toco Jira.
-
-Sources:
 - [SCRUM-126](https://tacha.atlassian.net/browse/SCRUM-126)
-- [SCRUM-83](https://tacha.atlassian.net/browse/SCRUM-83)
-- [SCRUM-84](https://tacha.atlassian.net/browse/SCRUM-84)
-- [SCRUM-14](https://tacha.atlassian.net/browse/SCRUM-14)
-- [CONTRIBUTING.md](../../CONTRIBUTING.md)
-- [docs/sprints.md](../sprints.md)
+- [SCRUM-130](https://tacha.atlassian.net/browse/SCRUM-130), [SCRUM-131](https://tacha.atlassian.net/browse/SCRUM-131), [SCRUM-132](https://tacha.atlassian.net/browse/SCRUM-132), [SCRUM-133](https://tacha.atlassian.net/browse/SCRUM-133)
+- [TICKET-busqueda-no-dispara-ingesta.md](TICKET-busqueda-no-dispara-ingesta.md)
+- [referencia-tecnica-catalogo-scraping.md](referencia-tecnica-catalogo-scraping.md)
+- [specs/spec-03-normalizacion-staging.md](specs/spec-03-normalizacion-staging.md)
+- [docs/documento-proyecto.md, sección 4.5](../documento-proyecto.md#45-catálogo-de-productos-y-categorías)
 - [supabase/README.md](../../supabase/README.md)
+- [CONTRIBUTING.md](../../CONTRIBUTING.md)
