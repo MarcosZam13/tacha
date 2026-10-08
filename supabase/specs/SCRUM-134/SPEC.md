@@ -14,7 +14,7 @@ Que `supabase/migrations/` y el historial de migraciones de la base compartida (
 |---|---|---|
 | 20260827072022 | rebuild_catalog_v2_aligned_to_team_doc | `schema.sql` (línea base, sin archivo de migración) |
 | 20260828050635 | add_household_store_preferences | `schema.sql` (línea base) |
-| 20260828051451 | fix_advisor_warnings_policies_and_indexes | `schema.sql` (línea base, por verificar) |
+| 20260828051451 | fix_advisor_warnings_policies_and_indexes | `schema.sql` + `000_baseline.sql` (índices) |
 | 20260904200421 | fix_qa_bug3_search_catalog_duplicate_brands | `001_add_search_catalog_rpc.sql` |
 | 20260904200840 | fix_qa_bugs_1_2_normalize_staging | `002_add_normalize_staging_functions.sql` |
 | 20260904201002 | fix_qa_bug4_get_recent_staging_rpc | `003_add_get_recent_staging_rpc.sql` |
@@ -28,6 +28,15 @@ Que `supabase/migrations/` y el historial de migraciones de la base compartida (
 | 20261003200930 | delete_list_items | `012_delete_list_items.sql` |
 
 El mapeo es por nombre y por objetos creados; se confirma comparando el SQL guardado en cada entrada contra el archivo (tarea 2 del plan).
+
+### Resultado de la verificación (2026-10-08, solo lectura)
+
+- **Funciones (15 en `public`):** se comparó el `md5` del cuerpo (`prosrc`) en la base contra el texto entre `$$` de la última definición en el repo.
+  - 10 iguales con espacios normalizados: las de `003`, `004`, `011`, `013`, `014` y `save_recipe` (versión de `013`).
+  - 3 iguales al quitar además los comentarios `--`: `search_catalog` (`001`), `normalize_pending_staging` (`002`), `change_item_quantity` (`005`). La base guardó la versión sin comentarios.
+  - 2 equivalentes pero no idénticas, ambas de `002`: `normalize_staging_row` (el repo declara `v_best_match` y `v_store_id`, que no se usan) y `parse_size_text` (el repo guarda el número en una variable `quantity`; la base lo usa directo). Mismo comportamiento. No se reaplica nada: SCRUM-131 reescribe el normalizador.
+- **Tablas (18) y políticas (28):** todas existen y cada política tiene su `create policy` en `schema.sql` o en `004`-`013`. Las cuatro políticas "temp" de escritura no están, como manda `009`.
+- **Índices:** seis índices de la entrada `20260828051451` no estaban en ningún archivo (`idx_household_store_prefs_store`, `idx_staging_matched_variant`, `idx_staging_matched_brand`, `idx_prices_brand`, `idx_prices_store`, `idx_search_log_store`). Se agregan en `000_baseline.sql`.
 
 **Archivos del repo sin entrada en el historial:** `006` a `011`, `013` y `014`. Sus objetos existen en la base porque se corrieron desde el SQL Editor, que no registra nada. `013` y `014` ya están en `develop` (PR #38 y #43).
 

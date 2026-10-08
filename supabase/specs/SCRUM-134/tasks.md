@@ -2,8 +2,8 @@
 
 - [ ] 0. Equipo: confirmar la convención `NNN_` (SPEC, "Decisión de convención") y avisar que se va a escribir el historial. Daniel revisa, porque SCRUM-131 y 133 traen migraciones.
 - [ ] 1. Exportar el historial actual a `historial-2026-10.sql`.
-- [ ] 2. Verificar el mapeo (statements vs archivos, funciones de 006-011/013/014, agosto vs `schema.sql`).
-- [ ] 2.1 Si hace falta, `000_baseline.sql`.
+- [x] 2. Verificar el mapeo (statements vs archivos, funciones de 006-011/013/014, agosto vs `schema.sql`).
+- [x] 2.1 `000_baseline.sql` con los seis índices de la entrada de agosto.
 - [ ] 3. Conteo de objetos de `public` antes.
 - [ ] 4. Ensayo de la transacción con `raise exception`.
 - [ ] 5. Transacción real (con OK y aviso al grupo).

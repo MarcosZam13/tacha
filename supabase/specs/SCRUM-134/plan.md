@@ -62,7 +62,7 @@ insert into supabase_migrations.schema_migrations (version, name) values
 commit;
 ```
 
-Si se agregó `000_baseline.sql`, sumar `('000','baseline')`.
+Como se agregó `000_baseline.sql`, sumar `('000','baseline')`.
 
 ## 4. Documentación
 
