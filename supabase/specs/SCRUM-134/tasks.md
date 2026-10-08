@@ -11,4 +11,4 @@
 - [x] 7. `supabase/README.md`: sección Migraciones + tabla de equivalencias.
 - [x] 8. Regla enlazada desde `CONTRIBUTING.md`, `gitflow` y `security-practices`.
 - [x] 9. Corregir `features/household/specs/plan.md` (paso de aplicar migración).
-- [ ] 10. Actualizar el último criterio de SCRUM-134 en Jira (#38/#43 ya mergeados, no hay PRs abiertos con migraciones).
+- [x] 10. Actualizar el último criterio de SCRUM-134 en Jira (comentario del 2026-10-08) (#38/#43 ya mergeados, no hay PRs abiertos con migraciones).
