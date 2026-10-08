@@ -35,7 +35,7 @@ El mapeo es por nombre y por objetos creados; se confirma comparando el SQL guar
   - 10 iguales con espacios normalizados: las de `003`, `004`, `011`, `013`, `014` y `save_recipe` (versión de `013`).
   - 3 iguales al quitar además los comentarios `--`: `search_catalog` (`001`), `normalize_pending_staging` (`002`), `change_item_quantity` (`005`). La base guardó la versión sin comentarios.
   - 2 equivalentes pero no idénticas, ambas de `002`: `normalize_staging_row` (el repo declara `v_best_match` y `v_store_id`, que no se usan) y `parse_size_text` (el repo guarda el número en una variable `quantity`; la base lo usa directo). Mismo comportamiento. No se reaplica nada: SCRUM-131 reescribe el normalizador.
-- **Tablas (18) y políticas (28):** todas existen y cada política tiene su `create policy` en `schema.sql` o en `004`-`013`. Las cuatro políticas "temp" de escritura no están, como manda `009`.
+- **Tablas (18) y políticas (26):** todas existen y cada política tiene su `create policy` en `schema.sql` (7) o en `004`-`013` (19). Las cuatro políticas "temp" de escritura no están, como manda `009`.
 - **Índices:** seis índices de la entrada `20260828051451` no estaban en ningún archivo (`idx_household_store_prefs_store`, `idx_staging_matched_variant`, `idx_staging_matched_brand`, `idx_prices_brand`, `idx_prices_store`, `idx_search_log_store`). Se agregan en `000_baseline.sql`.
 
 **Archivos del repo sin entrada en el historial:** `006` a `011`, `013` y `014`. Sus objetos existen en la base porque se corrieron desde el SQL Editor, que no registra nada. `013` y `014` ya están en `develop` (PR #38 y #43).
@@ -50,21 +50,23 @@ El mapeo es por nombre y por objetos creados; se confirma comparando el SQL guar
 
 - Renombrar los archivos a timestamp rompe 63 referencias en 18 archivos (specs, planes, reportes, una constante en `features/recipes/constants/recipes.constants.ts`) y la forma en que el equipo habla de "la migración 009".
 - El historial guarda una fila por archivo: versión `001` … `014`, nombre igual al del archivo sin número ni extensión.
-- `schema.sql` es la línea base anterior a `001`. Si la verificación muestra que las tres entradas de agosto no están completas en `schema.sql`, se agrega `000_baseline.sql` con la diferencia.
+- `schema.sql` es la línea base anterior a `001`. Lo que las tres entradas de agosto dejaron en la base y `schema.sql` no trae (seis índices) va en `000_baseline.sql`.
 
 Alternativa descartada: adoptar timestamps en el repo. Coincide con lo que generan la CLI y el MCP, pero obliga a renombrar después de aplicar (el MCP pone la hora de aplicación, no la de creación) y rompe las referencias citadas.
 
 ## Alcance
 
-1. Exportar el historial actual (versión, nombre, `statements`) a `supabase/specs/SCRUM-134/historial-2026-10.sql` antes de tocar nada, para que el registro de lo que se corrió no se pierda.
+1. Respaldar el historial actual (versión, nombre, `statements`) en `supabase_migrations.schema_migrations_pre_scrum134`, dentro de la misma transacción que lo reescribe, para que el registro de lo que se corrió no se pierda. Esa tabla no está expuesta por la API.
 2. Verificar cada fila del mapeo comparando `statements` contra el archivo, y que los objetos de `006`-`011`, `013`, `014` existen con la misma definición.
-3. Reescribir solo el historial, en una transacción: borrar las 14 filas con timestamp e insertar `001` … `014`. **Ninguna migración se vuelve a ejecutar.**
+3. Reescribir solo el historial, en una transacción ([`reconcile-history.sql`](reconcile-history.sql)): borrar las 14 filas con timestamp e insertar `000` … `014`. **Ninguna migración se vuelve a ejecutar.**
 4. Tabla de equivalencias en `supabase/README.md` (archivo del repo → entrada vieja del historial).
 5. Regla escrita de cómo se aplica una migración, en `CONTRIBUTING.md` y enlazada desde la skill `gitflow` y `security-practices` (ver más abajo).
 6. Corregir el paso "aplicar en el SQL Editor" en `features/household/specs/plan.md` para que apunte a la regla nueva.
 7. Revisar que `schema.sql` coincide con la base después de la reconciliación (o documentar que es solo la línea base).
 
-## Regla propuesta para aplicar migraciones
+## Regla para aplicar migraciones
+
+Escrita en [`supabase/README.md`](../../README.md#migraciones), que es la fuente; acá queda el resumen.
 
 - El archivo se crea con el siguiente número libre: `NNN_descripcion.sql`.
 - Lo aplica la persona dueña de la historia, **antes de pasar el PR a `waiting qa`** (QA prueba contra la base compartida, `CONTRIBUTING.md` §QA paso 2), avisando al grupo.
@@ -90,7 +92,7 @@ Grants y RLS (SCRUM-127, SCRUM-131), Edge Functions (SCRUM-130), contenido del c
 
 - [ ] El historial de la base y `supabase/migrations/` describen el mismo conjunto, con una sola convención.
 - [ ] Ninguna migración se re-ejecutó durante la reconciliación (solo se escribieron filas del historial).
-- [ ] La regla para aplicar migraciones está escrita en el repo y enlazada desde la skill `gitflow`.
+- [x] La regla para aplicar migraciones está escrita en el repo y enlazada desde la skill `gitflow`.
 - [ ] Cada PR abierto con migración sabe qué número usar. Hoy (2026-10-08) no hay ninguno: #38 y #43 ya se mergearon; #35 y #44 no traen migraciones. El criterio de Jira se actualiza con esto.
 
 ## Aviso al equipo

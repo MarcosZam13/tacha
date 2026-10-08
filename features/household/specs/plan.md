@@ -154,7 +154,7 @@ Cada etapa termina con una revisión y la aprobación explícita antes de seguir
 
 1. **Specs:** reescribir SPEC, plan y tasks para la versión con base de datos.
 2. **Migración 011 (diseño y revisión; escrita como 010 y renombrada al sincronizar con `develop`):** escribir el SQL de la sección [Datos](#datos); revisarlo con el subagente `security-reviewer` antes de aplicarlo.
-3. **Aplicar y tipos:** la persona dueña de la historia aplica la migración en el SQL Editor (la base es compartida: avisar al equipo), verifica los objetos y permisos, compara `types/database.types.ts` con la base real y prueba la base simulando usuarios ([ver arriba](#cómo-se-prueba-la-base-antes-de-tener-ui)).
+3. **Aplicar y tipos:** la persona dueña de la historia aplica la migración en el SQL Editor (la base es compartida: avisar al equipo; desde SCRUM-134, con su fila del historial como dice [supabase/README.md#migraciones](../../../supabase/README.md#migraciones)), verifica los objetos y permisos, compara `types/database.types.ts` con la base real y prueba la base simulando usuarios ([ver arriba](#cómo-se-prueba-la-base-antes-de-tener-ui)).
 4. **Constantes, modelos y servicio:** renombrar y ajustar constantes y servicio, ajustar `HouseholdInvite`, crear `HouseholdMembership`.
 5. **Hooks:** renombrar y ajustar `useHouseholdInvite`; crear `useHouseholdViewModel`.
 6. **Componentes, pantalla y ruta:** crear `HouseholdCreateForm` y sus props, ajustar la tarjeta, crear `Household.tsx` y `app/household/page.tsx`.
@@ -240,7 +240,7 @@ Los tipos de retorno de los hooks se declaran dentro de cada hook, como en `useH
 - En ramas abiertas de otras historias: `013_add_recipe_to_list.sql` (SCRUM-97). La rama de SCRUM-98 trae la misma `012` que ya está en `develop`.
 - Quien hace QA anunció que va a corregir la numeración de la `011`; al 2026-10-04 todavía no hay rama con ese cambio.
 - **Propuesta provisional: `014_accept_household_invite.sql`** (la `013` la usa SCRUM-97). Se vuelve a revisar `develop` y las ramas abiertas justo antes de crear el archivo (etapa 2) y otra vez antes del merge; si cambió, se renombra el archivo (como pasó con la `011`).
-- El número del archivo no afecta a la base: la función se aplica a mano en el SQL Editor y se llama por su nombre.
+- El número del archivo no afecta a la base: la función se aplica a mano en el SQL Editor y se llama por su nombre. (Desde SCRUM-134 sí afecta: el número es la versión de la fila del historial, ver [supabase/README.md#migraciones](../../../supabase/README.md#migraciones).)
 
 ### Datos
 
