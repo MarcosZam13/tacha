@@ -81,7 +81,7 @@ El criterio "las búsquedas de arroz, huevo, pan, frijol, azúcar, aceite, café
 - Los precios pueden tener hasta un mes de antigüedad. La app ya los muestra como aproximados (HU-51 CA-02).
 - Mientras no se ejecute SCRUM-133, las 28 madres actuales conviven con el normalizador nuevo; las recetas y listas existentes siguen funcionando.
 - El reset toca la base compartida: se borran las recetas de demo y hay que reasignar a mano los ingredientes y los ítems de lista reales. Las cifras de recetas, ingredientes y listas cambian a diario, así que se vuelven a contar el día del reset.
-- Cada ticket agrega una migración o un cambio de despliegue en la base compartida. Se avisa al equipo en las notas de desarrollador de cada PR.
+- Cada ticket agrega una migración o un cambio de despliegue en la base compartida. Las migraciones de SCRUM-131 y SCRUM-133 siguen la regla de [SCRUM-134](https://tacha.atlassian.net/browse/SCRUM-134): una sola convención de nombres y siempre registradas en el historial de la base, sin usar el SQL Editor sin dejar la fila del historial. Se avisa al equipo en las notas de desarrollador de cada PR.
 - El tope de 50 resultados por término y el riesgo de bloqueo por parte de las tiendas son límites conocidos; se mitigan con ritmo controlado.
 
 ## Fuera del alcance de este PR
