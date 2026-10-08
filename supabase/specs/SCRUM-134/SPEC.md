@@ -90,10 +90,10 @@ Grants y RLS (SCRUM-127, SCRUM-131), Edge Functions (SCRUM-130), contenido del c
 
 ## Criterios de aceptación (Jira)
 
-- [ ] El historial de la base y `supabase/migrations/` describen el mismo conjunto, con una sola convención.
-- [ ] Ninguna migración se re-ejecutó durante la reconciliación (solo se escribieron filas del historial).
+- [x] El historial de la base y `supabase/migrations/` describen el mismo conjunto, con una sola convención.
+- [x] Ninguna migración se re-ejecutó durante la reconciliación (solo se escribieron filas del historial).
 - [x] La regla para aplicar migraciones está escrita en el repo y enlazada desde la skill `gitflow`.
-- [ ] Cada PR abierto con migración sabe qué número usar. Hoy (2026-10-08) no hay ninguno: #38 y #43 ya se mergearon; #35 y #44 no traen migraciones. El criterio de Jira se actualiza con esto.
+- [x] Cada PR abierto con migración sabe qué número usar. Hoy (2026-10-08) no hay ninguno: #38 y #43 ya se mergearon; #35 y #44 no traen migraciones. El criterio de Jira se actualiza con esto.
 
 ## Aviso al equipo
 
