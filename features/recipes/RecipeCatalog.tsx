@@ -5,6 +5,8 @@ import { Spinner } from "@/components/ui";
 import { RECIPE_ROUTE, RECIPE_TEXT, RECIPES_TAB } from "./constants/recipes.constants";
 import { RecipeCard } from "./components/RecipeCard";
 import { RecipeCatalogEmptyState } from "./components/RecipeCatalogEmptyState";
+import { RecipeDeleteDialog } from "./components/RecipeDeleteDialog";
+import { RecipeRepeatAddDialog } from "./components/RecipeRepeatAddDialog";
 import { RecipesTabs } from "./components/RecipesTabs";
 import { useRecipeCatalogViewModel } from "./hooks/useRecipeCatalogViewModel";
 
@@ -14,6 +16,8 @@ import { useRecipeCatalogViewModel } from "./hooks/useRecipeCatalogViewModel";
  */
 export const RecipeCatalog = (): React.JSX.Element => {
   const viewModel = useRecipeCatalogViewModel();
+  const { onDeleteRequest, ...deleteDialog } = viewModel.deletion;
+  const { getRecipeAddToList, onAddRequest, ...repeatAddDialog } = viewModel.listAddition;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 bg-tacha-bg px-4 py-8">
@@ -39,10 +43,18 @@ export const RecipeCatalog = (): React.JSX.Element => {
       {viewModel.hasRecipes ? (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {viewModel.recipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+            <RecipeCard
+              key={recipe.id}
+              addToList={getRecipeAddToList(recipe.id)}
+              onAddToListRequest={onAddRequest}
+              onDeleteRequest={onDeleteRequest}
+              recipe={recipe}
+            />
           ))}
         </ul>
       ) : null}
+      <RecipeDeleteDialog {...deleteDialog} />
+      <RecipeRepeatAddDialog {...repeatAddDialog} />
     </main>
   );
 };

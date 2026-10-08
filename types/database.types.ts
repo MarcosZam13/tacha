@@ -60,6 +60,64 @@ export type Database = {
         }
         Relationships: []
       }
+      household_invite_links: {
+        Row: {
+          created_at: string
+          expires_at: string
+          household_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          household_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          household_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_invite_links_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_members: {
+        Row: {
+          created_at: string
+          household_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_store_preferences: {
         Row: {
           household_id: string
@@ -82,6 +140,69 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      list_item_recipe_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          list_item_id: string
+          quantity_missing: number
+          quantity_needed: number
+          quantity_unit: string
+          recipe_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_item_id: string
+          quantity_missing: number
+          quantity_needed: number
+          quantity_unit: string
+          recipe_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_item_id?: string
+          quantity_missing?: number
+          quantity_needed?: number
+          quantity_unit?: string
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_item_recipe_requirements_list_item_id_fkey"
+            columns: ["list_item_id"]
+            isOneToOne: false
+            referencedRelation: "list_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_item_recipe_requirements_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
         ]
@@ -578,6 +699,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_household_invite: { Args: { invite_token: string }; Returns: string }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
@@ -594,6 +716,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      add_recipe_to_general_list: {
+        Args: { target_recipe_id: string }
+        Returns: Json
+      }
       change_item_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
@@ -609,6 +735,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_household: { Args: { household_name: string }; Returns: string }
+      create_household_invite: {
+        Args: never
+        Returns: {
+          expires_at: string
+          token: string
+        }[]
+      }
+      get_household_invite: {
+        Args: never
+        Returns: {
+          expires_at: string
+          token: string
+        }[]
       }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }

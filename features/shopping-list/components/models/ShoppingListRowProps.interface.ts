@@ -3,5 +3,7 @@ import type { ShoppingListRowViewModel } from "../../models/ShoppingListRowViewM
 export interface ShoppingListRowProps {
   onDecrease: () => void;
   onIncrease: () => void;
+  onOpenDetail: () => void;
+  onRemove: () => void;
   row: ShoppingListRowViewModel;
 }

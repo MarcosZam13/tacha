@@ -4,5 +4,6 @@ import type { ShoppingListItem } from "./ShoppingListItem.interface";
 export interface ShoppingListRowViewModel {
   canDecrease: boolean;
   canIncrease: boolean;
+  canRemove: boolean;
   item: ShoppingListItem;
 }

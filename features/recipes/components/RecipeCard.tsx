@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CategoryLabel, Chip } from "@/components/ui";
-import { RECIPE_TEXT } from "../constants/recipes.constants";
+import { Button, CategoryLabel, Chip } from "@/components/ui";
+import { BUTTON_VARIANT } from "@/constants";
+import { RECIPE_ADD_TO_LIST_TEXT, RECIPE_DELETE_TEXT, RECIPE_TEXT } from "../constants/recipes.constants";
+import { RecipeAddToListResult } from "./RecipeAddToListResult";
 import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
 
 /**
@@ -11,8 +13,18 @@ import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
  * La foto usa next/image con `unoptimized`: sirve cualquier URL sin
  * configurar dominios en next.config.ts (el lugar de las fotos se decide en
  * SCRUM-95, cuando se puedan subir).
+ *
+ * "Eliminar" solo abre la confirmación (no borra), por eso va en secundario.
+ * Lleva el nombre de la receta oculto (sr-only) para el lector de pantalla:
+ * hay un "Eliminar" por tarjeta y así se distinguen. Lo mismo con "Agregar
+ * receta a lista", que no aparece si la receta no tiene ingredientes.
  */
-export const RecipeCard = ({ recipe }: RecipeCardProps): React.JSX.Element => (
+export const RecipeCard = ({
+  addToList,
+  onAddToListRequest,
+  onDeleteRequest,
+  recipe,
+}: RecipeCardProps): React.JSX.Element => (
   <li>
     <article className="flex h-full flex-col overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface">
       {recipe.imageUrl ? (
@@ -58,13 +70,31 @@ export const RecipeCard = ({ recipe }: RecipeCardProps): React.JSX.Element => (
           </section>
         ) : null}
 
-        {/* mt-auto: el link queda al pie aunque las tarjetas tengan alturas distintas. */}
-        <Link
-          href={recipe.editPath}
-          className="mt-auto self-start font-body text-sm font-semibold text-tacha-teal hover:underline"
-        >
-          {RECIPE_TEXT.EDIT}
-        </Link>
+        {/* mt-auto: las acciones quedan al pie aunque las tarjetas tengan alturas distintas. */}
+        <div className="mt-auto flex flex-col gap-3">
+          {recipe.hasIngredients ? (
+            <div className="flex flex-col gap-2">
+              <Button isDisabled={addToList.isDisabled} onClick={() => onAddToListRequest(recipe)}>
+                {addToList.isAdding ? RECIPE_ADD_TO_LIST_TEXT.ADDING : RECIPE_ADD_TO_LIST_TEXT.TRIGGER}
+                <span className="sr-only"> {recipe.name}</span>
+              </Button>
+              {addToList.feedback ? <RecipeAddToListResult feedback={addToList.feedback} /> : null}
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href={recipe.editPath}
+              className="font-body text-sm font-semibold text-tacha-teal hover:underline"
+            >
+              {RECIPE_TEXT.EDIT}
+            </Link>
+            <Button variant={BUTTON_VARIANT.SECONDARY} onClick={() => onDeleteRequest(recipe)}>
+              {RECIPE_DELETE_TEXT.TRIGGER}
+              <span className="sr-only"> {recipe.name}</span>
+            </Button>
+          </div>
+        </div>
       </div>
     </article>
   </li>

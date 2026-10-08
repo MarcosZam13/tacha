@@ -1,26 +1,40 @@
+import { useState } from "react";
 import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
+import { formatPriceRange } from "@/utils/formatPriceRange";
 import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
+import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
 import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
+import { toStorePriceRanges } from "../utils/toStorePriceRanges";
+import { useItemDetail } from "./useItemDetail";
+import { useItemRemoval } from "./useItemRemoval";
 import { useShoppingList } from "./useShoppingList";
 
 interface UseShoppingListViewModelReturn {
   addErrorMessage: NullableRef<string>;
   canAddItems: boolean;
+  detail: NullableRef<ItemDetailViewModel>;
   hasItems: boolean;
   hasNoSearchResults: boolean;
   isEmpty: boolean;
   isLoading: boolean;
   isSearching: boolean;
+  /** true mientras se puede deshacer el último eliminado (el toast está visible). */
+  isUndoRemoveVisible: boolean;
   loadErrorMessage: NullableRef<string>;
+  onCloseDetail: () => void;
   onDecreaseQuantity: (itemId: string) => void;
   onIncreaseQuantity: (itemId: string) => void;
+  onOpenDetail: (itemId: string) => void;
   onQueryChange: (query: string) => void;
+  onRemoveItem: (itemId: string) => void;
   onSelectSearchOption: (variantId: string) => void;
+  onUndoRemove: () => void;
   quantityErrorMessage: NullableRef<string>;
   query: string;
+  removeErrorMessage: NullableRef<string>;
   rows: ShoppingListRowViewModel[];
   searchErrorMessage: NullableRef<string>;
   searchOptions: ProductSearchOption[];
@@ -31,8 +45,14 @@ interface UseShoppingListViewModelReturn {
  * ShoppingList.tsx exactamente lo que dibuja, ya calculado.
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
-  const { addItem, changeQuantity, state } = useShoppingList();
+  const { addItem, changeQuantity, removeItem, state } = useShoppingList();
   const search = useProductSearch();
+  const removal = useItemRemoval({ removeItem });
+  // Se guarda solo el id de la fila abierta; la fila en sí se busca en la
+  // lista, así el modal siempre muestra la cantidad y el nombre actuales.
+  const [openItemId, setOpenItemId] = useState<NullableRef<string>>(null);
+  const openItem = state.items.find((item) => item.id === openItemId) ?? null;
+  const itemDetail = useItemDetail(openItem?.variantId ?? null);
   // El buscador devuelve productos madre; la lista añade variantes.
   const searchResults = toCatalogSearchResults(search.results);
 
@@ -46,6 +66,11 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       void addItem(searchResult);
       return;
     }
+    // Volver a añadir lo que tiene el toast de eliminado es deshacer: sigue
+    // en la base, así que se recupera y recibe el mismo +1 de abajo.
+    if (listedItem.id === removal.undoItemId) removal.cancelRemoval();
+    // Si ya se está borrando en la base se ignora, igual que una fila que espera respuesta.
+    else if (removal.hiddenItemIds.includes(listedItem.id)) return;
     // Ya está en la lista: es el mismo +1 que el botón, y pasa por el mismo
     // bloqueo por fila. Si la fila espera respuesta se ignora, como el botón
     // deshabilitado; si no, dos escrituras en paralelo podrían dejar en
@@ -63,33 +88,73 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     void changeQuantity(itemId, ITEM_QUANTITY.STEP.DECREASE);
   };
 
-  const rows = state.items.map((item) => {
-    const isPending = state.pendingItemIds.includes(item.id);
-    return {
-      canDecrease: !isPending && item.quantity > ITEM_QUANTITY.MIN,
-      canIncrease: !isPending,
-      item,
-    };
-  });
+  const onOpenDetail = (itemId: string): void => {
+    setOpenItemId(itemId);
+  };
+
+  const onCloseDetail = (): void => {
+    setOpenItemId(null);
+  };
+
+  const detail = openItem
+    ? {
+        // Sin repetidos: el scraper puede guardar la misma marca dos veces para una variante.
+        brands: [...new Set(itemDetail.detail?.brands ?? [])],
+        errorMessage: itemDetail.errorMessage,
+        isLoading: itemDetail.isLoading,
+        priceRows: toStorePriceRanges(itemDetail.detail?.storePrices ?? []).map((range) => ({
+          priceLabel: formatPriceRange(range),
+          storeName: range.storeName,
+        })),
+        productName: openItem.productName,
+        sizeLabel: openItem.sizeLabel,
+      }
+    : null;
+
+  const onRemoveItem = (itemId: string): void => {
+    removal.requestRemoval(itemId);
+  };
+
+  // Una fila eliminada no sale de state.items hasta que la base confirma;
+  // mientras tanto solo se deja de mostrar.
+  const rows = state.items
+    .filter((item) => !removal.hiddenItemIds.includes(item.id))
+    .map((item) => {
+      const isPending = state.pendingItemIds.includes(item.id);
+      return {
+        canDecrease: !isPending && item.quantity > ITEM_QUANTITY.MIN,
+        canIncrease: !isPending,
+        // Mientras la cantidad se guarda no se elimina: la respuesta podría llegar después del borrado.
+        canRemove: !isPending,
+        item,
+      };
+    });
 
   return {
     addErrorMessage: state.addErrorMessage,
     // Si la lista no se pudo cargar no se ofrece añadir: la pantalla mostraría
     // solo lo recién añadido como si fuera toda la lista.
     canAddItems: !state.loadErrorMessage,
-    hasItems: state.items.length > 0,
+    detail,
+    hasItems: rows.length > 0,
     hasNoSearchResults: search.hasNoResults,
     // Con error de carga no se dice "tu lista está vacía": no se sabe si lo está.
-    isEmpty: !state.isLoading && !state.loadErrorMessage && state.items.length === 0,
+    isEmpty: !state.isLoading && !state.loadErrorMessage && rows.length === 0,
     isLoading: state.isLoading,
     isSearching: search.isSearching,
+    isUndoRemoveVisible: removal.undoItemId !== null,
     loadErrorMessage: state.loadErrorMessage,
+    onCloseDetail,
     onDecreaseQuantity,
     onIncreaseQuantity,
+    onOpenDetail,
     onQueryChange: search.setQuery,
+    onRemoveItem,
     onSelectSearchOption,
+    onUndoRemove: removal.cancelRemoval,
     quantityErrorMessage: state.quantityErrorMessage,
     query: search.query,
+    removeErrorMessage: state.removeErrorMessage,
     rows,
     searchErrorMessage: search.errorMessage,
     searchOptions: searchResults.map((result) => ({

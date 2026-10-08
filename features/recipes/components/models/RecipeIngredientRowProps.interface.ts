@@ -1,5 +1,5 @@
 import type { CatalogBaseUnitType } from "@/constants";
-import type { RecipeIngredientRowViewModel } from "../../models/RecipeIngredientRowViewModel.interface";
+import type { RecipeIngredientRowViewModel } from "../../models/recipe-editor.interfaces";
 
 export interface RecipeIngredientRowProps {
   ingredient: RecipeIngredientRowViewModel;

@@ -1,10 +1,11 @@
 import type { CatalogBaseUnitType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
+import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
+import type { ItemDetail } from "../models/ItemDetail.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
-import { formatSizeLabel } from "../utils/formatSizeLabel";
 
 /**
  * Trae la lista general del usuario con sus items. Si todavía no tiene lista
@@ -81,4 +82,42 @@ export const changeItemQuantity = async (
   if (error) throw error;
 
   return listItem.quantity_requested;
+};
+
+/**
+ * Borra un item de la lista general. Si ya no existe (otra pestaña lo
+ * borró) o no es del usuario, RLS no lo ve: se borran 0 filas sin error, y se
+ * trata igual que un borrado correcto. Para quien lo pidió el producto ya no
+ * está, y así no se revela si existe un item ajeno.
+ */
+export const deleteListItem = async (itemId: string): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient()
+    .from(SHOPPING_LIST_DB.TABLE.LIST_ITEMS)
+    .delete()
+    .eq("id", itemId);
+  if (error) throw error;
+};
+
+/**
+ * Marcas de la variante y el último precio de cada marca en cada tienda, en
+ * una sola petición. No pide sesión: como la búsqueda, lee catálogo público.
+ * Los precios vienen de una vista, y la base no garantiza que sus columnas
+ * no sean null: se descartan las filas incompletas en vez de mostrar "₡0".
+ */
+export const getItemDetail = async (variantId: string): Promise<ItemDetail> => {
+  const { data: variant, error } = await getSupabaseClient()
+    .from(SHOPPING_LIST_DB.TABLE.VARIANTS)
+    .select(SHOPPING_LIST_DB.ITEM_DETAIL_SELECT)
+    .eq("id", variantId)
+    .single();
+  if (error) throw error;
+
+  return {
+    brands: variant.product_brands.map((brand) => brand.name),
+    storePrices: variant.latest_prices.flatMap(({ price, stores }) =>
+      price !== null && stores ? [{ price, storeName: stores.display_name }] : [],
+    ),
+  };
 };

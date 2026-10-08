@@ -1,12 +1,22 @@
+import { Button } from "@/components/ui";
+import { BUTTON_VARIANT } from "@/constants";
+import { SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import { QuantityStepper } from "./QuantityStepper";
 import type { ShoppingListRowProps } from "./models/ShoppingListRowProps.interface";
 
 /**
  * Una fila de la lista. No usa ItemRow de components/ui porque ItemRow es un
  * <button> para tachar (Sprint 2): los controles de cantidad quedarían
- * anidados dentro de otro botón.
+ * anidados dentro de otro botón. Por lo mismo, los botones de detalle y de
+ * eliminar son hermanos de los controles de cantidad, nunca hijos de la fila.
  */
-export const ShoppingListRow = ({ onDecrease, onIncrease, row }: ShoppingListRowProps): React.JSX.Element => (
+export const ShoppingListRow = ({
+  onDecrease,
+  onIncrease,
+  onOpenDetail,
+  onRemove,
+  row,
+}: ShoppingListRowProps): React.JSX.Element => (
   <li className="flex items-center gap-3 px-3 py-2">
     <span className="flex-1">
       <span className="block font-body text-sm text-tacha-text">{row.item.productName}</span>
@@ -19,5 +29,13 @@ export const ShoppingListRow = ({ onDecrease, onIncrease, row }: ShoppingListRow
       onIncrease={onIncrease}
       quantity={row.item.quantity}
     />
+    <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onOpenDetail}>
+      <span aria-hidden="true">{SHOPPING_LIST_TEXT.OPEN_DETAIL_ICON}</span>
+      <span className="sr-only">{SHOPPING_LIST_TEXT.OPEN_DETAIL}</span>
+    </Button>
+    <Button variant={BUTTON_VARIANT.SECONDARY} isDisabled={!row.canRemove} onClick={onRemove}>
+      <span aria-hidden="true">{SHOPPING_LIST_TEXT.REMOVE_ITEM_ICON}</span>
+      <span className="sr-only">{SHOPPING_LIST_TEXT.REMOVE_ITEM}</span>
+    </Button>
   </li>
 );

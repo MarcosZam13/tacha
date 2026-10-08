@@ -1,6 +1,6 @@
 # Plan técnico: recetas
 
-Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md). Las secciones de arriba son de SCRUM-94 (catálogo); [SCRUM-95](#scrum-95-crear-o-editar-una-receta) (crear o editar) está al final.
+Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md). Las secciones de arriba son de SCRUM-94 (catálogo); después vienen [SCRUM-95](#scrum-95-crear-o-editar-una-receta) (crear o editar), [SCRUM-96](#scrum-96-eliminar-una-receta) (eliminar) y [SCRUM-97](#scrum-97-agregar-una-receta-a-la-lista) (agregar a la lista).
 
 > **Verificado el 2026-09-25** contra la base real: no existen `recipes`, `recipe_ingredients` ni `households`. El catálogo tiene 28 productos madre (casi todos lácteos, del scraping de "leche") y se puede leer con cualquier rol, así que el join `recipe_ingredients → product_catalog` funciona con la sesión anónima.
 
@@ -17,11 +17,11 @@ features/recipes/
     models/RecipesTabsProps.interface.ts
   hooks/
     useRecipeCatalogViewModel.ts       carga inicial (useEffect) y deriva lo que dibuja la pantalla
-  models/
-    RecipeRow.interface.ts             forma de una receta tal como la devuelve la consulta
-    RecipeSummary.interface.ts         una receta lista para la tarjeta (textos ya armados)
-    RecipeCatalogState.type.ts         unión loading / error / ready
-    RecipeCatalogViewModel.interface.ts lo que el ViewModel le entrega a RecipeCatalog.tsx
+  models/                              (agrupados por pantalla en SCRUM-96; antes, un archivo por tipo)
+    recipe-catalog.interfaces.ts       RecipeRow: forma de una receta tal como la devuelve la consulta
+                                       RecipeSummary: una receta lista para la tarjeta (textos ya armados)
+                                       RecipeCatalogViewModel: lo que el ViewModel le entrega a RecipeCatalog.tsx
+    recipe-catalog.types.ts            RecipeCatalogState: unión loading / error / ready
   services/
     recipes.service.ts                 getRecipeSummaries(): consulta + adaptación fila → RecipeSummary
   utils/
@@ -128,22 +128,21 @@ features/recipes/
     RecipeIngredientsField.tsx         buscador compartido + lista de filas de ingrediente
     RecipeIngredientRow.tsx            producto elegido + cantidad + unidad + "Quitar"
     RecipeEditorActions.tsx            "Guardar" / "Cancelar"
-    models/…Props.interface.ts         props de cada mini componente
+    models/…Props.interface.ts         props de cada mini componente (.type.ts las que son un Pick del ViewModel)
   hooks/
     useRecipeEditorViewModel.ts        facade: une useRecipeEditor + useProductSearch + navegación
     useRecipeEditor.ts                 useReducer + carga para editar (useEffect) + guardar
-  models/
-    RecipeEditorIngredient.interface.ts  un ingrediente en el formulario (cantidad como texto)
-    RecipeEditorValues.interface.ts      nombre, porciones (texto) e ingredientes
-    RecipeEditorErrors.interface.ts      un mensaje por campo; los de ingrediente por productId
-    RecipeEditorState.interface.ts       status + values + errores + mensajes
-    RecipeEditorAction.type.ts           unión discriminada de acciones del reducer
-    RecipeEditorRow.interface.ts         receta tal como la devuelve la consulta de edición
-    SaveRecipePayload.interface.ts       lo que se manda a save_recipe
-    SaveRecipeResponse.interface.ts      lo que devuelve (el id guardado)
-    RecipeEditorViewModel.interface.ts   lo que el ViewModel le entrega a RecipeEditor.tsx
-    RecipeIngredientRowViewModel.interface.ts  una fila de ingrediente lista para dibujar (con su error)
-    RecipeEditorProps.interface.ts       recipeId opcional: sin id es receta nueva
+  models/                              (agrupados por pantalla en SCRUM-96; antes, un archivo por tipo)
+    recipe-editor.interfaces.ts          RecipeEditorProps: recipeId opcional, sin id es receta nueva
+                                         RecipeEditorRow: receta tal como la devuelve la consulta de edición
+                                         RecipeEditorIngredient: un ingrediente en el formulario (cantidad como texto)
+                                         RecipeEditorValues: nombre, porciones (texto) e ingredientes
+                                         RecipeEditorErrors: un mensaje por campo; los de ingrediente por productId
+                                         RecipeEditorState: status + values + errores + mensajes
+                                         RecipeIngredientRowViewModel: una fila de ingrediente lista para dibujar (con su error)
+                                         RecipeEditorViewModel: lo que el ViewModel le entrega a RecipeEditor.tsx
+                                         SaveRecipePayload / SaveRecipeResponse: lo que se manda a save_recipe y lo que devuelve
+    recipe-editor.types.ts               RecipeEditorAction: unión discriminada de acciones del reducer
   services/
     recipes.service.ts                 + getRecipeForEditing(), saveRecipe()
   utils/
@@ -239,6 +238,225 @@ Sin fila → "no encontrada" (no existe o es de otro usuario: RLS no la devuelve
 - **Productos personalizados de otro household:** `recipe_ingredients.product_catalog_id` acepta cualquier producto del catálogo. Hoy no importa porque `product_catalog` se lee público, pero cuando los productos de household ("Mis productos") tengan RLS propia, el insert de ingredientes tiene que exigir que el producto sea visible para quien guarda (si no, se podría ligar el id de un producto ajeno y leer su nombre desde la receta).
 - **Sin límite de ingredientes por receta:** `save_recipe` acepta cualquier cantidad (solo la acota el `unique` por producto). No es explotable más allá de ensuciar tus propias recetas; si hiciera falta, un tope en la función (ej. 100).
 - **Sesiones anónimas:** cualquiera puede generar sesiones anónimas y crear recetas (solo lo limita el rate limit de Supabase por IP). Deuda conocida de `ensureSession`; se cierra con el login real.
-- **Para SCRUM-96:** la política de delete de `recipes` tiene que ser `using (owner_id = (select auth.uid()))` (los ingredientes se borran en cascada). Si una receta se borra mientras otra pestaña la edita, `save_recipe` responde `P0002`; conviene mostrarlo como "no encontrada" en vez del error genérico.
+- **Para SCRUM-96** (se resuelve en [esa sección](#scrum-96-eliminar-una-receta)): la política de delete de `recipes` tiene que ser `using (owner_id = (select auth.uid()))` (los ingredientes se borran en cascada). Si una receta se borra mientras otra pestaña la edita, `save_recipe` responde `P0002`; conviene mostrarlo como "no encontrada" en vez del error genérico.
 - **Para households:** el `household_id is null` del `with check` del update va a bloquear las recetas compartidas: hay que sumar políticas de miembros y la FK, no solo quitar el `is null` (sin FK se podría colgar de un household ajeno). Un miembro que no es el dueño nunca debe poder cambiar `owner_id` (ya cubierto por los permisos por columna de `008`).
 - **Estilo de links:** "+ Nueva receta" y "Cancelar" repiten las clases del `Button` primario y secundario porque son links. Si otra feature necesita lo mismo, conviene un primitivo `ButtonLink` en `components/ui`.
+
+---
+
+## SCRUM-96: eliminar una receta
+
+> **Verificado el 2026-10-02** contra el repo: `recipes` tiene RLS con políticas de select (`006`), insert y update (`007`), y ninguna de delete. `recipe_ingredients.recipe_id` ya es `on delete cascade` (`006`). La `009` está tomada (`009_close_store_preferences_writes.sql`), así que esta historia usa la `010`. `meal_plans` no existe (SCRUM-100).
+
+### Archivos
+
+```
+features/recipes/
+  RecipeCatalog.tsx                    + <RecipeDeleteDialog> y pasa onDeleteRequest a cada tarjeta
+  components/
+    RecipeCard.tsx                     + botón "Eliminar" junto a "Editar"
+    RecipeDeleteDialog.tsx             nuevo: Modal de confirmación (nombre, aviso, error, Eliminar/Cancelar)
+    models/RecipeCardProps.interface.ts        + onDeleteRequest
+    models/RecipeDeleteDialogProps.type.ts     nuevo: Omit<RecipeDeletionViewModel, "onDeleteRequest">
+  hooks/
+    useRecipeDeletion.ts               nuevo: estado de la eliminación + confirmar/cancelar/borrar
+    useRecipeCatalogViewModel.ts       + usa useRecipeDeletion y quita la receta borrada del estado
+    useRecipeEditor.ts                 + "no encontrada" al guardar → estado notFound
+  models/
+    recipe-deletion.types.ts           nuevo: RecipeDeletionTarget (Pick<RecipeSummary, "id" | "name">)
+                                         y RecipeDeletionState (idle / confirming / deleting / failed)
+    recipe-deletion.interfaces.ts      nuevo: RecipeDeletionViewModel, DeleteRecipePayload, DeleteRecipeResponse
+    recipe-catalog.interfaces.ts       + deletion: RecipeDeletionViewModel en RecipeCatalogViewModel
+  services/
+    recipes.service.ts                 + deleteRecipe(); saveRecipe() devuelve null si la receta no existe
+  constants/recipes.constants.ts       + RECIPE_DELETION_STATUS, RECIPE_DELETE_TEXT, POSTGRES_ERROR_CODE.NO_DATA_FOUND
+
+supabase/migrations/010_delete_recipes.sql   política de delete en recipes para el dueño
+```
+
+No cambian: `types/database.types.ts` (una política no aparece en los tipos generados), `supabase/schema.sql` (no tiene las tablas de recetas) ni `docs/documento-proyecto.md` (no hay columnas ni tablas nuevas).
+
+### Datos
+
+**Migración `010_delete_recipes.sql`:**
+
+```sql
+grant delete on public.recipes to authenticated;
+
+create policy "owner deletes own recipes"
+  on public.recipes for delete
+  to authenticated
+  using (owner_id = (select auth.uid()));
+```
+
+- **Política:** solo el dueño borra. `(select auth.uid())` igual que en `007`: Postgres la evalúa una vez por consulta, no una vez por fila.
+- **`grant delete` explícito:** hoy `authenticated` ya lo tiene por el default de Supabase (la `008` solo restringió insert y update), pero escribirlo deja el permiso visible en el repo en vez de depender de un default que no se ve. Es idempotente.
+- **Ingredientes:** se borran por el `on delete cascade` de `006`. Las acciones en cascada de una FK no pasan por RLS, así que no hace falta tocar las políticas de `recipe_ingredients`.
+- `anon` sigue sin permisos (el `revoke all` de `006`).
+
+**Borrar desde el cliente:**
+
+```
+delete from recipes where id = {recipeId}
+```
+
+Una sola petición a PostgREST (`.delete().eq("id", recipeId)`), sin `.select()`: el resultado no cambia lo que hace la pantalla (SPEC regla 16), así que no hace falta saber cuántas filas borró.
+
+**"No encontrada" al guardar:** `save_recipe` ya responde `P0002` cuando la receta no existe o es ajena (`007`). `saveRecipe()` lo traduce a `null`, igual que `getRecipeForEditing()` traduce `22P02`.
+
+### Flujo
+
+1. **Pedir:** tarjeta → "Eliminar" → `onDeleteRequest({ id, name })` → estado `confirming` con esa receta → `RecipeDeleteDialog` se abre con el nombre.
+2. **Cancelar:** "Cancelar", clic fuera o Escape → `onDeleteCancel` → `idle`. Si está en `deleting`, se ignora: el diálogo no se cierra a mitad.
+3. **Confirmar:** "Eliminar" del diálogo → `onDeleteConfirm`. Si ya está en `deleting`, se ignora (doble clic). Si no → `deleting` (botones deshabilitados, "Eliminando…") → `deleteRecipe({ recipeId })`:
+   - **éxito:** `onDeleted(recipeId)` → el catálogo filtra la receta de su estado `ready` → `idle`. Si era la última, el catálogo deriva `isEmpty` y muestra el estado vacío solo.
+   - **error:** `failed` con la misma receta → el diálogo muestra el error. "Eliminar" reintenta (`failed` → `deleting`); "Cancelar" vuelve a `idle`.
+4. **Editor en otra pestaña:** "Guardar receta" → `saveRecipe()` devuelve `null` → `useRecipeEditor` despacha `NOT_FOUND` (la acción ya existe) → la pantalla muestra "No encontramos esa receta." con el link de volver.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| `delete` directo con PostgREST | RPC `delete_recipe` | Es una sola sentencia: ya es atómica y la cascada borra los ingredientes. Una RPC sumaría una función que mantener sin hacer nada más; `save_recipe` existe porque ahí sí hay varias escrituras |
+| Sin `.select()` después del delete | Pedir las filas borradas para distinguir "borrada" de "no existía" | La pantalla hace lo mismo en los dos casos (SPEC regla 16), y no distinguirlos evita revelar si una receta ajena existe |
+| `grant delete` explícito en la migración | Confiar en el default de Supabase | El permiso queda escrito en el repo. Si alguien hace un `revoke` general como en `008`, el borrado no se rompe en silencio |
+| Hook propio `useRecipeDeletion`, compuesto por el ViewModel del catálogo | Meter el estado de la eliminación en `useRecipeCatalogViewModel` | Carga y eliminación son dos responsabilidades; separadas, cada hook se lee en una pantalla y la eliminación se puede reusar (ej. en SCRUM-100) sin arrastrar la carga del catálogo (component-architecture §5, Facade) |
+| `useState` con una unión de 4 estados | `useReducer` | Son pocas transiciones y sin reglas cruzadas entre campos; el editor usa reducer porque tiene muchas acciones con reglas. La unión igual impide "eliminando sin receta" |
+| Quitar la receta del estado local al borrar | Volver a pedir el catálogo completo | Una petición menos y sin parpadeo de "cargando"; la base ya confirmó el borrado |
+| El catálogo le pasa `onDeleted` al hook | El hook modifica las recetas directo | El hook de eliminación no conoce la forma del estado del catálogo; solo avisa qué id se borró |
+| "Eliminar" de la tarjeta con `Button` secundario, el del diálogo con `destructive` | Rojo en los dos lugares | El rojo marca la acción que de verdad borra; en la tarjeta solo abre el diálogo. Una grilla de botones rojos además compite con el contenido |
+| Nombre de la receta dentro del botón como texto `sr-only` | Agregar `aria-label` al `Button` compartido | Logra lo mismo para el lector de pantalla ("Eliminar Tres leches") sin cambiar un primitivo que usan otras features |
+| Modelos agrupados por pantalla y por sintaxis: `recipe-deletion.types.ts` + `recipe-deletion.interfaces.ts` | Un archivo por tipo (como estaba `models/`) / un solo archivo por pantalla | Un archivo por tipo dejaba 16 archivos de pocas líneas y costaba encontrar las cosas. Separar `types` de `interfaces` mantiene la convención de sufijos del repo (`.type.ts` / `.interface.ts`). Nombre en kebab-case plural, como `types/catalog.types.ts`, porque cada archivo tiene varios tipos. El resto de `models/` se agrupa igual en un commit `refactor` |
+| Diálogo como mini componente presentacional con props | Que el diálogo llame al hook por su cuenta | Sigue el patrón de la feature: el ViewModel decide, los componentes dibujan. El diálogo no sabe de Supabase |
+| `P0002` al guardar → estado `notFound` del editor | Mostrarlo como error de guardado y dejar el formulario | Reintentar nunca va a funcionar (la receta no existe); la pantalla de "no encontrada" ya existe y lleva de vuelta al catálogo |
+| `saveRecipe()` devuelve `null` si no la encuentra | Lanzar un error tipado propio | Es la misma convención que `getRecipeForEditing()`; quien llama distingue con un `if`, sin revisar códigos de Postgres fuera del servicio |
+
+### Seguridad
+
+- El control real es la política de delete: aunque alguien llame a `.delete()` desde la consola con el id de una receta ajena, RLS no la ve y no se borra nada.
+- El cliente solo manda el id; nunca `owner_id`.
+- Riesgo a vigilar: si la política faltara o estuviera mal, el delete no daría error (0 filas) y la tarjeta igual desaparecería. Por eso el caso de aceptación "al recargar, la receta borrada no vuelve" es obligatorio en la validación.
+- Con households (pendiente), los miembros van a necesitar su propia política de delete; no basta con sumar la de lectura. Va junto con las de [la integración](#integración-con-households-pendiente).
+
+### Deuda conocida
+
+- **Sin tests automatizados** (no hay runner): lo primero a cubrir es `useRecipeDeletion` (transiciones, doble clic, reintento) y la tarjeta + diálogo con un Page Object.
+- **Otra pestaña con el catálogo abierto** sigue mostrando la receta borrada hasta recargar (no hay Realtime en recetas). Si la intenta borrar ahí, se quita sin error (regla 16).
+- **El `Modal` compartido no atrapa el foco** (anotado en su propio hook): con el teclado se puede salir del diálogo con Tab. Es del primitivo, no de esta historia.
+- **CA-02 bloqueado:** el aviso por asignaciones en el plan llega con SCRUM-100 (contrato en la SPEC, sección 15).
+
+---
+
+## SCRUM-97: agregar una receta a la lista
+
+> **Verificado el 2026-10-03** contra el repo y las PRs abiertas: `list_items` referencia `product_catalog_variants` con `quantity_requested` entero (`004`), y el cliente solo puede actualizar `quantity_requested` (`005`). Las migraciones `011` (households, PR #41) y `012` (borrar items de la lista, PR #34) ya están tomadas, así que esta historia usa la **`013`**; ninguna de las dos toca `recipes` ni las políticas de `lists`. La `012` abre el borrado de `list_items`: la cascada de la tabla nueva cubre ese caso.
+
+### Archivos
+
+```
+features/recipes/
+  RecipeCatalog.tsx                    + diálogo de repetir y respuesta de "agregar" por tarjeta
+  components/
+    RecipeCard.tsx                     + botón "Agregar receta a lista" y RecipeAddToListResult
+    RecipeAddToListResult.tsx          nuevo: resumen (role="status") o error (role="alert") + link "Ver lista"
+    RecipeRepeatAddDialog.tsx          nuevo: Modal "Ya agregaste X a tu lista. ¿Agregarla otra vez?"
+    models/RecipeCardProps.interface.ts        + addToList (RecipeCardAddToList) y onAddToListRequest
+    models/RecipeAddToListResultProps.interface.ts  nuevo
+    models/RecipeRepeatAddDialogProps.type.ts  nuevo: Pick del ViewModel
+  hooks/
+    useRecipeListAddition.ts           nuevo: estado de agregar (unión de 5) + confirmación + llamada al servicio
+    useRecipeCatalogViewModel.ts       + compone useRecipeListAddition
+  models/
+    recipe-list-addition.interfaces.ts nuevo: AddRecipeToListPayload/Response, resumen, ViewModel, params del hook
+    recipe-list-addition.types.ts      nuevo: RecipeListAdditionState (unión) y el target (Pick de RecipeSummary)
+    recipe-catalog.interfaces.ts       + listAddition en RecipeCatalogViewModel
+  services/
+    recipes.service.ts                 + addRecipeToList(): RPC + adapter; P0002 → null
+    added-recipes.storage.ts           nuevo: leer/guardar en localStorage los ids ya agregados (try/catch)
+  utils/
+    toAddRecipeToListResponse.ts       nuevo: jsonb de la RPC → AddRecipeToListResponse
+    toAddToListSummaryText.ts          nuevo: resumen → textos de la tarjeta ("Te falta comprar: Leche X (600 ml)")
+    formatRecipeQuantity.ts            nuevo: 0.5 + "g" → "0,5 g"; 1 + "unidad" → "1 unidad"
+    validateRecipeForm.ts              + máximo de 50 ingredientes (mismo tope que save_recipe)
+  constants/recipes.constants.ts       + estados, textos, RPC, clave de localStorage
+
+supabase/migrations/013_add_recipe_to_list.sql   tabla + RLS + permisos + RPC
+types/database.types.ts                          regenerar (tabla y Functions.add_recipe_to_general_list)
+docs/documento-proyecto.md                       §4.9.1 (reglas de conteo y de producto que no está) y §6 (tabla nueva)
+```
+
+No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/lista/page.tsx`.
+
+### Datos
+
+**Migración `013_add_recipe_to_list.sql`:**
+
+- **Tabla `list_item_recipe_requirements`:**
+  - `id`, `list_item_id` (→ `list_items`, `on delete cascade`), `recipe_id` (→ `recipes`, `on delete cascade`), `quantity_needed` (numeric), `quantity_missing` (numeric), `quantity_unit` (`ml` / `g` / `unidad`), `created_at`.
+  - `check`: `quantity_needed > 0` con tope (rechaza NaN e Infinity, igual que la `008`); `quantity_missing >= 0 and quantity_missing <= quantity_needed`.
+  - `unique (list_item_id, recipe_id, quantity_unit)`: la misma receta repetida acumula en su registro (regla 24). La unidad entra en la clave por si la receta se editó entre un agregado y otro.
+  - Índice en `recipe_id` (lo usa la cascada al borrar una receta).
+- **RLS** (nace activado, deny por defecto):
+  - select, insert y update: la fila de la lista es de una lista propia **y** la receta es propia (`exists` sobre `recipes`, que ya pasa por su RLS).
+  - delete: cerrado hasta SCRUM-115 (resolver al tachar). Las cascadas no pasan por RLS, así que borrar la receta o el item igual borra sus registros.
+  - `anon` sin permisos; `authenticated` solo puede actualizar `quantity_needed` y `quantity_missing` (mismo criterio que la `005` y la `008`).
+- **RPC `add_recipe_to_general_list(target_recipe_id uuid) returns jsonb`**, `security invoker` y `search_path` vacío, como `save_recipe`:
+  1. Sin sesión → error `42501`. La receta no se ve (no existe o es ajena) → `P0002`.
+  2. Busca o crea la lista general (mismo `insert ... on conflict do nothing` que `add_item_to_general_list`) y toma un bloqueo de transacción sobre su id (`pg_advisory_xact_lock`): dos agregados al mismo tiempo se hacen uno detrás del otro, así el "disponible" de la regla 20 no se cuenta dos veces. No es `select ... for update` porque `for update` también exige una política de update en `lists`, y no la hay.
+  3. Recorre los ingredientes en orden (`position`) y aplica las reglas 19 a 22 de la SPEC con las presentaciones del producto y sus filas en la lista.
+  4. Suma unidades con `insert ... on conflict (list_id, product_catalog_variant_id) do update set quantity_requested = quantity_requested + n`, el mismo merge de la `004`.
+  5. Registra lo pedido y lo que falta con `insert ... on conflict (...) do update` sumando.
+  6. Devuelve `{ added: [...], missing: [{ product_name, quantity, unit }], skipped: [...] }`.
+  - Solo `authenticated` puede ejecutarla.
+
+- **Funciones auxiliares** (`security invoker`, solo `authenticated`):
+  - `pick_recipe_variant(producto, unidad, cantidad)`: la regla "la más chica que cubre; si ninguna cubre, la más grande", en un solo lugar para conteo y volumen/peso.
+  - `add_units_to_list_item(lista, variante, unidades)`: suma unidades con el merge de la `004` y devuelve la fila. No abre nada que las políticas de `list_items` no permitan ya.
+- **Tope de 50 ingredientes:** `save_recipe` se redefine con el mismo cuerpo de la `007` más ese control, y la RPC también lo revisa, porque `recipe_ingredients` se puede escribir directo (políticas de `007`) sin pasar por `save_recipe`. Sin tope, una receta con cientos de ingredientes haría cara la RPC (varias consultas por ingrediente, con la lista bloqueada). Un `statement_timeout` dentro de la función no serviría: Postgres arma ese límite al empezar la consulta, no lo cambia a mitad.
+
+**Llamada desde el cliente:** `rpc("add_recipe_to_general_list", { target_recipe_id })` → `toAddRecipeToListResponse()` → `AddRecipeToListResponse`. Con `P0002` el servicio devuelve `null`, igual que `saveRecipe()`.
+
+### Flujo
+
+1. Tarjeta → "Agregar receta a lista" → `onAddRequest({ id, name })`.
+2. `useRecipeListAddition` lee `added-recipes.storage`:
+   - si la receta ya está → `confirmingRepeat` → `RecipeRepeatAddDialog`. "Cancelar" → `idle`; "Agregar otra vez" → paso 3;
+   - si no → paso 3.
+3. `adding` (todos los botones "Agregar" deshabilitados) → `addRecipeToList({ recipeId })`:
+   - **éxito:** guarda el id en `localStorage` → `added` con el resumen → `RecipeAddToListFeedback` en esa tarjeta, con `toAddToListSummaryText()`;
+   - **`null`:** `failed` con "No encontramos esa receta.";
+   - **error:** `failed` con "No se pudo agregar la receta a tu lista. Intenta de nuevo."
+4. El resumen queda en la tarjeta hasta la siguiente acción de agregar.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Una RPC con todas las reglas | Calcular en el cliente y mandar varias escrituras | Todo o nada en una transacción, y documento-proyecto §6 pide que la unificación de cantidades viva en la base. En el cliente, dos pestañas podrían calcular el mismo "disponible" a la vez |
+| Bloqueo de transacción sobre la lista (`pg_advisory_xact_lock`) dentro de la RPC | Nada / `select ... for update` | Sin bloqueo, dos recetas agregadas al mismo tiempo verían el mismo "disponible" y ninguna registraría faltante (el caso de las dos recetas sobre la misma leche). `for update` no sirve: con RLS exige una política de update en `lists`, que no existe, y no encontraría la fila |
+| Solo cuentan las presentaciones con cantidad base mayor que 0 | Todas | Con cantidad 0 no hay cuenta posible (división por cero en el redondeo de los conteos); si el producto no tiene ninguna usable, se trata como "sin presentación" (regla 26) |
+| Tabla aparte para lo pedido y lo que falta | Columnas en `list_items` | Una fila de la lista puede tener varias recetas; no se toca la tabla de Marcos; las cascadas borran los registros solas (SPEC §12) |
+| Guardar lo pedido aunque alcance (faltante 0) | Guardar solo los faltantes | Es lo que permite descontar lo que ya pidieron otras recetas (regla 20) |
+| `unique` con la unidad | `unique (list_item_id, recipe_id)` | Si la receta cambia de unidad entre un agregado y otro, no se suman ml con g en el mismo registro |
+| Delete de la tabla cerrado | Abrirlo ya | Nadie lo usa hasta SCRUM-115; las cascadas no lo necesitan |
+| `localStorage` en un servicio (`added-recipes.storage.ts`) | Leerlo directo en el hook | Es entrada/salida, como Supabase: queda en el borde y el hook no sabe de `window` |
+| Hook propio `useRecipeListAddition` compuesto por el ViewModel del catálogo | Meterlo en `useRecipeCatalogViewModel` | Mismo criterio que `useRecipeDeletion` en SCRUM-96: una responsabilidad por hook |
+| Una receta a la vez | Varias en paralelo | Con el bloqueo de la lista se harían en fila igual, y un solo resumen visible es más claro |
+| El resumen lo arma una función pura (`toAddToListSummaryText`) | Armarlo en el JSX | Es lógica de texto con casos (sin faltantes, con faltantes, sin presentación); pura se puede probar sin React |
+| Faltante en la unidad del ingrediente ("600 ml") | Convertir a L o kg | Es la unidad que eligió quien escribió la receta; convertir es formato, y lo puede decidir SCRUM-114 al mostrarlo |
+
+### Seguridad
+
+- La RPC es `security invoker`: no puede hacer nada que el usuario no pueda hacer directo. Una receta ajena no se ve (`P0002`, sin revelar si existe) y no se puede escribir en la lista de otro.
+- La tabla nueva exige lista propia **y** receta propia en select, insert y update. Sin la segunda condición, alguien podría colgar el id de una receta ajena en su propia lista y leer su nombre embebido desde ahí.
+- El cliente solo manda el id de la receta. Cantidades, presentaciones y faltantes los calcula la base.
+- `localStorage` guarda solo ids de recetas propias; no hay datos sensibles.
+
+### Deuda conocida
+
+- **Sin tests automatizados:** hay un runner en camino (SCRUM-128, PR #36). Lo primero a cubrir: `toAddRecipeToListResponse`, `toAddToListSummaryText` y las transiciones de `useRecipeListAddition`. Las reglas de la RPC se prueban en el SQL Editor con casos fijos (tasks).
+- **El faltante no se recalcula** si después cambian las cantidades de la lista (SPEC regla 23): lo resuelve SCRUM-115.
+- **Households:** la RPC usa la lista general personal (`household_id is null`). Cuando la lista sea del household (PR #41 en adelante), la RPC y las políticas de la tabla nueva siguen el mismo cambio que `add_item_to_general_list`.
+- **Insert y update directos en `list_item_recipe_requirements`** (revisión de seguridad, baja): hoy el usuario puede cambiar a mano lo pedido y lo que falta de **su propia** lista, y eso altera el "disponible" de sus próximos agregados. No afecta a nadie más. Con households, un miembro podría falsear los faltantes de otros: revisarlo ahí (quitar insert/update directos y dejar solo la RPC, pasándola a `security definer` con las validaciones adentro).
+- **Topes acumulados** (revisión de seguridad, baja): agregar la misma receta muchísimas veces puede llevar `quantity_needed` a su tope (10 000 000) o `quantity_requested` al máximo de `integer`, y ese agregado falla. Solo afecta al propio usuario; SCRUM-115 abre el borrado de los registros.
+- **La respuesta de la RPC no se valida en el cliente** (revisión de código y de seguridad, baja): se tipa con el contrato de la `013`, igual que `searchCatalog`. Si la RPC cambia de forma, el error aparece en el adapter y no en el borde; un guard de pocas líneas lo resolvería.

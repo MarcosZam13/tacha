@@ -1,18 +1,26 @@
-# Recetas: catálogo y editor
+# Feature: Recetas
 
-Historias:
-- [SCRUM-94 / HU-63](https://tacha.atlassian.net/browse/SCRUM-94): ver catálogo de recetas. Sprint 1, mergeada.
-- [SCRUM-95 / HU-64](https://tacha.atlassian.net/browse/SCRUM-95): crear o editar una receta. Sprint 1.
+Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.md); Jira es la fuente de verdad):
 
----
+- [SCRUM-94 / HU-63](https://tacha.atlassian.net/browse/SCRUM-94): ver el catálogo de recetas. Sprint 1, mergeada.
+- [SCRUM-95 / HU-64](https://tacha.atlassian.net/browse/SCRUM-95): crear o editar una receta. Sprint 1, mergeada.
+- [SCRUM-96 / HU-64b](https://tacha.atlassian.net/browse/SCRUM-96): eliminar una receta. Sprint 2, mergeada.
+- [SCRUM-97 / HU-65](https://tacha.atlassian.net/browse/SCRUM-97): agregar una receta a la lista. Sprint 2.
 
-## SCRUM-94: ver el catálogo de recetas
+El cómo (archivos, datos, flujo, decisiones) está en [plan.md](plan.md); los pasos, en [tasks.md](tasks.md).
 
-### Intención
+## 1. Objetivo
 
-Que el usuario vea de un vistazo las recetas que tiene disponibles (nombre, foto, ingredientes principales y porciones base) para elegir cuáles agregar a su lista o al planificador semanal.
+Que el usuario tenga sus recetas en un solo lugar para reutilizarlas en la lista de compras o en el planificador semanal:
 
-### Alcance
+- **SCRUM-94:** ver de un vistazo las recetas que tiene (nombre, foto, ingredientes principales y porciones base) para elegir cuáles usar.
+- **SCRUM-95:** armar sus propias recetas (nombre, porciones base e ingredientes elegidos del catálogo, cada uno con su cantidad y unidad) y corregirlas después.
+- **SCRUM-96:** sacar del catálogo una receta que ya no usa, sin miedo a borrarla por un clic accidental, para mantener su lista de recetas ordenada.
+- **SCRUM-97:** pasar los ingredientes de una receta a su lista de compras con un solo botón, sin buscar cada producto a mano, y saber qué le falta comprar para cocinarla sin que la app decida por él cuánto comprar de lo que se mide por volumen o peso.
+
+## 2. Alcance
+
+### SCRUM-94: catálogo
 
 - Ruta `/recetas` con la barra de sub-tabs de la sección: "Recetas" (activa) y "Planificador semanal" (visible pero deshabilitada hasta SCRUM-99).
 - Catálogo de recetas en tarjetas: foto (o un marcador si la receta no tiene), nombre, porciones base y los primeros ingredientes, con un "+N más" si hay más.
@@ -20,97 +28,345 @@ Que el usuario vea de un vistazo las recetas que tiene disponibles (nombre, foto
 - Tablas nuevas `recipes` y `recipe_ingredients`, con RLS.
 - Seed de demo (`supabase/seed-demo-recipes.sql`) para poder mostrar la historia antes de que exista SCRUM-95.
 
-### Fuera de alcance (y por qué)
+### SCRUM-95: crear o editar
 
-- **Sidebar / shell de la app:** no existe y no tiene historia asignada todavía. Cuando se decida quién lo hace, esta pantalla se engancha a él (la ruta y los sub-tabs no cambian).
-- **Recetas del household:** la tabla `households` todavía no existe (la construye otra persona este sprint). Por ahora cada usuario ve solo sus recetas; `household_id` queda nullable y sin FK, igual que en `lists`. La integración está descrita en [plan.md](plan.md#integración-con-households-pendiente).
-- **Crear, editar, eliminar, subir foto:** son SCRUM-95 y SCRUM-96. Esta historia solo abre la lectura.
-- **"Agregar receta a lista", "ver qué falta", planificador:** SCRUM-97, SCRUM-98, SCRUM-99.
-- **Registro e inicio de sesión:** los construye otra persona. Se usa la misma sesión anónima provisional que la lista general (`ensureSession`).
-
-### Requerimientos
-
-1. La lógica vive en el ViewModel (`hooks/`), el acceso a datos en un servicio; los `.tsx` solo presentan.
-2. Cero literales: textos, límites, nombres de tablas y estados en `constants/`.
-3. El estado de la pantalla es una unión explícita (`loading` / `error` / `ready`), no varios booleanos que se puedan contradecir.
-4. El frontend no filtra por dueño: la consulta pide todas las recetas y RLS decide cuáles devuelve. Así, cuando se sumen las recetas del household, la pantalla no cambia.
-5. Los ingredientes principales son los primeros según el orden en que se cargaron en la receta (`position`), no alfabéticos.
-
-### Casos límite y errores
-
-- Usuario sin recetas: mensaje de catálogo vacío (no un error).
-- Error de red o de Supabase: mensaje de error; no se muestra "no tienes recetas" porque no se sabe si es cierto.
-- Receta sin foto: marcador con la inicial del nombre, sin imagen rota.
-- Receta sin ingredientes (no debería pasar, pero la base lo permite): la tarjeta se muestra sin la sección de ingredientes.
-- Receta con más ingredientes que el límite: se muestran los primeros y "+N más".
-- Otro usuario (otra sesión): no ve recetas ajenas.
-
-### Criterios de aceptación
-
-HU-63
-- [ ] CA-01 (**parcial**): el sub-tab "Recetas" muestra las recetas con nombre, foto (o su inicial si no tiene) e ingredientes principales. Cumplido para las recetas **propias** en la ruta `/recetas`. Falta, por dependencias fuera de esta historia (ver [Fuera de alcance](#fuera-de-alcance-y-por-qué)):
-  - que viva dentro del ítem "Recetas" del **sidebar**, que todavía no existe;
-  - que muestre las recetas **del household**, que llegan con la [integración con households](plan.md#integración-con-households-pendiente).
-- [x] CA-02: cada receta muestra sus porciones base.
-
----
-
-## SCRUM-95: crear o editar una receta
-
-### Intención
-
-Que el usuario arme sus propias recetas (nombre, porciones base e ingredientes elegidos del catálogo, cada uno con su cantidad y unidad) y las pueda corregir después, para reutilizarlas en la lista o en el planificador.
-
-### Alcance
-
-- Botón **"+ Nueva receta"** en el catálogo (`/recetas`) que lleva a `/recetas/nueva`.
-- Acción **"Editar"** en cada tarjeta del catálogo que lleva a `/recetas/{id}/editar`, con el formulario precargado.
-- Formulario con: **nombre**, **porciones base** e **ingredientes**.
-- Ingredientes con el buscador compartido del catálogo (`components/product-search`, `hooks/useProductSearch`): se elige un **producto madre** ("Leche", sin tamaño ni marca) y recién después se le asigna **cantidad** y **unidad** (`ml` / `g` / `unidad`). Al elegir el producto, la unidad se preselecciona según sus presentaciones del catálogo (leche → `ml`), y se puede cambiar.
+- Botón **"+ Nueva receta"** en el catálogo que lleva a `/recetas/nueva`.
+- Acción **"Editar"** en cada tarjeta que lleva a `/recetas/{id}/editar`, con el formulario precargado.
+- Formulario con **nombre**, **porciones base** e **ingredientes**.
+- Ingredientes con el buscador compartido del catálogo: se elige un **producto madre** ("Leche", sin tamaño ni marca) y recién después se le asigna **cantidad** y **unidad** (`ml` / `g` / `unidad`). Al elegir el producto, la unidad se preselecciona según sus presentaciones del catálogo (leche → `ml`), y se puede cambiar.
 - Cada ingrediente se puede quitar del formulario antes de guardar. El orden en que se agregan es su `position` (los primeros son los "principales" del catálogo).
 - **Guardar** crea o actualiza la receta y todos sus ingredientes **en una sola operación** (todo o nada) y vuelve al catálogo, donde se ve el cambio. **Cancelar** vuelve al catálogo sin guardar.
-- Migración `007`: abre crear y editar en `recipes` y `recipe_ingredients` para el dueño, y agrega la función `save_recipe`.
 
-### Fuera de alcance (y por qué)
+### SCRUM-96: eliminar
 
-- **Eliminar la receta completa:** es SCRUM-96 (HU-64b, Sprint 2), con su confirmación y el aviso si está en el planificador. El CA-04 de esta historia lo menciona, pero tiene historia propia.
-- **Foto:** el formulario del CA-01 no la pide, y subirla necesita Supabase Storage (bucket, políticas, validación de archivo), que es una decisión de equipo pendiente. Queda para un ticket propio; el catálogo ya muestra la foto cuando existe.
-- **Recetas compartidas con el household (CA-04, segunda parte):** `households` no existe. Por ahora solo edita quien la creó; la integración está en [plan.md](plan.md#integración-con-households-pendiente).
-- **Unidades como "tazas" o "cucharadas":** la base solo acepta las unidades del catálogo (`ml` / `g` / `unidad`); sin eso no se puede sumar contra la lista (SCRUM-97).
-- **Productos que no están en el catálogo:** el ingrediente se elige del catálogo, nunca como texto libre (CA-03). Crear productos es "Mis productos" (Daniel).
-- **Aviso de "tienes cambios sin guardar" al salir:** no lo pide la historia.
+- Acción **"Eliminar"** en cada tarjeta del catálogo, junto a "Editar".
+- Antes de borrar, un **diálogo de confirmación** que nombra la receta y avisa que no se puede deshacer, con "Eliminar" y "Cancelar".
+- Al confirmar se borra la receta **y sus ingredientes**, y la tarjeta desaparece del catálogo sin recargar la página.
+- Deuda de SCRUM-95 que esta historia vuelve visible: si se borra una receta que otra pestaña está editando, al guardar ahí se muestra "No encontramos esa receta" en vez del error genérico.
 
-### Requerimientos
+### SCRUM-97: agregar a la lista
 
-1. Mismo patrón que el catálogo: ViewModel en `hooks/`, acceso a datos en el servicio, `.tsx` solo presentación, cero literales.
-2. El estado del formulario cambia por acciones con reglas (agregar, quitar, cambiar cantidad o unidad, cargar para editar), así que vive en un **reducer puro** en `utils/`.
-3. La validación es una **función pura** en `utils/` y se repite en la base (los `check` de las tablas y la función `save_recipe`): la UI es comodidad, la base es la garantía (security-practices §3).
-4. Guardar es **atómico**: una sola llamada a `save_recipe`, que dentro de una transacción crea o actualiza la receta y reemplaza sus ingredientes. Nunca queda una receta a medias si falla la red.
-5. `save_recipe` es `security invoker`: RLS sigue siendo el control de acceso. El cliente nunca manda `owner_id` ni `household_id`.
-6. Mutación tipada (nextjs-enterprise-patterns §4): `SaveRecipePayload` y `SaveRecipeResponse` explícitos.
+- Botón **"Agregar receta a lista"** en cada tarjeta del catálogo.
+- Cada ingrediente pasa a la **lista general** del usuario (la de `/lista`). La lista guarda presentaciones concretas (variantes) en unidades enteras y la receta guarda el producto madre con una cantidad cruda, así que cada ingrediente se resuelve con las reglas 19 a 23:
+  - **conteo** ("3 cebollas"): se suman unidades hasta cubrir la receta (CA-03);
+  - **volumen o peso** ("1800 ml de leche"): no se calculan unidades. Si el producto ya está en la lista, lo que hay cuenta; si no alcanza, queda registrado el **faltante** (CA-04). Si el producto no está, se agrega 1 unidad para que tenga su fila.
+- Por cada ingrediente de volumen o peso se registra en la base cuánto pidió la receta y cuánto falta. Ese registro es el **aviso pasivo**; mostrarlo bajo el producto en `/lista` es de SCRUM-114.
+- Si la receta ya se había agregado antes desde este navegador, se pide confirmación antes de agregarla otra vez.
+- Al terminar, un resumen en la tarjeta: qué se agregó, qué falta comprar y qué no se pudo agregar, con un link a la lista.
+- Todo en una sola operación en la base: o entra todo, o nada.
 
-### Casos límite y errores
+Lo que no incluye ninguna de las cuatro está en la [sección 14](#14-casos-fuera-de-alcance).
 
-- Nombre vacío o solo espacios; nombre de más de 120 caracteres.
-- Porciones vacías, 0, negativas, con decimales o más de 50.
-- Receta sin ingredientes: no se puede guardar.
-- Cantidad vacía, 0, negativa o no numérica. Se acepta coma decimal ("0,5").
-- Elegir en el buscador un producto que ya está en la receta: no se duplica (aviso de que ya está).
-- Error de red o de Supabase al guardar: mensaje de error, el formulario conserva lo escrito y se puede reintentar.
-- Doble clic en "Guardar": una sola receta (el botón se deshabilita mientras guarda).
-- Editar una receta que no existe, que es de otro usuario o con un id inválido en la URL: "No encontramos esa receta" (RLS no la devuelve; no se revela si existe).
-- Error al cargar la receta para editar: mensaje de error, sin formulario vacío que parezca una receta nueva.
+## 3. Entradas
 
-### Criterios de aceptación
+| Historia | Entrada | Tipo | De dónde |
+|---|---|---|---|
+| 94 | Sesión del usuario | sesión de Supabase (anónima provisional) | `ensureSession` de `services/supabase.client.ts` |
+| 95 | `recipeId` | `string` opcional (sin id: receta nueva) | segmento `[id]` de `/recetas/{id}/editar` |
+| 95 | Nombre | `string` | input de texto |
+| 95 | Porciones base | `string` (se convierte a entero al validar) | input de texto |
+| 95 | Texto de búsqueda de ingrediente | `string` | buscador compartido |
+| 95 | Producto elegido | producto madre del catálogo (`CatalogProduct`) | opción del buscador |
+| 95 | Cantidad por ingrediente | `string` (acepta coma decimal; se convierte a número al validar) | input de texto |
+| 95 | Unidad por ingrediente | `ml` / `g` / `unidad` | selector |
+| 96 | Receta a eliminar | id y nombre de la receta de la tarjeta | clic en "Eliminar" |
+| 96 | Confirmación | confirmar / cancelar (botón, clic fuera o Escape) | diálogo |
+| 97 | Receta a agregar | id y nombre de la receta de la tarjeta | clic en "Agregar receta a lista" |
+| 97 | Confirmación para repetir | confirmar / cancelar (botón, clic fuera o Escape) | diálogo, solo si la receta ya se había agregado desde este navegador |
+| 97 | Ingredientes de la receta | producto madre + `quantity_value` + `quantity_unit` | `recipe_ingredients`, leídos en la base |
+| 97 | Presentaciones de cada producto | `product_catalog_variants` (`base_quantity`, `base_unit`) | catálogo, leído en la base |
+| 97 | Lista general del usuario y lo que ya pidieron otras recetas | `lists` + `list_items` + `list_item_recipe_requirements` | leídos en la base |
 
-HU-64
+## 4. Salidas
+
+- **SCRUM-94:** la grilla de tarjetas con los textos ya armados ("4 porciones", "+1 más", la inicial del marcador), o el mensaje de catálogo vacío, o el de error.
+- **SCRUM-95:** una receta creada o actualizada en `recipes`, con sus ingredientes reemplazados en `recipe_ingredients` en el orden del formulario, y navegación al catálogo. Si algo falla: errores por campo o un mensaje general, sin perder lo escrito.
+- **SCRUM-96:** la receta y sus ingredientes borrados de la base, y la tarjeta quitada del catálogo (o el estado vacío si era la última). Si algo falla: mensaje de error dentro del diálogo, sin quitar la tarjeta.
+- **SCRUM-97:**
+  - filas nuevas o cantidades sumadas en `list_items` de la lista general (conteos, y 1 unidad por producto de volumen o peso que no estaba);
+  - un registro por ingrediente de volumen o peso en `list_item_recipe_requirements`, con lo que pidió la receta y lo que falta;
+  - el id de la receta guardado en el navegador (`localStorage`), para la confirmación de la regla 27;
+  - un resumen en la tarjeta con link a `/lista`.
+
+  Si algo falla: mensaje de error en la tarjeta y la lista queda como estaba.
+
+## 5. Reglas de negocio
+
+### Todas
+
+1. Cada usuario ve, crea, edita y borra solo sus recetas. Lo decide RLS en la base: el frontend nunca filtra por dueño ni manda `owner_id` o `household_id`. Así, cuando se sumen las recetas del household, la pantalla no cambia.
+2. Lo que valida la UI se repite en la base (`check` de las tablas, `save_recipe`, políticas): la UI es comodidad, la base es la garantía (security-practices §3).
+
+### SCRUM-94
+
+3. Los ingredientes principales son los primeros según el orden en que se cargaron en la receta (`position`), no alfabéticos. Se muestran hasta 3, y "+N más" si hay más.
+4. Las recetas se ordenan de la más nueva a la más vieja.
+
+### SCRUM-95
+
+5. Nombre obligatorio (no vale solo espacios), de hasta 120 caracteres.
+6. Porciones base: entero entre 1 y 50.
+7. Entre 1 y 50 ingredientes. El máximo se agregó en SCRUM-97: agregar una receta a la lista recorre todos sus ingredientes en la base.
+8. Cada ingrediente sale del catálogo, nunca como texto libre, y no se repite en la misma receta.
+9. Cantidad mayor que 0 y de hasta 100 000; se acepta coma decimal ("0,5").
+10. Unidad `ml`, `g` o `unidad`: las unidades base del catálogo, para poder sumar contra la lista (SCRUM-97).
+11. No se guarda si hay errores de validación.
+12. Guardar es atómico: la receta y todos sus ingredientes, o nada.
+
+### SCRUM-96
+
+13. Nunca se borra sin confirmación explícita en el diálogo.
+14. Borrar la receta borra sus ingredientes; no quedan ingredientes huérfanos.
+15. El borrado es definitivo: no hay papelera ni deshacer.
+16. Si la receta ya no existe o no es del usuario, el resultado es el mismo que un borrado correcto: la tarjeta se quita y no se revela si una receta ajena existe.
+
+### SCRUM-97
+
+Una **presentación** es una variante del producto madre del ingrediente (`product_catalog_variants`), con su cantidad y unidad base. Las **filas del producto** son las filas de la lista con alguna presentación de ese producto.
+
+17. Los ingredientes van a la **lista general** del usuario (se crea si no existe), con las **porciones base** de la receta.
+18. Agregar es **atómico**: entran todas las filas, cantidades y registros, o nada.
+19. **Conteo (CA-03).** Si el ingrediente se mide en `unidad` y la presentación también, se **suma encima** de lo que haya, en unidades de la presentación, **hasta cubrir la receta aunque sobre**, y nunca deja aviso. La presentación:
+    1. si el producto tiene **exactamente una** fila en la lista, la de esa fila;
+    2. si no, la **más chica que cubre** la receta con una sola unidad;
+    3. si ninguna cubre sola, la **más grande**.
+
+    Ejemplos: "3 cebollas" con presentación de 1 unidad → +3; "3 huevos" con cartones de 6 y de 12 → +1 cartón de 6; "30 huevos" → +3 cartones de 12; lista con 1 cartón de 12 y receta de 3 huevos → +1 cartón de 12.
+20. **Volumen o peso, el producto ya está en la lista (CA-02, CA-04).** No se suman unidades: **lo que hay cuenta**.
+    - **Disponible** = lo que suman las filas del producto (unidades × cantidad de su presentación, solo las de la misma unidad que el ingrediente) **menos** lo que ya pidieron las recetas agregadas antes sobre ese producto en esa lista.
+    - Si lo disponible alcanza, no hay faltante. Si no, el **faltante** es lo que pide la receta menos lo disponible (o todo, si no queda nada disponible).
+    - Se registra lo que pidió la receta y el faltante, en la fila del producto (si hay varias, la de la presentación más grande).
+
+    Ejemplo: lista con 1 × "leche 1 L". "Flan" pide 800 ml → alcanza, faltante 0. Después "Tres leches" pide 800 ml → quedan 200 ml disponibles → faltante 600 ml.
+21. **Volumen o peso, el producto no está en la lista.** Para que tenga su fila, se agrega **1 unidad** de la **más chica que cubre** la receta sola; si ninguna cubre, de la **más grande** (si el producto tiene una sola presentación, esa). Se registra lo que pidió la receta y el faltante: lo que pide menos lo que trae esa unidad (0 si cubre). Ejemplos con 200 ml, 1 L y 3,78 L: receta de 800 ml → 1 × 1 L, faltante 0; receta de 5000 ml → 1 × 3,78 L, faltante 1220 ml.
+22. **Unidades que no coinciden (CA-04).** Si la unidad del ingrediente no coincide con la de ninguna presentación del producto (ej. "200 g" de un producto que se vende en ml, o "3 unidades" de uno que se vende en g), la app no puede comparar: si el producto ya tiene fila no se suma nada; si no, se agrega 1 unidad de la presentación más chica. Se registra la cantidad completa de la receta como faltante.
+23. Un **aviso** es un registro con faltante mayor que 0: "+ 600 ml necesarios para Tres leches". El faltante se calcula **al agregar**: si después cambian las cantidades de la lista o se edita la receta, no se recalcula (se resuelve al tachar, SCRUM-115).
+24. Los registros son **por receta**: dos recetas sobre el mismo producto tienen registros separados; la misma receta agregada otra vez acumula lo pedido y lo que falta en su registro.
+25. Un registro desaparece si se borra la receta o la fila de la lista. Resolverlo al tachar es de SCRUM-115.
+26. Si el producto de un ingrediente no tiene ninguna presentación en el catálogo, ese ingrediente no se agrega y el resumen lo nombra; el resto sí se agrega.
+27. **Receta repetida.** Si la receta ya se había agregado antes **desde este navegador**, se pide confirmación antes de agregarla otra vez ("Ya agregaste Tres leches a tu lista. ¿Agregarla otra vez?"). Confirmar la agrega de nuevo con las reglas 17 a 26; cancelar no cambia nada. La primera vez no se pregunta nada. Es una comodidad para no agregar sin querer, no una regla de la base: desde otro navegador, o con los datos del sitio borrados, se agrega sin preguntar.
+28. Nunca se abre una ventana para decidir **qué comprar** (CA-05): cuánto comprar de lo que se mide por volumen o peso se decide al tachar (SCRUM-115).
+
+## 6. Estados
+
+Cada pantalla tiene una unión de estados derivada de constantes, no varios booleanos que se puedan contradecir.
+
+| Pantalla | Estados | Notas |
+|---|---|---|
+| Catálogo (SCRUM-94) | `loading` · `error` · `ready` | `ready` sin recetas es el catálogo vacío, no un estado aparte |
+| Editor (SCRUM-95) | `loading` · `notFound` · `loadFailed` · `editing` · `saving` | Una receta nueva arranca en `editing`; editar arranca en `loading` |
+| Eliminación (SCRUM-96) | `idle` · `confirming` · `deleting` · `failed` | `confirming`, `deleting` y `failed` siempre llevan la receta elegida: no puede haber "eliminando" sin receta |
+| Agregar a la lista (SCRUM-97) | `idle` · `confirmingRepeat` · `adding` · `added` · `failed` | Fuera de `idle` siempre hay una receta elegida; `added` lleva además el resumen. `confirmingRepeat` es el diálogo de la regla 27, antes de agregar. Se agrega una receta a la vez |
+
+## 7. Errores
+
+| Historia | Error | Cómo se muestra |
+|---|---|---|
+| 94 | Falla de red o de Supabase al cargar | "No se pudieron cargar tus recetas. Intenta de nuevo." No se dice "no tienes recetas" porque no se sabe si es cierto |
+| 95 | Nombre vacío, solo espacios o de más de 120 caracteres | Error bajo el campo |
+| 95 | Porciones vacías, 0, negativas, con decimales o más de 50 | Error bajo el campo |
+| 95 | Receta sin ingredientes, o con más de 50 | Error en la sección de ingredientes |
+| 95 | Cantidad vacía, 0, negativa, no numérica o mayor a 100 000 | Error bajo la fila del ingrediente |
+| 95 | Producto que ya está en la receta | "Ese producto ya está en la receta."; no se duplica |
+| 95 | Falla al guardar | "No se pudo guardar la receta. Intenta de nuevo." El formulario conserva todo y se puede reintentar |
+| 95 | Receta inexistente, ajena o id inválido en la URL | "No encontramos esa receta." (las tres iguales: RLS no la devuelve) |
+| 95 | La receta se borró mientras se editaba (al guardar) | "No encontramos esa receta." (agregado en SCRUM-96) |
+| 95 | Falla al cargar la receta para editar | "No se pudo cargar la receta. Intenta de nuevo.", sin un formulario vacío que parezca una receta nueva |
+| 96 | Falla de red o de Supabase al borrar | Mensaje de error dentro del diálogo, que sigue abierto; se puede reintentar o cancelar. La tarjeta no desaparece |
+| 97 | Falla de red o de Supabase al agregar | "No se pudo agregar la receta a tu lista. Intenta de nuevo." en la tarjeta. No se agregó nada (regla 18) |
+| 97 | La receta ya no existe o es ajena (se borró en otra pestaña) | "No encontramos esa receta." en la tarjeta |
+| 97 | Ingredientes sin presentación en el catálogo | No es un error: el resumen los nombra ("No se pudieron agregar: …") y el resto se agrega |
+
+## 8. UI esperada
+
+### SCRUM-94
+
+- Sub-tabs "Recetas" y "Planificador semanal · Próximamente".
+- Grilla de tarjetas: foto o marcador con la inicial, nombre, porciones, chips de ingredientes y "+N más".
+- Mensaje de catálogo vacío y mensaje de error.
+
+### SCRUM-95
+
+- Link "+ Nueva receta" en el catálogo y "Editar" en cada tarjeta.
+- Formulario: nombre, porciones base, buscador de ingredientes, filas de ingrediente (producto + cantidad + unidad + "Quitar"), "Guardar receta" y "Cancelar".
+- "Guardando…" con el botón deshabilitado mientras guarda.
+
+### SCRUM-96
+
+- Botón "Eliminar" en cada tarjeta, junto a "Editar".
+- Diálogo de confirmación (primitivo `Modal`) con el nombre de la receta, el aviso de que no se puede deshacer, el botón "Eliminar" (variante `destructive` de `Button`) y "Cancelar".
+- "Eliminando…" con los dos botones deshabilitados mientras borra.
+- Mensaje de error dentro del diálogo.
+
+### SCRUM-97
+
+- Botón "Agregar receta a lista" en cada tarjeta. No aparece en una receta sin ingredientes (no tendría qué agregar).
+- Diálogo de confirmación (primitivo `Modal`) cuando la receta ya se había agregado: "Ya agregaste Tres leches a tu lista. ¿Agregarla otra vez?", con "Agregar otra vez" y "Cancelar".
+- "Agregando…" con el botón deshabilitado mientras agrega; los de las demás tarjetas también, porque se agrega una receta a la vez.
+- Resumen en la tarjeta al terminar, con link "Ver lista". Ejemplo: "Agregaste Tres leches a tu lista. Te falta comprar: Leche X (600 ml)." Si hubo ingredientes sin presentación: "No se pudieron agregar: …".
+- Mensaje de error en la tarjeta si falla.
+- `/lista` no cambia en esta historia: el aviso bajo cada producto lo dibuja SCRUM-114.
+
+## 9. Accesibilidad
+
+- Cada input tiene su label asociado; los errores son texto junto al campo, no solo color.
+- La navegación ("+ Nueva receta", "Editar", "Cancelar" del editor, "Ver lista") son links y las acciones ("Guardar receta", "Eliminar", "Agregar receta a lista") son botones: un link se puede abrir en otra pestaña y el lector de pantalla anuncia bien cada uno.
+- Los botones tienen texto claro. "Eliminar" y "Agregar receta a lista" nombran la receta para el lector de pantalla, porque hay uno por tarjeta en la misma página.
+- Los diálogos son `role="dialog"` con `aria-modal`, tienen título y se cierran con Escape (comportamiento del `Modal` compartido). Mientras borra no se puede cerrar.
+- El resumen y el error de agregar se anuncian solos (`role="status"` y `role="alert"`), porque aparecen sin que cambie la página.
+- El marcador de la foto es decorativo (`aria-hidden`); la foto real lleva el nombre de la receta como `alt`.
+
+## 10. Restricciones técnicas
+
+- TypeScript estricto, sin `any`.
+- Tailwind CSS con los tokens `tacha-*`.
+- La lógica vive en el ViewModel (`hooks/`), el acceso a datos en el servicio (`services/recipes.service.ts`) y los `.tsx` solo presentan (component-architecture §3).
+- Cero literales: textos, límites, estados, tablas y rutas en `constants/recipes.constants.ts` (constants-standards).
+- El formulario del editor cambia por acciones con reglas, así que vive en un reducer puro en `utils/`; la validación es una función pura en `utils/`.
+- Mutaciones tipadas: `Payload` y `Response` explícitos por operación (`SaveRecipe*`, `DeleteRecipe*`, `AddRecipeToList*`), y el error se maneja, nunca un `catch {}` vacío (nextjs-enterprise-patterns §4).
+- Las reglas 17 a 26 viven en la base (una función), no en el cliente: documento-proyecto §6 pide que la unificación de cantidades sea una regla de la base, y así dos pestañas o dos miembros no se pisan. La regla 27 vive en el cliente (`localStorage`), con cada lectura y escritura en `try/catch`: si el navegador bloquea el almacenamiento, se agrega sin preguntar.
+- **No se toca `features/shopping-list/`** (feature de Marcos). Esta historia solo escribe en la base; mostrar los avisos en `/lista` es de SCRUM-114, con revisión de Marcos (acordado con él el 2026-10-03).
+- Sin librerías nuevas (ni de formularios ni de esquemas).
+- Reusar los primitivos de `components/ui`, el buscador compartido y el cliente de Supabase ([sección 11](#11-dependencias)) antes de construir algo propio.
+- Skills que aplican: `component-architecture`, `constants-standards`, `project-structure`, `security-practices`, `nextjs-enterprise-patterns`, `clean-code-practices`, `gitflow`.
+
+## 11. Dependencias
+
+- `services/supabase.client.ts`: `getSupabaseClient`, `ensureSession`.
+- `services/catalog.service.ts`, `hooks/useProductSearch.ts`, `components/product-search/ProductSearch.tsx`: buscador de productos madre (SCRUM-120).
+- `@/components/ui`: `Button`, `Input`, `Chip`, `Spinner`, `CategoryLabel`, `Modal`.
+- `@/constants`: `CATALOG_BASE_UNIT`, `BUTTON_VARIANT`.
+- `types/database.types.ts`: tipos generados de Supabase.
+- `types/nullable.types.ts`: `NullableRef`.
+- **SCRUM-97 (solo en la base):** `lists` y `list_items` (migraciones `004` y `005`), la misma lista general que crea `add_item_to_general_list`; y `product_catalog_variants` (`base_quantity`, `base_unit`).
+
+## 12. Contratos externos
+
+### Tablas (Supabase)
+
+- `recipes`: `id`, `owner_id` (→ `auth.users`, default `auth.uid()`), `household_id` (nullable, sin FK hasta que exista `households`), `name`, `base_servings`, `image_url` (nullable), `created_at`.
+- `recipe_ingredients`: `id`, `recipe_id` (→ `recipes`, `on delete cascade`), `product_catalog_id` (→ `product_catalog`), `quantity_value`, `quantity_unit`, `position`, `created_at`; `unique (recipe_id, product_catalog_id)`.
+
+### Políticas RLS y permisos
+
+| Operación | `recipes` | `recipe_ingredients` | Migración |
+|---|---|---|---|
+| Leer | `owner_id = auth.uid()` | la receta existe y es del usuario | `006` |
+| Crear | dueño, con `household_id is null` | sobre una receta propia | `007` |
+| Editar | dueño (`using` y `with check`), solo las columnas `name` y `base_servings` | sobre una receta propia (`using` y `with check`) | `007`, `008` |
+| Borrar | dueño: `owner_id = auth.uid()` | sobre una receta propia; al borrar la receta, en cascada | `010` (receta), `007` (ingredientes) |
+
+`anon` no tiene permisos sobre ninguna de las dos tablas.
+
+### RPC
+
+- `save_recipe(recipe_name, recipe_base_servings, ingredient_list, target_recipe_id) → uuid` (`007`): `security invoker` y transaccional. Sin `target_recipe_id` crea; con id actualiza, y si no encuentra la receta (inexistente o ajena) responde `P0002`.
+
+### Borrar (SCRUM-96)
+
+- `delete` directo sobre `recipes` por id (PostgREST), sin RPC: es una sola sentencia y ya es atómica. Si RLS oculta la fila, la base borra 0 filas sin error (regla 16).
+
+### Agregar a la lista (SCRUM-97)
+
+- **Tabla nueva `list_item_recipe_requirements`:** un registro por fila de la lista y por receta, con lo que pidió la receta y lo que falta, en la unidad del ingrediente. Un registro con faltante mayor que 0 es un aviso (regla 23). Se borra en cascada si se borra la fila de la lista o la receta. RLS: solo sobre filas de listas propias y recetas propias. `list_items` no cambia.
+- **RPC nueva `add_recipe_to_general_list`:** `security invoker` y transaccional; aplica las reglas 17 a 26 y devuelve el resumen (productos sumados, productos con faltante y cuánto, productos sin presentación). Si no encuentra la receta (inexistente o ajena) responde `P0002`.
+- **Navegador:** las recetas ya agregadas (regla 27) se guardan en `localStorage`, por id. No es un contrato con la base.
+- **Para SCRUM-114:** la lista general puede traer los avisos de cada fila embebiendo `list_item_recipe_requirements` (con `recipes(name)`) en su consulta.
+
+## 13. Casos de aceptación
+
+### HU-63 (SCRUM-94)
+
+- [ ] CA-01 (**parcial**): el sub-tab "Recetas" muestra las recetas con nombre, foto (o su inicial si no tiene) e ingredientes principales. Cumplido para las recetas **propias** en `/recetas`. Falta, por dependencias fuera de esta historia ([sección 14](#14-casos-fuera-de-alcance)): que viva dentro del ítem "Recetas" del **sidebar** y que muestre las recetas **del household**.
+- [x] CA-02: cada receta muestra sus porciones base.
+- [x] Usuario sin recetas: mensaje de catálogo vacío, no un error.
+- [x] Receta sin foto: marcador con la inicial, sin imagen rota.
+- [x] Receta sin ingredientes: la tarjeta se muestra sin la sección de ingredientes.
+- [x] Receta con más de 3 ingredientes: los primeros 3 y "+N más".
+- [x] Otra sesión no ve recetas ajenas.
+
+### HU-64 (SCRUM-95)
+
 - [x] CA-01: un botón "+ Nueva receta" abre un formulario con nombre, porciones base e ingredientes (búsqueda estilo catálogo).
 - [x] CA-02: por cada ingrediente, el usuario primero elige el producto (ej. "Leche") y después le asigna cantidad con su unidad (ej. "500 ml"); el ingrediente queda ligado al producto desde ese paso.
 - [x] CA-03: cada ingrediente se elige de entre los productos del catálogo, no se escribe como texto libre.
-- [ ] CA-04 (**parcial**): quien creó la receta la puede **editar** después. Fuera de esta historia: **eliminar** (SCRUM-96) y que la edite **cualquier miembro del household** si es compartida (integración con households).
+- [ ] CA-04 (**parcial**): quien creó la receta la puede **editar** (SCRUM-95) y **eliminar** (SCRUM-96). Falta que lo haga **cualquier miembro del household** si es compartida (integración con households).
+- [x] Cada error de validación de la [sección 7](#7-errores) se muestra y no llama a la base.
+- [x] Doble clic en "Guardar receta": se crea una sola receta.
+- [x] Receta ajena o id inválido por URL: "No encontramos esa receta."
 
----
+### HU-64b (SCRUM-96)
 
-## Restricciones (ambas historias)
+- [x] CA-01: cada receta del catálogo tiene una acción "Eliminar" que abre una confirmación; solo al confirmar se borra la receta con sus ingredientes, y deja de verse en el catálogo.
+- [ ] CA-02 (**bloqueado por SCRUM-100**): si la receta está asignada a algún espacio del plan semanal, el diálogo lo avisa antes de eliminarla. Hoy el plan no existe, así que ninguna receta puede estar asignada; el aviso se suma cuando SCRUM-100 cree `meal_plans` (contrato en la [sección 15](#15-notas-de-implementación)).
+- [x] Cancelar (botón, clic fuera o Escape): no se borra nada.
+- [x] Doble clic en "Eliminar" del diálogo: una sola petición.
+- [x] Falla de red: el diálogo muestra el error, la tarjeta sigue y se puede reintentar.
+- [x] Borrar la última receta: se ve el catálogo vacío.
+- [x] Receta ya borrada en otra pestaña: la tarjeta se quita sin error.
+- [x] Al recargar la página, la receta borrada no vuelve (el borrado llegó a la base).
+- [x] Otra sesión, llamando al delete con el id de una receta ajena: no se borra nada. Verificado en el SQL Editor con `role authenticated` y el `sub` de otro usuario dentro de una transacción con `rollback`: 0 filas; con el `sub` del dueño, 1 fila.
+- [x] Editar en otra pestaña una receta ya borrada y guardar: "No encontramos esa receta."
 
-Skills que aplican: `component-architecture`, `constants-standards`, `project-structure`, `security-practices` (RLS, validación de input), `nextjs-enterprise-patterns`, `gitflow`. Reusar primitivos de `components/ui` (`Button`, `Input`, `Chip`, `Spinner`, `CategoryLabel`), el buscador compartido (`components/product-search`, `hooks/useProductSearch`, `services/catalog.service.ts`) y el cliente de `services/supabase.client.ts`.
+### HU-65 (SCRUM-97)
+
+Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Editor con un script de prueba dentro de una transacción con `rollback` (lo marcado "SQL"; el catálogo real casi no tiene conteos ni productos con varias presentaciones, así que esas reglas se probaron con productos de prueba).
+
+- [x] CA-01: cada receta del catálogo tiene un botón "Agregar receta a lista". (navegador)
+- [x] CA-02: un producto que ya está en la lista no se duplica como otra fila: los conteos se suman en su fila, y en volumen o peso lo que hay en la fila cuenta para la receta. (navegador y SQL)
+- [x] CA-03: un ingrediente de conteo se suma directo hasta cubrir la receta y no deja aviso ("3 cebollas" → +3; "3 huevos" con cartones de 6 y 12 → +1 cartón de 6). (SQL)
+- [x] CA-04: un ingrediente de volumen o peso que no alcanza deja registrado su faltante por receta (lista con 1 L, receta de 1800 ml → faltante 800 ml), y el resumen de la tarjeta lo nombra. Mostrarlo bajo el producto en `/lista` es de SCRUM-114. (navegador: "Te falta comprar: Leche Dos Pinos Pinito - 1000 ml (800 ml)"; SQL: registros)
+- [x] CA-05: al agregar no se abre ninguna ventana para decidir qué comprar; solo aparece el resumen en la tarjeta. (navegador)
+- [x] Volumen o peso que alcanza (lista con 1 L, receta de 800 ml): no se suma nada y no hay faltante. (navegador: "Tu lista ya tenía lo necesario para esta receta."; SQL)
+- [x] Dos recetas sobre la misma leche (1 L en la lista, 800 ml cada una): la primera no tiene faltante y la segunda tiene 600 ml. (SQL)
+- [x] Producto de volumen o peso que no está en la lista: se agrega 1 unidad de la más chica que cubre, o de la más grande con su faltante si ninguna cubre. (navegador y SQL)
+- [x] Unidades que no coinciden ("200 g" de un producto en ml): se registra el faltante completo (200 g). (SQL)
+- [x] Receta ya agregada desde este navegador: aparece la confirmación; "Agregar otra vez" la agrega de nuevo y "Cancelar" no cambia nada. (navegador: cancelar no llamó a la base; confirmar sí)
+- [x] Ingrediente sin presentación en el catálogo: el resumen lo nombra y el resto se agrega. (SQL)
+- [x] Falla de red: la lista queda igual que antes (nada a medias) y la tarjeta muestra el error. (navegador, con la red simulada caída)
+- [x] Receta borrada en otra pestaña: "No encontramos esa receta." (navegador)
+- [x] Doble clic en "Agregar receta a lista": una sola petición. (navegador: 1 llamada a la RPC)
+- [x] Borrar la receta (SCRUM-96) borra sus registros; las cantidades que ya se habían sumado a la lista quedan. (SQL)
+- [x] Otra sesión no puede agregar una receta ajena a su lista ni leer o escribir registros ajenos. (SQL: 0 registros visibles y `P0002`)
+
+### Todas
+
+- [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
+
+## 14. Casos fuera de alcance
+
+- **Sidebar / shell de la app:** no existe y no tiene historia asignada. Cuando exista, `/recetas` se engancha a él (la ruta y los sub-tabs no cambian).
+- **Recetas del household (verlas, editarlas, borrarlas o agregarlas a la lista como miembro):** `households` todavía no existe. Por ahora cada usuario usa sus recetas y su lista personal; `household_id` queda nullable y sin FK, igual que en `lists`. La integración está en [plan.md](plan.md#integración-con-households-pendiente).
+- **Foto (subirla y borrarla de Storage):** el formulario no la pide, y subirla necesita Supabase Storage (bucket, políticas, validación de archivo), que es una decisión de equipo pendiente. Queda para un ticket propio; el catálogo ya muestra la foto cuando existe.
+- **Aviso por asignaciones en el plan semanal (CA-02 de HU-64b):** `meal_plans` lo crea SCRUM-100. Un aviso que hoy siempre dijera "no está en el plan" sería código sin uso real.
+- **"Ver qué falta", planificador:** SCRUM-98 y SCRUM-99 en adelante. SCRUM-98 puede usar los registros de esta historia.
+- **Mostrar el aviso bajo el producto en `/lista`:** SCRUM-114 (Sprint 4), que toca `features/shopping-list/` con revisión de Marcos.
+- **Resolver el faltante al tachar ("¿Qué hiciste?") y recalcularlo si cambia la lista:** SCRUM-115 (Sprint 4), que se engancha en tachar (SCRUM-66, Marcos).
+- **Calcular cuántas unidades comprar de lo que se mide por volumen o peso:** la app nunca lo decide (documento-proyecto §4.9.1); queda registrado el faltante y se decide al tachar.
+- **Elegir la presentación por precio:** las reglas 19 y 21 usan solo cantidades, que siempre existen; los precios hoy son de un solo supermercado.
+- **Convertir entre unidades** (g ↔ ml, o "tazas"): no hay forma confiable de hacerlo; una unidad distinta deja el faltante completo (regla 22).
+- **Elegir a qué lista agregar (sublista por fecha, lista privada) o con otro número de porciones:** la historia habla de "mi lista"; las sublistas son SCRUM-77 y el multiplicador es del planificador (SCRUM-100).
+- **Agregar la semana completa:** SCRUM-101. Va a reusar la misma función y los registros por receta.
+- **Recordar las recetas agregadas entre dispositivos o navegadores:** la confirmación de la regla 27 es una comodidad local; guardarlo en la base necesitaría una tabla o columna nueva sin que la historia lo pida.
+- **Deshacer el agregado:** no lo pide la historia; las cantidades se bajan con "−" en la lista.
+- **Unidades como "tazas" o "cucharadas":** la base solo acepta `ml` / `g` / `unidad`; sin eso no se puede sumar contra la lista.
+- **Productos que no están en el catálogo:** crear productos es "Mis productos" (Daniel).
+- **Aviso de "tienes cambios sin guardar" al salir del editor:** no lo pide la historia.
+- **Eliminar desde la pantalla de edición:** el CA-01 pide la acción en cada receta y la tarjeta ya lo cumple; un segundo punto de entrada duplicaría la lógica sin que la historia lo pida.
+- **Deshacer o papelera al eliminar:** la historia pide confirmación antes de borrar, no recuperación después.
+- **Registro e inicio de sesión:** los construye otra persona. Se usa la sesión anónima provisional (`ensureSession`).
+
+## 15. Notas de implementación
+
+- **Contrato para SCRUM-100 (cierra el CA-02 de HU-64b):** cuando cree `meal_plans` con `recipe_id → recipes`, tiene que decidir qué pasa al borrar la receta: `on delete cascade` (el espacio del plan queda libre) o `restrict` (hay que quitar la asignación primero). Sin decisión explícita, Postgres usa `no action` y eliminar una receta asignada falla con `23503`. Además, antes de abrir el diálogo de esta historia, tiene que consultar cuántos espacios usan la receta y sumar el aviso al mismo diálogo.
+- **Spec migrada** a la plantilla de 15 secciones en SCRUM-96 (component-architecture §2, "Specs existentes"): el contenido de SCRUM-94 y SCRUM-95 no cambió, solo se reordenó.
+- **Cómo se llenaron los huecos de HU-65 (SCRUM-97, decidido con el responsable de la historia el 2026-10-03).** La historia no define cómo pasar de una cantidad cruda de receta a presentaciones de la lista. Se siguió documento-proyecto §4.9.1 (para volumen o peso la app no calcula unidades: suma en unidad base y registra lo que falta) y se decidió lo que la historia no dice:
+  - **conteos:** se suma encima, en unidades de la presentación, hasta cubrir la receta; con varias presentaciones, la más chica que cubre (o la más grande si ninguna cubre) (regla 19). La HU-76 dice que los conteos nunca llevan aviso, y así queda;
+  - **volumen o peso:** lo que hay en la lista cuenta, descontando lo que ya pidieron otras recetas (regla 20);
+  - **producto que no está en la lista:** se agrega 1 unidad para que tenga su fila (regla 21). Responde la pregunta que dejó abierta Marcos ("si no hay fila no hay dónde poner el aviso");
+  - **unidades que no coinciden:** faltante completo (regla 22);
+  - **receta repetida:** confirmación en el navegador, sin tabla nueva (regla 27). El CA-05 se lee como "no decidir qué comprar al agregar", y esta confirmación no decide nada de la compra.
+
+  documento-proyecto §4.9.1 sigue valiendo; se le suma lo de las reglas 19 y 21, y §6 suma la tabla `list_item_recipe_requirements`. Las dos cosas van en el mismo PR.
+- **Acordado con Marcos (2026-10-03):** esta historia no toca `features/shopping-list/`. El CA-04 se redefine en Jira como "el faltante queda registrado; mostrarlo es SCRUM-114". En SCRUM-114, con la fila ya estable (eliminar y tachar hechos), se trae el registro en la consulta de la lista, un campo opcional en `ShoppingListItem` y un componente chico para la etiqueta dentro de `features/shopping-list/components/`; Marcos revisa ese PR. SCRUM-115 se diseña con él para engancharse en tachar (SCRUM-66).
+- **Para SCRUM-98 y SCRUM-101:** los registros de esta historia dicen, por receta y producto, cuánto se pidió y cuánto falta. "Ver qué falta" (98) y "Agregar la semana completa" (101, llamando a la misma función por cada receta) los pueden reusar.

@@ -7,7 +7,7 @@ import { RecipeBasicsFields } from "./components/RecipeBasicsFields";
 import { RecipeEditorActions } from "./components/RecipeEditorActions";
 import { RecipeIngredientsField } from "./components/RecipeIngredientsField";
 import { useRecipeEditorViewModel } from "./hooks/useRecipeEditorViewModel";
-import type { RecipeEditorProps } from "./models/RecipeEditorProps.interface";
+import type { RecipeEditorProps } from "./models/recipe-editor.interfaces";
 
 /**
  * Crear o editar una receta: el mismo formulario, vacío o cargado según
