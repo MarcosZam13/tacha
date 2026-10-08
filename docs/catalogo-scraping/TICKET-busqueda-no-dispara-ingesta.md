@@ -60,6 +60,4 @@ No es un fix de una línea: hay al menos tres decisiones de arquitectura que tom
 - `docs/catalogo-scraping/specs/spec-02-lectura-catalogo.md` y `spec-03-normalizacion-staging.md`.
 - `docs/catalogo-scraping/RESPUESTA-QA-SPECS-01-04.md` (origen de los 50 registros de staging actuales).
 
-Este documento se ha subido el 02/10/2026:
-
-Se cometió el error de subirlo mucho después de su creación, pero los problemas planteados en este documento ya han sido considerados y propuesta la solución en el SCRUM-126 y en el documento donde se cita: `DECISION-SCRUM-126-poblacion-del-catalogo.md`
+Estado: superado por DECISION-SCRUM-126-poblacion-del-catalogo.md. Este documento se conserva como nota de origen.
