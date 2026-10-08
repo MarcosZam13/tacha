@@ -1,4 +1,3 @@
-
 ---
 tipo: ticket de seguimiento (no bloqueante para el PR que lo encontró)
 origen: QA manual de SCRUM-63 (ajuste de cantidad en /lista) por Seph, al probar el buscador de features/shopping-list con un producto que nunca se había scrapeado
