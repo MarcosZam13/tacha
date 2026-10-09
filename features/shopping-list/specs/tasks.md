@@ -43,4 +43,15 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 20. `useItemRemoval` (item pendiente, temporizador, deshacer, borrar el anterior, borrar al salir) y su uso en el ViewModel.
 - [x] 21. Botón de eliminar en `ShoppingListRow` y `UndoToast`. Validar CA-01..03 de HU-36d; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-66: tachar/destachar producto
+
+- [ ] 22. Migración `015_check_list_items.sql` (columnas, trigger, grant, RPC, reabrir en `add_item_to_general_list`). **No se aplica sola:** se avisa al grupo y la aplica Marcos en una transacción con su fila `015` (`supabase/README.md#migraciones`). Bloquea la 28 (prueba en el navegador).
+- [ ] 23. `types/database.types.ts` a mano (columnas y RPC nuevas); regenerar con el MCP después de aplicar 015 y comprobar que no cambia.
+- [ ] 24. Constantes (textos de secciones y error, RPC, acciones) y modelos (`checkedAt`, acciones, `checkErrorMessage`).
+- [ ] 25. Reducer: `CHECK_TOGGLE_STARTED` / `CHECK_TOGGLED` / `CHECK_TOGGLE_FAILED`, con tests primero en `tests/shopping-list.reducer.test.ts`.
+- [ ] 26. Servicio: `setItemChecked()`, `checked_at` en la carga y en añadir, filtro de "hoy" con `utils/startOfLocalDay.ts` (con test).
+- [ ] 27. `toggleChecked` en `useShoppingList`; secciones, `onToggleChecked` y reabrir al añadir en el ViewModel.
+- [ ] 28. Presentación: botón de tachar en `ShoppingListRow`, `ShoppingListSection`, dos secciones en `ShoppingList`. Validar CA-01..05 de HU-36e en el navegador con una cuenta QA; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
+- [ ] 29. E2E: escenario E2E-LISTA-04 en `specs/E2E.md` y su test.
+
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

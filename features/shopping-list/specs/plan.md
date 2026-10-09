@@ -185,3 +185,65 @@ Flujo: tocar eliminar → `requestRemoval(itemId)` guarda el id pendiente (si ha
 | Deshabilitar eliminar mientras la fila guarda su cantidad | Permitirlo | Un `change_item_quantity` en vuelo sobre una fila que se borra podría responder después y revivir la cantidad en pantalla |
 | 0 filas borradas = éxito | Tratarlo como error | Si el item ya no existe (otra pestaña lo borró), para el usuario el resultado es el mismo: no está. Tampoco revela si existe un item ajeno |
 | `UndoToast` dentro de la feature | En `components/ui` desde ya | Hoy es el único consumidor (segundo consumidor real, como el buscador en SCRUM-120) |
+
+## SCRUM-66: tachar/destachar producto
+
+> **Verificado el 2026-10-08** contra la base real (solo lectura): `list_items` tiene `id`, `list_id`, `product_catalog_variant_id`, `quantity_requested` y `created_at`, sin columnas de tachado ni triggers; `authenticated` solo tiene UPDATE sobre `quantity_requested` (005). El historial llega a `014`, así que la migración es la `015`.
+
+Migración `015_check_list_items.sql`:
+
+- `list_items.checked_at timestamptz null` (null = pendiente) y `list_items.checked_by uuid null → auth.users on delete set null`.
+- Trigger `before insert or update` (`stamp_list_item_check`): si `checked_at` queda en null, `checked_by` también; si la fila ya estaba tachada, conserva su `checked_at`/`checked_by`; si se tacha ahora, pone `now()` y `auth.uid()`. Lo que mande el cliente en esas columnas se ignora.
+- `grant update (checked_at)` a `authenticated`; `checked_by` no tiene grant.
+- RPC `set_list_item_checked(target_item_id, is_checked)`, `security invoker`, como `change_item_quantity`.
+- `add_item_to_general_list` se reemplaza (misma firma): si la fila ya existe y está tachada, la reabre con cantidad 1; si no, suma 1 como antes.
+
+```
+features/shopping-list/
+  ShoppingList.tsx                     + dos secciones (Pendientes / Tachados hoy)
+  components/
+    ShoppingListSection.tsx            encabezado + <ul> de filas de una sección (solo presentación)
+    ShoppingListRow.tsx                + botón de tachar (nombre y tamaño), hermano de los controles
+    models/ShoppingListSectionProps.interface.ts
+  hooks/
+    useShoppingList.ts                 + toggleChecked(itemId, isChecked)
+    useShoppingListViewModel.ts        + pendingRows / checkedRows, onToggleChecked, reabrir al añadir una fila tachada
+  models/
+    ShoppingListItem.interface.ts      + checkedAt
+    ShoppingListRowViewModel.interface.ts + canToggleChecked, isChecked
+    ShoppingListState.interface.ts     + checkErrorMessage; pendingItemIds cubre cantidad y tachado
+    ShoppingListAction.type.ts         + CHECK_TOGGLE_STARTED / CHECK_TOGGLED / CHECK_TOGGLE_FAILED
+  services/
+    shopping-list.service.ts           + setItemChecked(); getGeneralList trae solo pendientes y tachados desde hoy
+  utils/
+    shopping-list.reducer.ts           + las tres acciones de tachado
+    startOfLocalDay.ts                 Date → ISO de la medianoche local (el "hoy" de CA-05)
+  tests/
+    shopping-list.reducer.test.ts      + tachar, destachar, error y orden de las filas
+    startOfLocalDay.test.ts
+supabase/migrations/015_check_list_items.sql
+types/database.types.ts                + checked_at, checked_by, set_list_item_checked (a mano; se regenera al aplicar 015)
+```
+
+Flujo: tocar la fila → `onToggleChecked(itemId)` en el ViewModel calcula el estado nuevo (`!isChecked`) → `toggleChecked()` → `dispatch(CHECK_TOGGLE_STARTED)` (la fila queda pendiente, sus botones deshabilitados) → `setItemChecked()` → RPC `set_list_item_checked` → el trigger pone `checked_at`/`checked_by` → la base devuelve la fila → `dispatch(CHECK_TOGGLED, checkedAt)` → el ViewModel la deriva a la otra sección. Si falla: `CHECK_TOGGLE_FAILED` (la fila no se mueve, aparece el error).
+
+Al cargar: `getGeneralList()` pide los items con `checked_at is null or checked_at >= medianoche local` (filtro sobre la tabla embebida). Lo tachado antes de hoy no viaja.
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Una columna `checked_at` nullable | `is_checked boolean` + `checked_at` | Con dos columnas puede quedar `is_checked = false` con fecha, o al revés. Con una sola, "tachado" y "cuándo" no se pueden contradecir, y CA-05 es un filtro por fecha |
+| Trigger que pone `now()` y `auth.uid()` | Que el cliente mande la fecha y el usuario | Todo valor del cliente es hostil (security-practices §2): con la API cualquiera podría tachar a nombre de otro o con fecha vieja. La hora del servidor además no depende del reloj del teléfono |
+| Grant solo de `checked_at`; `checked_by` sin grant | Grant de las dos columnas | Un PATCH directo no puede escribir `checked_by`; y si escribe `checked_at`, el trigger igual pone la hora real |
+| El trigger conserva la fecha si la fila ya estaba tachada | Volver a poner `now()` | Tachar dos veces (dos pestañas) no cambia cuándo se compró; además el trigger corre en cada update, también al cambiar la cantidad |
+| RPC con el estado deseado (`is_checked`) | RPC "toggle" que invierte lo que haya | El usuario decide mirando la pantalla. Si dos pestañas mandan "tachar", las dos quieren lo mismo: con toggle, la segunda lo destacharía. Es lo contrario de la cantidad (005), donde cada toque sí debe sumar |
+| RPC `security invoker` | `update` directo desde el servicio | Mismo patrón que `change_item_quantity`: devuelve la fila y da un error claro si no es tuya; RLS sigue decidiendo |
+| Esperar a la base antes de mover la fila | Actualización optimista | Mismo criterio que la cantidad (Sprint 1): sin rollback que explicar. La fila queda deshabilitada mientras tanto. Se puede optimizar en modo compra si se siente lento |
+| `pendingItemIds` compartido entre cantidad y tachado | Un pendiente por tipo de escritura | Una sola escritura por fila a la vez: es la misma regla que ya impide eliminar mientras se guarda la cantidad (una respuesta tardía no revive una fila borrada), y un doble toque rápido en la fila no manda dos RPC |
+| Las secciones se derivan de `checkedAt` en el ViewModel | Guardar dos arreglos en el reducer | Un solo arreglo en el orden en que se añadieron: destachar devuelve la fila a su lugar sin reordenar nada (CA-04), y no hay dos listas que se desincronicen |
+| Filtro de "hoy" en la consulta | Traer todo y filtrar en el cliente | Lo tachado en días anteriores crece sin fin; no tiene sentido descargarlo para esconderlo |
+| Medianoche **local** calculada en el cliente | `current_date` en la base | La base está en UTC: en Costa Rica (UTC-6) el "día" cambiaría a las 6 p. m. |
+| Botón con `aria-pressed` | `role="checkbox"` o un checkbox oculto | CA-01 prohíbe el checkbox; `aria-pressed` le dice al lector de pantalla que es un botón de dos estados sin dibujar nada |
+| Botón de tachar hermano de los controles, no un `<li>` clickeable | `onClick` en el `<li>` | Un `<li>` no es enfocable ni activable con teclado. Y un botón que envuelve otros botones es HTML inválido: el click de "+" también tacharía |
+| No usar `ItemRow` de `components/ui` | Reusarlo | Dibuja un checkbox (contra CA-01) y envuelve toda la fila en un `<button>` |
+| Reabrir la fila tachada al añadirla desde el buscador (cambio en `add_item_to_general_list`) | Sumarle 1 como antes | `unique (list_id, variant)` obliga a reusar la fila. Si estaba tachada ayer, sumarle la dejaría escondida: el usuario añade y no ve nada |
+| `ShoppingListSection` como mini componente | Repetir el `<ul>` dos veces en `ShoppingList.tsx` | El `return` principal se sigue leyendo como esqueleto (component-architecture §4), y la misma sección sirve para sublistas y listas privadas (CA-06) |
