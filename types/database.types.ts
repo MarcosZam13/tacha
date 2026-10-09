@@ -781,6 +781,7 @@ export type Database = {
           status: string
         }[]
       }
+      get_recipe_coverage: { Args: { target_recipe_id: string }; Returns: Json }
       normalize_pending_staging: {
         Args: { batch_size?: number }
         Returns: {

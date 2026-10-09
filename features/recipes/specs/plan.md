@@ -460,3 +460,103 @@ No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/(app)
 - **Insert y update directos en `list_item_recipe_requirements`** (revisión de seguridad, baja): hoy el usuario puede cambiar a mano lo pedido y lo que falta de **su propia** lista, y eso altera el "disponible" de sus próximos agregados. No afecta a nadie más. Con households, un miembro podría falsear los faltantes de otros: revisarlo ahí (quitar insert/update directos y dejar solo la RPC, pasándola a `security definer` con las validaciones adentro).
 - **Topes acumulados** (revisión de seguridad, baja): agregar la misma receta muchísimas veces puede llevar `quantity_needed` a su tope (10 000 000) o `quantity_requested` al máximo de `integer`, y ese agregado falla. Solo afecta al propio usuario; SCRUM-115 abre el borrado de los registros.
 - **La respuesta de la RPC no se valida en el cliente** (revisión de código y de seguridad, baja): se tipa con el contrato de la `013`, igual que `searchCatalog`. Si la RPC cambia de forma, el error aparece en el adapter y no en el borde; un guard de pocas líneas lo resolvería.
+
+---
+
+## SCRUM-98: ver qué falta de una receta
+
+> **Verificado el 2026-10-09** contra `develop` (con SCRUM-66 y SCRUM-135 mergeadas): `list_items.checked_at` existe (`015`), `list_item_recipe_requirements` existe (`013`) y la última migración es la `015`. En todo el repo no hay ningún uso de Realtime ni la publicación `supabase_realtime`. La rama `ticket/SCRUM-67-modo-compra` está abierta y ya tomó la `016` (`016_create_purchase_sessions.sql`), por eso esta historia usa la `017`.
+
+### Archivos
+
+```
+features/recipes/
+  RecipeCatalog.tsx                    + conecta coverage a cada tarjeta
+  components/
+    RecipeCard.tsx                     + botón "Ver qué falta" (aria-expanded) y RecipeCoveragePanel
+    RecipeCoveragePanel.tsx            nuevo: resumen + lista de ingredientes, o cargando / error / no encontrada
+    RecipeCoverageIngredient.tsx       nuevo: una fila (nombre, cantidad, etiqueta Cubierto/Falta, motivo)
+    models/RecipeCardProps.interface.ts        + coverage y onCoverageToggle
+    models/RecipeCoveragePanelProps.type.ts    nuevo: Pick del ViewModel
+    models/RecipeCoverageIngredientProps.interface.ts  nuevo
+  hooks/
+    useRecipeCoverage.ts               nuevo: estado (unión de 5) + abrir/cerrar + carga + suscripción con limpieza
+    useRecipeCatalogViewModel.ts       + compone useRecipeCoverage
+  models/
+    recipe-coverage.interfaces.ts      nuevo: CoverageIngredient, RecipeCoverageViewModel, params del hook
+    recipe-coverage.types.ts           nuevo: RecipeCoverageState (unión), CoverageStatus, CoverageReason
+    recipe-catalog.interfaces.ts       + coverage en RecipeCatalogViewModel
+  services/
+    recipe-coverage.service.ts         nuevo: getRecipeCoverage() (RPC + adapter, P0002 → null) y subscribeToListChanges()
+  utils/
+    toCoverageIngredients.ts           nuevo: jsonb de la RPC → CoverageIngredient[]
+    toCoverageSummaryText.ts           nuevo: ingredientes → "Te faltan 2 de 4 ingredientes" / "Tienes todo para cocinarla"
+    toCoverageReasonText.ts            nuevo: motivo + faltante → "No está en tu lista" / "Te falta comprar 600 ml"
+  constants/recipes.constants.ts       + estados, textos, motivos, RPC, nombre del canal
+
+supabase/migrations/017_recipe_coverage.sql   RPC + publicación de Realtime
+types/database.types.ts                       regenerar (Functions.get_recipe_coverage)
+```
+
+No se toca `features/shopping-list/` (SPEC §10): la lista no sabe que el panel la escucha.
+
+### Datos
+
+**Migración `017_recipe_coverage.sql`:**
+
+- **RPC `get_recipe_coverage(target_recipe_id uuid) returns jsonb`**, `stable`, `security invoker`, `search_path` vacío, solo `authenticated`:
+  1. Sin sesión → `42501`. La receta no se ve → `P0002` (igual que `add_recipe_to_general_list`).
+  2. Toma la lista general del usuario (`household_id is null`); si no tiene, todos los ingredientes salen `missing / notInList`.
+  3. Por cada ingrediente (orden `position`): filas = `list_items` de esa lista con alguna presentación (`product_catalog_variants`) del mismo producto madre.
+     - sin filas → `missing`, `notInList`;
+     - alguna con `checked_at is null` → `missing`, `notChecked`;
+     - todas tachadas y `sum(quantity_missing)` de los registros de esta receta sobre esas filas `> 0` → `missing`, `short`, con esa suma;
+     - si no → `covered`.
+  4. Devuelve el arreglo de la SPEC §12.
+- **Publicación de Realtime:** `alter publication supabase_realtime add table public.list_items`, dentro de un bloque `do` que primero revisa `pg_publication_tables`, para que sea idempotente. No cambia permisos: Realtime aplica la RLS de `list_items`.
+- Sin tablas, columnas ni políticas nuevas.
+
+**Llamada desde el cliente:** `rpc("get_recipe_coverage", { target_recipe_id })` → `toCoverageIngredients()` → `CoverageIngredient[]`. Con `P0002` el servicio devuelve `null`.
+
+### Flujo
+
+1. Tarjeta → "Ver qué falta" → `onCoverageToggle({ id, name })`.
+   - Si esa receta ya estaba abierta → `closed` y se cancela la suscripción.
+   - Si no → se cierra la anterior (una a la vez) y pasa a `loading`.
+2. `getRecipeCoverage()`:
+   - **éxito:** `ready` con los ingredientes → `RecipeCoveragePanel` con `toCoverageSummaryText()`;
+   - **`null`:** `notFound`;
+   - **error:** `error`, con "Reintentar".
+3. En `ready` abre la suscripción (`subscribeToListChanges`). Cada evento dispara una nueva llamada; la respuesta **reemplaza** los datos de `ready` sin pasar por `loading`. Si esa llamada falla, se conserva lo último visto.
+4. El `useEffect` cancela la suscripción al cerrar, al cambiar de receta y al desmontar. Una bandera de cancelación descarta respuestas que lleguen después.
+5. Eventos muy seguidos (tachar varios): los que llegan con una consulta en curso no lanzan otra; al terminar se hace una sola más (**coalescencia**, sin librería).
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Calcular en una RPC de solo lectura | Calcular en el cliente con varias consultas | Una sola regla (la 29) en un solo lugar. Mismo criterio que SCRUM-97 |
+| Realtime como **señal** y volver a pedir | Aplicar el contenido del evento al estado local | El evento trae una fila de `list_items`, no el estado de la receta (depende de presentaciones y registros). Recalcular en el cliente duplicaría la regla 29 |
+| Una sola suscripción, solo con el panel abierto | Una por tarjeta, siempre | Cada canal es una conexión; solo importa la receta que se mira |
+| Panel dentro de la tarjeta | Ruta `/recetas/[id]` | Decidido con el responsable (2026-10-09). La ruta se puede crear después sin cambiar la RPC |
+| Cubierto = en la lista y tachado | Cualquier fila en la lista / tabla de inventario | Decidido con el responsable. "Ya lo compré" es lo que dice la historia y no exige datos que no existen |
+| Reemplazar sin pasar por `loading` | "Cargando…" en cada cambio | El panel parpadearía cada vez que se tacha algo |
+| Coalescencia de eventos | Debounce con temporizador | Más simple de razonar y de probar (sin tiempo): una consulta en curso y a lo más una pendiente |
+| Hook propio `useRecipeCoverage` compuesto por el ViewModel | Meterlo en `useRecipeCatalogViewModel` | Mismo criterio que `useRecipeDeletion` y `useRecipeListAddition` |
+| `status` y `reason` como uniones desde constantes | Cadenas sueltas | constants-standards; la RPC devuelve esos mismos valores |
+
+### Seguridad
+
+- La RPC es `security invoker` y de solo lectura: no puede devolver nada que el usuario no pueda leer directo. Receta ajena → `P0002`, sin revelar si existe.
+- Realtime respeta la RLS de `list_items`: un usuario solo recibe eventos de su propia lista. Se prueba con dos sesiones y lo revisa `security-reviewer` (toca RLS y publicación).
+- El cliente solo manda el id de la receta; el nombre del canal lleva ese id y nada sensible.
+- La publicación expone `list_items` a Realtime. Insert y update respetan la RLS; **los eventos delete no** (limitación de Supabase): llegan a todos los suscriptores, solo con el `id` de la fila, y cada panel abierto vuelve a consultar. No se filtra ningún dato; es una amplificación de carga acotada por la coalescencia. Aceptado en la revisión de seguridad (Medium); detalle y siguiente paso en SPEC §15. `REPLICA IDENTITY FULL` queda prohibido en esta tabla.
+- Al quedar activa la suscripción se hace una consulta más (`SUBSCRIBED` → `onChange`), para no perder un cambio que ocurra entre la primera consulta y la suscripción.
+
+### Deuda conocida
+
+- **Primer uso de Realtime en el repo:** si otra feature lo necesita, conviene extraer `subscribeToListChanges` a `services/`.
+- **Borrados ajenos disparan una consulta por panel abierto** (revisión de seguridad, Medium): ver Seguridad y SPEC §15. Siguiente paso si molesta: debounce de ~300 ms en `refresh`.
+- **Una consulta por cambio:** la coalescencia limita las llamadas, pero no es incremental. Suficiente para una lista de decenas de filas.
+- **Cubierto no mide cantidad** (regla 31). Si el usuario cambia las cantidades de la lista después de agregar la receta, el faltante no se recalcula (regla 23, SCRUM-115).
+- **La RPC se prueba en el SQL Editor** con casos fijos (tasks). El runner cubre `toCoverageIngredients`, `toCoverageSummaryText`, `toCoverageReasonText` y las transiciones de `useRecipeCoverage` con un servicio simulado.
