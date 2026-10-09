@@ -6,8 +6,10 @@ import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
+import { ShoppingListSection } from "./components/ShoppingListSection";
 import { UndoToast } from "./components/UndoToast";
 import { useShoppingListViewModel } from "./hooks/useShoppingListViewModel";
+import type { ShoppingListRowViewModel } from "./models/ShoppingListRowViewModel.interface";
 
 /**
  * Pantalla de la lista general. "use client" porque usa hooks y habla con
@@ -15,6 +17,19 @@ import { useShoppingListViewModel } from "./hooks/useShoppingListViewModel";
  */
 export const ShoppingList = (): React.JSX.Element => {
   const viewModel = useShoppingListViewModel();
+
+  // Misma fila en las dos secciones; solo cambia en cuál se dibuja.
+  const renderRow = (row: ShoppingListRowViewModel): React.JSX.Element => (
+    <ShoppingListRow
+      key={row.item.id}
+      row={row}
+      onDecrease={() => viewModel.onDecreaseQuantity(row.item.id)}
+      onIncrease={() => viewModel.onIncreaseQuantity(row.item.id)}
+      onOpenDetail={() => viewModel.onOpenDetail(row.item.id)}
+      onRemove={() => viewModel.onRemoveItem(row.item.id)}
+      onToggleChecked={() => viewModel.onToggleChecked(row.item.id)}
+    />
+  );
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 bg-tacha-bg px-4 py-8">
@@ -47,6 +62,11 @@ export const ShoppingList = (): React.JSX.Element => {
           {viewModel.quantityErrorMessage}
         </p>
       ) : null}
+      {viewModel.checkErrorMessage ? (
+        <p role="alert" className="font-body text-sm text-red-600">
+          {viewModel.checkErrorMessage}
+        </p>
+      ) : null}
       {viewModel.removeErrorMessage ? (
         <p role="alert" className="font-body text-sm text-red-600">
           {viewModel.removeErrorMessage}
@@ -55,19 +75,18 @@ export const ShoppingList = (): React.JSX.Element => {
 
       {viewModel.isLoading ? <Spinner /> : null}
       {viewModel.isEmpty ? <ShoppingListEmptyState /> : null}
-      {viewModel.hasItems ? (
-        <ul className="flex flex-col divide-y divide-tacha-border rounded-tacha-badge border border-tacha-border bg-tacha-surface">
-          {viewModel.rows.map((row) => (
-            <ShoppingListRow
-              key={row.item.id}
-              row={row}
-              onDecrease={() => viewModel.onDecreaseQuantity(row.item.id)}
-              onIncrease={() => viewModel.onIncreaseQuantity(row.item.id)}
-              onOpenDetail={() => viewModel.onOpenDetail(row.item.id)}
-              onRemove={() => viewModel.onRemoveItem(row.item.id)}
-            />
-          ))}
-        </ul>
+      {viewModel.hasPendingRows ? (
+        <ShoppingListSection title={SHOPPING_LIST_TEXT.PENDING_SECTION}>
+          {viewModel.pendingRows.map(renderRow)}
+        </ShoppingListSection>
+      ) : null}
+      {viewModel.isAllChecked ? (
+        <p className="font-body text-sm text-tacha-textsec">{SHOPPING_LIST_TEXT.ALL_CHECKED}</p>
+      ) : null}
+      {viewModel.hasCheckedRows ? (
+        <ShoppingListSection title={SHOPPING_LIST_TEXT.CHECKED_SECTION}>
+          {viewModel.checkedRows.map(renderRow)}
+        </ShoppingListSection>
       ) : null}
 
       {viewModel.isUndoRemoveVisible ? <UndoToast onUndo={viewModel.onUndoRemove} /> : null}

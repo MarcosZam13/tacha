@@ -19,8 +19,10 @@ interface UseShoppingListViewModelReturn {
   /** Sección "Tachados hoy", en el orden en que se añadieron. */
   checkedRows: ShoppingListRowViewModel[];
   detail: NullableRef<ItemDetailViewModel>;
+  hasCheckedRows: boolean;
   hasItems: boolean;
   hasNoSearchResults: boolean;
+  hasPendingRows: boolean;
   /** Hay filas pero todas están tachadas: "Pendientes" muestra un texto en vez de quedar vacía. */
   isAllChecked: boolean;
   isEmpty: boolean;
@@ -165,8 +167,10 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     checkErrorMessage: state.checkErrorMessage,
     checkedRows,
     detail,
+    hasCheckedRows: checkedRows.length > 0,
     hasItems: rows.length > 0,
     hasNoSearchResults: search.hasNoResults,
+    hasPendingRows: pendingRows.length > 0,
     isAllChecked: rows.length > 0 && pendingRows.length === 0,
     // Con error de carga no se dice "tu lista está vacía": no se sabe si lo está.
     isEmpty: !state.isLoading && !state.loadErrorMessage && rows.length === 0,

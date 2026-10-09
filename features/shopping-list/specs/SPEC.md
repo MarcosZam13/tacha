@@ -92,7 +92,7 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 ## 8. UI esperada
 
 - Título "Lista general" y buscador arriba.
-- Sección "Pendientes": filas sin tachar. Si todo está tachado, un texto corto lo dice en vez de dejar la sección vacía.
+- Sección "Pendientes": filas sin tachar. Si todo está tachado, en su lugar un texto corto lo dice en vez de dibujar una sección vacía.
 - Sección "Tachados hoy": filas tachadas hoy, con el nombre tachado y atenuado. Solo aparece si tiene filas.
 - Cada fila: [botón de tachar con nombre y tamaño, ocupa todo el ancho libre] [− cantidad +] [detalle] [eliminar].
 - Sin checkbox ni ícono de estado (HU-36e CA-01; reemplaza al checkbox indicador de DESIGN.md §2, que es anterior a la decisión del 2026-08-21).
@@ -103,7 +103,7 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 - El botón de tachar es un `<button>` con `aria-pressed`: el lector de pantalla anuncia "presionado" cuando está tachado, sin agregar nada visible (CA-03).
 - Ningún botón dentro de otro botón (HTML inválido; el click de adentro dispararía también el de afuera).
 - Los botones de solo símbolo ("−", "+", "i", "✕") tienen texto `sr-only`.
-- Cada sección es una región con su encabezado (`<section aria-labelledby>` + `<h2>`).
+- Cada sección es una región con nombre (`<section aria-label>`) y un `<h2>` visible.
 - Errores con `role="alert"`; toast con `role="status"`.
 - Una fila que espera respuesta usa `disabled` nativo, que también la saca del foco con Tab.
 
