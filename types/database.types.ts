@@ -728,6 +728,14 @@ export type Database = {
         Args: { target_recipe_id: string }
         Returns: Json
       }
+      add_units_to_list_item: {
+        Args: {
+          target_list_id: string
+          target_variant_id: string
+          units_to_add: number
+        }
+        Returns: string
+      }
       change_item_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
@@ -796,6 +804,17 @@ export type Database = {
         Returns: {
           base_quantity: number
           base_unit: string
+        }[]
+      }
+      pick_recipe_variant: {
+        Args: {
+          needed_quantity: number
+          target_product_id: string
+          target_unit: string
+        }
+        Returns: {
+          base_quantity: number
+          variant_id: string
         }[]
       }
       save_recipe: {
