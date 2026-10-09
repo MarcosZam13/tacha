@@ -57,4 +57,16 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
   - Hecho: test del hook, implementación, `tsc`, lint, build, 83 tests unitarios y prueba manual (tachar, destachar y que se guarde). E2E: 6/6 dos veces seguidas con el servidor ya compilado (2026-10-09), después de que se liberó el límite de Supabase.
 - [x] 29. E2E: escenario E2E-LISTA-04 en `specs/E2E.md` y su test (pasa en chromium y mobile-chrome). Pendiente: repetir la prueba manual con una cuenta QA cuando exista el ambiente de pruebas.
 
+## SCRUM-67: modo compra
+
+- [ ] 31. Migración `016_create_purchase_sessions.sql` y su prueba `supabase/tests/016_create_purchase_sessions.test.sql`. **No se aplica sola:** Marcos reserva el `016` en el grupo y la aplica en una transacción con su fila (`supabase/README.md#migraciones`). Bloquea la 38 y la 39.
+- [ ] 32. `types/database.types.ts` a mano; regenerar con el MCP después de aplicar 016 y comprobar que coincide.
+- [ ] 33. Constantes (textos, RPC, parámetro `compra`) y modelos (`PurchaseSession`, `StoreOption`, `ItemCheck`, campos nuevos del item, acciones).
+- [ ] 34. Reducer: `CHECK_TOGGLED` con `ItemCheck` y `BOUGHT_QUANTITY_CHANGED`, tests primero. `parseSpentTotal` con test.
+- [ ] 35. Servicios: `purchase-session.service.ts` y lo nuevo de `shopping-list.service.ts`.
+- [ ] 36. Hooks: `usePurchaseSession`, tachar en compra y `changeBoughtQuantity` en `useShoppingList`, modo compra en el ViewModel. Tests de hooks.
+- [ ] 37. Presentación: `ShoppingList` (frontera) + `ShoppingListInner`, `ShoppingModeBar`, `StorePicker`, `ClosePurchasePanel`, "Pedido N" en la fila.
+- [ ] 38. `docs/documento-proyecto.md` §6 con las columnas reales; E2E-LISTA-05 en `specs/E2E.md` y su test.
+- [ ] 39. Validar CA-01..07 en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; revisores; body de la PR y guía de estudio.
+
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

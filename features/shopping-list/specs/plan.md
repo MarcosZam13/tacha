@@ -264,3 +264,86 @@ Al cargar: `getGeneralList()` pide los items con `checked_at is null or checked_
 | Requirements viejos de una fila reabierta: pendiente para SCRUM-98 | Borrarlos al reabrir | Pide abrir `delete` en una tabla de recetas y decidir qué pasa al destachar a mano; el error que queda es conservador (SPEC §14) |
 | Prueba SQL con `rollback` | Probarlo solo con E2E | "Comprado ayer" no se puede fabricar desde el navegador (el trigger no acepta fechas); en SQL se apaga el trigger para esa sentencia dentro de la transacción |
 | `ShoppingListSection` como mini componente | Repetir el `<ul>` dos veces en `ShoppingList.tsx` | El `return` principal se sigue leyendo como esqueleto (component-architecture §4), y la misma sección sirve para sublistas y listas privadas (CA-06) |
+
+## SCRUM-67: modo compra
+
+> **Verificado el 2026-10-09** contra la base real (solo lectura): `purchase_sessions` no existe; `stores` tiene 3 filas (MaxiPali, MasXMenos, Walmart Costa Rica) con lectura pública; el historial llega a `015` y ni `develop` ni las PRs abiertas usan `016`.
+
+### Datos: migración `016_create_purchase_sessions.sql`
+
+- **`purchase_sessions`**: `id`, `owner_id` (default `auth.uid()`, → `auth.users`, cascade), `household_id` (null, → `households`), `list_id` (null, → `lists`), `store_id` (→ `stores`), `started_at`, `closed_at` (null = abierta), `total_amount` (`numeric(12,2)`, ≥ 0, null = "sin total"; solo con la compra cerrada). Mismo patrón de dueño que `lists` (documento-proyecto §6).
+- RLS del dueño: leer lo propio; insertar solo con `household_id`, `list_id`, `closed_at` y `total_amount` en null (listas privadas y household todavía no existen); actualizar solo una compra propia **abierta**. Permisos por columna: insert de `store_id`, update de `closed_at` y `total_amount`. `anon` sin nada.
+- **`list_items`** + `purchase_session_id` (→ `purchase_sessions`, `on delete set null`) + `quantity_bought` (≥ 1). Check: las dos van juntas (las dos null o las dos con valor). Grant de update a las dos columnas.
+- **Trigger de 015 (`stamp_list_item_check`) extendido**: al destachar limpia también `purchase_session_id` y `quantity_bought`; y si la fila cambia de compra, valida que la compra sea del que llama y esté abierta (si no, `42501`). Así un PATCH a mano no puede colgar una fila de la compra de otra persona.
+- **RPC** (todas `security invoker`, `search_path = ''`, `execute` solo para `authenticated`):
+  - `start_purchase_session(target_store_id, local_day_start)`: bloqueo por usuario (`pg_advisory_xact_lock`), busca una compra abierta del que llama en ese súper con `started_at >= local_day_start`; si no hay, la crea. Devuelve la compra.
+  - `check_list_item_in_session(target_item_id, target_session_id)`: tacha la fila (si no lo estaba), le pone la compra y `quantity_bought = coalesce(quantity_bought, quantity_requested)`. El trigger valida la compra.
+  - `change_bought_quantity(target_item_id, quantity_delta)`: como `change_item_quantity` (005) pero sobre `quantity_bought`, solo ±1 y solo si la compra de la fila sigue abierta.
+  - `close_purchase_session(target_session_id, spent_total)`: `closed_at = now()` y el total, solo si es propia y está abierta.
+- Destachar en modo compra sigue usando `set_list_item_checked(…, false)`: el trigger borra la compra y lo comprado.
+- Prueba: `supabase/tests/016_create_purchase_sessions.test.sql`, en una transacción con `rollback`.
+
+### Archivos
+
+```
+features/shopping-list/
+  ShoppingList.tsx                     frontera <Suspense> (useSearchParams la exige) → ShoppingListInner
+  ShoppingListInner.tsx                el cuerpo de la pantalla (lo que era ShoppingList.tsx) + barra de compra, modal de súper, panel de cierre
+  components/
+    ShoppingModeBar.tsx                "Comprando en {súper}" + "Terminar compra" + "Salir"
+    StorePicker.tsx                    un botón por súper (dentro del Modal), carga y error
+    ClosePurchasePanel.tsx             total opcional + "Cerrar compra" / "Seguir comprando"
+    QuantityStepper.tsx                sin cambios: recibe la cantidad que le toca mostrar
+    ShoppingListRow.tsx                + "Pedido N" bajo el tamaño cuando lo comprado difiere
+    models/                            props de los tres nuevos
+  hooks/
+    usePurchaseSession.ts              lee ?compra, carga la compra, súper del modal, iniciar, salir, cerrar
+    useShoppingList.ts                 + tachar dentro de una compra, changeBoughtQuantity
+    useShoppingListViewModel.ts        + modo compra: qué RPC usa tachar, qué cantidad muestra el stepper, cuándo se abre el panel
+  models/
+    PurchaseSession.interface.ts       id, storeName
+    StoreOption.interface.ts           id, name
+    ItemCheck.interface.ts             checkedAt, purchaseSessionId, quantityBought (lo que devuelve tachar)
+    ShoppingListItem.interface.ts      + purchaseSessionId, quantityBought
+    ShoppingListAction.type.ts         CHECK_TOGGLED con ItemCheck; + BOUGHT_QUANTITY_CHANGED
+  services/
+    purchase-session.service.ts        getStores, startPurchaseSession, getPurchaseSession, closePurchaseSession
+    shopping-list.service.ts           + checkItemInSession, changeBoughtQuantity; select y mapeo de las dos columnas
+  utils/
+    parseSpentTotal.ts                 "12 500" / "" / "abc" → número, null o error (pura, con test)
+  tests/                               reducer, parseSpentTotal, useShoppingList (en sesión), usePurchaseSession
+supabase/migrations/016_create_purchase_sessions.sql
+supabase/tests/016_create_purchase_sessions.test.sql
+types/database.types.ts                tabla, columnas y RPC nuevas (a mano; se regenera al aplicar 016)
+docs/documento-proyecto.md             §6: columnas reales de purchase_sessions y list_items
+e2e/features/shopping-list/            E2E-LISTA-05 (modo compra de punta a punta)
+```
+
+### Flujo
+
+1. **Iniciar:** "Iniciar compra" → `usePurchaseSession.openStorePicker()` → `getStores()` → el modal muestra un botón por súper → elegir MaxiPali → `startPurchaseSession(storeId)` (RPC con `startOfLocalDay(new Date())`) → `router.push("/lista?compra=<id>")`.
+2. **Entrar al modo:** `useSearchParams().get("compra")` cambia → efecto → `getPurchaseSession(id)` (lee la compra con `stores(display_name)`; cerrada, ajena o inexistente = `null`) → barra "Comprando en MaxiPali". `null` → `router.replace("/lista")` + aviso.
+3. **Tachar en modo compra:** `onToggleChecked` ve que hay compra activa → `toggleChecked(itemId, true, sessionId)` → optimista (`checkedAt` + compra + comprado = pedido) → `checkItemInSession()` → la base devuelve la fila → `CHECK_TOGGLED` con el `ItemCheck` real.
+4. **Ajustar lo comprado:** el `QuantityStepper` de una fila tachada en esta compra recibe `quantityBought` y sus handlers llaman `changeBoughtQuantity(itemId, ±1)` → `QUANTITY_CHANGE_STARTED` (misma fila bloqueada) → RPC → `BOUGHT_QUANTITY_CHANGED`.
+5. **Cerrar:** `pendingRows` vacío en modo compra → el panel se ve (derivado, no guardado). Total → `parseSpentTotal()` → `closePurchaseSession(id, total)` → `router.replace("/lista")`.
+6. **Salir:** "Salir" → `router.push("/lista")`. La compra queda abierta; volver a iniciar en el mismo súper hoy la retoma (paso 1, la RPC la encuentra).
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Modo compra en la URL (`?compra=<id>`) | Un estado en React o en `localStorage` | Recargar no te saca del modo, "Salir" es solo navegar, y el botón "atrás" del navegador funciona. Un estado en React se pierde al recargar |
+| Salir no cierra la compra | Cerrarla al salir | CA-06: se sale sin perder nada y CA-05 la retoma. Cerrar es una decisión aparte (con el total) |
+| Retomar = compra abierta del mismo dueño y súper **desde la medianoche local** | `current_date` de la base, o "la última abierta" | Igual que "Tachados hoy" (SCRUM-66): la base está en UTC y en Costa Rica su día cambia a las 6 p. m. El cliente manda la medianoche; si manda otra, solo afecta sus propias compras |
+| Bloqueo por usuario en `start_purchase_session` | Un índice único | Dos pestañas que inician a la vez terminarían con dos compras; el día no se puede indexar (depende de la zona del cliente), el bloqueo sí lo serializa |
+| `purchase_session_id` + `quantity_bought` en `list_items` | Una tabla de "items comprados" | Lo pide documento-proyecto §6 y una fila se compra una vez por vez: al reabrirla (SCRUM-66) se limpia |
+| El trigger valida que la compra sea propia y abierta | Validar solo dentro de la RPC | El grant de columna deja hacer PATCH directo; la FK no mira RLS, así que sin el trigger alguien podría colgar su fila de la compra de otro |
+| Una RPC nueva para tachar en compra | Agregar un parámetro a `set_list_item_checked` | Cambiar la firma de una función aplicada obliga a borrarla y recrearla (015 no se edita); una nueva deja intacto lo que ya funciona |
+| Lo comprado arranca igual a lo pedido | Arrancar vacío y pedirlo | Lo normal es comprar lo que se pidió: tachar no pide nada extra (CA-02); solo se toca el "−"/"+" cuando difiere |
+| El mismo "−"/"+" ajusta lo comprado en filas tachadas de esta compra | Un panel aparte (DESIGN.md 7.5) | CA-02: sin controles nuevos. Decisión del 2026-10-09. La fila dice "Pedido N" para que no se confunda |
+| Lo comprado espera a la base | Optimista como el tachado | Igual que la cantidad: el número final lo decide la base (suma de deltas) |
+| Panel de cierre derivado de "no queda nada pendiente" | Detectar el momento en que se tacha el último | Derivado no se desincroniza: si destachás algo, el panel se va solo; si recargás con todo tachado, aparece |
+| Total opcional | Obligatorio para cerrar | documento-proyecto §4.6: una compra puede quedar "sin total" y editarse después |
+| `parseSpentTotal` como función pura | Validar dentro del hook | Se testea sin React y la regla de qué es un total válido queda en un solo lugar |
+| `ShoppingList` (frontera `Suspense`) + `ShoppingListInner` | Poner el `Suspense` en `app/(app)/lista/page.tsx` | La ruta se mantiene delgada; la necesidad de la frontera es de la feature (usa `useSearchParams`) |
+| `usePurchaseSession` aparte | Todo en `useShoppingListViewModel` | El ViewModel ya coordina lista, buscador, detalle y borrado; la compra es otra responsabilidad (component-architecture §5, sin god ViewModel) |
