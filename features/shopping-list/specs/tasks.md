@@ -61,12 +61,12 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 - [x] 31. Migración `016_create_purchase_sessions.sql` y su prueba `supabase/tests/016_create_purchase_sessions.test.sql`. Aplicada el 2026-10-09 a pedido de Marcos, en una transacción con su fila `016` (`supabase/README.md#migraciones`), después de un ensayo de la migración + la prueba completa con `rollback` que pasó.
 - [x] 32. `types/database.types.ts`: lo nuevo de 016 copiado de los tipos que genera Supabase con la base ya migrada.
-- [ ] 33. Constantes (textos, RPC, parámetro `compra`) y modelos (`PurchaseSession`, `StoreOption`, `ItemCheck`, campos nuevos del item, acciones).
-- [ ] 34. Reducer: `CHECK_TOGGLED` con `ItemCheck` y `BOUGHT_QUANTITY_CHANGED`, tests primero. `parseSpentTotal` con test.
-- [ ] 35. Servicios: `purchase-session.service.ts` y lo nuevo de `shopping-list.service.ts`.
-- [ ] 36. Hooks: `usePurchaseSession`, tachar en compra y `changeBoughtQuantity` en `useShoppingList`, modo compra en el ViewModel. Tests de hooks.
-- [ ] 37. Presentación: `ShoppingList` (frontera) + `ShoppingListInner`, `ShoppingModeBar`, `StorePicker`, `ClosePurchasePanel`, "Pedido N" en la fila.
-- [ ] 38. `docs/documento-proyecto.md` §6 con las columnas reales; E2E-LISTA-05 en `specs/E2E.md` y su test.
+- [x] 33. Constantes (textos, RPC, parámetro `compra`) y modelos (`PurchaseSession`, `StoreOption`, `ItemCheck`, campos nuevos del item, acciones).
+- [x] 34. Reducer: `CHECK_TOGGLED` con `ItemCheck` y `BOUGHT_QUANTITY_CHANGED`, tests primero. `parseSpentTotal` con test.
+- [x] 35. Servicios: `purchase-session.service.ts` y lo nuevo de `shopping-list.service.ts`.
+- [x] 36. Hooks: `usePurchaseSession`, `useStorePicker` y `useClosePurchase` (la compra quedó repartida en tres hooks chicos), tachar en compra y `changeBoughtQuantity` en `useShoppingList`, modo compra en el ViewModel. Tests de hooks.
+- [x] 37. Presentación: `ShoppingList` (frontera) + `ShoppingListInner`, `ShoppingModeBar`, `StorePicker`, `ClosePurchasePanel`, "Pedido N" en la fila.
+- [x] 38. `docs/documento-proyecto.md` §6 con las columnas reales; E2E-LISTA-05 en `specs/E2E.md` y su test.
 - [ ] 39. Validar CA-01..07 en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; revisores; body de la PR y guía de estudio.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

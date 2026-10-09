@@ -137,7 +137,7 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 - Una fila que espera respuesta usa `disabled` nativo, que también la saca del foco con Tab.
 - **(SCRUM-67)** La barra de modo compra es una región con nombre; "Salir" y "Terminar compra" son botones con texto.
 - **(SCRUM-67)** El modal de súper usa el `Modal` de `components/ui` (cierre con Escape); cada súper es un botón con su nombre.
-- **(SCRUM-67)** El total tiene `<label>` y su error se anuncia; "Pedido N" es texto visible, no solo un color.
+- **(SCRUM-67)** El total usa el `Input` de `components/ui` (label asociado) y su error se muestra bajo el campo; "Pedido N" es texto visible, no solo un color.
 
 ## 10. Restricciones técnicas
 
@@ -207,13 +207,13 @@ HU-36e
 - CA-06: la división aplica a otras listas con tachado (sublistas, privadas, modo compra). Hoy solo existe la lista general; el resto la hereda al reusar esta feature (§14). Modo compra (SCRUM-67) la hereda: es la misma pantalla.
 
 HU-36f
-- [ ] CA-01: en la lista general hay un botón "Iniciar compra".
-- [ ] CA-02: al iniciar, primero se elige el supermercado; después es la misma lista (Pendientes / Tachados hoy), sin controles nuevos.
-- [ ] CA-03: tachar funciona igual: toda la fila, sin checkbox.
-- [ ] CA-04: al tachar se guarda quién, cuándo y en qué súper; lo comprado se ajusta en la misma lista con el "−"/"+".
-- [ ] CA-05: con una compra abierta hoy en ese súper, se retoma en vez de crear otra.
-- [ ] CA-06: se puede salir en cualquier momento sin perder lo tachado.
-- [ ] CA-07: al tachar lo último pendiente, se sugiere cerrar la compra e ingresar el total.
+- [x] CA-01: en la lista general hay un botón "Iniciar compra". *Cubierto por:* E2E-LISTA-05 + revisión en el navegador.
+- [x] CA-02: al iniciar, primero se elige el supermercado; después es la misma lista (Pendientes / Tachados hoy), sin controles nuevos. *Cubierto por:* E2E-LISTA-05, `tests/useStorePicker.test.ts`.
+- [x] CA-03: tachar funciona igual: toda la fila, sin checkbox. *Cubierto por:* E2E-LISTA-05, `tests/useShoppingList.test.ts`.
+- [x] CA-04: al tachar se guarda quién, cuándo y en qué súper; lo comprado se ajusta en la misma lista con el "−"/"+". *Cubierto por:* `supabase/tests/016_create_purchase_sessions.test.sql`, reducer, `useShoppingList.test.ts`, E2E-LISTA-05 ("Pedido 1").
+- [x] CA-05: con una compra abierta hoy en ese súper, se retoma en vez de crear otra. *Cubierto por:* prueba SQL de 016 + E2E-LISTA-05 (mismo id) + revisión en la base (una compra por usuario y súper).
+- [x] CA-06: se puede salir en cualquier momento sin perder lo tachado. *Cubierto por:* E2E-LISTA-05 + `tests/usePurchaseSession.test.ts`.
+- [x] CA-07: al tachar lo último pendiente, se sugiere cerrar la compra e ingresar el total. *Cubierto por:* `tests/useClosePurchase.test.ts`, `tests/parseSpentTotal.test.ts`, E2E-LISTA-05 + revisión en la base (cerrada con y sin total).
 - CA-08: listas privadas: fuera de alcance (no existen). El modelo ya trae `list_id` y `household_id` para cuando existan (§14).
 
 Casos límite que se validan con tests o en el navegador:
@@ -238,6 +238,7 @@ Casos límite que se validan con tests o en el navegador:
 - **(SCRUM-67)** Historial de compras y dashboard financiero (leer las compras cerradas): otras historias. Esta solo las guarda.
 - **(SCRUM-67)** Recordar una compra que quedó sin total, cambiar el súper de una compra ya iniciada y el inventario doméstico al tachar (documento-proyecto §6): fuera de esta historia.
 - **(SCRUM-67)** Cambiar la variante comprada ("1 galón" en vez de "2 cajas"): solo se ajusta la cantidad.
+- **(SCRUM-67) Pendiente para Historial de compras:** una fila comprada en una compra que **ya se cerró** sigue en "Tachados hoy" el resto del día; si se destacha, el trigger borra su compra y lo comprado (regla 17), y esa compra cerrada pierde la fila. Hoy nadie lee las compras cerradas; la historia de historial tiene que decidir si destachar algo de una compra cerrada se bloquea, se permite o reabre la compra.
 - Sublistas y listas privadas: no existen todavía; cuando existan reusan esta división (CA-06).
 - Mover de sección una fila tachada a las 23:59 cuando pasa la medianoche con la pantalla abierta: se corrige al recargar.
 - **Deuda (revisión de seguridad, 2026-10-08):** el trigger `stamp_list_item_check` (015) conserva `checked_by` cuando la fila ya estaba tachada, incluso en el `set null` que hace la FK al borrar un usuario: la fila queda apuntando a un usuario borrado. Hoy no ocurre (solo el dueño tacha y sus listas se borran en cascada con él). Se cierra en la migración que abra las listas de household a otros miembros: en ese caso del trigger conservar solo `checked_at`.
