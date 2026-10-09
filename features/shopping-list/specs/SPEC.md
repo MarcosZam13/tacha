@@ -1,87 +1,202 @@
-# Lista general: buscar, añadir, ajustar cantidad, ver detalle y eliminar
+# Feature: ShoppingList
 
 Historias: [SCRUM-62 / HU-36a](https://tacha.atlassian.net/browse/SCRUM-62) (buscar y añadir producto) · [SCRUM-63 / HU-36b](https://tacha.atlassian.net/browse/SCRUM-63) (ajustar cantidad). Sprint 1.
 
 [SCRUM-64 / HU-36c](https://tacha.atlassian.net/browse/SCRUM-64) (ver detalle de producto) · [SCRUM-65 / HU-36d](https://tacha.atlassian.net/browse/SCRUM-65) (eliminar producto). Sprint 2.
 
-## Intención
+[SCRUM-66 / HU-36e](https://tacha.atlassian.net/browse/SCRUM-66) (tachar/destachar producto). Sprint 3.
 
-Que el usuario arme su lista general buscando productos del catálogo real y ajustando cuánto necesita, sin salir de la pantalla, y que la lista quede guardada.
+> Reescrita con la plantilla de 15 secciones en SCRUM-66 (component-architecture §2, "Specs existentes"): tachar cambia el comportamiento de la fila. El contenido de las historias anteriores se conserva, solo cambió de sección.
 
-## Alcance
+## 1. Objetivo
+
+Que el usuario arme su lista general buscando productos del catálogo real, ajustando cuánto necesita, y que lleve control de lo que ya consiguió tachándolo con un toque, sin salir de la pantalla y con la lista guardada.
+
+## 2. Alcance
+
+Incluye:
 
 - Barra de búsqueda arriba de la lista, con resultados en vivo del RPC `search_catalog` (mínimo 2 caracteres, con debounce).
 - Cada resultado es una **variante** del producto madre, mostrada como nombre del producto + tamaño (ej. "Crema de Leche Nestlé - 236g" · "236 g"), porque `list_items` referencia `product_catalog_variants` (documento-proyecto §6).
 - Al elegir un resultado, se añade a la lista general del usuario con cantidad 1. Si esa variante ya está, se le suma 1 en vez de duplicar la fila (regla de merge que vive en la base, documento-proyecto §6).
 - Controles "+" y "−" en cada fila; "−" nunca baja de 1.
 - La lista se guarda en Supabase (`lists` + `list_items`) y se carga al abrir la pantalla.
-- Un botón de detalle al final de cada fila, al lado de los controles de cantidad. Abre un modal con el nombre y la presentación del producto, sus marcas y el precio de referencia por supermercado (rango entre marcas, del más barato al más caro). Si no hay marcas o precios, lo dice en vez de dejar el espacio vacío.
-- Un botón de eliminar al final de cada fila, hermano de los demás controles. Al tocarlo la fila desaparece al instante y aparece un toast "Producto eliminado" con "Deshacer" durante unos segundos. Deshacer devuelve la fila tal como estaba. El borrado en la base se hace cuando el toast vence, no al tocar el botón.
+- Un botón de detalle al final de cada fila, al lado de los controles de cantidad. Abre un modal con el nombre y la presentación del producto, sus marcas y el precio de referencia por supermercado (rango entre marcas, del más barato al más caro).
+- Un botón de eliminar al final de cada fila. Al tocarlo la fila desaparece al instante y aparece un toast "Producto eliminado" con "Deshacer". El borrado en la base se hace cuando el toast vence.
+- **(SCRUM-66)** La parte de la fila con el nombre y el tamaño es un solo botón que tacha y destacha. Los controles de cantidad, detalle y eliminar son botones hermanos al final de la fila, nunca hijos.
+- **(SCRUM-66)** La lista se divide en dos secciones: "Pendientes" arriba y "Tachados hoy" abajo. Una fila pasa de una a otra en cuanto la base confirma el cambio.
+- **(SCRUM-66)** La base guarda cuándo y quién tachó cada item (`list_items.checked_at`, `list_items.checked_by`, migración `015`).
 
-## Fuera de alcance (y por qué)
+No incluye: ver §14.
 
-- Tachar: es HU-36e (SCRUM-66), Sprint 2.
-- Toast compartido para otras pantallas: hoy solo lo usa la lista. Se promueve a `components/ui` cuando aparezca el segundo consumidor real.
-- Garantizar el borrado si se cierra la pestaña antes de que venza el toast: el producto queda en la lista (no se pierde nada, solo hay que volver a borrarlo). Resolverlo pediría mandar la petición durante el cierre de la página, que el navegador no garantiza.
-- Filtrar los precios por las tiendas que sigue el household: depende de households y de `household_store_preferences`, que son de otra historia. El detalle muestra las tres tiendas.
-- Detalle desde el catálogo (foto, logos, "Agregar a mi lista"): es HU-53 (SCRUM-85), Sprint 3. Si reusa esta vista, se promueve a una carpeta compartida en ese momento (segundo consumidor real).
-- Listas de household: los households se construyen este mismo sprint (otra persona); por ahora `household_id` siempre es `null`.
-- Registro e inicio de sesión: los construye otra persona. Mientras tanto se usa una sesión anónima de Supabase para tener un `auth.uid()` real y que RLS funcione.
-- Buscador compartido con otras features: se promueve a `components/` (compartido) cuando exista el segundo consumidor real (ej. "Mis grupos").
+## 3. Entradas
 
-## Requerimientos
+Del usuario:
 
-1. La lógica vive en hooks (`hooks/`), el acceso a datos en servicios; los `.tsx` solo presentan.
-2. Cero literales: textos, límites y tiempos en `constants/`.
-3. El estado de la lista se maneja con `useReducer`: todas las reglas de cómo cambia la lista en un reducer puro.
-4. Las búsquedas viejas nunca pisan a las nuevas (race condition).
-5. Los controles de cantidad no pueden estar anidados dentro de otro botón (HTML inválido, y en Sprint 2 la fila completa tacha).
-6. El botón de detalle tampoco: es hermano de los controles de cantidad, en la misma zona excluida de la fila.
-7. El detalle se pide al abrirlo, no junto con la lista. Una respuesta de un detalle anterior nunca se muestra en el detalle de otro producto.
-8. Eliminar tampoco puede estar anidado en la fila. Solo el dueño de la lista puede borrar sus items (RLS, migración `012`).
-9. Deshacer no escribe en la base: mientras el toast está visible el item sigue guardado y solo se oculta en pantalla.
+- texto del buscador: `string`
+- variante elegida: `variantId: string`
+- toque en "+" / "−" de una fila: `itemId: string`, `quantityStep: ItemQuantityStepType` (`1` | `-1`)
+- toque en el botón de detalle: `itemId: string`
+- toque en eliminar / "Deshacer": `itemId: string`
+- **(SCRUM-66)** toque en la fila: `itemId: string`; el estado nuevo (`isChecked: boolean`) lo calcula el ViewModel a partir del que la fila tiene en pantalla.
 
-## Casos límite y errores
+De la base:
+
+- `ShoppingListItem[]` de la lista general: `id`, `productName`, `sizeLabel`, `quantity`, `variantId`, **`checkedAt: string | null`**.
+
+La pantalla no recibe props: `app/lista/page.tsx` solo renderiza `<ShoppingList />`.
+
+## 4. Salidas
+
+- Filas nuevas o con cantidad actualizada, tal como quedaron en la base.
+- Modal de detalle con marcas y precios.
+- Toast de eliminado con "Deshacer"; borrado en la base al vencer.
+- **(SCRUM-66)** `list_items.checked_at` / `checked_by` escritos por la base al tachar (hora del servidor y `auth.uid()`), y en `null` al destachar.
+- **(SCRUM-66)** La fila en la sección que corresponde, con el texto tachado y atenuado si está tachada.
+- Mensajes de error por acción, sin que la lista quede en un estado inventado.
+
+## 5. Reglas de negocio
+
+1. Añadir la misma variante dos veces deja una sola fila con la suma (la decide la base).
+2. La cantidad nunca baja de 1 (UI y `check` en la base).
+3. Deshacer un eliminado no escribe en la base: el item sigue guardado y solo se oculta en pantalla.
+4. Solo el dueño de la lista puede leer, añadir, cambiar, tachar o borrar sus items (RLS).
+5. **(SCRUM-66)** Tocar una fila pendiente la tacha; tocar una fila tachada la destacha.
+6. **(SCRUM-66)** Cuándo y quién tachó lo pone la base, nunca el cliente: el cliente solo dice "tachado" o "no tachado".
+7. **(SCRUM-66)** "Tachados hoy" muestra solo lo tachado desde la medianoche del día local del usuario. Lo tachado antes no aparece en ninguna de las dos secciones (va a vivir en Historial de compras).
+8. **(SCRUM-66)** Añadir desde el buscador un producto que está tachado lo devuelve a "Pendientes" con cantidad 1, en vez de sumarle a lo ya comprado: es una compra nueva.
+9. **(SCRUM-66)** Dentro de cada sección las filas mantienen el orden en que se añadieron: destachar devuelve la fila a su lugar y el resto no se mueve.
+10. **(SCRUM-66)** Mientras una fila espera respuesta de la base (cantidad o tachado), sus botones de tachar, cantidad y eliminar quedan deshabilitados.
+
+## 6. Estados
+
+De la lista (`ShoppingListState`, un reducer):
+
+- `loading` → `ready` | `loadError`
+- por fila: `idle` | `pending` (escritura de cantidad o tachado esperando respuesta)
+- por fila **(SCRUM-66)**: `pending` (sección "Pendientes", `checkedAt === null`) | `checked` (sección "Tachados hoy")
+- eliminar: `none` | `undoVisible` (toast) | `deleting`
+- detalle: `closed` | `loading` | `ready` | `error`
+
+Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de booleanos sueltos que puedan contradecirse.
+
+## 7. Errores
 
 - Texto de menos de 2 caracteres: no se busca, no se muestran resultados.
-- Búsqueda sin resultados: mensaje de "sin resultados".
-- Error de red o de Supabase al buscar, añadir o cambiar cantidad: mensaje de error, la lista no queda en un estado inventado.
-- Usuario escribe rápido: solo cuenta la última búsqueda.
-- Añadir la misma variante dos veces: una sola fila con cantidad 2.
-- Variante sin marcas o sin precios: el detalle lo dice ("Sin marcas registradas", "Todavía no hay precios de referencia").
-- Error al pedir el detalle: mensaje de error dentro del modal; la lista sigue igual.
-- Abrir un detalle, cerrarlo y abrir otro antes de que responda el primero: solo se muestra el del segundo.
-- Eliminar un producto mientras otro todavía tiene el toast: el anterior se borra en ese momento y el toast pasa a ser del nuevo (un solo toast a la vez).
+- Búsqueda sin resultados: mensaje "sin resultados".
+- Error al cargar: mensaje y no se ofrece añadir (la pantalla mostraría solo lo recién añadido como si fuera toda la lista).
+- Error al añadir, cambiar cantidad, eliminar o **tachar/destachar**: mensaje de error propio de esa acción; la fila queda como la confirmó la base por última vez (una fila que no se pudo tachar sigue en "Pendientes").
+- Error al pedir el detalle: mensaje dentro del modal; la lista sigue igual.
 - Error al borrar en la base: la fila vuelve y aparece un mensaje de error.
-- Eliminar mientras su cantidad se está guardando: el botón de eliminar de esa fila está deshabilitado hasta que responda.
-- Volver a añadir desde el buscador un producto que tiene el toast de eliminado: se cancela el borrado y se le suma 1, como a cualquier producto que ya está en la lista.
-- Salir de la pantalla con un toast activo: el borrado se manda en ese momento.
-- Eliminar el último producto: aparece el estado de lista vacía.
 
-## Restricciones
+## 8. UI esperada
 
-Skills que aplican: `component-architecture`, `constants-standards`, `project-structure`, `security-practices` (RLS), `gitflow`. Reusar primitivos de `components/ui` cuando encajen.
+- Título "Lista general" y buscador arriba.
+- Sección "Pendientes": filas sin tachar. Si todo está tachado, un texto corto lo dice en vez de dejar la sección vacía.
+- Sección "Tachados hoy": filas tachadas hoy, con el nombre tachado y atenuado. Solo aparece si tiene filas.
+- Cada fila: [botón de tachar con nombre y tamaño, ocupa todo el ancho libre] [− cantidad +] [detalle] [eliminar].
+- Sin checkbox ni ícono de estado (HU-36e CA-01; reemplaza al checkbox indicador de DESIGN.md §2, que es anterior a la decisión del 2026-08-21).
+- Estado de lista vacía, spinner al cargar, toast de eliminado, modal de detalle.
 
-## Criterios de aceptación
+## 9. Accesibilidad
+
+- El botón de tachar es un `<button>` con `aria-pressed`: el lector de pantalla anuncia "presionado" cuando está tachado, sin agregar nada visible (CA-03).
+- Ningún botón dentro de otro botón (HTML inválido; el click de adentro dispararía también el de afuera).
+- Los botones de solo símbolo ("−", "+", "i", "✕") tienen texto `sr-only`.
+- Cada sección es una región con su encabezado (`<section aria-labelledby>` + `<h2>`).
+- Errores con `role="alert"`; toast con `role="status"`.
+- Una fila que espera respuesta usa `disabled` nativo, que también la saca del foco con Tab.
+
+## 10. Restricciones técnicas
+
+- TypeScript estricto, sin `any`.
+- Tailwind con tokens `tacha-*`.
+- ViewModel + hooks: los `.tsx` solo presentan; el acceso a datos va en `services/`.
+- Estado de la lista con `useReducer`: todas las reglas en un reducer puro y testeado.
+- Cero literales: textos, tablas, RPC y acciones en `constants/`.
+- Las búsquedas viejas nunca pisan a las nuevas; un detalle viejo nunca se muestra en otro producto.
+- Migraciones según `supabase/README.md#migraciones` (número libre, transacción + fila del historial; nunca `apply_migration` del MCP).
+- Skills: `component-architecture`, `constants-standards`, `project-structure`, `security-practices`, `unit-testing-standards`, `gitflow`.
+
+## 11. Dependencias
+
+- `features/shopping-list/services/shopping-list.service.ts`
+- `features/shopping-list/constants/shopping-list.constants.ts`
+- `services/supabase.client.ts` (cliente único + sesión)
+- `components/product-search/`, `hooks/useProductSearch.ts`, `services/catalog.service.ts` (buscador compartido, SCRUM-120)
+- `@/components/ui` (`Button`, `Modal`, `Spinner`)
+- `types/database.types.ts`
+
+## 12. Contratos externos
+
+- Tablas `lists`, `list_items` (004), con RLS del dueño.
+- **(SCRUM-66)** `list_items.checked_at timestamptz null`, `list_items.checked_by uuid null → auth.users`, y el trigger que los llena (015).
+- RPC `add_item_to_general_list(target_variant_id)` (004; **015** reabre una fila tachada).
+- RPC `change_item_quantity(target_item_id, quantity_delta)` (005).
+- **(SCRUM-66)** RPC `set_list_item_checked(target_item_id, is_checked)` (015).
+- Política de borrado de `list_items` (012).
+- Lectura del catálogo: `search_catalog`, `product_catalog_variants`, `product_brands`, vista `latest_prices`, `stores`.
+
+## 13. Casos de aceptación
 
 HU-36a
 - [x] CA-01: hay una barra de búsqueda en la parte superior de la lista general.
 - [x] CA-02: al escribir, se muestran en tiempo real los productos del catálogo que coinciden.
 - [x] CA-03: al seleccionar un resultado, se añade a la lista con cantidad 1.
-- [x] CA-04: el producto aparece de inmediato como fila, sin recargar.
+- [x] CA-04: el producto aparece de inmediato como fila (sección "Pendientes"), sin recargar.
 
 HU-36b
 - [x] CA-01: cada fila muestra "+" y "−" junto a la cantidad.
 - [x] CA-02: "+" suma 1.
 - [x] CA-03: "−" resta 1 y no baja de 1.
-- [x] CA-04: el cambio se ve de inmediato, sin confirmación, y tocar los controles no dispara ninguna otra acción de la fila.
-  - Cómo se cumple: la cantidad cambia en cuanto responde la base (sin diálogo de confirmación ni recarga); mientras tanto los botones de esa fila quedan deshabilitados. No es actualización optimista (ver decisiones en [plan.md](plan.md)).
+- [x] CA-04: el cambio se ve de inmediato, sin confirmación, y tocar los controles no tacha la fila.
+  - Cómo se cumple: la cantidad cambia en cuanto responde la base (sin diálogo ni recarga); mientras tanto los botones de esa fila quedan deshabilitados. No es actualización optimista (ver [plan.md](plan.md)).
 
 HU-36c
-- [x] CA-01: el detalle se abre con un botón específico al final de la fila, en la misma zona que los controles de cantidad; tocar la fila no lo abre.
+- [x] CA-01: el detalle se abre con un botón específico al final de la fila; tocar la fila no lo abre.
 - [x] CA-02: el detalle muestra marca, presentación/variante y precio de referencia por supermercado, si existe.
 
 HU-36d
 - [x] CA-01: cada producto de la lista tiene una acción de eliminar.
 - [x] CA-02: al eliminar, el producto se quita de la lista de inmediato.
 - [x] CA-03: aparece un toast breve "Producto eliminado" con opción de deshacer.
+
+HU-36e
+- [ ] CA-01: no hay checkbox ni ícono de estado; la fila (nombre y tamaño) es un solo botón.
+- [ ] CA-02: tocar la fila fuera de cantidad, detalle y eliminar la tacha; tocarla de nuevo la destacha. Tocar esos controles no la tacha.
+- [ ] CA-03: el único indicador visible es el texto tachado y atenuado.
+- [ ] CA-04: la lista tiene "Pendientes" arriba y "Tachados hoy" abajo; la fila cambia de sección sin recargar y las demás no se reordenan.
+- [ ] CA-05: "Tachados hoy" solo muestra lo tachado hoy; lo tachado otro día no aparece en la lista.
+- CA-06: la división aplica a otras listas con tachado (sublistas, privadas, modo compra). Hoy solo existe la lista general; el resto la hereda al reusar esta feature (§14).
+
+Casos límite que se validan con tests o en el navegador:
+
+- Tachar, recargar: sigue en "Tachados hoy". Destachar, recargar: sigue en "Pendientes".
+- Error al tachar: la fila sigue en su sección y aparece el mensaje.
+- Doble toque rápido en la fila: el segundo se ignora mientras espera (botón deshabilitado).
+- Añadir desde el buscador un producto tachado: vuelve a "Pendientes" con cantidad 1.
+- Eliminar una fila tachada: funciona igual que una pendiente.
+- Usuario escribe rápido en el buscador: solo cuenta la última búsqueda.
+- Abrir un detalle, cerrarlo y abrir otro antes de que responda el primero: solo se muestra el segundo.
+- Eliminar mientras otro tiene el toast: el anterior se borra en ese momento.
+- Volver a añadir un producto con el toast de eliminado: se cancela el borrado y se le suma 1.
+- Salir de la pantalla con un toast activo: el borrado se manda en ese momento.
+
+## 14. Casos fuera de alcance
+
+- Historial de compras (ver lo tachado en días anteriores): es otra historia. Hasta entonces, lo tachado antes de hoy queda guardado en la base pero no se muestra.
+- Modo compra, supermercado de la compra y cantidad realmente comprada: HU-36f (SCRUM-67).
+- Sublistas y listas privadas: no existen todavía; cuando existan reusan esta división (CA-06).
+- Mover de sección una fila tachada a las 23:59 cuando pasa la medianoche con la pantalla abierta: se corrige al recargar.
+- Tiempo real entre dispositivos (ver lo que tacha otro miembro sin recargar): llega con listas de household.
+- Agregar una receta sobre un producto tachado: `add_recipe_to_general_list` (013, SCRUM-97) cuenta las filas tachadas como "ya está en la lista" y les suma sin reabrirlas. Arreglarlo cambia el cálculo de faltantes de recetas; queda anotado para quien lleva SCRUM-97.
+- Animación de tachado progresivo (documento-proyecto §7): retoque visual posterior.
+- Toast compartido para otras pantallas: se promueve a `components/ui` con el segundo consumidor real.
+- Garantizar el borrado si se cierra la pestaña antes de que venza el toast.
+- Filtrar precios por las tiendas del household.
+- Detalle desde el catálogo (HU-53).
+- Listas de household: por ahora `household_id` siempre es `null`.
+
+## 15. Notas de implementación
+
+`ItemRow` de `components/ui` no se usa: dibuja un checkbox indicador (contra CA-01) y es un `<button>` que envuelve toda la fila, así que los controles de cantidad quedarían anidados. Ver [plan.md](plan.md), SCRUM-66.
