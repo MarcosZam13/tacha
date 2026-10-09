@@ -130,7 +130,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     const item = state.items.find((listedItem) => listedItem.id === itemId);
     // Fila esperando respuesta: se ignora, igual que el botón deshabilitado.
     if (!item || state.pendingItemIds.includes(itemId)) return;
-    void toggleChecked(itemId, item.checkedAt === null);
+    toggleChecked(itemId, item.checkedAt === null);
   };
 
   const onRemoveItem = (itemId: string): void => {
