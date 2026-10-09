@@ -215,7 +215,7 @@ features/shopping-list/
     ShoppingListRow.tsx                + botón de tachar (nombre y tamaño), hermano de los controles
     models/ShoppingListSectionProps.interface.ts
   hooks/
-    useShoppingList.ts                 + toggleChecked(itemId, isChecked)
+    useShoppingList.ts                 + toggleChecked(itemId, isChecked); useOptimistic sobre los items (tachado optimista)
     useShoppingListViewModel.ts        + pendingRows / checkedRows, onToggleChecked, reabrir al añadir una fila tachada
   models/
     ShoppingListItem.interface.ts      + checkedAt
@@ -230,12 +230,13 @@ features/shopping-list/
   tests/
     shopping-list.reducer.test.ts      + tachar, destachar, error y orden de las filas
     startOfLocalDay.test.ts
+    useShoppingList.test.ts            tachado optimista: se ve antes de la respuesta y vuelve si falla
 supabase/migrations/015_check_list_items.sql
 supabase/tests/015_check_list_items.test.sql   prueba SQL de 015 (rollback: no deja datos)
 types/database.types.ts                + checked_at, checked_by, set_list_item_checked (a mano; se regenera al aplicar 015)
 ```
 
-Flujo: tocar la fila → `onToggleChecked(itemId)` en el ViewModel calcula el estado nuevo (`!isChecked`) → `toggleChecked()` → `dispatch(CHECK_TOGGLE_STARTED)` (la fila queda pendiente, sus botones deshabilitados) → `setItemChecked()` → RPC `set_list_item_checked` → el trigger pone `checked_at`/`checked_by` → la base devuelve la fila → `dispatch(CHECK_TOGGLED, checkedAt)` → el ViewModel la deriva a la otra sección. Si falla: `CHECK_TOGGLE_FAILED` (la fila no se mueve, aparece el error).
+Flujo (optimista desde el 2026-10-09): tocar la fila → `onToggleChecked(itemId)` en el ViewModel calcula el estado nuevo (`!isChecked`) → `toggleChecked()` → `dispatch(CHECK_TOGGLE_STARTED)` (la fila queda pendiente, sus botones deshabilitados) → `startTransition(async () => …)`: primero `setOptimisticCheck` (`useOptimistic`) pone un `checkedAt` provisorio y **la fila se ve en la otra sección ya** → `setItemChecked()` → RPC `set_list_item_checked` → el trigger pone `checked_at`/`checked_by` → la base devuelve la fila → `dispatch(CHECK_TOGGLED, checkedAt)` guarda la hora real en el reducer → termina la transición y React deja de mostrar el valor optimista (ya coincide con el real). Si falla: `CHECK_TOGGLE_FAILED` guarda el error; al terminar la transición React descarta el valor optimista y la fila vuelve sola a su sección: no hay rollback que escribir.
 
 Al cargar: `getGeneralList()` pide los items con `checked_at is null or checked_at >= medianoche local` (filtro sobre la tabla embebida). Lo tachado antes de hoy no viaja.
 
@@ -247,7 +248,9 @@ Al cargar: `getGeneralList()` pide los items con `checked_at is null or checked_
 | El trigger conserva la fecha si la fila ya estaba tachada | Volver a poner `now()` | Tachar dos veces (dos pestañas) no cambia cuándo se compró; además el trigger corre en cada update, también al cambiar la cantidad |
 | RPC con el estado deseado (`is_checked`) | RPC "toggle" que invierte lo que haya | El usuario decide mirando la pantalla. Si dos pestañas mandan "tachar", las dos quieren lo mismo: con toggle, la segunda lo destacharía. Es lo contrario de la cantidad (005), donde cada toque sí debe sumar |
 | RPC `security invoker` | `update` directo desde el servicio | Mismo patrón que `change_item_quantity`: devuelve la fila y da un error claro si no es tuya; RLS sigue decidiendo |
-| Esperar a la base antes de mover la fila | Actualización optimista | Mismo criterio que la cantidad (Sprint 1): sin rollback que explicar. La fila queda deshabilitada mientras tanto. Se puede optimizar en modo compra si se siente lento |
+| Tachado optimista con `useOptimistic` (2026-10-09) | Esperar a la base, como la cantidad | Tachar es lo que más se toca, y en el súper (modo compra) cada espera se nota. `useOptimistic` muestra el cambio mientras dura la transición y lo descarta solo al terminar: si la base falla, la fila vuelve sin código de rollback. La cantidad sigue esperando porque el número final lo decide la base (suma de deltas) |
+| `useOptimistic` sobre `state.items` dentro de `useShoppingList` | Un estado optimista a mano en el reducer (`optimisticCheckedIds`) | React ya resuelve cuándo mostrar y cuándo descartar lo optimista; a mano habría que limpiar en éxito y en error, y el reducer seguiría guardando solo lo confirmado |
+| Mantener la fila deshabilitada mientras viaja | Dejar destachar antes de que responda | Dos escrituras de la misma fila en vuelo podrían terminar en desorden; una por fila es la regla de toda la lista |
 | `pendingItemIds` compartido entre cantidad y tachado | Un pendiente por tipo de escritura | Una sola escritura por fila a la vez: es la misma regla que ya impide eliminar mientras se guarda la cantidad (una respuesta tardía no revive una fila borrada), y un doble toque rápido en la fila no manda dos RPC |
 | Las secciones se derivan de `checkedAt` en el ViewModel | Guardar dos arreglos en el reducer | Un solo arreglo en el orden en que se añadieron: destachar devuelve la fila a su lugar sin reordenar nada (CA-04), y no hay dos listas que se desincronicen |
 | Filtro de "hoy" en la consulta | Traer todo y filtrar en el cliente | Lo tachado en días anteriores crece sin fin; no tiene sentido descargarlo para esconderlo |

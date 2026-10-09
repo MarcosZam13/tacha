@@ -53,6 +53,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 26. Servicio: `setItemChecked()`, `checked_at` en la carga y en añadir, filtro de "hoy" con `utils/startOfLocalDay.ts` (con test).
 - [x] 27. `toggleChecked` en `useShoppingList`; secciones, `onToggleChecked` y reabrir al añadir en el ViewModel.
 - [x] 28. Presentación: botón de tachar en `ShoppingListRow`, `ShoppingListSection`, dos secciones en `ShoppingList`. Validar CA-01..05 de HU-36e en el navegador con una cuenta QA; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
+- [ ] 30. Tachado optimista (`useOptimistic`, 2026-10-09): test del hook primero (se ve antes de la respuesta, vuelve si falla), después `useShoppingList`. Repetir `tsc`, lint, build, tests y E2E-LISTA-04.
 - [x] 29. E2E: escenario E2E-LISTA-04 en `specs/E2E.md` y su test (pasa en chromium y mobile-chrome). Pendiente: repetir la prueba manual con una cuenta QA cuando exista el ambiente de pruebas.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

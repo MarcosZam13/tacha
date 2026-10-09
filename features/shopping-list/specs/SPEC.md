@@ -24,7 +24,7 @@ Incluye:
 - Un botón de detalle al final de cada fila, al lado de los controles de cantidad. Abre un modal con el nombre y la presentación del producto, sus marcas y el precio de referencia por supermercado (rango entre marcas, del más barato al más caro).
 - Un botón de eliminar al final de cada fila. Al tocarlo la fila desaparece al instante y aparece un toast "Producto eliminado" con "Deshacer". El borrado en la base se hace cuando el toast vence.
 - **(SCRUM-66)** La parte de la fila con el nombre y el tamaño es un solo botón que tacha y destacha. Los controles de cantidad, detalle y eliminar son botones hermanos al final de la fila, nunca hijos.
-- **(SCRUM-66)** La lista se divide en dos secciones: "Pendientes" arriba y "Tachados hoy" abajo. Una fila pasa de una a otra en cuanto la base confirma el cambio.
+- **(SCRUM-66)** La lista se divide en dos secciones: "Pendientes" arriba y "Tachados hoy" abajo. Una fila pasa de una a otra **al instante** (actualización optimista, decisión del 2026-10-09); si la base rechaza el cambio, vuelve sola a su sección.
 - **(SCRUM-66)** La base guarda cuándo y quién tachó cada item (`list_items.checked_at`, `list_items.checked_by`, migración `015`).
 
 No incluye: ver §14.
@@ -66,7 +66,8 @@ La pantalla no recibe props: `app/lista/page.tsx` solo renderiza `<ShoppingList 
 7. **(SCRUM-66)** "Tachados hoy" muestra solo lo tachado desde la medianoche del día local del usuario. Lo tachado antes no aparece en ninguna de las dos secciones (va a vivir en Historial de compras).
 8. **(SCRUM-66)** Añadir un producto que está tachado lo devuelve a "Pendientes" con la cantidad que se pide ahora (1 desde el buscador; lo que calcule la receta desde una receta), en vez de sumarle a lo ya comprado: es una compra nueva.
 9. **(SCRUM-66)** Dentro de cada sección las filas mantienen el orden en que se añadieron: destachar devuelve la fila a su lugar y el resto no se mueve.
-10. **(SCRUM-66)** Mientras una fila espera respuesta de la base (cantidad o tachado), sus botones de tachar, cantidad y eliminar quedan deshabilitados.
+10. **(SCRUM-66)** Mientras una fila espera respuesta de la base (cantidad o tachado), sus botones de tachar, cantidad y eliminar quedan deshabilitados. Con el tachado optimista la fila ya se ve en su sección nueva durante esa espera.
+12. **(SCRUM-66)** Tachar es optimista; la cantidad, añadir y eliminar no cambian (siguen esperando a la base).
 11. **(SCRUM-66)** Al agregar una receta, lo tachado no cuenta como "ya en la lista": ni su cantidad ni lo que otras recetas pidieron sobre esa fila. Si la receta necesita ese producto, lo pide como si no estuviera.
 
 ## 6. Estados
@@ -75,7 +76,7 @@ De la lista (`ShoppingListState`, un reducer):
 
 - `loading` → `ready` | `loadError`
 - por fila: `idle` | `pending` (escritura de cantidad o tachado esperando respuesta)
-- por fila **(SCRUM-66)**: `pending` (sección "Pendientes", `checkedAt === null`) | `checked` (sección "Tachados hoy")
+- por fila **(SCRUM-66)**: `pending` (sección "Pendientes", `checkedAt === null`) | `checked` (sección "Tachados hoy"). Mientras viaja el cambio, lo que se ve es el estado optimista (`useOptimistic`); el confirmado sigue en el reducer.
 - eliminar: `none` | `undoVisible` (toast) | `deleting`
 - detalle: `closed` | `loading` | `ready` | `error`
 
@@ -86,7 +87,7 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 - Texto de menos de 2 caracteres: no se busca, no se muestran resultados.
 - Búsqueda sin resultados: mensaje "sin resultados".
 - Error al cargar: mensaje y no se ofrece añadir (la pantalla mostraría solo lo recién añadido como si fuera toda la lista).
-- Error al añadir, cambiar cantidad, eliminar o **tachar/destachar**: mensaje de error propio de esa acción; la fila queda como la confirmó la base por última vez (una fila que no se pudo tachar sigue en "Pendientes").
+- Error al añadir, cambiar cantidad, eliminar o **tachar/destachar**: mensaje de error propio de esa acción; la fila queda como la confirmó la base por última vez (una fila que no se pudo tachar vuelve a "Pendientes", donde estaba antes del toque).
 - Error al pedir el detalle: mensaje dentro del modal; la lista sigue igual.
 - Error al borrar en la base: la fila vuelve y aparece un mensaje de error.
 
@@ -174,7 +175,8 @@ HU-36e
 Casos límite que se validan con tests o en el navegador:
 
 - Tachar, recargar: sigue en "Tachados hoy". Destachar, recargar: sigue en "Pendientes".
-- Error al tachar: la fila sigue en su sección y aparece el mensaje.
+- Tachar: la fila cambia de sección antes de que responda la base. *Cubierto por:* `tests/useShoppingList.test.ts`.
+- Error al tachar: la fila se ve en la sección nueva mientras espera, vuelve a la original cuando llega el error y aparece el mensaje. *Cubierto por:* `tests/useShoppingList.test.ts`.
 - Doble toque rápido en la fila: el segundo se ignora mientras espera (botón deshabilitado).
 - Añadir desde el buscador un producto tachado: vuelve a "Pendientes" con cantidad 1.
 - Agregar una receta que pide 2 unidades de un producto comprado ayer (3 unidades): falta 1 unidad, y la fila vuelve a "Pendientes" con 1. *Cubierto por:* `supabase/tests/015_check_list_items.test.sql`.
