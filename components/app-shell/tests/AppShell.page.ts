@@ -5,7 +5,7 @@ export const createAppShellPage = () => {
   // Sidebar y tabs tienen el mismo nombre; en jsdom no hay CSS, así que están las dos.
   const getNavigations = (): HTMLElement[] => screen.getAllByRole("navigation", { name: APP_SHELL_TEXT.NAV_LABEL });
 
-  const getLinks = (navigation: HTMLElement, label: string): HTMLElement =>
+  const getLink = (navigation: HTMLElement, label: string): HTMLElement =>
     within(navigation).getByRole("link", { name: label });
 
   const getCurrentLinks = (): HTMLElement[] =>
@@ -13,5 +13,5 @@ export const createAppShellPage = () => {
 
   const getMain = (): HTMLElement => screen.getByRole("main");
 
-  return { getCurrentLinks, getLinks, getMain, getNavigations };
+  return { getCurrentLinks, getLink, getMain, getNavigations };
 };

@@ -33,7 +33,7 @@ describe("AppShell", () => {
     expect(navigations).toHaveLength(2);
     navigations.forEach((navigation) => {
       APP_NAV_ITEMS.forEach((item) => {
-        expect(page.getLinks(navigation, item.label)).toHaveAttribute("href", item.href);
+        expect(page.getLink(navigation, item.label)).toHaveAttribute("href", item.href);
       });
     });
   });
