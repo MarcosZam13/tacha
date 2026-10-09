@@ -3,15 +3,14 @@ import type { ProductSearchOption } from "@/components/product-search/models/Pro
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatPriceRange } from "@/utils/formatPriceRange";
-import { PURCHASE_SESSION_TEXT } from "../constants/purchase-session.constants";
 import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { ClosePurchaseViewModel } from "../models/ClosePurchaseViewModel.interface";
 import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interface";
-import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
 import type { StorePickerViewModel } from "../models/StorePickerViewModel.interface";
 import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
+import { isBoughtInSession, toShoppingListRow } from "../utils/toShoppingListRow";
 import { toStorePriceRanges } from "../utils/toStorePriceRanges";
 import { useClosePurchase } from "./useClosePurchase";
 import { useItemDetail } from "./useItemDetail";
@@ -78,10 +77,6 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const purchase = usePurchaseSession();
   const storePicker = useStorePicker({ onStarted: purchase.enterShoppingMode });
   const activeSessionId = purchase.activeSession?.id ?? null;
-
-  // En modo compra, una fila tachada en ESTA compra muestra y ajusta lo comprado (SCRUM-67, regla 16).
-  const isBoughtInActiveSession = (item: ShoppingListItem): boolean =>
-    activeSessionId !== null && item.purchaseSessionId === activeSessionId && item.quantityBought !== null;
   // Se guarda solo el id de la fila abierta; la fila en sí se busca en la
   // lista, así el modal siempre muestra la cantidad y el nombre actuales.
   const [openItemId, setOpenItemId] = useState<NullableRef<string>>(null);
@@ -124,7 +119,8 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const changeDisplayedQuantity = (itemId: string, quantityStep: ItemQuantityStepType): void => {
     const item = state.items.find((listedItem) => listedItem.id === itemId);
     if (!item) return;
-    if (isBoughtInActiveSession(item)) void changeBoughtQuantity(itemId, quantityStep);
+    // En modo compra, una fila tachada en ESTA compra ajusta lo comprado (SCRUM-67, regla 16).
+    if (isBoughtInSession(item, activeSessionId)) void changeBoughtQuantity(itemId, quantityStep);
     else void changeQuantity(itemId, quantityStep);
   };
 
@@ -175,25 +171,9 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   // mientras tanto solo se deja de mostrar.
   const rows = state.items
     .filter((item) => !removal.hiddenItemIds.includes(item.id))
-    .map((item) => {
-      const isPending = state.pendingItemIds.includes(item.id);
-      const boughtQuantity = isBoughtInActiveSession(item) ? item.quantityBought : null;
-      const displayedQuantity = boughtQuantity ?? item.quantity;
-      return {
-        canDecrease: !isPending && displayedQuantity > ITEM_QUANTITY.MIN,
-        canIncrease: !isPending,
-        // Mientras la cantidad se guarda no se elimina: la respuesta podría llegar después del borrado.
-        canRemove: !isPending,
-        canToggleChecked: !isPending,
-        displayedQuantity,
-        isChecked: item.checkedAt !== null,
-        item,
-        requestedNote:
-          boughtQuantity !== null && boughtQuantity !== item.quantity
-            ? `${PURCHASE_SESSION_TEXT.REQUESTED} ${item.quantity}`
-            : null,
-      };
-    });
+    .map((item) =>
+      toShoppingListRow({ activeSessionId, isPending: state.pendingItemIds.includes(item.id), item }),
+    );
   // Las dos secciones salen del mismo arreglo, filtrado: cada una conserva el
   // orden en que se añadieron y una fila destachada vuelve a su lugar.
   const pendingRows = rows.filter((row) => !row.isChecked);
