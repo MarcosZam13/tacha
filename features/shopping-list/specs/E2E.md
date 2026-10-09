@@ -50,4 +50,5 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
   3. Tocar otra vez el nombre del producto.
   4. Recargar la página.
 - **Resultado esperado:** después del paso 1 la fila está en la sección "Tachados hoy", marcada como presionada, y ya no está en "Pendientes", sin recargar. Después del paso 2 sigue en "Tachados hoy". Después del paso 3 vuelve a "Pendientes" y "Tachados hoy" desaparece. Después del paso 4 sigue en "Pendientes".
+- **Sincronización (desde el tachado optimista, 2026-10-09):** la fila cambia de sección antes de que la base guarde. Antes de recargar se espera a que el botón de la fila vuelva a estar habilitado, que es la señal visible de que la base confirmó. Recargar antes daba un falso fallo intermitente (mobile-chrome).
 - **Fuera del navegador:** que "+" o detalle no tachen (CA-02) lo garantiza que son botones hermanos, verificado a mano; el orden de las filas y los errores, en `tests/shopping-list.reducer.test.ts`; la medianoche local (CA-05), en `tests/startOfLocalDay.test.ts`.

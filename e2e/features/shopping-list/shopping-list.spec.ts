@@ -58,6 +58,9 @@ test.describe("Lista general", () => {
 
     await expect(getCheckButton(checkedSection, productName)).toHaveAttribute("aria-pressed", "true");
     await expect(getCheckButton(pendingSection, productName)).toHaveCount(0);
+    // El tachado es optimista: la fila cambia de sección antes de que guarde la
+    // base. Vuelve a estar habilitada cuando la base confirmó; recién ahí se recarga.
+    await expect(getCheckButton(checkedSection, productName)).toBeEnabled();
     await page.reload();
     await expect(getCheckButton(checkedSection, productName)).toBeVisible();
 
@@ -65,6 +68,7 @@ test.describe("Lista general", () => {
 
     await expect(getCheckButton(pendingSection, productName)).toHaveAttribute("aria-pressed", "false");
     await expect(checkedSection).toHaveCount(0);
+    await expect(getCheckButton(pendingSection, productName)).toBeEnabled();
     await page.reload();
     await expect(getCheckButton(pendingSection, productName)).toBeVisible();
   });
