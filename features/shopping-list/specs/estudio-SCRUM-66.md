@@ -19,11 +19,12 @@ Tocar la fila →
 `components/ShoppingListRow.tsx` (`<button aria-pressed onClick={onToggleChecked}>`) →
 `ShoppingList.tsx` (`renderRow` conecta `onToggleChecked={() => viewModel.onToggleChecked(id)}`) →
 `hooks/useShoppingListViewModel.ts` `onToggleChecked`: busca el item, ignora si la fila está pendiente, calcula el estado nuevo `item.checkedAt === null` →
-`hooks/useShoppingList.ts` `toggleChecked`: `dispatch(CHECK_TOGGLE_STARTED)` →
+`hooks/useShoppingList.ts` `toggleChecked`: `dispatch(CHECK_TOGGLE_STARTED)` → `startTransition` → `setOptimisticCheck` (`useOptimistic`): **la fila ya se ve en la otra sección** →
 `services/shopping-list.service.ts` `setItemChecked` → RPC `set_list_item_checked` →
 base: `update list_items set checked_at = ...` → trigger `stamp_list_item_check` pone `now()` y `auth.uid()` → devuelve la fila →
-`dispatch(CHECK_TOGGLED, checkedAt)` → `utils/shopping-list.reducer.ts` cambia solo `checkedAt` de ese item →
-el ViewModel vuelve a calcular `pendingRows` / `checkedRows` filtrando por `isChecked` → la fila se dibuja en la otra sección.
+`dispatch(CHECK_TOGGLED, checkedAt)` → `utils/shopping-list.reducer.ts` guarda la hora real → termina la transición y React deja de mostrar el valor optimista (ya coincide con el real).
+Si la base falla: `CHECK_TOGGLE_FAILED` guarda el error; al terminar la transición React descarta el valor optimista y la fila vuelve sola.
+En cada render el ViewModel calcula `pendingRows` / `checkedRows` filtrando por `isChecked` sobre los items que devuelve el hook (los optimistas).
 
 ## 3. Archivos que cambiaron
 
@@ -55,7 +56,7 @@ el ViewModel vuelve a calcular `pendingRows` / `checkedRows` filtrando por `isCh
 | Una columna `checked_at` nullable | `is_checked boolean` + fecha | Con dos columnas puede quedar "no tachado con fecha". Con una sola no se pueden contradecir |
 | Trigger que pone la hora y el usuario | Que el cliente los mande | Cualquiera puede llamar la API con la anon key: podría tachar con fecha vieja o a nombre de otro |
 | La RPC recibe el estado deseado (`is_checked`) | Una RPC "toggle" | Si dos pestañas mandan "tachar", las dos quieren lo mismo; con toggle la segunda lo destacharía. Es al revés que la cantidad, donde cada toque sí suma (delta) |
-| Esperar a la base antes de mover la fila | Optimista | Mismo criterio que la cantidad: sin rollback que explicar. La fila queda deshabilitada mientras tanto |
+| Tachado **optimista** con `useOptimistic` | Esperar a la base (como la cantidad) | Tachar es lo que más se toca y en el súper cada espera se nota. React muestra el valor optimista mientras dura la transición y lo descarta al terminar: si la base falla, la fila vuelve sin escribir rollback. La cantidad no es optimista porque el número final lo decide la base (suma de deltas) |
 | Secciones **derivadas** de `checkedAt` | Dos arreglos en el estado | Un solo arreglo ordenado: destachar devuelve la fila a su lugar y no hay dos listas que se desincronicen |
 | Medianoche local calculada en el navegador | `current_date` en la base | La base está en UTC: en Costa Rica su "hoy" cambia a las 6 p. m. |
 | Reabrir una fila tachada al añadirla | Sumarle como antes | `unique (list_id, variant)` obliga a reusar la fila; si estaba tachada ayer, sumarle la dejaría escondida |
@@ -69,6 +70,21 @@ el ViewModel vuelve a calcular `pendingRows` / `checkedRows` filtrando por `isCh
 - **Filtro sobre una tabla embebida** (PostgREST): `.or(..., { referencedTable: "list_items" })` filtra los items, no la lista.
 
 ## 6. Preguntas trampa (con respuesta)
+
+<details><summary>"¿Dónde está el código que devuelve la fila si falla el tachado optimista?"</summary>
+
+No existe (premisa falsa). `useOptimistic` solo muestra el valor optimista mientras dura la transición de `toggleChecked`. Si la base falla, el reducer nunca cambió `checkedAt`, así que al terminar la transición React vuelve a mostrar el valor confirmado. Lo prueba `tests/useShoppingList.test.ts`.
+</details>
+
+<details><summary>"Si es optimista, ¿para qué sigue deshabilitada la fila?"</summary>
+
+Para que no viajen dos escrituras de la misma fila a la vez: podrían terminar en desorden y la base quedaría con la que llegó última, no con la que tocó el usuario. Es la regla de toda la lista (`pendingItemIds`, también para la cantidad).
+</details>
+
+<details><summary>"¿Por qué hay un `startTransition` dentro de otro?"</summary>
+
+`useOptimistic` necesita una transición (la de afuera). Después de un `await`, React ya no sabe que el código sigue en esa transición, así que el `dispatch` del final se envuelve de nuevo para que sea parte de la misma.
+</details>
 
 <details><summary>"¿Por qué guardaste las secciones Pendientes y Tachados en el estado del reducer?"</summary>
 
