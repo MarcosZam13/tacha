@@ -97,7 +97,7 @@ Bloqueado / fuera de esta historia:
 - [x] 8. Servicio `recipe-coverage.service.ts`: `getRecipeCoverage()` (con `P0002` → `null`) y `subscribeToListChanges()` (devuelve la función que cancela).
 - [x] 9. Hook `useRecipeCoverage` (abrir, cerrar, uno a la vez, carga, suscripción con limpieza, coalescencia, bandera de cancelación) y su composición en `useRecipeCatalogViewModel` (+ `coverage` en `RecipeCatalogViewModel`, en el mismo commit para que compile). Incluye `onRecipeRemoved`: borrar una receta con su panel abierto cierra el panel y cancela la suscripción.
 - [x] 10. Presentación: botón en `RecipeCard`, `RecipeCoveragePanel`, `RecipeCoverageIngredient` y la conexión en `RecipeCatalog`. Suma `ariaExpanded` y `ariaControls` opcionales al `Button` compartido (`components/ui/button`).
-- [ ] 11. `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test`; tests de las utils y del hook.
+- [x] 11. `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test`; tests de las utils y del hook.
 - [ ] 12. Validar en el navegador los casos de §13 de HU-66, incluido tachar desde **otra pestaña** con el panel abierto, y en el SQL Editor la RLS con otra sesión. Depende de la tarea 4.
 - [ ] 13. Revisión con `code-reviewer` y `security-reviewer` (RLS y publicación de Realtime), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Si cambia una decisión de producto, actualizar `docs/documento-proyecto.md` en el mismo PR.
 
