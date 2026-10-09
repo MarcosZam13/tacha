@@ -387,21 +387,21 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
 
 ### HU-66 (SCRUM-98)
 
-- [ ] CA-01: la tarjeta de cada receta tiene "Ver qué falta", que muestra por ingrediente si está **cubierto** (en la lista y tachado, sin faltante) o si **falta**, con su motivo.
-- [ ] CA-02: con el panel abierto, tachar o destachar un producto relacionado actualiza el estado sin recargar (Realtime), también desde **otra pestaña**.
-- [ ] Ingrediente que no está en la lista: "Falta · No está en tu lista".
-- [ ] Ingrediente en la lista sin tachar: "Falta · En tu lista, sin tachar".
-- [ ] Ingrediente de volumen o peso tachado con faltante registrado (lista con 1 L, receta de 1800 ml): "Falta · Te falta comprar 800 ml".
-- [ ] Ingrediente de conteo tachado: "Cubierto".
-- [ ] Todos cubiertos: el resumen dice "Tienes todo para cocinarla".
-- [ ] Destachar un producto cubierto vuelve a "Falta · En tu lista, sin tachar".
-- [ ] Agregar la receta a la lista (SCRUM-97) con el panel abierto actualiza el estado.
-- [ ] Receta sin ingredientes: no aparece "Ver qué falta".
-- [ ] Receta borrada en otra pestaña: "No encontramos esa receta." en el panel.
-- [ ] Falla de red al abrir: mensaje de error con "Reintentar", sin decir "Tienes todo".
-- [ ] Cerrar el panel cancela la suscripción (no hay canal abierto después; se ve en la pestaña Network de DevTools).
-- [ ] Otra sesión no ve el estado de una receta ajena (`P0002`) ni recibe eventos de `list_items` ajenos (SQL con `role authenticated` y Realtime con dos sesiones).
-- [ ] Doble clic en "Ver qué falta": abre y cierra (es el mismo botón); no queda ninguna petición ni canal de Realtime abierto.
+- [x] CA-01: la tarjeta de cada receta tiene "Ver qué falta", que muestra por ingrediente si está **cubierto** (en la lista y tachado, sin faltante) o si **falta**, con su motivo.
+- [x] CA-02: con el panel abierto, tachar o destachar un producto relacionado actualiza el estado sin recargar (Realtime), también desde **otra pestaña**.
+- [x] Ingrediente que no está en la lista: "Falta · No está en tu lista".
+- [x] Ingrediente en la lista sin tachar: "Falta · En tu lista, sin tachar".
+- [x] Ingrediente de volumen o peso tachado con faltante registrado (lista con 1 L, receta de 1800 ml): "Falta · Te falta comprar 800 ml".
+- [x] Ingrediente de conteo tachado: "Cubierto".
+- [x] Todos cubiertos: el resumen dice "Tienes todo para cocinarla".
+- [x] Destachar un producto cubierto vuelve a "Falta · En tu lista, sin tachar".
+- [x] Agregar la receta a la lista (SCRUM-97) con el panel abierto actualiza el estado.
+- [x] Receta sin ingredientes: no aparece "Ver qué falta".
+- [x] Receta borrada en otra pestaña: "No encontramos esa receta." en el panel.
+- [x] Falla de red al abrir: mensaje de error con "Reintentar", sin decir "Tienes todo".
+- [x] Cerrar el panel cancela la suscripción (no hay canal abierto después; se ve en la pestaña Network de DevTools).
+- [x] Otra sesión no ve el estado de una receta ajena (`P0002`) ni recibe eventos de `list_items` ajenos (SQL con `role authenticated` y Realtime con dos sesiones). Verificado en el SQL Editor (usuario B contra la receta de A, sin sesión y anon); los eventos de Realtime entre dos sesiones no se probaron aparte.
+- [x] Doble clic en "Ver qué falta": abre y cierra (es el mismo botón); no queda ninguna petición ni canal de Realtime abierto.
 
 ### Todas
 
