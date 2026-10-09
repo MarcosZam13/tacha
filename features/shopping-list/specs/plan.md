@@ -197,6 +197,9 @@ Migración `015_check_list_items.sql`:
 - `grant update (checked_at)` a `authenticated`; `checked_by` no tiene grant.
 - RPC `set_list_item_checked(target_item_id, is_checked)`, `security invoker`, como `change_item_quantity`.
 - `add_item_to_general_list` se reemplaza (misma firma): si la fila ya existe y está tachada, la reabre con cantidad 1; si no, suma 1 como antes.
+- `add_units_to_list_item` (013) se reemplaza con la misma regla: tachada → se reabre con las unidades que se piden ahora.
+- `add_recipe_to_general_list` (013) se reemplaza copiando 013 y agregando `li.checked_at is null` a las 5 consultas que miran la lista (regla 22, las dos de conteo, `listed_quantity` y `claimed_quantity`). Es el único cambio: `diff` contra 013 da esas 5 líneas.
+- Prueba: `supabase/tests/015_check_list_items.test.sql`, en una transacción que termina en `rollback`.
 
 ```
 features/shopping-list/
@@ -222,6 +225,7 @@ features/shopping-list/
     shopping-list.reducer.test.ts      + tachar, destachar, error y orden de las filas
     startOfLocalDay.test.ts
 supabase/migrations/015_check_list_items.sql
+supabase/tests/015_check_list_items.test.sql   prueba SQL de 015 (rollback: no deja datos)
 types/database.types.ts                + checked_at, checked_by, set_list_item_checked (a mano; se regenera al aplicar 015)
 ```
 
@@ -246,4 +250,8 @@ Al cargar: `getGeneralList()` pide los items con `checked_at is null or checked_
 | Botón de tachar hermano de los controles, no un `<li>` clickeable | `onClick` en el `<li>` | Un `<li>` no es enfocable ni activable con teclado. Y un botón que envuelve otros botones es HTML inválido: el click de "+" también tacharía |
 | No usar `ItemRow` de `components/ui` | Reusarlo | Dibuja un checkbox (contra CA-01) y envuelve toda la fila en un `<button>` |
 | Reabrir la fila tachada al añadirla desde el buscador (cambio en `add_item_to_general_list`) | Sumarle 1 como antes | `unique (list_id, variant)` obliga a reusar la fila. Si estaba tachada ayer, sumarle la dejaría escondida: el usuario añade y no ve nada |
+| Lo tachado no cuenta en `add_recipe_to_general_list` (filtro en las 5 consultas) | Dejar la receta como estaba | Sin el filtro, lo comprado ayer cuenta como "ya en la lista": la receta no pide nada y la fila queda tachada y escondida. Lo introduce esta historia, porque antes no existían filas tachadas |
+| Reemplazar la función completa copiando 013 | Una función nueva que envuelva a la vieja | plpgsql no permite cambiar una consulta de adentro; con la copia el `diff` contra 013 son 5 líneas, fáciles de revisar |
+| Requirements viejos de una fila reabierta: pendiente para SCRUM-98 | Borrarlos al reabrir | Pide abrir `delete` en una tabla de recetas y decidir qué pasa al destachar a mano; el error que queda es conservador (SPEC §14) |
+| Prueba SQL con `rollback` | Probarlo solo con E2E | "Comprado ayer" no se puede fabricar desde el navegador (el trigger no acepta fechas); en SQL se apaga el trigger para esa sentencia dentro de la transacción |
 | `ShoppingListSection` como mini componente | Repetir el `<ul>` dos veces en `ShoppingList.tsx` | El `return` principal se sigue leyendo como esqueleto (component-architecture §4), y la misma sección sirve para sublistas y listas privadas (CA-06) |

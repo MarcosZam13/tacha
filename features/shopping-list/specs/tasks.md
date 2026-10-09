@@ -45,7 +45,8 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-66: tachar/destachar producto
 
-- [ ] 22. Migración `015_check_list_items.sql` (escrita; falta aplicarla) (columnas, trigger, grant, RPC, reabrir en `add_item_to_general_list`). **No se aplica sola:** se avisa al grupo y la aplica Marcos en una transacción con su fila `015` (`supabase/README.md#migraciones`). Bloquea la 28 (prueba en el navegador).
+- [ ] 22. Migración `015_check_list_items.sql` (escrita; falta aplicarla) (columnas, trigger, grant, RPC, reabrir en `add_item_to_general_list` y `add_units_to_list_item`, lo tachado no cuenta en `add_recipe_to_general_list`).
+- [ ] 22b. Prueba `supabase/tests/015_check_list_items.test.sql` (escrita; correrla después de aplicar 015). **No se aplica sola:** se avisa al grupo y la aplica Marcos en una transacción con su fila `015` (`supabase/README.md#migraciones`). Bloquea la 28 (prueba en el navegador).
 - [x] 23. `types/database.types.ts` a mano (columnas y RPC nuevas); regenerar con el MCP después de aplicar 015 y comprobar que no cambia (pendiente).
 - [x] 24. Constantes (textos de secciones y error, RPC, acciones) y modelos (`checkedAt`, acciones, `checkErrorMessage`).
 - [x] 25. Reducer: `CHECK_TOGGLE_STARTED` / `CHECK_TOGGLED` / `CHECK_TOGGLE_FAILED`, con tests primero en `tests/shopping-list.reducer.test.ts`.

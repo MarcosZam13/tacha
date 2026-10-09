@@ -64,9 +64,10 @@ La pantalla no recibe props: `app/lista/page.tsx` solo renderiza `<ShoppingList 
 5. **(SCRUM-66)** Tocar una fila pendiente la tacha; tocar una fila tachada la destacha.
 6. **(SCRUM-66)** Cuándo y quién tachó lo pone la base, nunca el cliente: el cliente solo dice "tachado" o "no tachado".
 7. **(SCRUM-66)** "Tachados hoy" muestra solo lo tachado desde la medianoche del día local del usuario. Lo tachado antes no aparece en ninguna de las dos secciones (va a vivir en Historial de compras).
-8. **(SCRUM-66)** Añadir desde el buscador un producto que está tachado lo devuelve a "Pendientes" con cantidad 1, en vez de sumarle a lo ya comprado: es una compra nueva.
+8. **(SCRUM-66)** Añadir un producto que está tachado lo devuelve a "Pendientes" con la cantidad que se pide ahora (1 desde el buscador; lo que calcule la receta desde una receta), en vez de sumarle a lo ya comprado: es una compra nueva.
 9. **(SCRUM-66)** Dentro de cada sección las filas mantienen el orden en que se añadieron: destachar devuelve la fila a su lugar y el resto no se mueve.
 10. **(SCRUM-66)** Mientras una fila espera respuesta de la base (cantidad o tachado), sus botones de tachar, cantidad y eliminar quedan deshabilitados.
+11. **(SCRUM-66)** Al agregar una receta, lo tachado no cuenta como "ya en la lista": ni su cantidad ni lo que otras recetas pidieron sobre esa fila. Si la receta necesita ese producto, lo pide como si no estuviera.
 
 ## 6. Estados
 
@@ -133,6 +134,7 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 - **(SCRUM-66)** `list_items.checked_at timestamptz null`, `list_items.checked_by uuid null → auth.users`, y el trigger que los llena (015).
 - RPC `add_item_to_general_list(target_variant_id)` (004; **015** reabre una fila tachada).
 - RPC `change_item_quantity(target_item_id, quantity_delta)` (005).
+- RPC `add_units_to_list_item(...)` y `add_recipe_to_general_list(target_recipe_id)` (013, SCRUM-97; **015** les aplica las reglas 8 y 11).
 - **(SCRUM-66)** RPC `set_list_item_checked(target_item_id, is_checked)` (015).
 - Política de borrado de `list_items` (012).
 - Lectura del catálogo: `search_catalog`, `product_catalog_variants`, `product_brands`, vista `latest_prices`, `stores`.
@@ -175,6 +177,7 @@ Casos límite que se validan con tests o en el navegador:
 - Error al tachar: la fila sigue en su sección y aparece el mensaje.
 - Doble toque rápido en la fila: el segundo se ignora mientras espera (botón deshabilitado).
 - Añadir desde el buscador un producto tachado: vuelve a "Pendientes" con cantidad 1.
+- Agregar una receta que pide 2 unidades de un producto comprado ayer (3 unidades): falta 1 unidad, y la fila vuelve a "Pendientes" con 1. *Cubierto por:* `supabase/tests/015_check_list_items.test.sql`.
 - Eliminar una fila tachada: funciona igual que una pendiente.
 - Usuario escribe rápido en el buscador: solo cuenta la última búsqueda.
 - Abrir un detalle, cerrarlo y abrir otro antes de que responda el primero: solo se muestra el segundo.
@@ -189,7 +192,7 @@ Casos límite que se validan con tests o en el navegador:
 - Sublistas y listas privadas: no existen todavía; cuando existan reusan esta división (CA-06).
 - Mover de sección una fila tachada a las 23:59 cuando pasa la medianoche con la pantalla abierta: se corrige al recargar.
 - Tiempo real entre dispositivos (ver lo que tacha otro miembro sin recargar): llega con listas de household.
-- Agregar una receta sobre un producto tachado: `add_recipe_to_general_list` (013, SCRUM-97) cuenta las filas tachadas como "ya está en la lista" y les suma sin reabrirlas. Arreglarlo cambia el cálculo de faltantes de recetas; queda anotado para quien lleva SCRUM-97.
+- **Pendiente para SCRUM-98** (depende de esta historia): al reabrir una fila tachada, sus registros viejos de `list_item_recipe_requirements` (lo que pidieron recetas anteriores, ya comprado) siguen colgados de ella y vuelven a contar como pedidos. El error es conservador: la lista puede decir que falta más de lo que falta, nunca menos. Ejemplo: receta A pidió 500 ml, se compró y se tachó; al reabrir la fila (1 L) y agregar la receta B (600 ml), se calcula disponible 500 en vez de 1000 y se marca un faltante de 100 que no existe. Y si se agrega otra vez la receta A, su registro acumula sobre el viejo. No se resolvió acá porque borrar esos registros pide abrir `delete` en `list_item_recipe_requirements` (013 le quita todo a `authenticated` menos select/insert/update) y decidir si destachar a mano (un tachado por error) también los borra; las dos cosas son de recetas.
 - Animación de tachado progresivo (documento-proyecto §7): retoque visual posterior.
 - Toast compartido para otras pantallas: se promueve a `components/ui` con el segundo consumidor real.
 - Garantizar el borrado si se cierra la pestaña antes de que venza el toast.
