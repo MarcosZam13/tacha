@@ -9,6 +9,8 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
 - **Usuario:** cada test abre un navegador nuevo, así que la app crea un usuario anónimo nuevo. No comparte lista con nadie ni con otros tests.
 - **Producto:** se busca `leche` y se elige el primer resultado. Supuesto: el catálogo de la base compartida tiene al menos un producto que coincide. Si la búsqueda no devuelve nada, la falla es de **entorno / datos de prueba**, no del test ni del producto.
 - **Limpieza:** al terminar, cada test borra los items de la lista de su usuario anónimo con la API de Supabase y el token de esa sesión (RLS solo deja borrar lo propio). En la base queda el usuario anónimo y su lista vacía.
+- **Servidor en frío:** si Playwright levanta `next dev` desde cero, la primera compilación de `/lista` con varios workers a la vez puede pasar los 5 s del `beforeEach` (falla al no ver "Tu lista está vacía" a tiempo). Es del **entorno**: levantar `npm run dev`, abrir `/lista` una vez y después correr la suite (Playwright reusa el servidor).
+- **Límite de Supabase:** cada test crea un usuario anónimo. Muchas corridas seguidas desde la misma IP llegan al límite de `/signup` (429) y la pantalla muestra "No se pudo cargar tu lista". También es del **entorno**: esperar a que se libere, no reintentar en bucle.
 - **Base:** la compartida del equipo. Por eso E2E todavía no corre en el CI (ver `.agents/skills/playwright-e2e`, "Setup en este repo").
 
 ## Escenarios

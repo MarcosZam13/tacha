@@ -53,8 +53,8 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 26. Servicio: `setItemChecked()`, `checked_at` en la carga y en añadir, filtro de "hoy" con `utils/startOfLocalDay.ts` (con test).
 - [x] 27. `toggleChecked` en `useShoppingList`; secciones, `onToggleChecked` y reabrir al añadir en el ViewModel.
 - [x] 28. Presentación: botón de tachar en `ShoppingListRow`, `ShoppingListSection`, dos secciones en `ShoppingList`. Validar CA-01..05 de HU-36e en el navegador con una cuenta QA; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
-- [ ] 30. Tachado optimista (`useOptimistic`, 2026-10-09): test del hook primero (se ve antes de la respuesta, vuelve si falla), después `useShoppingList`. Repetir `tsc`, lint, build, tests y E2E-LISTA-04.
-  - Hecho: test del hook, implementación, `tsc`, lint, build, 83 tests unitarios y prueba manual (tachar, destachar y que se guarde). **Falta:** correr E2E-LISTA-04 con el ajuste de sincronización; la última corrida la cortó el límite de Supabase para crear usuarios anónimos (429 en `/signup`), que es un problema del entorno.
+- [x] 30. Tachado optimista (`useOptimistic`, 2026-10-09): test del hook primero (se ve antes de la respuesta, vuelve si falla), después `useShoppingList`. Repetir `tsc`, lint, build, tests y E2E-LISTA-04.
+  - Hecho: test del hook, implementación, `tsc`, lint, build, 83 tests unitarios y prueba manual (tachar, destachar y que se guarde). E2E: 6/6 dos veces seguidas con el servidor ya compilado (2026-10-09), después de que se liberó el límite de Supabase.
 - [x] 29. E2E: escenario E2E-LISTA-04 en `specs/E2E.md` y su test (pasa en chromium y mobile-chrome). Pendiente: repetir la prueba manual con una cuenta QA cuando exista el ambiente de pruebas.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.
