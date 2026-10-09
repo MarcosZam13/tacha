@@ -298,7 +298,9 @@ end $$;
 
 -- ----------------------------------------------------------------------------
 -- 6. Negativo: el usuario B no ve la receta de A (P0002, igual que una que no
---    existe), y en su propia receta no ve nada de la lista de A.
+--    existe), y en su propia receta no ve nada de la lista de A: B tiene una
+--    lista propia con el mismo producto SIN tachar mientras A lo tiene tachado.
+--    Si saliera covered, la función estaría leyendo la fila de A.
 -- ----------------------------------------------------------------------------
 
 reset role;
@@ -339,14 +341,16 @@ begin
     when no_data_found then null;
   end;
 
-  -- B tiene en su receta el mismo producto que A tiene tachado en su lista.
-  -- Como B no tiene lista, no puede salir cubierto: la lista de A no se ve.
+  -- B agrega a su propia lista el producto que A tiene tachado: la fila de B
+  -- queda sin tachar. Con la RLS y el filtro por dueño, B solo ve la suya.
+  perform public.add_item_to_general_list(current_setting('tacha_test.variant_leche')::uuid);
+
   select r.id into b_recipe_id from public.recipes r where r.name = 'Receta de B SCRUM-98';
   result := public.get_recipe_coverage(b_recipe_id);
 
   assert jsonb_array_length(result) = 1
-    and result -> 0 ->> 'reason' = 'notInList',
-    format('B no ve la lista de A: notInList. Resultado: %s', result);
+    and result -> 0 ->> 'reason' = 'notChecked',
+    format('B ve solo su lista (sin tachar), no la de A (tachada): notChecked. Resultado: %s', result);
 end $$;
 
 -- ----------------------------------------------------------------------------
@@ -375,6 +379,15 @@ exception
 end $$;
 
 reset role;
+
+-- Los permisos, sin depender del mensaje de error.
+do $$
+begin
+  assert not has_function_privilege('anon', 'public.get_recipe_coverage(uuid)', 'execute'),
+    'anon no puede ejecutar get_recipe_coverage';
+  assert has_function_privilege('authenticated', 'public.get_recipe_coverage(uuid)', 'execute'),
+    'authenticated sí puede ejecutar get_recipe_coverage';
+end $$;
 
 -- ----------------------------------------------------------------------------
 -- 8. Realtime: list_items está en la publicación (y sigue estando si la
