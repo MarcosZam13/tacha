@@ -45,14 +45,14 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-66: tachar/destachar producto
 
-- [ ] 22. Migración `015_check_list_items.sql` (escrita; falta aplicarla) (columnas, trigger, grant, RPC, reabrir en `add_item_to_general_list` y `add_units_to_list_item`, lo tachado no cuenta en `add_recipe_to_general_list`).
-- [ ] 22b. Prueba `supabase/tests/015_check_list_items.test.sql` (escrita; correrla después de aplicar 015). **No se aplica sola:** se avisa al grupo y la aplica Marcos en una transacción con su fila `015` (`supabase/README.md#migraciones`). Bloquea la 28 (prueba en el navegador).
-- [x] 23. `types/database.types.ts` a mano (columnas y RPC nuevas); regenerar con el MCP después de aplicar 015 y comprobar que no cambia (pendiente).
+- [x] 22. Migración `015_check_list_items.sql` (aplicada por Marcos con su fila `015`) (columnas, trigger, grant, RPC, reabrir en `add_item_to_general_list` y `add_units_to_list_item`, lo tachado no cuenta en `add_recipe_to_general_list`).
+- [x] 22b. Prueba `supabase/tests/015_check_list_items.test.sql` (pasó en un ensayo antes de aplicar 015). **No se aplica sola:** se avisa al grupo y la aplica Marcos en una transacción con su fila `015` (`supabase/README.md#migraciones`). Bloquea la 28 (prueba en el navegador).
+- [x] 23. `types/database.types.ts` a mano (columnas y RPC nuevas); regenerados con el MCP después de aplicar 015: lo escrito a mano coincide; se agregaron `add_units_to_list_item` y `pick_recipe_variant`, que faltaban desde 013.
 - [x] 24. Constantes (textos de secciones y error, RPC, acciones) y modelos (`checkedAt`, acciones, `checkErrorMessage`).
 - [x] 25. Reducer: `CHECK_TOGGLE_STARTED` / `CHECK_TOGGLED` / `CHECK_TOGGLE_FAILED`, con tests primero en `tests/shopping-list.reducer.test.ts`.
 - [x] 26. Servicio: `setItemChecked()`, `checked_at` en la carga y en añadir, filtro de "hoy" con `utils/startOfLocalDay.ts` (con test).
 - [x] 27. `toggleChecked` en `useShoppingList`; secciones, `onToggleChecked` y reabrir al añadir en el ViewModel.
-- [ ] 28. Presentación: botón de tachar en `ShoppingListRow`, `ShoppingListSection`, dos secciones en `ShoppingList`. Validar CA-01..05 de HU-36e en el navegador con una cuenta QA; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
-- [ ] 29. E2E: escenario E2E-LISTA-04 en `specs/E2E.md` y su test (escritos; falta correrlo con 015 aplicada).
+- [x] 28. Presentación: botón de tachar en `ShoppingListRow`, `ShoppingListSection`, dos secciones en `ShoppingList`. Validar CA-01..05 de HU-36e en el navegador con una cuenta QA; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
+- [x] 29. E2E: escenario E2E-LISTA-04 en `specs/E2E.md` y su test (pasa en chromium y mobile-chrome). Pendiente: repetir la prueba manual con una cuenta QA cuando exista el ambiente de pruebas.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

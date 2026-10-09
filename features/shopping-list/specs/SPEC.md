@@ -164,11 +164,11 @@ HU-36d
 - [x] CA-03: aparece un toast breve "Producto eliminado" con opción de deshacer.
 
 HU-36e
-- [ ] CA-01: no hay checkbox ni ícono de estado; la fila (nombre y tamaño) es un solo botón. *Cubierto por:* revisión en el navegador.
-- [ ] CA-02: tocar la fila fuera de cantidad, detalle y eliminar la tacha; tocarla de nuevo la destacha. Tocar esos controles no la tacha. *Cubierto por:* E2E-LISTA-04 (tachar/destachar) + revisión en el navegador (controles).
-- [ ] CA-03: el único indicador visible es el texto tachado y atenuado. *Cubierto por:* revisión en el navegador.
-- [ ] CA-04: la lista tiene "Pendientes" arriba y "Tachados hoy" abajo; la fila cambia de sección sin recargar y las demás no se reordenan. *Cubierto por:* unitario (`shopping-list.reducer.test.ts`, orden) + E2E-LISTA-04.
-- [ ] CA-05: "Tachados hoy" solo muestra lo tachado hoy; lo tachado otro día no aparece en la lista. *Cubierto por:* unitario (`startOfLocalDay.test.ts`) + revisión de la petición en el navegador (el filtro `checked_at.gte` lleva la medianoche local). No se puede fabricar una fila "de ayer": el trigger de 015 no acepta fechas del cliente.
+- [x] CA-01: no hay checkbox ni ícono de estado; la fila (nombre y tamaño) es un solo botón. *Cubierto por:* revisión en el navegador.
+- [x] CA-02: tocar la fila fuera de cantidad, detalle y eliminar la tacha; tocarla de nuevo la destacha. Tocar esos controles no la tacha. *Cubierto por:* E2E-LISTA-04 (tachar/destachar) + revisión en el navegador (controles).
+- [x] CA-03: el único indicador visible es el texto tachado y atenuado. *Cubierto por:* revisión en el navegador.
+- [x] CA-04: la lista tiene "Pendientes" arriba y "Tachados hoy" abajo; la fila cambia de sección sin recargar y las demás no se reordenan. *Cubierto por:* unitario (`shopping-list.reducer.test.ts`, orden) + E2E-LISTA-04.
+- [x] CA-05: "Tachados hoy" solo muestra lo tachado hoy; lo tachado otro día no aparece en la lista. *Cubierto por:* unitario (`startOfLocalDay.test.ts`) + revisión de la petición en el navegador (el filtro `checked_at.gte` lleva la medianoche local). No se puede fabricar una fila "de ayer": el trigger de 015 no acepta fechas del cliente.
 - CA-06: la división aplica a otras listas con tachado (sublistas, privadas, modo compra). Hoy solo existe la lista general; el resto la hereda al reusar esta feature (§14).
 
 Casos límite que se validan con tests o en el navegador:
