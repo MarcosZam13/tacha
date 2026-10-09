@@ -18,7 +18,7 @@ export const RecipeEditor = ({ recipeId }: RecipeEditorProps): React.JSX.Element
   const viewModel = useRecipeEditorViewModel(recipeId);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 bg-tacha-bg px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <Link href={RECIPE_ROUTE.CATALOG} className="font-body text-sm text-tacha-teal hover:underline">
         {RECIPE_EDITOR_TEXT.BACK_TO_CATALOG}
       </Link>
@@ -62,6 +62,6 @@ export const RecipeEditor = ({ recipeId }: RecipeEditorProps): React.JSX.Element
           <RecipeEditorActions isSaving={viewModel.isSaving} />
         </form>
       ) : null}
-    </main>
+    </div>
   );
 };

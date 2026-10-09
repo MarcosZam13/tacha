@@ -1,4 +1,4 @@
-import { PRODUCT_SEARCH } from "@/constants";
+import { APP_ROUTE, PRODUCT_SEARCH } from "@/constants";
 
 // Constantes propias de la pantalla "Buscar" del catálogo. Viven dentro de la
 // feature porque ninguna otra las usa todavía; se promueven a constants/ con
@@ -6,7 +6,7 @@ import { PRODUCT_SEARCH } from "@/constants";
 // error) ya son compartidos: PRODUCT_SEARCH_TEXT en constants/catalog.constants.ts.
 
 export const CATALOG_ROUTE = {
-  SEARCH: "/catalogo",
+  SEARCH: APP_ROUTE.CATALOG,
 } as const;
 
 // Estados de la pantalla (utils/getCatalogSearchStatus.ts): se derivan de lo

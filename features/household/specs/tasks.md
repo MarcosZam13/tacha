@@ -52,7 +52,7 @@ Deriva de [plan.md](plan.md). Cada etapa se revisa y se aprueba antes de pasar a
 - [x] 6.1 Crear `components/HouseholdCreateForm.tsx` y `components/models/HouseholdCreateFormProps.interface.ts` (solo presentación, con `Input` y `Button`).
 - [x] 6.2 Ajustar `components/HouseholdInviteLinkCard.tsx` y sus props: quitar `role="status"` y `feedbackMessage`.
 - [x] 6.3 Crear `Household.tsx`: título, estados, formulario o tarjeta, `role="status"` siempre montado y `role="alert"` para errores.
-- [x] 6.4 Crear `app/household/page.tsx` (una línea + metadata).
+- [x] 6.4 Crear `app/(app)/household/page.tsx` (una línea + metadata).
 - [x] 6.5 Pasar los textos visibles al español en `constants/household.constants.ts` ("Mi familia", "Crea tu familia", "Nombre de la familia", "Crear mi familia", "Invitar a mi familia", "Generar enlace de invitación", "Enlace de invitación", "Copiar enlace", "Generar nuevo enlace"); los nombres técnicos siguen con `household`.
 - [ ] 6.6 Accesibilidad (revisada en el código; falta probarla en el navegador): solo teclado, anuncios de `role="status"`, estados con texto (no solo color).
 - [ ] 6.7 Revisión y aprobación.

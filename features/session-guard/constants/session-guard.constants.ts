@@ -22,14 +22,6 @@ export const PUBLIC_ROUTES: readonly string[] = [
   SESSION_GUARD_ROUTE.TERMS,
 ];
 
-export const SESSION_STATUS = {
-  AUTHENTICATED: "authenticated",
-  CHECKING: "checking",
-  UNAUTHENTICATED: "unauthenticated",
-} as const;
-
-export type SessionStatusType = (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
-
 export const SESSION_GUARD_LABEL = {
   CHECKING: "Verificando tu sesión",
 } as const;

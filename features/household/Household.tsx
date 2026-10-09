@@ -17,7 +17,7 @@ export const Household = (): React.JSX.Element => {
   const { invite } = viewModel;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 bg-tacha-bg px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <div className="flex flex-col gap-1">
         <h1 className="font-display text-3xl font-bold text-tacha-text">{HOUSEHOLD_TEXT.TITLE}</h1>
         {viewModel.householdName ? (
@@ -84,6 +84,6 @@ export const Household = (): React.JSX.Element => {
           {invite.card ? <HouseholdInviteLinkCard {...invite.card} /> : null}
         </section>
       ) : null}
-    </main>
+    </div>
   );
 };
