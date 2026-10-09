@@ -9,6 +9,8 @@ const VARIANT_CLASS_NAME: Record<string, string> = {
 };
 
 export const Button = ({
+  ariaControls,
+  ariaExpanded,
   children,
   variant = BUTTON_VARIANT.PRIMARY,
   isDisabled = false,
@@ -18,6 +20,8 @@ export const Button = ({
   <button
     type={type}
     disabled={isDisabled}
+    aria-controls={ariaControls}
+    aria-expanded={ariaExpanded}
     onClick={onClick}
     className={`rounded-tacha-badge px-4 py-2 font-body text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASS_NAME[variant]}`}
   >
