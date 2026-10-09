@@ -6,6 +6,7 @@ import type { ShoppingListState } from "../models/ShoppingListState.interface";
 // dispatch síncrono para "empezar a cargar" (nextjs-enterprise-patterns §3).
 export const INITIAL_SHOPPING_LIST_STATE: ShoppingListState = {
   addErrorMessage: null,
+  checkErrorMessage: null,
   isLoading: true,
   items: [],
   loadErrorMessage: null,
@@ -18,12 +19,13 @@ export const INITIAL_SHOPPING_LIST_STATE: ShoppingListState = {
  * Función pura: mismo estado + misma acción = mismo resultado, sin llamar a
  * la red ni a React. Todas las reglas de cómo cambia la lista viven acá.
  *
- * Hay tres errores separados:
+ * Hay un error separado por acción:
  * - carga: solo lo borra una carga exitosa (añadir no lo borra: la lista seguiría incompleta);
  * - añadir: lo borra el siguiente añadido exitoso;
  * - cantidad: es uno para toda la lista y lo borra el siguiente cambio de
  *   cantidad exitoso, de cualquier fila (el último intento es el que importa);
- * - eliminar: lo borra el siguiente borrado exitoso.
+ * - eliminar: lo borra el siguiente borrado exitoso;
+ * - tachar: como cantidad, uno para toda la lista; lo borra el siguiente tachado exitoso.
  */
 export const shoppingListReducer = (
   state: ShoppingListState,
@@ -71,6 +73,30 @@ export const shoppingListReducer = (
         ...state,
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
         quantityErrorMessage: action.errorMessage,
+      };
+
+    case SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED:
+      // Comparte pendingItemIds con la cantidad: una sola escritura por fila a la vez.
+      return { ...state, pendingItemIds: [...state.pendingItemIds, action.itemId] };
+
+    case SHOPPING_LIST_ACTION.CHECK_TOGGLED:
+      // Solo cambia checkedAt; la fila no se mueve dentro de items. La sección
+      // se deriva de checkedAt en el ViewModel, así destachar la devuelve a su lugar.
+      return {
+        ...state,
+        checkErrorMessage: null,
+        items: state.items.map((item) =>
+          item.id === action.itemId ? { ...item, checkedAt: action.checkedAt } : item,
+        ),
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+      };
+
+    case SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED:
+      // checkedAt no se toca: la fila sigue en la sección que confirmó la base.
+      return {
+        ...state,
+        checkErrorMessage: action.errorMessage,
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
       };
 
     case SHOPPING_LIST_ACTION.ITEM_REMOVED:

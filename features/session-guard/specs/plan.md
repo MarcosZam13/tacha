@@ -13,9 +13,9 @@ features/session-guard/
     SessionGuardProps.interface.ts     props: children
     SessionGuardViewModel.interface.ts lo que devuelve el hook
   services/
-    session.service.ts                 subscribeToSessionChanges(): se suscribe a supabase.auth.onAuthStateChange
+    session.service.ts                 subscribeToSessionChanges(): se suscribe a supabase.auth.onAuthStateChange (desde SCRUM-135 en services/session.service.ts)
   utils/
-    getSessionStatus.ts                función pura: sesión → checking | authenticated | unauthenticated
+    getSessionStatus.ts                función pura: sesión → checking | authenticated | unauthenticated (desde SCRUM-135 en utils/getSessionStatus.ts, con SESSION_STATUS en constants/session.constants.ts)
     isPublicRoute.ts                   función pura: ruta → ¿es pública?
   constants/
     session-guard.constants.ts         interruptor, rutas, estados, etiqueta del indicador

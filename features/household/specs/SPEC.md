@@ -274,7 +274,7 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 ### SCRUM-57
 
 - Todo lo de SCRUM-56 aplica igual.
-- La ruta `app/invitacion/[token]/page.tsx` es delgada: lee `params` (en Next 16 llega como `Promise`, como `app/recetas/[id]/editar/page.tsx`), declara la metadata y renderiza la pantalla de la feature. Sin lógica.
+- La ruta `app/invitacion/[token]/page.tsx` es delgada: lee `params` (en Next 16 llega como `Promise`, como `app/(app)/recetas/[id]/editar/page.tsx`), declara la metadata y renderiza la pantalla de la feature. Sin lógica.
 - La ruta se mantiene en `/invitacion/<token>`: los enlaces ya generados por SCRUM-56 apuntan ahí.
 - La pantalla, su ViewModel y el formulario viven en `features/household/`; no se crea otra feature (la página usa el mismo servicio, las mismas constantes y la misma ruta que SCRUM-56).
 - La página es de cliente porque la sesión de Supabase vive en el navegador; la seguridad real está en la RPC.
@@ -288,7 +288,7 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 
 ### SCRUM-56
 
-- `app/household/page.tsx` — ruta delgada.
+- `app/(app)/household/page.tsx` — ruta delgada.
 - `features/household/Household.tsx` — pantalla.
 - `features/household/components/HouseholdCreateForm.tsx` y `HouseholdInviteLinkCard.tsx`, con sus props en `components/models/`.
 - `features/household/hooks/useHouseholdViewModel.ts` y `useHouseholdInvite.ts`.

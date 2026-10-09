@@ -27,7 +27,7 @@ features/catalog/
     catalog-search.constants.ts        textos, tabs, estados (y su tipo CatalogSearchStatusType), ruta; la grilla se define con clases en CatalogSearch.tsx
   specs/  SPEC.md · plan.md · tasks.md
 
-app/catalogo/page.tsx                  ruta delgada: solo renderiza <CatalogSearch />
+app/(app)/catalogo/page.tsx                  ruta delgada: solo renderiza <CatalogSearch />
 
 Código compartido que se toca
   services/catalog.service.ts          aditivo: el mapeo suma imageUrl y priceRangeByStore

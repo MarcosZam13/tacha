@@ -5,5 +5,6 @@ export interface ShoppingListRowProps {
   onIncrease: () => void;
   onOpenDetail: () => void;
   onRemove: () => void;
+  onToggleChecked: () => void;
   row: ShoppingListRowViewModel;
 }

@@ -31,7 +31,7 @@ features/recipes/
     recipes.constants.ts               textos, límite de ingredientes, tabs, estados, tablas y select
   specs/  SPEC.md · plan.md · tasks.md
 
-app/recetas/page.tsx                   ruta delgada: solo renderiza <RecipeCatalog />
+app/(app)/recetas/page.tsx                   ruta delgada: solo renderiza <RecipeCatalog />
 supabase/migrations/006_create_recipes.sql
 supabase/seed-demo-recipes.sql         recetas de ejemplo para la demo (no es migración)
 types/database.types.ts                se agregan recipes y recipe_ingredients (regenerar al aplicar la migración)
@@ -158,8 +158,8 @@ features/recipes/
   RecipeCatalog.tsx                    + link "+ Nueva receta"
   components/RecipeCard.tsx            + link "Editar" (la ruta viene armada en RecipeSummary.editPath)
 
-app/recetas/nueva/page.tsx             ruta delgada: <RecipeEditor />
-app/recetas/[id]/editar/page.tsx       ruta delgada: await params → <RecipeEditor recipeId={id} />
+app/(app)/recetas/nueva/page.tsx             ruta delgada: <RecipeEditor />
+app/(app)/recetas/[id]/editar/page.tsx       ruta delgada: await params → <RecipeEditor recipeId={id} />
 supabase/migrations/007_save_recipe.sql     políticas de escritura + save_recipe
 supabase/migrations/008_harden_recipes.sql  tope de cantidad, columnas escribibles, largo del nombre (revisión de seguridad)
 types/database.types.ts                + Functions.save_recipe (regenerar al aplicar la migración)
@@ -385,7 +385,7 @@ types/database.types.ts                          regenerar (tabla y Functions.ad
 docs/documento-proyecto.md                       §4.9.1 (reglas de conteo y de producto que no está) y §6 (tabla nueva)
 ```
 
-No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/lista/page.tsx`.
+No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/(app)/lista/page.tsx`.
 
 ### Datos
 

@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  IS_SESSION_GUARD_ENABLED,
-  SESSION_GUARD_ROUTE,
-  SESSION_STATUS,
-} from "../constants/session-guard.constants";
-import type { SessionStatusType } from "../constants/session-guard.constants";
+import { SESSION_STATUS } from "@/constants";
+import type { SessionStatusType } from "@/constants";
+import { subscribeToSessionChanges } from "@/services/session.service";
+import { getSessionStatus } from "@/utils/getSessionStatus";
+import { IS_SESSION_GUARD_ENABLED, SESSION_GUARD_ROUTE } from "../constants/session-guard.constants";
 import type { SessionGuardViewModel } from "../models/SessionGuardViewModel.interface";
-import { subscribeToSessionChanges } from "../services/session.service";
-import { getSessionStatus } from "../utils/getSessionStatus";
 import { isPublicRoute } from "../utils/isPublicRoute";
 
 export const useSessionGuardViewModel = (): SessionGuardViewModel => {
