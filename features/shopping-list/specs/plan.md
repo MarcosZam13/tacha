@@ -108,6 +108,11 @@ Viene de la sesión anónima provisional; se cierra cuando exista el registro:
 - **Cuentas anónimas sin CAPTCHA:** cualquiera con la anon key puede crear usuarios anónimos en bucle (Supabase los limita por IP). Antes de producción: CAPTCHA en Auth › Attack Protection (y `captchaToken` en `signInAnonymously`), revisar el rate limit y limpiar anónimos viejos.
 - **Anónimo = `authenticated`:** las políticas de este sprint no distinguen anónimos de registrados, y hoy eso es lo buscado. La migración de households tiene que exigir `coalesce((select (auth.jwt()->>'is_anonymous')::boolean), false) = false` en toda acción que requiera cuenta real (crear o unirse a un household).
 
+### SCRUM-66 (revisión de seguridad, 2026-10-08)
+
+- **`checked_by` y el `on delete set null`** (Media, latente): ver SPEC §14. Arreglo para la migración de listas de household: en la rama "ya estaba tachada" del trigger, `new.checked_at := old.checked_at` y no tocar `checked_by` (los clientes no tienen grant sobre esa columna, así que solo lo cambia la FK).
+- **Tachar sin `auth.uid()`** (Baja): si un día un job con service role tacha, `checked_by` queda null con la fila tachada. Si importa para la auditoría, el trigger puede rechazarlo.
+
 ## SCRUM-64: ver detalle de producto
 
 > **Verificado el 2026-10-03** contra la base real: cada variante de las listas tiene 1 marca y 1 precio (solo MaxiPali). La vista `latest_prices` es `security_invoker` y `anon`/`authenticated` pueden leerla, igual que `product_brands` y `stores`. PostgREST resuelve la relación variante → `latest_prices` → `stores` en una sola petición (probado con la anon key).
