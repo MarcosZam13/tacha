@@ -5,5 +5,7 @@ export interface ShoppingListRowViewModel {
   canDecrease: boolean;
   canIncrease: boolean;
   canRemove: boolean;
+  canToggleChecked: boolean;
+  isChecked: boolean;
   item: ShoppingListItem;
 }

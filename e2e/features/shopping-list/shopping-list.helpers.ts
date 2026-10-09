@@ -25,3 +25,11 @@ export const addFirstSearchResult = async (page: Page, searchTerm: string): Prom
   await firstResult.click();
   return productName;
 };
+
+/** Una sección de la lista ("Pendientes" o "Tachados hoy"), por su nombre. */
+export const getListSection = (page: Page, sectionName: string): Locator =>
+  page.getByRole("region", { name: sectionName });
+
+/** El botón que tacha y destacha la fila de un producto: su nombre es el del producto. */
+export const getCheckButton = (scope: Locator, productName: string): Locator =>
+  scope.getByRole("button", { name: productName });

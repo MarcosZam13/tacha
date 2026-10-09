@@ -5,6 +5,7 @@ import type { ShoppingListState } from "../models/ShoppingListState.interface";
 import { INITIAL_SHOPPING_LIST_STATE, shoppingListReducer } from "../utils/shopping-list.reducer";
 
 const createItem = (overrides: Partial<ShoppingListItem> = {}): ShoppingListItem => ({
+  checkedAt: null,
   id: "item-leche",
   productName: "Leche entera",
   quantity: 1,
@@ -144,5 +145,107 @@ describe("shoppingListReducer: changing quantity", () => {
     });
 
     expect(state.quantityErrorMessage).toBeNull();
+  });
+});
+
+describe("shoppingListReducer: checking off (moving rows between sections)", () => {
+  // La hora la pone la base (trigger de la migración 015); el reducer solo la copia.
+  const CHECKED_AT = "2026-10-08T15:30:00.000Z";
+
+  it("marks only the touched row as pending while the database saves the check", () => {
+    const leche = createItem();
+    const arroz = createItem({ id: "item-arroz", variantId: "variant-arroz" });
+
+    const state = shoppingListReducer(createLoadedState([leche, arroz]), {
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED,
+    });
+
+    expect(state.pendingItemIds).toEqual([leche.id]);
+    // Todavía no cambia de sección: se mueve cuando la base confirma.
+    expect(state.items[0].checkedAt).toBeNull();
+  });
+
+  it("moves a pending row to the checked section with the time the database returned", () => {
+    const leche = createItem();
+    const pendingState = shoppingListReducer(createLoadedState([leche]), {
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED,
+    });
+
+    const state = shoppingListReducer(pendingState, {
+      checkedAt: CHECKED_AT,
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
+    });
+
+    expect(state.items[0].checkedAt).toBe(CHECKED_AT);
+    expect(state.pendingItemIds).toEqual([]);
+  });
+
+  it("moves a checked row back to pending without changing the order of the list", () => {
+    const leche = createItem({ checkedAt: CHECKED_AT });
+    const arroz = createItem({ id: "item-arroz", variantId: "variant-arroz" });
+    const cafe = createItem({ id: "item-cafe", variantId: "variant-cafe" });
+
+    const state = shoppingListReducer(createLoadedState([leche, arroz, cafe]), {
+      checkedAt: null,
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
+    });
+
+    // Las secciones se derivan de checkedAt sobre este mismo orden: leche vuelve
+    // a su lugar (la primera) y las demás no se mueven.
+    expect(state.items.map((item) => item.id)).toEqual([leche.id, arroz.id, cafe.id]);
+    expect(state.items[0].checkedAt).toBeNull();
+  });
+
+  it("keeps the row in its section, frees it and shows the error when the check fails", () => {
+    const leche = createItem();
+    const pendingState = shoppingListReducer(createLoadedState([leche]), {
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED,
+    });
+
+    const state = shoppingListReducer(pendingState, {
+      errorMessage: SHOPPING_LIST_TEXT.CHECK_ERROR,
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED,
+    });
+
+    expect(state.items[0].checkedAt).toBeNull();
+    expect(state.pendingItemIds).toEqual([]);
+    expect(state.checkErrorMessage).toBe(SHOPPING_LIST_TEXT.CHECK_ERROR);
+  });
+
+  it("clears the check error after the next successful check on any row", () => {
+    const leche = createItem();
+    const arroz = createItem({ id: "item-arroz", variantId: "variant-arroz" });
+    const failedState = shoppingListReducer(createLoadedState([leche, arroz]), {
+      errorMessage: SHOPPING_LIST_TEXT.CHECK_ERROR,
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED,
+    });
+
+    const state = shoppingListReducer(failedState, {
+      checkedAt: CHECKED_AT,
+      itemId: arroz.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
+    });
+
+    expect(state.checkErrorMessage).toBeNull();
+  });
+
+  it("reopens a checked row when the database returns it pending after adding it again", () => {
+    const leche = createItem({ checkedAt: CHECKED_AT, quantity: 3 });
+    // add_item_to_general_list (015) reabre la fila tachada con cantidad 1.
+    const reopenedLeche = createItem({ checkedAt: null, quantity: 1 });
+
+    const state = shoppingListReducer(createLoadedState([leche]), {
+      item: reopenedLeche,
+      type: SHOPPING_LIST_ACTION.ITEM_UPSERTED,
+    });
+
+    expect(state.items).toEqual([reopenedLeche]);
   });
 });
