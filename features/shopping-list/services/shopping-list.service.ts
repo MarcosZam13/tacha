@@ -5,9 +5,21 @@ import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
+import type { ItemCheck } from "../models/ItemCheck.interface";
 import type { ItemDetail } from "../models/ItemDetail.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import { startOfLocalDay } from "../utils/startOfLocalDay";
+
+/** Las columnas de tachado de una fila de list_items → su ItemCheck. */
+const toItemCheck = (listItem: {
+  checked_at: NullableRef<string>;
+  purchase_session_id: NullableRef<string>;
+  quantity_bought: NullableRef<number>;
+}): ItemCheck => ({
+  checkedAt: listItem.checked_at,
+  purchaseSessionId: listItem.purchase_session_id,
+  quantityBought: listItem.quantity_bought,
+});
 
 /**
  * Trae la lista general del usuario con sus items. Si todavía no tiene lista
@@ -40,7 +52,7 @@ export const getGeneralList = async (): Promise<ShoppingListItem[]> => {
   return generalList.list_items.map((listItem) => {
     const variant = listItem.product_catalog_variants;
     return {
-      checkedAt: listItem.checked_at,
+      ...toItemCheck(listItem),
       id: listItem.id,
       productName: variant.product_catalog.name,
       quantity: listItem.quantity_requested,
@@ -69,7 +81,7 @@ export const addItemToGeneralList = async (
   if (error) throw error;
 
   return {
-    checkedAt: listItem.checked_at,
+    ...toItemCheck(listItem),
     id: listItem.id,
     productName: searchResult.productName,
     quantity: listItem.quantity_requested,
@@ -101,13 +113,11 @@ export const changeItemQuantity = async (
 /**
  * Tacha o destacha un item. Se manda el estado deseado, no "invertir": si dos
  * pestañas mandan "tachar", el resultado es el mismo. La hora y el usuario los
- * pone la base (trigger de la migración 015). Devuelve cuándo quedó tachado,
- * o null si quedó pendiente.
+ * pone la base (trigger de la migración 015). Destachar también borra la
+ * compra y lo comprado (trigger extendido en 016). Devuelve el tachado que
+ * quedó en la base.
  */
-export const setItemChecked = async (
-  itemId: string,
-  isChecked: boolean,
-): Promise<NullableRef<string>> => {
+export const setItemChecked = async (itemId: string, isChecked: boolean): Promise<ItemCheck> => {
   await ensureSession();
 
   const { data: listItem, error } = await getSupabaseClient().rpc(
@@ -116,7 +126,46 @@ export const setItemChecked = async (
   );
   if (error) throw error;
 
-  return listItem.checked_at;
+  return toItemCheck(listItem);
+};
+
+/**
+ * Tacha un item dentro de una compra (modo compra, SCRUM-67). La base le pone
+ * la compra y lo comprado arranca igual a lo pedido; si la compra no es del
+ * usuario o ya está cerrada, la rechaza (trigger de 016).
+ */
+export const checkItemInSession = async (itemId: string, sessionId: string): Promise<ItemCheck> => {
+  await ensureSession();
+
+  const { data: listItem, error } = await getSupabaseClient().rpc(
+    SHOPPING_LIST_DB.RPC.CHECK_LIST_ITEM_IN_SESSION,
+    { target_item_id: itemId, target_session_id: sessionId },
+  );
+  if (error) throw error;
+
+  return toItemCheck(listItem);
+};
+
+/**
+ * Suma o resta 1 a lo comprado de un item (modo compra). Igual que la cantidad
+ * pedida: se manda el delta y la base devuelve lo que quedó. Solo funciona
+ * mientras la compra de la fila sigue abierta.
+ */
+export const changeBoughtQuantity = async (
+  itemId: string,
+  quantityStep: ItemQuantityStepType,
+): Promise<number> => {
+  await ensureSession();
+
+  const { data: listItem, error } = await getSupabaseClient().rpc(
+    SHOPPING_LIST_DB.RPC.CHANGE_BOUGHT_QUANTITY,
+    { quantity_delta: quantityStep, target_item_id: itemId },
+  );
+  if (error) throw error;
+  // La RPC solo toca filas de una compra, que siempre tienen lo comprado (check de 016).
+  if (listItem.quantity_bought === null) throw new Error("La fila no está en una compra");
+
+  return listItem.quantity_bought;
 };
 
 /**
