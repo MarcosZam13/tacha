@@ -6,7 +6,7 @@ import { useShoppingList } from "../hooks/useShoppingList";
 import type { ItemCheck } from "../models/ItemCheck.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import {
-  changeBoughtQuantity,
+  changeItemBoughtQuantity,
   checkItemInSession,
   getGeneralList,
   setItemChecked,
@@ -14,14 +14,14 @@ import {
 
 vi.mock("../services/shopping-list.service", () => ({
   addItemToGeneralList: vi.fn(),
-  changeBoughtQuantity: vi.fn(),
+  changeItemBoughtQuantity: vi.fn(),
   changeItemQuantity: vi.fn(),
   checkItemInSession: vi.fn(),
   deleteListItem: vi.fn(),
   getGeneralList: vi.fn(),
   setItemChecked: vi.fn(),
 }));
-const changeBoughtQuantityMock = vi.mocked(changeBoughtQuantity);
+const changeItemBoughtQuantityMock = vi.mocked(changeItemBoughtQuantity);
 const checkItemInSessionMock = vi.mocked(checkItemInSession);
 const getGeneralListMock = vi.mocked(getGeneralList);
 const setItemCheckedMock = vi.mocked(setItemChecked);
@@ -126,13 +126,13 @@ describe("useShoppingList: shopping mode (SCRUM-67)", () => {
   });
 
   it("changes what was bought and leaves what was requested alone", async () => {
-    changeBoughtQuantityMock.mockResolvedValue(3);
+    changeItemBoughtQuantityMock.mockResolvedValue(3);
     const bought = { ...LECHE, checkedAt: SERVER_CHECKED_AT, purchaseSessionId: SESSION_ID, quantityBought: 2 };
     const { result } = await renderLoadedList([bought]);
 
     await act(async () => result.current.changeBoughtQuantity(LECHE.id, ITEM_QUANTITY.STEP.INCREASE));
 
-    expect(changeBoughtQuantityMock).toHaveBeenCalledWith(LECHE.id, ITEM_QUANTITY.STEP.INCREASE);
+    expect(changeItemBoughtQuantityMock).toHaveBeenCalledWith(LECHE.id, ITEM_QUANTITY.STEP.INCREASE);
     expect(result.current.state.items[0]).toMatchObject({ quantity: 2, quantityBought: 3 });
   });
 });

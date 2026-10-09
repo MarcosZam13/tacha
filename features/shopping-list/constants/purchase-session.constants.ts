@@ -27,6 +27,7 @@ export const PURCHASE_SESSION_DB = {
 export const SPENT_TOTAL = {
   MAX: 9_999_999_999,
   PATTERN: /^(\d+|\d{1,3}([ .,]\d{3})+)$/,
+  // Con /g: solo para .replace (quita todos). No usarlo con .test, que con /g recuerda dónde quedó entre llamadas.
   THOUSANDS_SEPARATOR: /[ .,]/g,
 } as const;
 

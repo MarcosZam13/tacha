@@ -8,7 +8,7 @@ import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { ShoppingListState } from "../models/ShoppingListState.interface";
 import {
   addItemToGeneralList,
-  changeBoughtQuantity,
+  changeItemBoughtQuantity,
   changeItemQuantity,
   checkItemInSession,
   deleteListItem,
@@ -104,10 +104,10 @@ export const useShoppingList = (): UseShoppingListReturn => {
   };
 
   // Igual que changeQuantity, sobre lo comprado. Comparte el bloqueo por fila y el error.
-  const updateBoughtQuantity = async (itemId: string, quantityStep: ItemQuantityStepType): Promise<void> => {
+  const changeBoughtQuantity = async (itemId: string, quantityStep: ItemQuantityStepType): Promise<void> => {
     dispatch({ itemId, type: SHOPPING_LIST_ACTION.QUANTITY_CHANGE_STARTED });
     try {
-      const quantityBought = await changeBoughtQuantity(itemId, quantityStep);
+      const quantityBought = await changeItemBoughtQuantity(itemId, quantityStep);
       dispatch({ itemId, quantityBought, type: SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED });
     } catch {
       dispatch({
@@ -160,7 +160,7 @@ export const useShoppingList = (): UseShoppingListReturn => {
 
   return {
     addItem,
-    changeBoughtQuantity: updateBoughtQuantity,
+    changeBoughtQuantity,
     changeQuantity,
     removeItem,
     state: { ...state, items: optimisticItems },

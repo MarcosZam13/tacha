@@ -151,7 +151,7 @@ export const checkItemInSession = async (itemId: string, sessionId: string): Pro
  * pedida: se manda el delta y la base devuelve lo que quedó. Solo funciona
  * mientras la compra de la fila sigue abierta.
  */
-export const changeBoughtQuantity = async (
+export const changeItemBoughtQuantity = async (
   itemId: string,
   quantityStep: ItemQuantityStepType,
 ): Promise<number> => {
@@ -163,7 +163,9 @@ export const changeBoughtQuantity = async (
   );
   if (error) throw error;
   // La RPC solo toca filas de una compra, que siempre tienen lo comprado (check de 016).
-  if (listItem.quantity_bought === null) throw new Error("La fila no está en una compra");
+  if (listItem.quantity_bought === null) {
+    throw new Error(`${SHOPPING_LIST_DB.RPC.CHANGE_BOUGHT_QUANTITY} devolvió una fila sin lo comprado`);
+  }
 
   return listItem.quantity_bought;
 };
