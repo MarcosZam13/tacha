@@ -8,6 +8,7 @@ import {
   changeItemQuantity,
   deleteListItem,
   getGeneralList,
+  setItemChecked,
 } from "../services/shopping-list.service";
 import { INITIAL_SHOPPING_LIST_STATE, shoppingListReducer } from "../utils/shopping-list.reducer";
 
@@ -16,9 +17,10 @@ interface UseShoppingListReturn {
   changeQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   state: ShoppingListState;
+  toggleChecked: (itemId: string, isChecked: boolean) => Promise<void>;
 }
 
-/** Estado de la lista general: carga al montar, añade, cambia cantidades y borra productos vía servicio. */
+/** Estado de la lista general: carga al montar, añade, cambia cantidades, tacha y borra productos vía servicio. */
 export const useShoppingList = (): UseShoppingListReturn => {
   const [state, dispatch] = useReducer(shoppingListReducer, INITIAL_SHOPPING_LIST_STATE);
 
@@ -67,6 +69,22 @@ export const useShoppingList = (): UseShoppingListReturn => {
     }
   };
 
+  // Mismo patrón que changeQuantity: la fila queda pendiente y cambia de
+  // sección recién cuando la base confirma (no es optimista).
+  const toggleChecked = async (itemId: string, isChecked: boolean): Promise<void> => {
+    dispatch({ itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED });
+    try {
+      const checkedAt = await setItemChecked(itemId, isChecked);
+      dispatch({ checkedAt, itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLED });
+    } catch {
+      dispatch({
+        errorMessage: SHOPPING_LIST_TEXT.CHECK_ERROR,
+        itemId,
+        type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED,
+      });
+    }
+  };
+
   // Se llama cuando vence el plazo para deshacer (useItemRemoval), no al tocar eliminar.
   const removeItem = async (itemId: string): Promise<void> => {
     try {
@@ -77,5 +95,5 @@ export const useShoppingList = (): UseShoppingListReturn => {
     }
   };
 
-  return { addItem, changeQuantity, removeItem, state };
+  return { addItem, changeQuantity, removeItem, state, toggleChecked };
 };

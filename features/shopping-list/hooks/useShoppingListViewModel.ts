@@ -15,9 +15,14 @@ import { useShoppingList } from "./useShoppingList";
 interface UseShoppingListViewModelReturn {
   addErrorMessage: NullableRef<string>;
   canAddItems: boolean;
+  checkErrorMessage: NullableRef<string>;
+  /** Sección "Tachados hoy", en el orden en que se añadieron. */
+  checkedRows: ShoppingListRowViewModel[];
   detail: NullableRef<ItemDetailViewModel>;
   hasItems: boolean;
   hasNoSearchResults: boolean;
+  /** Hay filas pero todas están tachadas: "Pendientes" muestra un texto en vez de quedar vacía. */
+  isAllChecked: boolean;
   isEmpty: boolean;
   isLoading: boolean;
   isSearching: boolean;
@@ -31,11 +36,13 @@ interface UseShoppingListViewModelReturn {
   onQueryChange: (query: string) => void;
   onRemoveItem: (itemId: string) => void;
   onSelectSearchOption: (variantId: string) => void;
+  onToggleChecked: (itemId: string) => void;
   onUndoRemove: () => void;
+  /** Sección "Pendientes", en el orden en que se añadieron. */
+  pendingRows: ShoppingListRowViewModel[];
   quantityErrorMessage: NullableRef<string>;
   query: string;
   removeErrorMessage: NullableRef<string>;
-  rows: ShoppingListRowViewModel[];
   searchErrorMessage: NullableRef<string>;
   searchOptions: ProductSearchOption[];
 }
@@ -45,7 +52,7 @@ interface UseShoppingListViewModelReturn {
  * ShoppingList.tsx exactamente lo que dibuja, ya calculado.
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
-  const { addItem, changeQuantity, removeItem, state } = useShoppingList();
+  const { addItem, changeQuantity, removeItem, state, toggleChecked } = useShoppingList();
   const search = useProductSearch();
   const removal = useItemRemoval({ removeItem });
   // Se guarda solo el id de la fila abierta; la fila en sí se busca en la
@@ -76,6 +83,12 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     // deshabilitado; si no, dos escrituras en paralelo podrían dejar en
     // pantalla una cantidad vieja.
     if (state.pendingItemIds.includes(listedItem.id)) return;
+    // Tachada: es una compra nueva. La RPC de añadir la reabre con cantidad 1
+    // (migración 015) en vez de sumarle a lo que ya se compró.
+    if (listedItem.checkedAt) {
+      void addItem(searchResult);
+      return;
+    }
     void changeQuantity(listedItem.id, ITEM_QUANTITY.STEP.INCREASE);
   };
 
@@ -111,6 +124,14 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       }
     : null;
 
+  // El estado nuevo sale de lo que la fila muestra: tachada → destachar.
+  const onToggleChecked = (itemId: string): void => {
+    const item = state.items.find((listedItem) => listedItem.id === itemId);
+    // Fila esperando respuesta: se ignora, igual que el botón deshabilitado.
+    if (!item || state.pendingItemIds.includes(itemId)) return;
+    void toggleChecked(itemId, item.checkedAt === null);
+  };
+
   const onRemoveItem = (itemId: string): void => {
     removal.requestRemoval(itemId);
   };
@@ -126,18 +147,27 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
         canIncrease: !isPending,
         // Mientras la cantidad se guarda no se elimina: la respuesta podría llegar después del borrado.
         canRemove: !isPending,
+        canToggleChecked: !isPending,
+        isChecked: item.checkedAt !== null,
         item,
       };
     });
+  // Las dos secciones salen del mismo arreglo, filtrado: cada una conserva el
+  // orden en que se añadieron y una fila destachada vuelve a su lugar.
+  const pendingRows = rows.filter((row) => !row.isChecked);
+  const checkedRows = rows.filter((row) => row.isChecked);
 
   return {
     addErrorMessage: state.addErrorMessage,
     // Si la lista no se pudo cargar no se ofrece añadir: la pantalla mostraría
     // solo lo recién añadido como si fuera toda la lista.
     canAddItems: !state.loadErrorMessage,
+    checkErrorMessage: state.checkErrorMessage,
+    checkedRows,
     detail,
     hasItems: rows.length > 0,
     hasNoSearchResults: search.hasNoResults,
+    isAllChecked: rows.length > 0 && pendingRows.length === 0,
     // Con error de carga no se dice "tu lista está vacía": no se sabe si lo está.
     isEmpty: !state.isLoading && !state.loadErrorMessage && rows.length === 0,
     isLoading: state.isLoading,
@@ -151,11 +181,12 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     onQueryChange: search.setQuery,
     onRemoveItem,
     onSelectSearchOption,
+    onToggleChecked,
     onUndoRemove: removal.cancelRemoval,
+    pendingRows,
     quantityErrorMessage: state.quantityErrorMessage,
     query: search.query,
     removeErrorMessage: state.removeErrorMessage,
-    rows,
     searchErrorMessage: search.errorMessage,
     searchOptions: searchResults.map((result) => ({
       detail: result.sizeLabel,
