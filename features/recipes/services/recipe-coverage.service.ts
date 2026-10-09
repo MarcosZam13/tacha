@@ -1,3 +1,4 @@
+import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import {
@@ -40,6 +41,18 @@ export const getRecipeCoverage = async (
  * (tachar, destachar, agregar, quitar, cambiar cantidad). Realtime aplica la
  * RLS de list_items a insert y update; el contenido del evento no se usa: es
  * solo la señal para volver a llamar a getRecipeCoverage (regla 32).
+ *
+ * También avisa una vez cuando la suscripción queda activa: un cambio que
+ * ocurre entre la primera consulta y ese momento no genera ningún evento, y
+ * sin este aviso el panel quedaría desactualizado hasta el siguiente cambio.
+ * Si la suscripción falla (CHANNEL_ERROR, TIMED_OUT) no se hace nada: el panel
+ * sigue funcionando sin actualizarse solo (SPEC §7).
+ *
+ * Límite conocido (revisión de seguridad, SPEC §15): Realtime no filtra por RLS
+ * los eventos delete, así que el borrado de una fila ajena también avisa.
+ * Solo trae el id de la fila (no se filtra ningún dato) y cuesta una consulta
+ * de más por cada suscriptor. No se puede filtrar por lista sin conocer su id.
+ *
  * Devuelve la función que cancela la suscripción.
  */
 export const subscribeToListChanges = async (onChange: () => void): Promise<() => void> => {
@@ -59,7 +72,9 @@ export const subscribeToListChanges = async (onChange: () => void): Promise<() =
       },
       () => onChange(),
     )
-    .subscribe();
+    .subscribe((subscribeStatus) => {
+      if (subscribeStatus === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) onChange();
+    });
 
   return () => {
     void client.removeChannel(channel);

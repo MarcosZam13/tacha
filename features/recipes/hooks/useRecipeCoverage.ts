@@ -47,6 +47,9 @@ export const useRecipeCoverage = (): RecipeCoverageViewModel => {
     // los que llegan con una consulta en curso no lanzan otra; al terminar se
     // hace una sola más con el estado final.
     const refresh = async (recipeId: string): Promise<void> => {
+      // Un evento que llega entre el cierre del panel y la cancelación del
+      // canal no lanza una consulta cuya respuesta se descartaría.
+      if (isCancelled) return;
       if (isRefreshing) {
         isRefreshPending = true;
         return;
