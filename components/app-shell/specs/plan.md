@@ -65,3 +65,10 @@ features/{shopping-list,recipes,catalog,household}   raíz <main> → <div> (un 
 
 - **Cerrar sesión (SCRUM-55):** al pie de `AppSidebar` (desktop). En mobile, cuando exista "Más" (más de 5 ítems, §3.2), va adentro; mientras tanto, el lugar natural es la pantalla de Perfil/Household.
 - **URL de retorno (SCRUM-136):** `features/login/utils/resolvePostLoginRoute.ts` recibe la URL de retorno y la devuelve si es una ruta interna válida; si no, `APP_ROUTE.LIST`.
+  - Requisitos de la revisión de seguridad (2026-10-09) para no abrir un *open redirect*. `router.push` con `//evil.com` o una URL absoluta sí sale del sitio:
+    1. Lista permitida: solo rutas de `APP_ROUTE` o sus subrutas (`APP_ROUTE.X + "/"`); cualquier otra cosa → `APP_ROUTE.LIST`. Así quedan afuera las públicas y `/login` (evita bucles).
+    2. Normalizar antes de validar: `new URL(value, window.location.origin)`, exigir mismo `origin`, usar solo `pathname + search`. Rechazar lo que no empiece con exactamente una `/` (`//`, `/\`, `\`, `javascript:`, `https:`). Ojo con los tabs y saltos de línea dentro del valor (el navegador los quita: `/<tab>/evil.com` termina siendo `//evil.com`) y con `%2F%2F` / `%5C`: decodificar una vez y validar el resultado.
+    3. El guard codifica la ruta al armar el parámetro (`encodeURIComponent(pathname + search)`).
+    4. Límite de largo (ej. 2048) y validación como función pura con un test por cada vector.
+    5. La URL de retorno no da permisos: solo decide a dónde navegar; el acceso sigue dependiendo del guard y de RLS.
+- **Deuda conocida (revisión de seguridad, no la introduce este PR):** el acceso a las rutas privadas se controla solo en el cliente (`SessionGuard`, detrás de `NEXT_PUBLIC_SESSION_GUARD_ENABLED`); los datos los protege RLS. `app/(app)/layout.tsx` es el lugar natural para un chequeo de sesión en el servidor (proxy con `@supabase/ssr`) cuando el equipo lo decida.
