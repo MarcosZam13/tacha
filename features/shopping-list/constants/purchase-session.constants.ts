@@ -30,6 +30,17 @@ export const SPENT_TOTAL = {
   THOUSANDS_SEPARATOR: /[ .,]/g,
 } as const;
 
+// Cuándo se ve el panel "Cerrar compra" (hooks/useClosePurchase.ts):
+// AUTO: solo si no queda nada pendiente (CA-07); REQUESTED: tocaron "Terminar
+// compra"; DISMISSED: tocaron "Seguir comprando" (no vuelve a sugerirse en esa compra).
+export const CLOSE_PANEL_MODE = {
+  AUTO: "auto",
+  DISMISSED: "dismissed",
+  REQUESTED: "requested",
+} as const;
+
+export type ClosePanelModeType = (typeof CLOSE_PANEL_MODE)[keyof typeof CLOSE_PANEL_MODE];
+
 export const PURCHASE_SESSION_TEXT = {
   BAR_LABEL: "Modo compra",
   CLOSE: "Cerrar compra",
@@ -42,6 +53,7 @@ export const PURCHASE_SESSION_TEXT = {
   KEEP_SHOPPING: "Seguir comprando",
   PICK_STORE_TITLE: "¿Dónde estás comprando?",
   REQUESTED: "Pedido",
+  SESSION_LOAD_ERROR: "No se pudo cargar la compra. Vuelve a iniciarla.",
   SHOPPING_AT: "Comprando en",
   START: "Iniciar compra",
   START_ERROR: "No se pudo iniciar la compra. Intenta de nuevo.",
