@@ -1,22 +1,29 @@
 "use client";
 
 import { ProductSearch } from "@/components/product-search/ProductSearch";
-import { Modal, Spinner } from "@/components/ui";
+import { Button, Modal, Spinner } from "@/components/ui";
+import { BUTTON_VARIANT } from "@/constants";
+import { PURCHASE_SESSION_TEXT } from "./constants/purchase-session.constants";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
+import { ClosePurchasePanel } from "./components/ClosePurchasePanel";
 import { ShoppingListAllChecked } from "./components/ShoppingListAllChecked";
 import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
 import { ShoppingListSection } from "./components/ShoppingListSection";
+import { ShoppingModeBar } from "./components/ShoppingModeBar";
+import { StorePicker } from "./components/StorePicker";
 import { UndoToast } from "./components/UndoToast";
 import { useShoppingListViewModel } from "./hooks/useShoppingListViewModel";
 import type { ShoppingListRowViewModel } from "./models/ShoppingListRowViewModel.interface";
 
 /**
- * Pantalla de la lista general. "use client" porque usa hooks y habla con
- * Supabase desde el navegador (la sesión anónima vive en el navegador).
+ * Cuerpo de la pantalla de la lista general (Container/Inner: la frontera
+ * Suspense está en ShoppingList.tsx). "use client" porque usa hooks y habla
+ * con Supabase desde el navegador (la sesión anónima vive en el navegador).
+ * En modo compra (SCRUM-67) es la misma lista con la barra arriba (CA-02).
  */
-export const ShoppingList = (): React.JSX.Element => {
+export const ShoppingListInner = (): React.JSX.Element => {
   const viewModel = useShoppingListViewModel();
 
   // Misma fila en las dos secciones; solo cambia en cuál se dibuja.
@@ -35,6 +42,27 @@ export const ShoppingList = (): React.JSX.Element => {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{SHOPPING_LIST_TEXT.TITLE}</h1>
+
+      {viewModel.activeStoreName ? (
+        <ShoppingModeBar
+          storeName={viewModel.activeStoreName}
+          onExit={viewModel.onExitShoppingMode}
+          onFinish={viewModel.onRequestClosePurchase}
+        />
+      ) : null}
+      {viewModel.canStartPurchase ? (
+        <div>
+          <Button variant={BUTTON_VARIANT.PRIMARY} onClick={viewModel.onStartPurchase}>
+            {PURCHASE_SESSION_TEXT.START}
+          </Button>
+        </div>
+      ) : null}
+      {viewModel.sessionNoticeMessage ? (
+        <p role="status" className="font-body text-sm text-tacha-textsec">
+          {viewModel.sessionNoticeMessage}
+        </p>
+      ) : null}
+      {viewModel.closePurchase.isVisible ? <ClosePurchasePanel panel={viewModel.closePurchase} /> : null}
 
       {viewModel.canAddItems ? (
         <ProductSearch
@@ -91,6 +119,14 @@ export const ShoppingList = (): React.JSX.Element => {
 
       <Modal isOpen={viewModel.detail !== null} onClose={viewModel.onCloseDetail} title={viewModel.detail?.productName}>
         {viewModel.detail ? <ShoppingListItemDetail detail={viewModel.detail} onClose={viewModel.onCloseDetail} /> : null}
+      </Modal>
+
+      <Modal
+        isOpen={viewModel.storePicker.isOpen}
+        onClose={viewModel.storePicker.onClose}
+        title={PURCHASE_SESSION_TEXT.PICK_STORE_TITLE}
+      >
+        <StorePicker picker={viewModel.storePicker} />
       </Modal>
     </div>
   );
