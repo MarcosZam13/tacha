@@ -67,6 +67,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 36. Hooks: `usePurchaseSession`, `useStorePicker` y `useClosePurchase` (la compra quedó repartida en tres hooks chicos), tachar en compra y `changeBoughtQuantity` en `useShoppingList`, modo compra en el ViewModel. Tests de hooks.
 - [x] 37. Presentación: `ShoppingList` (frontera) + `ShoppingListInner`, `ShoppingModeBar`, `StorePicker`, `ClosePurchasePanel`, "Pedido N" en la fila.
 - [x] 38. `docs/documento-proyecto.md` §6 con las columnas reales; E2E-LISTA-05 en `specs/E2E.md` y su test.
+- [x] 38b. Migración `018_harden_purchase_sessions.sql` con su prueba (hallazgos de `security-reviewer`), ensayada con `rollback` y aplicada con su fila `018`.
 - [ ] 39. Validar CA-01..07 en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; revisores; body de la PR y guía de estudio.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

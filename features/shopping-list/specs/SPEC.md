@@ -171,6 +171,7 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 - **(SCRUM-67)** Tabla `purchase_sessions` (016): `owner_id`, `household_id` (null), `list_id` (null), `store_id`, `started_at`, `closed_at`, `total_amount`; RLS del dueño.
 - **(SCRUM-67)** `list_items.purchase_session_id` (→ `purchase_sessions`) y `list_items.quantity_bought` (≥ 1), validados y limpiados por el trigger de 015, que 016 extiende.
 - **(SCRUM-67)** RPC `start_purchase_session(target_store_id, local_day_start)`, `check_list_item_in_session(target_item_id, target_session_id)`, `change_bought_quantity(target_item_id, quantity_delta)`, `close_purchase_session(target_session_id, spent_total)` (016).
+- **(SCRUM-67)** Migración `018` (revisión de seguridad): borrar una compra deja sus filas sin compra ni lo comprado (antes fallaba), `closed_at` lo pone la base, una compra cerrada no cambia lo comprado de sus filas y el total no acepta NaN. Va con el número 018 porque el 017 lo reservó otra historia.
 - Política de borrado de `list_items` (012).
 - Lectura del catálogo: `search_catalog`, `product_catalog_variants`, `product_brands`, vista `latest_prices`, `stores`.
 
@@ -238,7 +239,7 @@ Casos límite que se validan con tests o en el navegador:
 - **(SCRUM-67)** Historial de compras y dashboard financiero (leer las compras cerradas): otras historias. Esta solo las guarda.
 - **(SCRUM-67)** Recordar una compra que quedó sin total, cambiar el súper de una compra ya iniciada y el inventario doméstico al tachar (documento-proyecto §6): fuera de esta historia.
 - **(SCRUM-67)** Cambiar la variante comprada ("1 galón" en vez de "2 cajas"): solo se ajusta la cantidad.
-- **(SCRUM-67) Pendiente para Historial de compras:** una fila comprada en una compra que **ya se cerró** sigue en "Tachados hoy" el resto del día; si se destacha, el trigger borra su compra y lo comprado (regla 17), y esa compra cerrada pierde la fila. Hoy nadie lee las compras cerradas; la historia de historial tiene que decidir si destachar algo de una compra cerrada se bloquea, se permite o reabre la compra.
+- **(SCRUM-67) Pendiente para Historial de compras:** una fila comprada en una compra que **ya se cerró** sigue en "Tachados hoy" el resto del día. Desde la migración `018` su compra y lo comprado ya no se pueden cambiar ni pasar a otra compra, pero destacharla o volver a añadirla (regla 8 de SCRUM-66) todavía la saca de esa compra cerrada: bloquearlo impediría volver a comprar el producto. La historia de historial tiene que decidir dónde guardar lo comprado para que no dependa de la fila de la lista.
 - Sublistas y listas privadas: no existen todavía; cuando existan reusan esta división (CA-06).
 - Mover de sección una fila tachada a las 23:59 cuando pasa la medianoche con la pantalla abierta: se corrige al recargar.
 - **Deuda (revisión de seguridad, 2026-10-08):** el trigger `stamp_list_item_check` (015) conserva `checked_by` cuando la fila ya estaba tachada, incluso en el `set null` que hace la FK al borrar un usuario: la fila queda apuntando a un usuario borrado. Hoy no ocurre (solo el dueño tacha y sus listas se borran en cascada con él). Se cierra en la migración que abra las listas de household a otros miembros: en ese caso del trigger conservar solo `checked_at`.

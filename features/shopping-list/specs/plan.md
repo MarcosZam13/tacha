@@ -283,6 +283,15 @@ Al cargar: `getGeneralList()` pide los items con `checked_at is null or checked_
 - Destachar en modo compra sigue usando `set_list_item_checked(…, false)`: el trigger borra la compra y lo comprado.
 - Prueba: `supabase/tests/016_create_purchase_sessions.test.sql`, en una transacción con `rollback`.
 
+### Datos: migración `018_harden_purchase_sessions.sql` (revisión de seguridad, 2026-10-09)
+
+- **Bug:** borrar una compra con filas compradas fallaba (`23514`): la FK `on delete set null` vacía `purchase_session_id` pero dejaba `quantity_bought`, y el check que exige que vayan juntos lo rechazaba. Comprobado en la base con una transacción revertida. El trigger ahora vacía lo comprado cuando no hay compra (también corre en el update que hace la FK).
+- `closed_at` lo pone la base (trigger `purchase_sessions_stamp_close`): un PATCH directo ya no puede fechar el cierre.
+- Una fila de una compra cerrada no cambia lo comprado ni pasa a otra compra (`42501`). Sacarla (destachar o volver a añadirla) se permite: bloquearlo rompería la regla 8 de SCRUM-66 (volver a comprar algo comprado la semana pasada).
+- `check (total_amount <> 'NaN')`.
+- Número 018: el 017 lo reservó otra historia; ninguna de las dos depende de la otra.
+- Prueba: `supabase/tests/018_harden_purchase_sessions.test.sql`. El ensayo corrió también la prueba de 016 encima de 018.
+
 ### Archivos
 
 ```
