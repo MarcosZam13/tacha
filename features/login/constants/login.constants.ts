@@ -85,8 +85,8 @@ export const LOGIN_FORM_FIELDS = [
   { field: LOGIN_FIELD.PASSWORD, label: LOGIN_LABEL.PASSWORD, type: INPUT_TYPE.PASSWORD },
 ] as const;
 
+// A dónde lleva el login exitoso: utils/resolvePostLoginRoute.ts.
 export const LOGIN_ROUTE = {
-  HOME: "/",
   REGISTER: "/registro",
 } as const;
 

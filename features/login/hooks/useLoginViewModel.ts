@@ -8,7 +8,6 @@ import {
   LOGIN_FIELD,
   LOGIN_RESULT,
   LOGIN_RESULT_MESSAGE,
-  LOGIN_ROUTE,
   LOGIN_SUBMIT_STATUS,
 } from "../constants/login.constants";
 import type { LoginFieldType, LoginResultType, LoginSubmitStatusType } from "../constants/login.constants";
@@ -16,6 +15,7 @@ import type { LoginFormErrors, LoginFormValues } from "../models/LoginFormValues
 import type { LoginViewModel } from "../models/LoginViewModel.interface";
 import { loginWithRecaptcha } from "../services/login.service";
 import { getStatusAfterLogin } from "../utils/getStatusAfterLogin";
+import { resolvePostLoginRoute } from "../utils/resolvePostLoginRoute";
 import { hasLoginErrors, isLoginFormComplete, validateLoginForm } from "../utils/validateLoginForm";
 
 const INITIAL_VALUES: LoginFormValues = { email: "", password: "" };
@@ -61,10 +61,10 @@ export const useLoginViewModel = (): LoginViewModel => {
       setValues((previous) => ({ ...previous, [LOGIN_FIELD.PASSWORD]: "" }));
     }
     // Con contraseña débil se queda en la pantalla para mostrar el aviso en vez de entrar a la app.
-    return nextStatus === LOGIN_SUBMIT_STATUS.SUCCESS ? router.push(LOGIN_ROUTE.HOME) : undefined;
+    return nextStatus === LOGIN_SUBMIT_STATUS.SUCCESS ? router.push(resolvePostLoginRoute()) : undefined;
   };
 
-  const handleContinue = (): void => router.push(LOGIN_ROUTE.HOME);
+  const handleContinue = (): void => router.push(resolvePostLoginRoute());
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
