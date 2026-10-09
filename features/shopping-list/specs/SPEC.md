@@ -93,7 +93,7 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 ## 8. UI esperada
 
 - Título "Lista general" y buscador arriba.
-- Sección "Pendientes": filas sin tachar. Si todo está tachado, en su lugar un texto corto lo dice en vez de dibujar una sección vacía.
+- Sección "Pendientes": filas sin tachar. Si todo está tachado, la sección sigue arriba con un texto corto que lo dice, en vez de desaparecer o quedar vacía.
 - Sección "Tachados hoy": filas tachadas hoy, con el nombre tachado y atenuado. Solo aparece si tiene filas.
 - Cada fila: [botón de tachar con nombre y tamaño, ocupa todo el ancho libre] [− cantidad +] [detalle] [eliminar].
 - Sin checkbox ni ícono de estado (HU-36e CA-01; reemplaza al checkbox indicador de DESIGN.md §2, que es anterior a la decisión del 2026-08-21).

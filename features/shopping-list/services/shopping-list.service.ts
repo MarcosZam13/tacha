@@ -27,6 +27,8 @@ export const getGeneralList = async (): Promise<ShoppingListItem[]> => {
     .eq("owner_id", session.user.id)
     .eq("type", LIST_TYPE.GENERAL)
     .is("household_id", null)
+    // A diferencia de .eq() y .select(), este texto no lo valida el genérico
+    // Database: un typo en "checked_at" solo falla en runtime (lo cubre E2E-LISTA-04).
     .or(`checked_at.is.null,checked_at.gte.${startOfLocalDay(new Date())}`, {
       referencedTable: SHOPPING_LIST_DB.TABLE.LIST_ITEMS,
     })

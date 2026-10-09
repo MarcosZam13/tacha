@@ -22,38 +22,37 @@ export const ShoppingListRow = ({
   onRemove,
   onToggleChecked,
   row,
-}: ShoppingListRowProps): React.JSX.Element => (
-  <li className="flex items-center gap-3 pr-3">
-    <button
-      type="button"
-      aria-pressed={row.isChecked}
-      disabled={!row.canToggleChecked}
-      onClick={onToggleChecked}
-      className="min-w-0 flex-1 self-stretch px-3 py-2 text-left transition-colors hover:bg-tacha-chipbg/40 disabled:cursor-wait"
-    >
-      <span
-        className={`block font-body text-sm ${row.isChecked ? "text-tacha-textsec line-through" : "text-tacha-text"}`}
+}: ShoppingListRowProps): React.JSX.Element => {
+  // El único indicador de tachado va sobre el texto (HU-36e CA-03).
+  const checkedTextClass = row.isChecked ? "text-tacha-textsec line-through" : "text-tacha-text";
+
+  return (
+    <li className="flex items-center gap-3 pr-3">
+      <button
+        type="button"
+        aria-pressed={row.isChecked}
+        disabled={!row.canToggleChecked}
+        onClick={onToggleChecked}
+        className="min-w-0 flex-1 self-stretch px-3 py-2 text-left transition-colors hover:bg-tacha-chipbg/40 disabled:cursor-wait"
       >
-        {row.item.productName}
-      </span>
-      <span className={`block font-body text-xs text-tacha-textsec ${row.isChecked ? "line-through" : ""}`}>
-        {row.item.sizeLabel}
-      </span>
-    </button>
-    <QuantityStepper
-      canDecrease={row.canDecrease}
-      canIncrease={row.canIncrease}
-      onDecrease={onDecrease}
-      onIncrease={onIncrease}
-      quantity={row.item.quantity}
-    />
-    <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onOpenDetail}>
-      <span aria-hidden="true">{SHOPPING_LIST_TEXT.OPEN_DETAIL_ICON}</span>
-      <span className="sr-only">{SHOPPING_LIST_TEXT.OPEN_DETAIL}</span>
-    </Button>
-    <Button variant={BUTTON_VARIANT.SECONDARY} isDisabled={!row.canRemove} onClick={onRemove}>
-      <span aria-hidden="true">{SHOPPING_LIST_TEXT.REMOVE_ITEM_ICON}</span>
-      <span className="sr-only">{SHOPPING_LIST_TEXT.REMOVE_ITEM}</span>
-    </Button>
-  </li>
-);
+        <span className={`block font-body text-sm ${checkedTextClass}`}>{row.item.productName}</span>
+        <span className={`block font-body text-xs ${checkedTextClass}`}>{row.item.sizeLabel}</span>
+      </button>
+      <QuantityStepper
+        canDecrease={row.canDecrease}
+        canIncrease={row.canIncrease}
+        onDecrease={onDecrease}
+        onIncrease={onIncrease}
+        quantity={row.item.quantity}
+      />
+      <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onOpenDetail}>
+        <span aria-hidden="true">{SHOPPING_LIST_TEXT.OPEN_DETAIL_ICON}</span>
+        <span className="sr-only">{SHOPPING_LIST_TEXT.OPEN_DETAIL}</span>
+      </Button>
+      <Button variant={BUTTON_VARIANT.SECONDARY} isDisabled={!row.canRemove} onClick={onRemove}>
+        <span aria-hidden="true">{SHOPPING_LIST_TEXT.REMOVE_ITEM_ICON}</span>
+        <span className="sr-only">{SHOPPING_LIST_TEXT.REMOVE_ITEM}</span>
+      </Button>
+    </li>
+  );
+};

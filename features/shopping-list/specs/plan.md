@@ -206,6 +206,7 @@ features/shopping-list/
   ShoppingList.tsx                     + dos secciones (Pendientes / Tachados hoy)
   components/
     ShoppingListSection.tsx            encabezado + <ul> de filas de una sección (solo presentación)
+    ShoppingListAllChecked.tsx         el <li> de "Todo tachado" dentro de Pendientes
     ShoppingListRow.tsx                + botón de tachar (nombre y tamaño), hermano de los controles
     models/ShoppingListSectionProps.interface.ts
   hooks/

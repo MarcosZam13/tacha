@@ -22,8 +22,7 @@ interface UseShoppingListViewModelReturn {
   hasCheckedRows: boolean;
   hasItems: boolean;
   hasNoSearchResults: boolean;
-  hasPendingRows: boolean;
-  /** Hay filas pero todas están tachadas: "Pendientes" muestra un texto en vez de quedar vacía. */
+  /** Hay filas pero todas están tachadas: "Pendientes" muestra un texto en vez de filas. */
   isAllChecked: boolean;
   isEmpty: boolean;
   isLoading: boolean;
@@ -87,7 +86,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     if (state.pendingItemIds.includes(listedItem.id)) return;
     // Tachada: es una compra nueva. La RPC de añadir la reabre con cantidad 1
     // (migración 015) en vez de sumarle a lo que ya se compró.
-    if (listedItem.checkedAt) {
+    if (listedItem.checkedAt !== null) {
       void addItem(searchResult);
       return;
     }
@@ -170,7 +169,6 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     hasCheckedRows: checkedRows.length > 0,
     hasItems: rows.length > 0,
     hasNoSearchResults: search.hasNoResults,
-    hasPendingRows: pendingRows.length > 0,
     isAllChecked: rows.length > 0 && pendingRows.length === 0,
     // Con error de carga no se dice "tu lista está vacía": no se sabe si lo está.
     isEmpty: !state.isLoading && !state.loadErrorMessage && rows.length === 0,

@@ -3,6 +3,7 @@
 import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Modal, Spinner } from "@/components/ui";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
+import { ShoppingListAllChecked } from "./components/ShoppingListAllChecked";
 import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
@@ -75,13 +76,10 @@ export const ShoppingList = (): React.JSX.Element => {
 
       {viewModel.isLoading ? <Spinner /> : null}
       {viewModel.isEmpty ? <ShoppingListEmptyState /> : null}
-      {viewModel.hasPendingRows ? (
+      {viewModel.hasItems ? (
         <ShoppingListSection title={SHOPPING_LIST_TEXT.PENDING_SECTION}>
-          {viewModel.pendingRows.map(renderRow)}
+          {viewModel.isAllChecked ? <ShoppingListAllChecked /> : viewModel.pendingRows.map(renderRow)}
         </ShoppingListSection>
-      ) : null}
-      {viewModel.isAllChecked ? (
-        <p className="font-body text-sm text-tacha-textsec">{SHOPPING_LIST_TEXT.ALL_CHECKED}</p>
       ) : null}
       {viewModel.hasCheckedRows ? (
         <ShoppingListSection title={SHOPPING_LIST_TEXT.CHECKED_SECTION}>
