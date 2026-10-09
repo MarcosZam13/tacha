@@ -249,7 +249,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - Botón "Ver qué falta" en cada tarjeta, junto a "Agregar receta a lista". Con el panel abierto dice "Ocultar qué falta".
 - Panel dentro de la tarjeta, debajo de las acciones: resumen ("Te faltan 2 de 4 ingredientes" / "Tienes todo para cocinarla") y una lista de ingredientes.
 - Cada ingrediente: nombre, cantidad con unidad (`formatRecipeQuantity`, ej. "800 ml"), y una etiqueta **Cubierto** o **Falta**. Si falta, el motivo en texto: "No está en tu lista", "En tu lista, sin tachar" o "Te falta comprar 600 ml".
-- El estado se distingue por **texto y forma**, no solo por color.
+- El estado se distingue por **texto**, no solo por color.
 - "Cargando…" al abrir; mensaje de error con "Reintentar".
 
 ## 9. Accesibilidad
@@ -261,7 +261,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - El resumen y el error de agregar se anuncian solos (`role="status"` y `role="alert"`), porque aparecen sin que cambie la página.
 - "Ver qué falta" es un botón con `aria-expanded` y `aria-controls` del panel, y nombra la receta para el lector de pantalla (como "Eliminar", hay uno por tarjeta).
 - El panel anuncia los cambios con `role="status"` y `aria-live="polite"`: cuando tachas algo en otra pestaña, el lector oye el resumen nuevo, no toda la lista. El error va en `role="alert"`.
-- El estado de cada ingrediente es texto ("Cubierto" / "Falta"), con un ícono decorativo (`aria-hidden`).
+- El estado de cada ingrediente es texto ("Cubierto" / "Falta") dentro de un chip; el color solo refuerza.
 - El marcador de la foto es decorativo (`aria-hidden`); la foto real lleva el nombre de la receta como `alt`.
 
 ## 10. Restricciones técnicas
@@ -401,7 +401,7 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
 - [ ] Falla de red al abrir: mensaje de error con "Reintentar", sin decir "Tienes todo".
 - [ ] Cerrar el panel cancela la suscripción (no hay canal abierto después; se ve en la pestaña Network de DevTools).
 - [ ] Otra sesión no ve el estado de una receta ajena (`P0002`) ni recibe eventos de `list_items` ajenos (SQL con `role authenticated` y Realtime con dos sesiones).
-- [ ] Doble clic en "Ver qué falta": se abre una sola vez y una sola petición.
+- [ ] Doble clic en "Ver qué falta": abre y cierra (es el mismo botón); no queda ninguna petición ni canal de Realtime abierto.
 
 ### Todas
 

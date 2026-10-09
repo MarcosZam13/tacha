@@ -18,6 +18,7 @@ export const RecipeCatalog = (): React.JSX.Element => {
   const viewModel = useRecipeCatalogViewModel();
   const { onDeleteRequest, ...deleteDialog } = viewModel.deletion;
   const { getRecipeAddToList, onAddRequest, ...repeatAddDialog } = viewModel.listAddition;
+  const { getRecipeCoverage, onCoverageRetry, onCoverageToggle } = viewModel.coverage;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
@@ -46,7 +47,10 @@ export const RecipeCatalog = (): React.JSX.Element => {
             <RecipeCard
               key={recipe.id}
               addToList={getRecipeAddToList(recipe.id)}
+              coverage={getRecipeCoverage(recipe.id)}
               onAddToListRequest={onAddRequest}
+              onCoverageRetry={onCoverageRetry}
+              onCoverageToggle={onCoverageToggle}
               onDeleteRequest={onDeleteRequest}
               recipe={recipe}
             />
