@@ -69,4 +69,12 @@ describe("usePurchaseSession", () => {
 
     expect(router.push).toHaveBeenCalledWith(APP_ROUTE.LIST);
   });
+
+  it("leaves shopping mode with a load error when the purchase cannot be read", async () => {
+    getPurchaseSessionMock.mockRejectedValue(new Error("network"));
+    const { result } = renderAtUrl(`compra=${SESSION.id}`);
+
+    await waitFor(() => expect(result.current.sessionNoticeMessage).toBe(PURCHASE_SESSION_TEXT.SESSION_LOAD_ERROR));
+    expect(router.replace).toHaveBeenCalledWith(APP_ROUTE.LIST);
+  });
 });

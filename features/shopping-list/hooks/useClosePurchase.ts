@@ -26,11 +26,26 @@ interface UseClosePurchaseReturn {
   totalText: string;
 }
 
-/** El modo del panel junto con la compra a la que pertenece: otra compra arranca en AUTO. */
+/**
+ * El panel y su formulario, junto con la compra a la que pertenecen. Al
+ * cambiar de compra todo vuelve al inicio (AUTO, sin texto ni errores): un
+ * error o un total de otra compra nunca aparece en esta.
+ */
 interface ClosePanelState {
+  closeErrorMessage: NullableRef<string>;
   mode: ClosePanelModeType;
   sessionId: NullableRef<string>;
+  totalErrorMessage: NullableRef<string>;
+  totalText: string;
 }
+
+const createInitialPanel = (sessionId: NullableRef<string>): ClosePanelState => ({
+  closeErrorMessage: null,
+  mode: CLOSE_PANEL_MODE.AUTO,
+  sessionId,
+  totalErrorMessage: null,
+  totalText: "",
+});
 
 /**
  * Panel "Cerrar compra": se ve solo cuando no queda nada pendiente o cuando
@@ -38,60 +53,57 @@ interface ClosePanelState {
  * Cerrar valida el total (opcional) y lo guarda con la compra.
  */
 export const useClosePurchase = ({ isAllChecked, onClosed, sessionId }: UseClosePurchaseParams): UseClosePurchaseReturn => {
-  const [panel, setPanel] = useState<ClosePanelState>({ mode: CLOSE_PANEL_MODE.AUTO, sessionId: null });
-  const [totalText, setTotalText] = useState("");
-  const [totalErrorMessage, setTotalErrorMessage] = useState<NullableRef<string>>(null);
-  const [closeErrorMessage, setCloseErrorMessage] = useState<NullableRef<string>>(null);
+  const [storedPanel, setStoredPanel] = useState<ClosePanelState>(() => createInitialPanel(null));
   const [isClosing, setIsClosing] = useState(false);
 
-  // Derivado: si destachan algo con el panel automático abierto, se va solo.
-  const mode = panel.sessionId === sessionId ? panel.mode : CLOSE_PANEL_MODE.AUTO;
+  // Derivado: lo guardado solo vale para su compra; otra compra arranca de cero.
+  const panel = storedPanel.sessionId === sessionId ? storedPanel : createInitialPanel(sessionId);
+  // Si destachan algo con el panel automático abierto, se va solo.
   const isVisible =
     sessionId !== null &&
-    (mode === CLOSE_PANEL_MODE.REQUESTED || (mode === CLOSE_PANEL_MODE.AUTO && isAllChecked));
+    (panel.mode === CLOSE_PANEL_MODE.REQUESTED || (panel.mode === CLOSE_PANEL_MODE.AUTO && isAllChecked));
 
   const request = (): void => {
-    setPanel({ mode: CLOSE_PANEL_MODE.REQUESTED, sessionId });
+    setStoredPanel({ ...panel, mode: CLOSE_PANEL_MODE.REQUESTED });
   };
 
   const dismiss = (): void => {
-    setPanel({ mode: CLOSE_PANEL_MODE.DISMISSED, sessionId });
+    setStoredPanel({ ...panel, mode: CLOSE_PANEL_MODE.DISMISSED });
   };
 
   const onTotalChange = (text: string): void => {
-    setTotalText(text);
-    setTotalErrorMessage(null);
+    setStoredPanel({ ...panel, totalErrorMessage: null, totalText: text });
   };
 
   const submit = async (): Promise<void> => {
     if (!sessionId) return;
-    const parsed = parseSpentTotal(totalText);
+    const parsed = parseSpentTotal(panel.totalText);
     if (!parsed.isValid) {
-      setTotalErrorMessage(PURCHASE_SESSION_TEXT.TOTAL_ERROR);
+      setStoredPanel({ ...panel, totalErrorMessage: PURCHASE_SESSION_TEXT.TOTAL_ERROR });
       return;
     }
     setIsClosing(true);
-    setCloseErrorMessage(null);
+    setStoredPanel({ ...panel, closeErrorMessage: null });
     try {
       await closePurchaseSession(sessionId, parsed.total);
-      setTotalText("");
+      setStoredPanel(createInitialPanel(null));
       onClosed();
     } catch {
-      setCloseErrorMessage(PURCHASE_SESSION_TEXT.CLOSE_ERROR);
+      setStoredPanel({ ...panel, closeErrorMessage: PURCHASE_SESSION_TEXT.CLOSE_ERROR });
     } finally {
       setIsClosing(false);
     }
   };
 
   return {
-    closeErrorMessage,
+    closeErrorMessage: panel.closeErrorMessage,
     dismiss,
     isClosing,
     isVisible,
     onTotalChange,
     request,
     submit,
-    totalErrorMessage,
-    totalText,
+    totalErrorMessage: panel.totalErrorMessage,
+    totalText: panel.totalText,
   };
 };

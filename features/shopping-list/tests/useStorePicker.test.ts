@@ -60,4 +60,18 @@ describe("useStorePicker", () => {
     expect(result.current.isOpen).toBe(true);
     expect(result.current.errorMessage).toBe(PURCHASE_SESSION_TEXT.START_ERROR);
   });
+
+  it("shows an error when the stores cannot load, and tries again when reopened", async () => {
+    getStoresMock.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce(STORES);
+    const { result } = renderHook(() => useStorePicker({ onStarted: vi.fn() }));
+
+    act(() => result.current.open());
+    await waitFor(() => expect(result.current.errorMessage).toBe(PURCHASE_SESSION_TEXT.STORES_ERROR));
+    expect(result.current.isLoadingStores).toBe(false);
+
+    act(() => result.current.close());
+    act(() => result.current.open());
+    await waitFor(() => expect(result.current.stores).toEqual(STORES));
+    expect(result.current.errorMessage).toBeNull();
+  });
 });

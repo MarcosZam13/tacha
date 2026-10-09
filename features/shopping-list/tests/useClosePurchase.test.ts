@@ -97,4 +97,19 @@ describe("useClosePurchase: closing", () => {
     expect(result.current.closeErrorMessage).toBe(PURCHASE_SESSION_TEXT.CLOSE_ERROR);
     expect(result.current.isVisible).toBe(true);
   });
+
+  it("starts clean for another purchase: suggested again, no old total or error", async () => {
+    closePurchaseSessionMock.mockRejectedValue(new Error("network"));
+    const { result, rerender } = renderPanel({ isAllChecked: true, sessionId: SESSION_ID });
+    act(() => result.current.onTotalChange("12500"));
+    await act(async () => result.current.submit());
+    act(() => result.current.dismiss());
+    expect(result.current.isVisible).toBe(false);
+
+    rerender({ isAllChecked: true, sessionId: "session-masxmenos" });
+
+    expect(result.current.isVisible).toBe(true);
+    expect(result.current.totalText).toBe("");
+    expect(result.current.closeErrorMessage).toBeNull();
+  });
 });
