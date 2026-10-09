@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import type { HouseholdInviteLinkCardProps } from "../components/models/HouseholdInviteLinkCardProps.interface";
+import type { HouseholdJoinFormProps } from "../components/models/HouseholdJoinFormProps.interface";
 import {
   HOUSEHOLD_FORM_ERROR,
   HOUSEHOLD_FORM_LIMIT,
@@ -11,6 +12,7 @@ import {
 } from "../constants/household.constants";
 import { createHousehold, getHouseholdMembership, hasRegisteredSession } from "../services/household.service";
 import { useHouseholdInvite } from "./useHouseholdInvite";
+import { useHouseholdJoinForm } from "./useHouseholdJoinForm";
 
 /** Unión discriminada por `status`: la pantalla está en uno solo de estos estados. */
 type HouseholdScreenState =
@@ -43,6 +45,8 @@ interface UseHouseholdViewModelReturn {
   invite: HouseholdInviteSection;
   isCreating: boolean;
   isLoading: boolean;
+  /** "Unirme con una invitación": props del formulario, ya armadas. */
+  join: HouseholdJoinFormProps;
   name: string;
   nameError: NullableUndefined<string>;
   onCreateSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -90,7 +94,8 @@ const getScreenErrorMessage = (
 /**
  * Facade de la pantalla "Mi familia": resuelve qué ve el usuario (sin
  * cuenta, sin household, miembro o admin), maneja el formulario para crear
- * el household y le pasa a useHouseholdInvite si es admin. Le entrega a
+ * el household, compone useHouseholdJoinForm ("Unirme con una invitación")
+ * y le pasa a useHouseholdInvite si es admin. Le entrega a
  * Household.tsx exactamente lo que dibuja.
  */
 export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
@@ -101,6 +106,7 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   const [hasCreateFailed, setHasCreateFailed] = useState<boolean>(false);
 
   const householdInvite = useHouseholdInvite(state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN);
+  const joinForm = useHouseholdJoinForm();
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -206,6 +212,7 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
     },
     isCreating: state.status === HOUSEHOLD_SCREEN_STATUS.CREATING,
     isLoading: state.status === HOUSEHOLD_SCREEN_STATUS.LOADING,
+    join: joinForm,
     name,
     nameError,
     onCreateSubmit,

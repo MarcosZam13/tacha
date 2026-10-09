@@ -1,10 +1,9 @@
 import type { NullableUndefined } from "@/types/nullable.types";
-import { EMAIL_PATTERN } from "@/constants";
+import { EMAIL_PATTERN, PASSWORD_MIN_LENGTH } from "@/constants";
 import { normalizeEmail } from "@/utils/email.utils";
 import {
   REGISTRO_ERROR_MESSAGE,
   REGISTRO_FIELD,
-  REGISTRO_PASSWORD_MIN_LENGTH,
 } from "../constants/registro.constants";
 import type {
   RegistroFormErrors,
@@ -31,7 +30,7 @@ export const validateEmail = (email: string): NullableUndefined<string> =>
 const validatePassword = (password: string): NullableUndefined<string> =>
   password.length === 0
     ? REGISTRO_ERROR_MESSAGE.PASSWORD_REQUIRED
-    : password.length < REGISTRO_PASSWORD_MIN_LENGTH
+    : password.length < PASSWORD_MIN_LENGTH
       ? REGISTRO_ERROR_MESSAGE.PASSWORD_TOO_SHORT
       : undefined;
 

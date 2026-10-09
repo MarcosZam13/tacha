@@ -38,11 +38,11 @@ Actuar como ingeniero senior Next.js/React/TypeScript. Nunca volver a patrones j
 ```
 app/              Solo rutas: page.tsx, layout.tsx, grupos (debug)/ y (demo)/
 features/         Una carpeta por feature/historia con todo lo suyo (component-architecture)
-components/       Solo lo compartido entre features: ui/ con los primitivos
+components/       Solo lo compartido entre features: ui/ con los primitivos; app-shell/ (navegación de las rutas privadas)
 constants/        Constantes por dominio + barrel constants/index.ts
 types/            Tipos compartidos entre features
 e2e/              Pruebas de punta a punta con Playwright: features/<feature>/, support/, smoke/ (playwright-e2e)
-supabase/         schema.sql, migrations/ (solo .sql), functions/ (Edge Functions, Deno)
+supabase/         schema.sql, migrations/ (solo .sql), tests/ (pruebas SQL de migraciones), functions/ (Edge Functions, Deno)
 docs/             Documento de proyecto, historias de usuario, sprints, diseño, docs por módulo
 .agents/skills/   Skills de este archivo
 .claude/agents/   Subagentes de revisión

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Public_Sans } from "next/font/google";
 import "./globals.css";
+import { SessionGuard } from "@/features/session-guard/SessionGuard";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -26,7 +27,7 @@ interface RootLayoutProps {
 const RootLayout = ({ children }: RootLayoutProps): React.JSX.Element => (
   <html lang="es">
     <body className={`${fraunces.variable} ${publicSans.variable} antialiased`}>
-      {children}
+      <SessionGuard>{children}</SessionGuard>
     </body>
   </html>
 );

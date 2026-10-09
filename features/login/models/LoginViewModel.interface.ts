@@ -8,9 +8,11 @@ export interface LoginViewModel {
   errors: LoginFormErrors;
   handleCaptchaTokenChange: (token: NullableUndefined<string>) => void;
   handleChange: (field: LoginFieldType) => (value: string) => void;
+  handleContinue: () => void;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   isSubmitDisabled: boolean;
   isSubmitting: boolean;
+  isWeakPassword: boolean;
   submitError: NullableUndefined<string>;
   values: LoginFormValues;
 }

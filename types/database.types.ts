@@ -162,8 +162,55 @@ export type Database = {
         }
         Relationships: []
       }
+      list_item_recipe_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          list_item_id: string
+          quantity_missing: number
+          quantity_needed: number
+          quantity_unit: string
+          recipe_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_item_id: string
+          quantity_missing: number
+          quantity_needed: number
+          quantity_unit: string
+          recipe_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_item_id?: string
+          quantity_missing?: number
+          quantity_needed?: number
+          quantity_unit?: string
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_item_recipe_requirements_list_item_id_fkey"
+            columns: ["list_item_id"]
+            isOneToOne: false
+            referencedRelation: "list_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_item_recipe_requirements_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
+          checked_at: string | null
+          checked_by: string | null
           created_at: string
           id: string
           list_id: string
@@ -171,6 +218,8 @@ export type Database = {
           quantity_requested: number
         }
         Insert: {
+          checked_at?: string | null
+          checked_by?: string | null
           created_at?: string
           id?: string
           list_id: string
@@ -178,6 +227,8 @@ export type Database = {
           quantity_requested?: number
         }
         Update: {
+          checked_at?: string | null
+          checked_by?: string | null
           created_at?: string
           id?: string
           list_id?: string
@@ -654,9 +705,12 @@ export type Database = {
       }
     }
     Functions: {
+      accept_household_invite: { Args: { invite_token: string }; Returns: string }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
+          checked_at: string | null
+          checked_by: string | null
           created_at: string
           id: string
           list_id: string
@@ -670,9 +724,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      add_recipe_to_general_list: {
+        Args: { target_recipe_id: string }
+        Returns: Json
+      }
+      add_units_to_list_item: {
+        Args: {
+          target_list_id: string
+          target_variant_id: string
+          units_to_add: number
+        }
+        Returns: string
+      }
       change_item_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
+          checked_at: string | null
+          checked_by: string | null
           created_at: string
           id: string
           list_id: string
@@ -738,6 +806,17 @@ export type Database = {
           base_unit: string
         }[]
       }
+      pick_recipe_variant: {
+        Args: {
+          needed_quantity: number
+          target_product_id: string
+          target_unit: string
+        }
+        Returns: {
+          base_quantity: number
+          variant_id: string
+        }[]
+      }
       save_recipe: {
         Args: {
           ingredient_list: Json
@@ -755,6 +834,24 @@ export type Database = {
           product_catalog_id: string
           variants: Json
         }[]
+      }
+      set_list_item_checked: {
+        Args: { is_checked: boolean; target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

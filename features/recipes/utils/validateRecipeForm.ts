@@ -40,14 +40,22 @@ const validateQuantities = (ingredients: RecipeEditorIngredient[]): Record<strin
       .map((ingredient) => [ingredient.productId, RECIPE_FORM_ERROR.QUANTITY_INVALID]),
   );
 
+// Entre 1 y el tope: sin ingredientes no hay receta, y con demasiados agregarla
+// a la lista se vuelve caro (save_recipe aplica el mismo tope).
+const validateIngredientCount = (ingredients: RecipeEditorIngredient[]): NullableUndefined<string> => {
+  if (ingredients.length === 0) return RECIPE_FORM_ERROR.INGREDIENTS_REQUIRED;
+  if (ingredients.length > RECIPE_FORM_LIMIT.INGREDIENTS_MAX) return RECIPE_FORM_ERROR.INGREDIENTS_TOO_MANY;
+  return undefined;
+};
+
 /**
  * Valida todo el formulario. Las mismas reglas están en los check de la base
- * (006 y 008): acá es para avisar antes de mandar, allá es la garantía, aunque
- * alguien llame a la API sin pasar por este formulario.
+ * (006, 008 y save_recipe en 013): acá es para avisar antes de mandar, allá es
+ * la garantía, aunque alguien llame a la API sin pasar por este formulario.
  */
 export const validateRecipeForm = (values: RecipeEditorValues): RecipeEditorErrors => ({
   baseServings: validateBaseServings(values.baseServings),
-  ingredients: values.ingredients.length === 0 ? RECIPE_FORM_ERROR.INGREDIENTS_REQUIRED : undefined,
+  ingredients: validateIngredientCount(values.ingredients),
   name: validateName(values.name),
   quantityByProductId: validateQuantities(values.ingredients),
 });

@@ -1,7 +1,10 @@
-// Constantes de la feature household (SCRUM-56): crear el household y su link
-// de invitación. Viven dentro de la feature porque ninguna otra las usa
-// todavía; se promueven a constants/ con el segundo consumidor. No confundir
-// con constants/household.constants.ts (preferencias de tiendas).
+import { APP_ROUTE } from "@/constants";
+
+// Constantes de la feature household: crear el household y su link de
+// invitación (SCRUM-56) y unirse con ese link (SCRUM-57). Viven dentro de la
+// feature porque ninguna otra las usa todavía; se promueven a constants/ con
+// el segundo consumidor. No confundir con constants/household.constants.ts
+// (preferencias de tiendas).
 
 // Roles de household_members: el mismo dominio que el check de la migración 011.
 export const HOUSEHOLD_ROLE = {
@@ -22,6 +25,8 @@ export const HOUSEHOLD_DB = {
   // types/database.types.ts las valida al compilar.
   MEMBERSHIP_SELECT: "role, households(name)",
   RPC: {
+    // Migración 014 (contrato en specs/SPEC.md §12).
+    ACCEPT_HOUSEHOLD_INVITE: "accept_household_invite",
     CREATE_HOUSEHOLD: "create_household",
     CREATE_HOUSEHOLD_INVITE: "create_household_invite",
     GET_HOUSEHOLD_INVITE: "get_household_invite",
@@ -73,10 +78,27 @@ export const HOUSEHOLD_INVITE_TIME_MS = {
   COPY_FEEDBACK: 2_000,
 } as const;
 
+// Rutas propias de la feature. /login va acá y no se importa de features/login
+// para no acoplar una feature a otra por una constante (como LANDING_ROUTE).
 export const HOUSEHOLD_ROUTE = {
-  // Base del link que va a abrir HU-34 (SCRUM-57) con app/invitacion/[token].
-  // Esa página NO es parte de esta historia: HU-33 solo arma el link.
+  HOUSEHOLD: APP_ROUTE.HOUSEHOLD,
+  // Base del link: SCRUM-56 lo arma y SCRUM-57 lo abre con app/invitacion/[token].
   INVITATION: "/invitacion",
+  LOGIN: "/login",
+} as const;
+
+// Un UUID 8-4-4-4-12 en hexadecimal, como los que genera gen_random_uuid().
+// No exige una versión de UUID: la base tampoco la exige.
+const INVITE_TOKEN_SOURCE = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+// Para reconocer el token en lo que pega el usuario (solo UX: la base lo
+// vuelve a validar). "i": se aceptan mayúsculas.
+export const HOUSEHOLD_INVITE_TOKEN_PATTERN = {
+  // El texto completo es el código.
+  CODE: new RegExp(`^${INVITE_TOKEN_SOURCE}$`, "i"),
+  // Un enlace con /invitacion/<token>, seguido de fin, "/", "?" o "#".
+  // Sin exigir protocolo ni dominio: cambian entre localhost y producción.
+  LINK: new RegExp(`${HOUSEHOLD_ROUTE.INVITATION}/(${INVITE_TOKEN_SOURCE})(?:[/?#]|$)`, "i"),
 } as const;
 
 // Cómo se muestra la fecha de vencimiento ("8 de octubre de 2026 a las 10:01 p. m.").
@@ -127,4 +149,73 @@ export const HOUSEHOLD_INVITE_TEXT = {
   // Regenerar reemplaza el token en la base: el anterior ya no existe.
   REPLACED: "Generaste un enlace nuevo. El anterior dejó de funcionar.",
   SECTION_TITLE: "Invitar a mi familia",
+} as const;
+
+// Lo que responde accept_household_invite (contrato en specs/SPEC.md §12).
+// Los valores los decide la base; acá solo se nombran.
+export const HOUSEHOLD_JOIN_RESULT = {
+  ALREADY_MEMBER: "already_member",
+  EXPIRED: "expired",
+  IN_OTHER_HOUSEHOLD: "in_other_household",
+  INVALID: "invalid",
+  JOINED: "joined",
+} as const;
+
+export type HouseholdJoinResultType = (typeof HOUSEHOLD_JOIN_RESULT)[keyof typeof HOUSEHOLD_JOIN_RESULT];
+
+// Estados de la página de invitación (unión en hooks/useHouseholdInvitationViewModel.ts).
+export const HOUSEHOLD_JOIN_STATUS = {
+  ALREADY_MEMBER: "alreadyMember",
+  CHECKING: "checking",
+  EXPIRED: "expired",
+  FAILED: "failed",
+  IN_OTHER_HOUSEHOLD: "inOtherHousehold",
+  INVALID: "invalid",
+  JOINED: "joined",
+  JOINING: "joining",
+  LOAD_FAILED: "loadFailed",
+  NO_ACCOUNT: "noAccount",
+  READY: "ready",
+} as const;
+
+export type HouseholdJoinStatusType = (typeof HOUSEHOLD_JOIN_STATUS)[keyof typeof HOUSEHOLD_JOIN_STATUS];
+
+// Cada resultado de la base corresponde a un estado de la página.
+export const HOUSEHOLD_JOIN_RESULT_STATUS: Record<HouseholdJoinResultType, HouseholdJoinStatusType> = {
+  [HOUSEHOLD_JOIN_RESULT.ALREADY_MEMBER]: HOUSEHOLD_JOIN_STATUS.ALREADY_MEMBER,
+  [HOUSEHOLD_JOIN_RESULT.EXPIRED]: HOUSEHOLD_JOIN_STATUS.EXPIRED,
+  [HOUSEHOLD_JOIN_RESULT.IN_OTHER_HOUSEHOLD]: HOUSEHOLD_JOIN_STATUS.IN_OTHER_HOUSEHOLD,
+  [HOUSEHOLD_JOIN_RESULT.INVALID]: HOUSEHOLD_JOIN_STATUS.INVALID,
+  [HOUSEHOLD_JOIN_RESULT.JOINED]: HOUSEHOLD_JOIN_STATUS.JOINED,
+};
+
+export const HOUSEHOLD_JOIN_TEXT = {
+  ALREADY_MEMBER: "Ya eres parte de esta familia.",
+  DESCRIPTION: "Te invitaron a unirte a una familia en Tacha. Al unirte vas a compartir listas con ella.",
+  EXPIRED: "Este enlace de invitación venció. Pídele uno nuevo a quien te invitó.",
+  FAILED: "No se pudo completar la unión. Intenta de nuevo.",
+  GO_TO_HOUSEHOLD: "Ir a mi familia",
+  IN_OTHER_HOUSEHOLD: "Ya perteneces a una familia. Para unirte a otra, primero tienes que salir de la tuya.",
+  INVALID: "Este enlace de invitación no es válido. Revisa que esté completo o pide uno nuevo.",
+  JOIN: "Unirme",
+  JOINED: "¡Listo! Ya eres parte de la familia.",
+  JOINING: "Uniéndote…",
+  // Sin botón de reintento: la salida es recargar la página (igual que SCRUM-56).
+  LOAD_ERROR: "No se pudo comprobar tu sesión. Recarga la página para intentarlo de nuevo.",
+  LOGIN: "Iniciar sesión",
+  NO_ACCOUNT:
+    "Necesitas una cuenta registrada para unirte a una familia. Inicia sesión y después vuelve a abrir este enlace.",
+  TITLE: "Invitación a una familia",
+} as const;
+
+export const HOUSEHOLD_JOIN_FORM_TEXT = {
+  DESCRIPTION: "Pega el enlace o el código que te compartieron.",
+  INPUT_LABEL: "Enlace o código de invitación",
+  SUBMIT: "Continuar",
+  TITLE: "Unirme con una invitación",
+} as const;
+
+export const HOUSEHOLD_JOIN_FORM_ERROR = {
+  INVALID: "Ese enlace o código no es válido. Revisa que esté completo.",
+  REQUIRED: "Pega el enlace o el código de invitación.",
 } as const;

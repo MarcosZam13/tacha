@@ -11,7 +11,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 5. Utils puros: `toRecipeSummary`, `formatServings`.
 - [x] 6. Servicio `recipes.service.ts`: `getRecipeSummaries()`.
 - [x] 7. `useRecipeCatalogViewModel`: carga inicial con bandera de cancelación, estado derivado.
-- [x] 8. Presentación: `RecipesTabs`, `RecipeCard`, `RecipeCatalogEmptyState`, `RecipeCatalog`, ruta `app/recetas/page.tsx`.
+- [x] 8. Presentación: `RecipesTabs`, `RecipeCard`, `RecipeCatalogEmptyState`, `RecipeCatalog`, ruta `app/(app)/recetas/page.tsx`.
 - [x] 9. Seed `supabase/seed-demo-recipes.sql` y `docs/documento-proyecto.md` §6.
 - [x] 10. Validar CA-01 y CA-02 en el navegador (con y sin recetas, y con otra sesión); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
@@ -25,6 +25,7 @@ Bloqueado / pendiente de decisión del equipo:
 - [ ] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
 - [ ] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
 - [ ] Tests de `hooks/useRecipeDeletion.ts` y de tarjeta + diálogo con Page Object (SCRUM-96).
+- [ ] Tests de `utils/toAddRecipeToListResponse.ts`, `utils/toAddToListSummaryText.ts` y `hooks/useRecipeListAddition.ts` (SCRUM-97).
 
 ## SCRUM-95: crear o editar una receta
 
@@ -35,7 +36,7 @@ Bloqueado / pendiente de decisión del equipo:
 - [x] 5. Utils puros: `getDefaultUnit`, `validateRecipeForm` (+ `normalizeDecimal`, `hasRecipeFormErrors`), `getRecipeEditPath`, `toSaveRecipePayload`, `toRecipeEditorValues`, `recipe-editor.reducer`.
 - [x] 6. Servicio: `getRecipeForEditing()` (con "no encontrada" para id inexistente, ajeno o inválido) y `saveRecipe()`.
 - [x] 7. `useRecipeEditor` (reducer + carga para editar con bandera de cancelación + guardar) y `useRecipeEditorViewModel` (facade con `useProductSearch` y navegación).
-- [x] 8. Presentación: `RecipeBasicsFields`, `RecipeIngredientRow`, `RecipeIngredientsField`, `RecipeEditorActions`, `RecipeEditor`; rutas `app/recetas/nueva/page.tsx` y `app/recetas/[id]/editar/page.tsx`.
+- [x] 8. Presentación: `RecipeBasicsFields`, `RecipeIngredientRow`, `RecipeIngredientsField`, `RecipeEditorActions`, `RecipeEditor`; rutas `app/(app)/recetas/nueva/page.tsx` y `app/(app)/recetas/[id]/editar/page.tsx`.
 - [x] 9. Catálogo: link "+ Nueva receta" en `RecipeCatalog` y "Editar" en `RecipeCard`.
 - [x] 10. Validar CA-01..04 en el navegador (crear, editar, casos límite de la SPEC, receta ajena por URL) y con otra sesión; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
@@ -62,3 +63,24 @@ Bloqueado / fuera de esta historia:
 
 - [ ] CA-02 (aviso por asignaciones en el plan semanal): lo cierra SCRUM-100 al crear `meal_plans` (contrato en SPEC §15).
 - [ ] Borrado por miembros del household (integración con households).
+
+## SCRUM-97: agregar una receta a la lista
+
+- [x] 1. SPEC (huecos de HU-65 decididos con el responsable; CA-04 redefinido con Marcos).
+- [x] 2. Plan y tareas.
+- [x] 3. Migración `013_add_recipe_to_list.sql`: tabla `list_item_recipe_requirements` (checks, `unique`, índice, RLS, permisos) y RPC `add_recipe_to_general_list` con las reglas 17 a 26.
+- [x] 4. Aplicar `013` en Supabase (SQL Editor), regenerar `types/database.types.ts` y probar la RPC en el SQL Editor con los casos de §13 (conteo, alcanza, no alcanza, dos recetas sobre la misma leche, producto que no está, unidades distintas, sin presentación, receta ajena). Bloquea la validación de la tarea 10, no el código del cliente.
+- [x] 5. Constantes: estados de agregar, textos, RPC y clave de `localStorage`.
+- [x] 6. Modelos en `models/recipe-list-addition.interfaces.ts` y `models/recipe-list-addition.types.ts`.
+- [x] 7. Servicios: `addRecipeToList()` en `recipes.service.ts` (con `toAddRecipeToListResponse` y `P0002` → `null`) y `added-recipes.storage.ts`.
+- [x] 8. Hooks: `useRecipeListAddition` (pedir, confirmar o cancelar la repetición, agregar, doble clic) y su composición en `useRecipeCatalogViewModel` (+ `listAddition` en `RecipeCatalogViewModel`, en el mismo commit para que compile). Incluye `toAddToListSummaryText`, que estaba en la tarea 9: el hook arma el resumen.
+- [x] 9. Presentación: botón en `RecipeCard`, `RecipeAddToListResult`, `RecipeRepeatAddDialog` y la conexión en `RecipeCatalog`.
+- [x] 10. `docs/documento-proyecto.md`: §4.9.1 (reglas de conteo y de producto que no está en la lista) y §6 (tabla nueva).
+- [x] 11. `npx tsc --noEmit`, `npm run lint` y `npm run build`.
+- [x] 12. Validar en el navegador los casos de §13 de HU-65 y, en el SQL Editor, los registros que quedan en `list_item_recipe_requirements` y la RLS con otra sesión. Depende de la tarea 4.
+- [x] 13. Revisión con `code-reviewer` y `security-reviewer` (tabla nueva con RLS), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Mostrar el faltante bajo el producto en `/lista`: SCRUM-114 (toca `features/shopping-list/`, con revisión de Marcos).
+- [ ] Resolver el faltante al tachar: SCRUM-115 (se engancha en tachar, SCRUM-66).

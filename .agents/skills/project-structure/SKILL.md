@@ -18,11 +18,11 @@ tacha/
 ├── app/            Solo rutas: grupos (debug)/, (demo)/, page.tsx, layout.tsx,
 │                   loading/error/not-found, route handlers, globals.css, favicon
 ├── features/       Una carpeta por feature, con todo lo que solo usa esa feature (ver component-architecture)
-├── components/     Solo lo compartido entre features: ui/ con los primitivos
+├── components/     Solo lo compartido entre features: ui/ con los primitivos; app-shell/ (navegación de las rutas privadas)
 ├── constants/      Constantes por dominio + barrel constants/index.ts (ver constants-standards)
 ├── types/          Tipos compartidos entre features
 ├── docs/           Documento de proyecto, historias de usuario, sprints, docs por módulo
-├── supabase/       schema.sql, migrations/ (solo .sql), functions/ (Edge Functions, Deno)
+├── supabase/       schema.sql, migrations/ (solo .sql), tests/ (pruebas SQL de migraciones), functions/ (Edge Functions, Deno)
 ├── public/         Assets estáticos
 ├── .agents/skills/ Skills de este repo (el catálogo está en AGENTS.md)
 ├── .claude/agents/ Subagentes de revisión (code-reviewer, security-reviewer, qa-checker)
@@ -30,6 +30,10 @@ tacha/
 ```
 
 Cuando haga falta, se agregan al mismo nivel: `services/` (llamadas a Supabase/APIs), `hooks/` (hooks usados por 2+ features), `providers/` (providers globales, ej. sesión), `store/`, `utils/`, `e2e/` (pruebas de punta a punta con Playwright, ver `playwright-e2e`). Crearlas solo cuando exista el primer archivo real, no por adelantado.
+
+### `components/app-shell/`: la única excepción con ViewModel y specs
+
+El shell de navegación (sidebar / tabs, SCRUM-135) vive en `components/app-shell/` aunque tiene ViewModel, `specs/` y tests como una feature. Es una excepción decidida el 2026-10-08: no es una pantalla, no lo usa ninguna feature sino el layout del grupo `app/(app)/`, y envuelve a todas las pantallas privadas. No es precedente: una pantalla o un flujo nuevo sigue yendo en `features/<feature>/`, y `components/` sigue siendo para piezas compartidas entre features.
 
 ### Qué se permite dentro de `app/`
 

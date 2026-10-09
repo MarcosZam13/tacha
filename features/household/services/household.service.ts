@@ -2,8 +2,8 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "@/services/supabase.client";
 import type { Database } from "@/types/database.types";
 import type { NullableRef } from "@/types/nullable.types";
-import { HOUSEHOLD_DB, HOUSEHOLD_ROUTE } from "../constants/household.constants";
-import type { HouseholdRoleType } from "../constants/household.constants";
+import { HOUSEHOLD_DB, HOUSEHOLD_JOIN_RESULT, HOUSEHOLD_ROUTE } from "../constants/household.constants";
+import type { HouseholdJoinResultType, HouseholdRoleType } from "../constants/household.constants";
 import type { HouseholdInvite } from "../models/HouseholdInvite.interface";
 import type { HouseholdMembership } from "../models/HouseholdMembership.interface";
 
@@ -103,4 +103,35 @@ export const createHouseholdInvite = async (): Promise<HouseholdInvite> => {
   if (!inviteRow) throw new Error(`${HOUSEHOLD_DB.RPC.CREATE_HOUSEHOLD_INVITE} no devolvió el enlace`);
 
   return toHouseholdInvite(inviteRow);
+};
+
+// Los únicos resultados que puede devolver accept_household_invite (migración 014).
+const HOUSEHOLD_JOIN_RESULT_VALUES: readonly string[] = Object.values(HOUSEHOLD_JOIN_RESULT);
+
+// La RPC devuelve text (string en los tipos): se acota a los 5 valores del
+// contrato en vez de confiar en un `as`.
+const isHouseholdJoinResult = (joinResult: string): joinResult is HouseholdJoinResultType =>
+  HOUSEHOLD_JOIN_RESULT_VALUES.includes(joinResult);
+
+/**
+ * Une al usuario actual a la familia del enlace con ese token. El cliente solo
+ * manda el token: quién se une, a qué familia y con qué rol lo decide la base
+ * (accept_household_invite, contrato en specs/SPEC.md §12). Sin cuenta
+ * registrada, la base responde con error (42501).
+ *
+ * Los errores no llevan el token ni lo que devolvió la base: el token es la
+ * llave de la invitación y no debe terminar en un log.
+ */
+export const acceptHouseholdInvite = async (inviteToken: string): Promise<HouseholdJoinResultType> => {
+  const { data: joinResult, error } = await getSupabaseClient().rpc(HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE, {
+    invite_token: inviteToken,
+  });
+  if (error) throw error;
+
+  // Un valor fuera del contrato es un error de integración, no un resultado.
+  if (!isHouseholdJoinResult(joinResult)) {
+    throw new Error(`${HOUSEHOLD_DB.RPC.ACCEPT_HOUSEHOLD_INVITE} devolvió un resultado desconocido`);
+  }
+
+  return joinResult;
 };

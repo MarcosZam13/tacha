@@ -1,7 +1,7 @@
 "use client";
 
+import { PasswordStrengthMeter } from "@/components/password-strength-meter/PasswordStrengthMeter";
 import { Button, Checkbox, Input, Modal } from "@/components/ui";
-import { PasswordStrengthMeter } from "./components/PasswordStrengthMeter";
 import {
   REGISTRO_FIELD,
   REGISTRO_FORM_FIELDS,

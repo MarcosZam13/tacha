@@ -3,11 +3,12 @@
 import { Button, Spinner } from "@/components/ui";
 import { HouseholdCreateForm } from "./components/HouseholdCreateForm";
 import { HouseholdInviteLinkCard } from "./components/HouseholdInviteLinkCard";
+import { HouseholdJoinForm } from "./components/HouseholdJoinForm";
 import { HOUSEHOLD_INVITE_TEXT, HOUSEHOLD_TEXT } from "./constants/household.constants";
 import { useHouseholdViewModel } from "./hooks/useHouseholdViewModel";
 
 /**
- * Pantalla "Mi familia": sin cuenta, crear la familia, miembro, o admin
+ * Pantalla "Mi familia": sin cuenta, crear la familia o unirse con una invitación, miembro, o admin
  * con su enlace de invitación. "use client" porque usa hooks y habla con
  * Supabase desde el navegador (la sesión vive en el navegador).
  */
@@ -16,7 +17,7 @@ export const Household = (): React.JSX.Element => {
   const { invite } = viewModel;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 bg-tacha-bg px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <div className="flex flex-col gap-1">
         <h1 className="font-display text-3xl font-bold text-tacha-text">{HOUSEHOLD_TEXT.TITLE}</h1>
         {viewModel.householdName ? (
@@ -44,14 +45,19 @@ export const Household = (): React.JSX.Element => {
         </p>
       ) : null}
 
+      {/* Sin familia: crear una o unirse con una invitación, las dos igual de
+          visibles (DESIGN.md §7.15). */}
       {viewModel.showCreateForm ? (
-        <HouseholdCreateForm
-          isCreating={viewModel.isCreating}
-          name={viewModel.name}
-          nameError={viewModel.nameError}
-          onNameChange={viewModel.onNameChange}
-          onSubmit={viewModel.onCreateSubmit}
-        />
+        <>
+          <HouseholdCreateForm
+            isCreating={viewModel.isCreating}
+            name={viewModel.name}
+            nameError={viewModel.nameError}
+            onNameChange={viewModel.onNameChange}
+            onSubmit={viewModel.onCreateSubmit}
+          />
+          <HouseholdJoinForm {...viewModel.join} />
+        </>
       ) : null}
 
       {viewModel.showMemberNotice ? (
@@ -78,6 +84,6 @@ export const Household = (): React.JSX.Element => {
           {invite.card ? <HouseholdInviteLinkCard {...invite.card} /> : null}
         </section>
       ) : null}
-    </main>
+    </div>
   );
 };
