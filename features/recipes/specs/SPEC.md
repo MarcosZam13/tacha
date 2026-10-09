@@ -5,7 +5,8 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-94 / HU-63](https://tacha.atlassian.net/browse/SCRUM-94): ver el catálogo de recetas. Sprint 1, mergeada.
 - [SCRUM-95 / HU-64](https://tacha.atlassian.net/browse/SCRUM-95): crear o editar una receta. Sprint 1, mergeada.
 - [SCRUM-96 / HU-64b](https://tacha.atlassian.net/browse/SCRUM-96): eliminar una receta. Sprint 2, mergeada.
-- [SCRUM-97 / HU-65](https://tacha.atlassian.net/browse/SCRUM-97): agregar una receta a la lista. Sprint 2.
+- [SCRUM-97 / HU-65](https://tacha.atlassian.net/browse/SCRUM-97): agregar una receta a la lista. Sprint 2, mergeada.
+- [SCRUM-98 / HU-66](https://tacha.atlassian.net/browse/SCRUM-98): ver qué falta de una receta. Sprint 2.
 
 El cómo (archivos, datos, flujo, decisiones) está en [plan.md](plan.md); los pasos, en [tasks.md](tasks.md).
 
@@ -17,6 +18,7 @@ Que el usuario tenga sus recetas en un solo lugar para reutilizarlas en la lista
 - **SCRUM-95:** armar sus propias recetas (nombre, porciones base e ingredientes elegidos del catálogo, cada uno con su cantidad y unidad) y corregirlas después.
 - **SCRUM-96:** sacar del catálogo una receta que ya no usa, sin miedo a borrarla por un clic accidental, para mantener su lista de recetas ordenada.
 - **SCRUM-97:** pasar los ingredientes de una receta a su lista de compras con un solo botón, sin buscar cada producto a mano, y saber qué le falta comprar para cocinarla sin que la app decida por él cuánto comprar de lo que se mide por volumen o peso.
+- **SCRUM-98:** ver, desde la tarjeta de una receta, qué ingredientes ya compró (están tachados en su lista) y cuáles le faltan, y que ese estado se actualice solo mientras tacha, para saber si ya puede cocinarla.
 
 ## 2. Alcance
 
@@ -55,7 +57,15 @@ Que el usuario tenga sus recetas en un solo lugar para reutilizarlas en la lista
 - Al terminar, un resumen en la tarjeta: qué se agregó, qué falta comprar y qué no se pudo agregar, con un link a la lista.
 - Todo en una sola operación en la base: o entra todo, o nada.
 
-Lo que no incluye ninguna de las cuatro está en la [sección 14](#14-casos-fuera-de-alcance).
+### SCRUM-98: ver qué falta
+
+- Botón **"Ver qué falta"** en cada tarjeta (no aparece en una receta sin ingredientes). Abre, dentro de la misma tarjeta, un panel con **cada ingrediente** y su estado: **Cubierto** o **Falta** (decidido con el responsable de la historia: sin ruta ni diálogo nuevos).
+- Un ingrediente está **cubierto** cuando su producto está en la lista general del usuario, todas sus filas están **tachadas** (SCRUM-66) y ningún registro de esta receta sobre ese producto tiene faltante (reglas 29 a 31). No existe inventario o despensa en el modelo de datos, así que "lo que tengo en casa" no se puede saber (sección 14).
+- Si falta, el panel dice por qué: no está en la lista, está en la lista sin tachar, o se tachó pero quedó un faltante registrado (con su cantidad, en la unidad del ingrediente).
+- Un resumen arriba del panel: "Te faltan 2 de 4 ingredientes" o "Tienes todo para cocinarla".
+- El panel se **actualiza solo** cuando cambia la lista (tachar, destachar, agregar o borrar un producto, o agregar otra receta), por Supabase Realtime sobre `list_items`, mientras el panel está abierto (reglas 32 y 33).
+
+Lo que no incluye ninguna de las cinco está en la [sección 14](#14-casos-fuera-de-alcance).
 
 ## 3. Entradas
 
@@ -76,6 +86,11 @@ Lo que no incluye ninguna de las cuatro está en la [sección 14](#14-casos-fuer
 | 97 | Ingredientes de la receta | producto madre + `quantity_value` + `quantity_unit` | `recipe_ingredients`, leídos en la base |
 | 97 | Presentaciones de cada producto | `product_catalog_variants` (`base_quantity`, `base_unit`) | catálogo, leído en la base |
 | 97 | Lista general del usuario y lo que ya pidieron otras recetas | `lists` + `list_items` + `list_item_recipe_requirements` | leídos en la base |
+| 98 | Receta a revisar | id y nombre de la receta de la tarjeta | clic en "Ver qué falta" |
+| 98 | Cerrar el panel | clic en el mismo botón | tarjeta |
+| 98 | Ingredientes de la receta | producto madre + `quantity_value` + `quantity_unit` | `recipe_ingredients`, leídos en la base |
+| 98 | Lo que hay en la lista general | filas de `list_items` del producto con `checked_at`, y `list_item_recipe_requirements` de la receta | leídos en la base |
+| 98 | Cambios de la lista | eventos de inserción, actualización y borrado | Supabase Realtime sobre `list_items` |
 
 ## 4. Salidas
 
@@ -89,6 +104,7 @@ Lo que no incluye ninguna de las cuatro está en la [sección 14](#14-casos-fuer
   - un resumen en la tarjeta con link a `/lista`.
 
   Si algo falla: mensaje de error en la tarjeta y la lista queda como estaba.
+- **SCRUM-98:** un panel en la tarjeta con, por ingrediente: nombre, cantidad con su unidad, estado (Cubierto / Falta) y el motivo si falta, más el resumen de arriba. No escribe nada en la base. Si algo falla: mensaje de error dentro del panel.
 
 ## 5. Reglas de negocio
 
@@ -147,6 +163,22 @@ Una **presentación** es una variante del producto madre del ingrediente (`produ
 27. **Receta repetida.** Si la receta ya se había agregado antes **desde este navegador**, se pide confirmación antes de agregarla otra vez ("Ya agregaste Tres leches a tu lista. ¿Agregarla otra vez?"). Confirmar la agrega de nuevo con las reglas 17 a 26; cancelar no cambia nada. La primera vez no se pregunta nada. Es una comodidad para no agregar sin querer, no una regla de la base: desde otro navegador, o con los datos del sitio borrados, se agrega sin preguntar.
 28. Nunca se abre una ventana para decidir **qué comprar** (CA-05): cuánto comprar de lo que se mide por volumen o peso se decide al tachar (SCRUM-115).
 
+### SCRUM-98
+
+Las **filas del producto** son las de la regla de SCRUM-97: filas de la lista general con alguna presentación del producto madre del ingrediente. Todo se calcula en la base, sobre la lista general personal del usuario (`household_id is null`).
+
+29. **Cubierto (CA-01).** Un ingrediente está cubierto si el producto tiene al menos una fila en la lista general, **todas** sus filas tienen `checked_at` (están tachadas, sin importar el día) y la suma de `quantity_missing` de los registros de **esta receta** sobre ese producto es 0. Un ingrediente de conteo no deja registro (regla 19), así que para él basta con que sus filas estén tachadas.
+30. **Falta (CA-01).** Cualquier otro caso, con un motivo:
+    1. `notInList`: el producto no tiene ninguna fila en la lista general;
+    2. `notChecked`: tiene filas, pero alguna sin tachar;
+    3. `short`: todas están tachadas pero el registro de la receta quedó con faltante mayor que 0; el panel muestra esa cantidad en la unidad del ingrediente.
+    Si coinciden `notChecked` y `short`, se muestra `notChecked` (lo primero que hay que hacer es tachar).
+31. **No se calcula contra cantidades.** La app no compara unidades compradas con la cantidad cruda de la receta: eso lo decidió la regla 19 al agregar (conteos) y el registro de faltante (volumen o peso). Lo mismo que SCRUM-97 no convierte, esta historia tampoco (documento-proyecto §4.9.1).
+32. **Tiempo real (CA-02).** Mientras el panel está abierto, cualquier cambio en `list_items` del usuario (tachar, destachar, agregar, quitar, cambiar cantidad) vuelve a pedir el estado a la base. El cliente no recalcula nada por su cuenta: el estado que se dibuja es siempre el que devolvió la base, para no tener dos copias de la regla 29.
+33. Al cerrar el panel, o al salir de `/recetas`, la suscripción se cancela. Solo hay una suscripción a la vez (un panel abierto a la vez).
+34. Una receta cuyos ingredientes se editaron o se borraron mientras el panel está abierto se resuelve en la siguiente actualización: si ya no existe, "No encontramos esa receta." (regla 16 aplicada a lectura).
+35. Abrir el panel es de **solo lectura**: no agrega nada a la lista ni cambia el registro de faltantes. Agregar sigue siendo "Agregar receta a lista" (SCRUM-97).
+
 ## 6. Estados
 
 Cada pantalla tiene una unión de estados derivada de constantes, no varios booleanos que se puedan contradecir.
@@ -157,6 +189,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 | Editor (SCRUM-95) | `loading` · `notFound` · `loadFailed` · `editing` · `saving` | Una receta nueva arranca en `editing`; editar arranca en `loading` |
 | Eliminación (SCRUM-96) | `idle` · `confirming` · `deleting` · `failed` | `confirming`, `deleting` y `failed` siempre llevan la receta elegida: no puede haber "eliminando" sin receta |
 | Agregar a la lista (SCRUM-97) | `idle` · `confirmingRepeat` · `adding` · `added` · `failed` | Fuera de `idle` siempre hay una receta elegida; `added` lleva además el resumen. `confirmingRepeat` es el diálogo de la regla 27, antes de agregar. Se agrega una receta a la vez |
+| Qué falta (SCRUM-98) | `closed` · `loading` · `error` · `notFound` · `ready` | Fuera de `closed` siempre hay una receta elegida; `ready` lleva los ingredientes con su estado. Un solo panel abierto: abrir otro cierra el anterior. Las actualizaciones por Realtime no pasan por `loading` (el panel no parpadea): reemplazan los datos de `ready` |
 
 ## 7. Errores
 
@@ -176,6 +209,10 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 | 97 | Falla de red o de Supabase al agregar | "No se pudo agregar la receta a tu lista. Intenta de nuevo." en la tarjeta. No se agregó nada (regla 18) |
 | 97 | La receta ya no existe o es ajena (se borró en otra pestaña) | "No encontramos esa receta." en la tarjeta |
 | 97 | Ingredientes sin presentación en el catálogo | No es un error: el resumen los nombra ("No se pudieron agregar: …") y el resto se agrega |
+| 98 | Falla de red o de Supabase al pedir el estado | "No se pudo revisar qué falta. Intenta de nuevo." dentro del panel, con "Reintentar". No se muestra "Tienes todo" porque no se sabe |
+| 98 | La receta ya no existe o es ajena | "No encontramos esa receta." dentro del panel |
+| 98 | Falla al actualizar por Realtime (después de estar en `ready`) | Se conserva lo último que se vio y se reintenta en el siguiente cambio; no se reemplaza el panel por un error |
+| 98 | Falla la suscripción a Realtime | El panel funciona sin actualizarse solo, y "Reintentar" / cerrar y abrir lo refresca. No se oculta el estado ya calculado |
 
 ## 8. UI esperada
 
@@ -207,6 +244,14 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - Mensaje de error en la tarjeta si falla.
 - `/lista` no cambia en esta historia: el aviso bajo cada producto lo dibuja SCRUM-114.
 
+### SCRUM-98
+
+- Botón "Ver qué falta" en cada tarjeta, junto a "Agregar receta a lista". Con el panel abierto dice "Ocultar qué falta".
+- Panel dentro de la tarjeta, debajo de las acciones: resumen ("Te faltan 2 de 4 ingredientes" / "Tienes todo para cocinarla") y una lista de ingredientes.
+- Cada ingrediente: nombre, cantidad con unidad (`formatRecipeQuantity`, ej. "800 ml"), y una etiqueta **Cubierto** o **Falta**. Si falta, el motivo en texto: "No está en tu lista", "En tu lista, sin tachar" o "Te falta comprar 600 ml".
+- El estado se distingue por **texto y forma**, no solo por color.
+- "Cargando…" al abrir; mensaje de error con "Reintentar".
+
 ## 9. Accesibilidad
 
 - Cada input tiene su label asociado; los errores son texto junto al campo, no solo color.
@@ -214,6 +259,9 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - Los botones tienen texto claro. "Eliminar" y "Agregar receta a lista" nombran la receta para el lector de pantalla, porque hay uno por tarjeta en la misma página.
 - Los diálogos son `role="dialog"` con `aria-modal`, tienen título y se cierran con Escape (comportamiento del `Modal` compartido). Mientras borra no se puede cerrar.
 - El resumen y el error de agregar se anuncian solos (`role="status"` y `role="alert"`), porque aparecen sin que cambie la página.
+- "Ver qué falta" es un botón con `aria-expanded` y `aria-controls` del panel, y nombra la receta para el lector de pantalla (como "Eliminar", hay uno por tarjeta).
+- El panel anuncia los cambios con `role="status"` y `aria-live="polite"`: cuando tachas algo en otra pestaña, el lector oye el resumen nuevo, no toda la lista. El error va en `role="alert"`.
+- El estado de cada ingrediente es texto ("Cubierto" / "Falta"), con un ícono decorativo (`aria-hidden`).
 - El marcador de la foto es decorativo (`aria-hidden`); la foto real lleva el nombre de la receta como `alt`.
 
 ## 10. Restricciones técnicas
@@ -226,6 +274,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - Mutaciones tipadas: `Payload` y `Response` explícitos por operación (`SaveRecipe*`, `DeleteRecipe*`, `AddRecipeToList*`), y el error se maneja, nunca un `catch {}` vacío (nextjs-enterprise-patterns §4).
 - Las reglas 17 a 26 viven en la base (una función), no en el cliente: documento-proyecto §6 pide que la unificación de cantidades sea una regla de la base, y así dos pestañas o dos miembros no se pisan. La regla 27 vive en el cliente (`localStorage`), con cada lectura y escritura en `try/catch`: si el navegador bloquea el almacenamiento, se agrega sin preguntar.
 - **No se toca `features/shopping-list/`** (feature de Marcos). Esta historia solo escribe en la base; mostrar los avisos en `/lista` es de SCRUM-114, con revisión de Marcos (acordado con él el 2026-10-03).
+- **SCRUM-98:** el estado "cubierto / falta" se calcula en la base (una función de solo lectura, regla 29), no en el cliente. La suscripción a Realtime vive en un servicio (`services/`) y el hook la abre y la cierra en un `useEffect` con limpieza: es la primera vez que el repo usa Realtime, así que el patrón queda documentado en el plan para quien lo reuse.
 - Sin librerías nuevas (ni de formularios ni de esquemas).
 - Reusar los primitivos de `components/ui`, el buscador compartido y el cliente de Supabase ([sección 11](#11-dependencias)) antes de construir algo propio.
 - Skills que aplican: `component-architecture`, `constants-standards`, `project-structure`, `security-practices`, `nextjs-enterprise-patterns`, `clean-code-practices`, `gitflow`.
@@ -238,6 +287,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - `@/constants`: `CATALOG_BASE_UNIT`, `BUTTON_VARIANT`.
 - `types/database.types.ts`: tipos generados de Supabase.
 - `types/nullable.types.ts`: `NullableRef`.
+- **SCRUM-98:** `list_items.checked_at` (migración `015`, SCRUM-66, mergeada) y `list_item_recipe_requirements` (migración `013`, SCRUM-97). Realtime de Supabase (`supabase.channel(...)`), que habilita la migración de esta historia.
 - **SCRUM-97 (solo en la base):** `lists` y `list_items` (migraciones `004` y `005`), la misma lista general que crea `add_item_to_general_list`; y `product_catalog_variants` (`base_quantity`, `base_unit`).
 
 ## 12. Contratos externos
@@ -272,6 +322,12 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - **RPC nueva `add_recipe_to_general_list`:** `security invoker` y transaccional; aplica las reglas 17 a 26 y devuelve el resumen (productos sumados, productos con faltante y cuánto, productos sin presentación). Si no encuentra la receta (inexistente o ajena) responde `P0002`.
 - **Navegador:** las recetas ya agregadas (regla 27) se guardan en `localStorage`, por id. No es un contrato con la base.
 - **Para SCRUM-114:** la lista general puede traer los avisos de cada fila embebiendo `list_item_recipe_requirements` (con `recipes(name)`) en su consulta.
+
+### Qué falta (SCRUM-98)
+
+- **RPC nueva `get_recipe_coverage(target_recipe_id uuid) returns jsonb`**, de solo lectura, `security invoker` y `search_path` vacío, como las demás. Sin sesión → `42501`; receta no visible (inexistente o ajena) → `P0002`. Devuelve, en el orden de `position`, `[{ ingredient_id, product_name, quantity_value, quantity_unit, status: "covered" | "missing", reason: null | "notInList" | "notChecked" | "short", missing_quantity: number | null }]` según las reglas 29 y 30. `missing_quantity` solo viene con `short`.
+- **Realtime:** la migración agrega `list_items` a la publicación `supabase_realtime` (`alter publication supabase_realtime add table public.list_items`, idempotente). Realtime aplica la RLS de `list_items` a cada evento: el usuario solo recibe cambios de su propia lista. No se agrega ninguna política ni permiso nuevo. El cliente no usa el contenido del evento, solo lo toma como señal para volver a llamar a la RPC.
+- **Navegador:** `supabase.channel("recipe-coverage-{recipeId}").on("postgres_changes", { event: "*", schema: "public", table: "list_items" }, …)`. Sin filtro de fila (la RLS ya acota); el canal se cierra con `removeChannel` al cerrar el panel.
 
 ## 13. Casos de aceptación
 
@@ -329,6 +385,24 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
 - [x] Borrar la receta (SCRUM-96) borra sus registros; las cantidades que ya se habían sumado a la lista quedan. (SQL)
 - [x] Otra sesión no puede agregar una receta ajena a su lista ni leer o escribir registros ajenos. (SQL: 0 registros visibles y `P0002`)
 
+### HU-66 (SCRUM-98)
+
+- [ ] CA-01: la tarjeta de cada receta tiene "Ver qué falta", que muestra por ingrediente si está **cubierto** (en la lista y tachado, sin faltante) o si **falta**, con su motivo.
+- [ ] CA-02: con el panel abierto, tachar o destachar un producto relacionado actualiza el estado sin recargar (Realtime), también desde **otra pestaña**.
+- [ ] Ingrediente que no está en la lista: "Falta · No está en tu lista".
+- [ ] Ingrediente en la lista sin tachar: "Falta · En tu lista, sin tachar".
+- [ ] Ingrediente de volumen o peso tachado con faltante registrado (lista con 1 L, receta de 1800 ml): "Falta · Te falta comprar 800 ml".
+- [ ] Ingrediente de conteo tachado: "Cubierto".
+- [ ] Todos cubiertos: el resumen dice "Tienes todo para cocinarla".
+- [ ] Destachar un producto cubierto vuelve a "Falta · En tu lista, sin tachar".
+- [ ] Agregar la receta a la lista (SCRUM-97) con el panel abierto actualiza el estado.
+- [ ] Receta sin ingredientes: no aparece "Ver qué falta".
+- [ ] Receta borrada en otra pestaña: "No encontramos esa receta." en el panel.
+- [ ] Falla de red al abrir: mensaje de error con "Reintentar", sin decir "Tienes todo".
+- [ ] Cerrar el panel cancela la suscripción (no hay canal abierto después; se ve en la pestaña Network de DevTools).
+- [ ] Otra sesión no ve el estado de una receta ajena (`P0002`) ni recibe eventos de `list_items` ajenos (SQL con `role authenticated` y Realtime con dos sesiones).
+- [ ] Doble clic en "Ver qué falta": se abre una sola vez y una sola petición.
+
 ### Todas
 
 - [x] `npx tsc --noEmit`, `npm run lint` y `npm run build` pasan.
@@ -339,7 +413,12 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
 - **Recetas del household (verlas, editarlas, borrarlas o agregarlas a la lista como miembro):** `households` todavía no existe. Por ahora cada usuario usa sus recetas y su lista personal; `household_id` queda nullable y sin FK, igual que en `lists`. La integración está en [plan.md](plan.md#integración-con-households-pendiente).
 - **Foto (subirla y borrarla de Storage):** el formulario no la pide, y subirla necesita Supabase Storage (bucket, políticas, validación de archivo), que es una decisión de equipo pendiente. Queda para un ticket propio; el catálogo ya muestra la foto cuando existe.
 - **Aviso por asignaciones en el plan semanal (CA-02 de HU-64b):** `meal_plans` lo crea SCRUM-100. Un aviso que hoy siempre dijera "no está en el plan" sería código sin uso real.
-- **"Ver qué falta", planificador:** SCRUM-98 y SCRUM-99 en adelante. SCRUM-98 puede usar los registros de esta historia.
+- **Planificador semanal:** SCRUM-99 en adelante.
+- **Inventario o despensa ("lo que ya tengo en casa"):** HU-66 lo menciona ("ya tengo comprados o en casa"), pero no hay tabla ni historia que lo defina. SCRUM-98 solo ve lo que está en la lista (tachado = comprado). Si el equipo crea una despensa, la regla 29 gana una condición más y la RPC es el único lugar a tocar.
+- **Vista de detalle de receta (`/recetas/[id]`):** se resolvió con un panel dentro de la tarjeta (decidido el 2026-10-09). Una ruta propia queda para cuando el planificador o la edición necesiten una pantalla de receta.
+- **Comparar contra cantidades compradas:** regla 31. No se convierte ni se suma entre unidades.
+- **Recetas del household o listas privadas:** la regla 29 mira solo la lista general personal, igual que SCRUM-97.
+- **Realtime en el catálogo de recetas** (ver recetas nuevas o borradas en otra pestaña): solo la lista tiene suscripción, y solo con el panel abierto.
 - **Mostrar el aviso bajo el producto en `/lista`:** SCRUM-114 (Sprint 4), que toca `features/shopping-list/` con revisión de Marcos.
 - **Resolver el faltante al tachar ("¿Qué hiciste?") y recalcularlo si cambia la lista:** SCRUM-115 (Sprint 4), que se engancha en tachar (SCRUM-66, Marcos).
 - **Calcular cuántas unidades comprar de lo que se mide por volumen o peso:** la app nunca lo decide (documento-proyecto §4.9.1); queda registrado el faltante y se decide al tachar.
@@ -370,3 +449,9 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
   documento-proyecto §4.9.1 sigue valiendo; se le suma lo de las reglas 19 y 21, y §6 suma la tabla `list_item_recipe_requirements`. Las dos cosas van en el mismo PR.
 - **Acordado con Marcos (2026-10-03):** esta historia no toca `features/shopping-list/`. El CA-04 se redefine en Jira como "el faltante queda registrado; mostrarlo es SCRUM-114". En SCRUM-114, con la fila ya estable (eliminar y tachar hechos), se trae el registro en la consulta de la lista, un campo opcional en `ShoppingListItem` y un componente chico para la etiqueta dentro de `features/shopping-list/components/`; Marcos revisa ese PR. SCRUM-115 se diseña con él para engancharse en tachar (SCRUM-66).
 - **Para SCRUM-98 y SCRUM-101:** los registros de esta historia dicen, por receta y producto, cuánto se pidió y cuánto falta. "Ver qué falta" (98) y "Agregar la semana completa" (101, llamando a la misma función por cada receta) los pueden reusar.
+- **Cómo se llenaron los huecos de HU-66 (SCRUM-98, decidido con el responsable el 2026-10-09).** La historia no dice dónde vive la vista, qué es "cubierto" ni cómo es el tiempo real. Se decidió:
+  - **dónde:** panel dentro de la tarjeta, sin ruta nueva;
+  - **qué es cubierto:** en la lista, tachado y sin faltante registrado (regla 29). "Inventario" queda fuera (sección 14);
+  - **tiempo real:** Supabase Realtime sobre `list_items`, cuya publicación habilita la migración de esta historia. Es la primera suscripción del repo. La señal dispara una nueva consulta a la RPC en vez de calcular en el cliente.
+- **Deuda de SCRUM-66 que toca esta historia:** al reabrir una fila tachada (volver a agregarla desde la búsqueda o una receta), sus registros viejos de `list_item_recipe_requirements` siguen pegados y vuelven a contar como reclamados. El efecto en el panel es conservador: una fila reabierta está sin tachar, así que sale "Falta · En tu lista, sin tachar", nunca "Cubierto". Se corrige al resolver SCRUM-115.
+- **Migración de SCRUM-98:** número provisional `016` (hay una `ticket/SCRUM-67-modo-compra` abierta que puede tomarlo). Se toma el siguiente libre al aplicarla, según `supabase/README.md#migraciones` cuando la PR #53 (SCRUM-134) se mergee.

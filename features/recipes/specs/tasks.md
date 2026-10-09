@@ -84,3 +84,24 @@ Bloqueado / fuera de esta historia:
 
 - [ ] Mostrar el faltante bajo el producto en `/lista`: SCRUM-114 (toca `features/shopping-list/`, con revisión de Marcos).
 - [ ] Resolver el faltante al tachar: SCRUM-115 (se engancha en tachar, SCRUM-66).
+
+## SCRUM-98: ver qué falta de una receta
+
+- [x] 1. SPEC (huecos de HU-66 decididos con el responsable el 2026-10-09: panel en la tarjeta, cubierto = tachado, Realtime sobre `list_items`).
+- [x] 2. Plan y tareas.
+- [ ] 3. Migración `016_recipe_coverage.sql` (número provisional): RPC `get_recipe_coverage` y publicación de Realtime. Seguir `supabase/README.md#migraciones` si la PR #53 ya está mergeada.
+- [ ] 4. Aplicar la migración (SQL Editor, en una transacción con su fila de historial), regenerar `types/database.types.ts` y probar la RPC con los casos de §13 (no está en la lista, sin tachar, faltante registrado, conteo tachado, todo cubierto, destachar, receta ajena `P0002`). Bloquea la validación de la tarea 12, no el código del cliente.
+- [ ] 5. Constantes: estados, textos, motivos, RPC y nombre del canal.
+- [ ] 6. Modelos en `models/recipe-coverage.types.ts` y `models/recipe-coverage.interfaces.ts`.
+- [ ] 7. Utils puros: `toCoverageIngredients`, `toCoverageSummaryText`, `toCoverageReasonText`.
+- [ ] 8. Servicio `recipe-coverage.service.ts`: `getRecipeCoverage()` (con `P0002` → `null`) y `subscribeToListChanges()` (devuelve la función que cancela).
+- [ ] 9. Hook `useRecipeCoverage` (abrir, cerrar, uno a la vez, carga, suscripción con limpieza, coalescencia, bandera de cancelación) y su composición en `useRecipeCatalogViewModel` (+ `coverage` en `RecipeCatalogViewModel`, en el mismo commit para que compile).
+- [ ] 10. Presentación: botón en `RecipeCard`, `RecipeCoveragePanel`, `RecipeCoverageIngredient` y la conexión en `RecipeCatalog`.
+- [ ] 11. `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test`; tests de las utils y del hook.
+- [ ] 12. Validar en el navegador los casos de §13 de HU-66, incluido tachar desde **otra pestaña** con el panel abierto, y en el SQL Editor la RLS con otra sesión. Depende de la tarea 4.
+- [ ] 13. Revisión con `code-reviewer` y `security-reviewer` (RLS y publicación de Realtime), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Si cambia una decisión de producto, actualizar `docs/documento-proyecto.md` en el mismo PR.
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Inventario o despensa ("en casa"): sin historia ni tabla (SPEC §14).
+- [ ] Recalcular el faltante si cambia la lista: SCRUM-115.
