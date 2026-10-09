@@ -22,7 +22,7 @@ tacha/
 ├── constants/      Constantes por dominio + barrel constants/index.ts (ver constants-standards)
 ├── types/          Tipos compartidos entre features
 ├── docs/           Documento de proyecto, historias de usuario, sprints, docs por módulo
-├── supabase/       schema.sql, migrations/ (solo .sql), functions/ (Edge Functions, Deno)
+├── supabase/       schema.sql, migrations/ (solo .sql), tests/ (pruebas SQL de migraciones), functions/ (Edge Functions, Deno)
 ├── public/         Assets estáticos
 ├── .agents/skills/ Skills de este repo (el catálogo está en AGENTS.md)
 ├── .claude/agents/ Subagentes de revisión (code-reviewer, security-reviewer, qa-checker)
