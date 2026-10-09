@@ -131,7 +131,7 @@ export const RECIPE_ROUTE = {
   CATALOG: RECIPES_BASE_PATH,
   EDIT_SEGMENT: "editar",
   NEW: `${RECIPES_BASE_PATH}/nueva`,
-  // Ruta de la lista general (app/lista/), para el link "Ver lista" de SCRUM-97.
+  // Ruta de la lista general (app/(app)/lista/), para el link "Ver lista" de SCRUM-97.
   // No hay una constante de rutas compartida: se promueve a constants/ cuando
   // otra feature también la necesite.
   SHOPPING_LIST: "/lista",

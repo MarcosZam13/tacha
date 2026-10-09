@@ -11,7 +11,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 4. Ampliar `types/catalog.types.ts` (con `PriceRange`) y `services/catalog.service.ts` (foto y precios por tienda). Solo aditivo. *Validación: lista y recetas siguen compilando sin tocarlas.*
 - [x] 5. Utils puros de la feature: `getOverallPriceRange`, `toCatalogCards` y `getCatalogSearchStatus` (este último no estaba en el plan inicial).
 - [x] 6. `useCatalogSearchViewModel`: envuelve `useProductSearch` y deriva `status` y tarjetas.
-- [x] 7. Presentación: `CatalogTabs`, `CatalogCard`, `CatalogEmptyState`, `CatalogSearch` y la ruta `app/catalogo/page.tsx`.
+- [x] 7. Presentación: `CatalogTabs`, `CatalogCard`, `CatalogEmptyState`, `CatalogSearch` y la ruta `app/(app)/catalogo/page.tsx`.
 - [x] 8a. Validación manual en el navegador (`npm run dev`, hecha por Daniel el 2026-10-03): CA-01, CA-03 y CA-04 y los casos de borde de búsqueda (vacío, 1 letra, texto largo, tecleo rápido) pasan; el parpadeo es imperceptible. **Con límites de datos:** la BD actual solo tiene productos individuales (no hay madres ni variantes), con un precio único (las tiendas coinciden) y todos con foto y precio. No se pudieron probar con datos reales: el rango de precio con mínimo distinto del máximo (CA-02), una tarjeta sin foto, una sin precio ni varias variantes de un producto.
 - [x] 8b. `npx tsc --noEmit`, `npm run lint`, `npm run build`: pasan (ejecutados por Daniel el 2026-10-03).
 - [ ] 8c. Cubrir lo no probable con datos: los tests unitarios de `toCatalogCards` y `getOverallPriceRange` (sin foto, sin precio, mínimo ≠ máximo, varias variantes) lo verifican sin depender de la BD; pendientes del runner.

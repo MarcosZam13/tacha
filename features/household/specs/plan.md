@@ -9,7 +9,7 @@ Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md). Las seccio
 ## Archivos
 
 ```
-app/household/page.tsx                    ruta delgada: metadata + <Household />
+app/(app)/household/page.tsx                    ruta delgada: metadata + <Household />
 
 features/household/
   Household.tsx                           pantalla ("use client"): estados, formulario o tarjeta,
@@ -116,7 +116,7 @@ En el SQL Editor, simulando un usuario dentro de una transacción (`set local ro
 
 ## Flujo
 
-1. **Entrar:** `app/household/page.tsx` → `Household.tsx` → `useHouseholdViewModel` → `hasRegisteredSession()` (`getSupabaseClient().auth.getSession()`; `false` si no hay sesión o `is_anonymous`). Si no: estado "sin cuenta". Si sí: `getHouseholdMembership()` (`household_members` con `households(name)`, filtrado por el `user_id` de la sesión y `maybeSingle()`; RLS además solo deja ver la fila propia) → sin household / member / admin. Carga con bandera de cancelación, como `useRecipeEditor`.
+1. **Entrar:** `app/(app)/household/page.tsx` → `Household.tsx` → `useHouseholdViewModel` → `hasRegisteredSession()` (`getSupabaseClient().auth.getSession()`; `false` si no hay sesión o `is_anonymous`). Si no: estado "sin cuenta". Si sí: `getHouseholdMembership()` (`household_members` con `households(name)`, filtrado por el `user_id` de la sesión y `maybeSingle()`; RLS además solo deja ver la fila propia) → sin household / member / admin. Carga con bandera de cancelación, como `useRecipeEditor`.
 2. **Crear household:** `HouseholdCreateForm` → `onSubmit` del Facade → valida el nombre (vacío, largo) → `createHousehold(name)` → RPC → vuelve a cargar la membresía → admin.
 3. **Cargar el link:** `useHouseholdInvite(isAdmin)` → si es admin, `getHouseholdInvite()` → `null` (botón "Generar enlace de invitación") o `HouseholdInvite`.
 4. **Generar / regenerar:** `handleGenerate` → contador de pedido en `useRef` → estado `generating` (conserva el link anterior si había) → `createHouseholdInvite()` → si es la respuesta del último pedido: `ready` con el nuevo link (y aviso de reemplazo si había uno); si falla: `recoverAfterGenerateFailure` vuelve a leer el link con `getHouseholdInvite()` y muestra el vigente (sin error si es uno nuevo: la generación sí ocurrió; con error si es el mismo o no hay); si esa lectura también falla, estado `loadFailed` + error.
@@ -157,7 +157,7 @@ Cada etapa termina con una revisión y la aprobación explícita antes de seguir
 3. **Aplicar y tipos:** la persona dueña de la historia aplica la migración en el SQL Editor (la base es compartida: avisar al equipo), verifica los objetos y permisos, compara `types/database.types.ts` con la base real y prueba la base simulando usuarios ([ver arriba](#cómo-se-prueba-la-base-antes-de-tener-ui)).
 4. **Constantes, modelos y servicio:** renombrar y ajustar constantes y servicio, ajustar `HouseholdInvite`, crear `HouseholdMembership`.
 5. **Hooks:** renombrar y ajustar `useHouseholdInvite`; crear `useHouseholdViewModel`.
-6. **Componentes, pantalla y ruta:** crear `HouseholdCreateForm` y sus props, ajustar la tarjeta, crear `Household.tsx` y `app/household/page.tsx`.
+6. **Componentes, pantalla y ruta:** crear `HouseholdCreateForm` y sus props, ajustar la tarjeta, crear `Household.tsx` y `app/(app)/household/page.tsx`.
 7. **Documentación:** `docs/documento-proyecto.md` §4.1 (creación del household en HU-33, anónimos) y §6 (columnas reales, token en claro con acceso cerrado, sin `created_by`).
 8. **QA y revisiones:** pruebas manuales, `npx tsc --noEmit`, `npm run lint`, `npm run build`, subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; marcar los CA en [SPEC.md](SPEC.md) según lo validado.
 

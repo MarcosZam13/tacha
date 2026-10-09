@@ -11,7 +11,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 5. Utils puros: `toRecipeSummary`, `formatServings`.
 - [x] 6. Servicio `recipes.service.ts`: `getRecipeSummaries()`.
 - [x] 7. `useRecipeCatalogViewModel`: carga inicial con bandera de cancelación, estado derivado.
-- [x] 8. Presentación: `RecipesTabs`, `RecipeCard`, `RecipeCatalogEmptyState`, `RecipeCatalog`, ruta `app/recetas/page.tsx`.
+- [x] 8. Presentación: `RecipesTabs`, `RecipeCard`, `RecipeCatalogEmptyState`, `RecipeCatalog`, ruta `app/(app)/recetas/page.tsx`.
 - [x] 9. Seed `supabase/seed-demo-recipes.sql` y `docs/documento-proyecto.md` §6.
 - [x] 10. Validar CA-01 y CA-02 en el navegador (con y sin recetas, y con otra sesión); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
@@ -36,7 +36,7 @@ Bloqueado / pendiente de decisión del equipo:
 - [x] 5. Utils puros: `getDefaultUnit`, `validateRecipeForm` (+ `normalizeDecimal`, `hasRecipeFormErrors`), `getRecipeEditPath`, `toSaveRecipePayload`, `toRecipeEditorValues`, `recipe-editor.reducer`.
 - [x] 6. Servicio: `getRecipeForEditing()` (con "no encontrada" para id inexistente, ajeno o inválido) y `saveRecipe()`.
 - [x] 7. `useRecipeEditor` (reducer + carga para editar con bandera de cancelación + guardar) y `useRecipeEditorViewModel` (facade con `useProductSearch` y navegación).
-- [x] 8. Presentación: `RecipeBasicsFields`, `RecipeIngredientRow`, `RecipeIngredientsField`, `RecipeEditorActions`, `RecipeEditor`; rutas `app/recetas/nueva/page.tsx` y `app/recetas/[id]/editar/page.tsx`.
+- [x] 8. Presentación: `RecipeBasicsFields`, `RecipeIngredientRow`, `RecipeIngredientsField`, `RecipeEditorActions`, `RecipeEditor`; rutas `app/(app)/recetas/nueva/page.tsx` y `app/(app)/recetas/[id]/editar/page.tsx`.
 - [x] 9. Catálogo: link "+ Nueva receta" en `RecipeCatalog` y "Editar" en `RecipeCard`.
 - [x] 10. Validar CA-01..04 en el navegador (crear, editar, casos límite de la SPEC, receta ajena por URL) y con otra sesión; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 

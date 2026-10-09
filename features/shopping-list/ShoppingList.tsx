@@ -17,7 +17,7 @@ export const ShoppingList = (): React.JSX.Element => {
   const viewModel = useShoppingListViewModel();
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 bg-tacha-bg px-4 py-8">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{SHOPPING_LIST_TEXT.TITLE}</h1>
 
       {viewModel.canAddItems ? (
@@ -75,6 +75,6 @@ export const ShoppingList = (): React.JSX.Element => {
       <Modal isOpen={viewModel.detail !== null} onClose={viewModel.onCloseDetail} title={viewModel.detail?.productName}>
         {viewModel.detail ? <ShoppingListItemDetail detail={viewModel.detail} onClose={viewModel.onCloseDetail} /> : null}
       </Modal>
-    </main>
+    </div>
   );
 };

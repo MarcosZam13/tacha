@@ -45,7 +45,7 @@ constants/catalog.constants.ts         debounce, mínimo/máximo de caracteres, 
 
 types/database.types.ts                tipos generados desde el esquema real (regenerar tras cada migración)
 supabase/migrations/004_create_lists.sql
-app/lista/page.tsx                     ruta delgada: solo renderiza <ShoppingList />
+app/(app)/lista/page.tsx                     ruta delgada: solo renderiza <ShoppingList />
 ```
 
 Todo lo que solo usa esta feature vive dentro de `features/shopping-list/`; afuera quedan el cliente de Supabase (lo usará toda la app), los tipos de la base, la ruta y el buscador del catálogo, que desde SCRUM-120 comparte con recetas.
