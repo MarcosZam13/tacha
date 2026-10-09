@@ -2,6 +2,7 @@ export * from "./app.constants";
 export * from "./catalog.constants";
 export * from "./email.constants";
 export * from "./password.constants";
+export * from "./postgres.constants";
 export * from "./routes.constants";
 export * from "./scraping.constants";
 export * from "./session.constants";

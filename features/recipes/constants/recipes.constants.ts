@@ -39,15 +39,6 @@ export const RECIPES_DB = {
   },
 } as const;
 
-// Códigos de Postgres que el servicio traduce a "no encontrada":
-// INVALID_TEXT_REPRESENTATION: el id de la URL no es un uuid.
-// NO_DATA_FOUND: save_recipe no encontró la receta a editar (no existe, se
-// borró en otra pestaña o es ajena; 007_save_recipe.sql).
-export const POSTGRES_ERROR_CODE = {
-  INVALID_TEXT_REPRESENTATION: "22P02",
-  NO_DATA_FOUND: "P0002",
-} as const;
-
 // Espejo de los check de la base (006_create_recipes.sql, 008_harden_recipes.sql
 // y save_recipe en 013_add_recipe_to_list.sql): la UI avisa antes de mandar,
 // pero la base es la que garantiza.
