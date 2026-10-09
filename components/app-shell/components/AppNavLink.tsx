@@ -3,7 +3,7 @@ import { APP_NAV_LINK_VARIANT } from "../constants/app-nav-link.constants";
 import type { AppNavLinkVariantType } from "../constants/app-nav-link.constants";
 import type { AppNavLinkProps } from "./models/AppNavLinkProps.interface";
 
-// Strategy por variante: mismo enlace, distinto tamaño. El activo usa los colores del mockup v3.
+// Clases por variante: mismo enlace, distinto tamaño. El activo usa los colores del mockup v3.
 const VARIANT_CLASS: Record<AppNavLinkVariantType, string> = {
   [APP_NAV_LINK_VARIANT.SIDEBAR]: "flex rounded-tacha-badge px-3 py-2 text-sm",
   [APP_NAV_LINK_VARIANT.TAB]: "flex h-full flex-col items-center justify-center px-1 py-3 text-xs",

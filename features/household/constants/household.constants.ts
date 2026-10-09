@@ -1,3 +1,5 @@
+import { APP_ROUTE } from "@/constants";
+
 // Constantes de la feature household: crear el household y su link de
 // invitación (SCRUM-56) y unirse con ese link (SCRUM-57). Viven dentro de la
 // feature porque ninguna otra las usa todavía; se promueven a constants/ con
@@ -79,7 +81,7 @@ export const HOUSEHOLD_INVITE_TIME_MS = {
 // Rutas propias de la feature. /login va acá y no se importa de features/login
 // para no acoplar una feature a otra por una constante (como LANDING_ROUTE).
 export const HOUSEHOLD_ROUTE = {
-  HOUSEHOLD: "/household",
+  HOUSEHOLD: APP_ROUTE.HOUSEHOLD,
   // Base del link: SCRUM-56 lo arma y SCRUM-57 lo abre con app/invitacion/[token].
   INVITATION: "/invitacion",
   LOGIN: "/login",

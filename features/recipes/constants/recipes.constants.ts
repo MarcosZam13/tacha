@@ -1,4 +1,4 @@
-import { CATALOG_BASE_UNIT } from "@/constants";
+import { APP_ROUTE, CATALOG_BASE_UNIT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 
 // Constantes propias de recetas. Viven dentro de la feature porque ninguna
@@ -124,17 +124,15 @@ export const RECIPE_EDITOR_ACTION = {
   VALIDATION_FAILED: "validationFailed",
 } as const;
 
-// Todas las rutas salen de la misma base: si cambia "/recetas", cambian todas.
-const RECIPES_BASE_PATH = "/recetas";
+// Todas las rutas salen de la misma base (constants/routes.constants.ts).
+const RECIPES_BASE_PATH = APP_ROUTE.RECIPES;
 
 export const RECIPE_ROUTE = {
   CATALOG: RECIPES_BASE_PATH,
   EDIT_SEGMENT: "editar",
   NEW: `${RECIPES_BASE_PATH}/nueva`,
-  // Ruta de la lista general (app/(app)/lista/), para el link "Ver lista" de SCRUM-97.
-  // No hay una constante de rutas compartida: se promueve a constants/ cuando
-  // otra feature también la necesite.
-  SHOPPING_LIST: "/lista",
+  // Lista general, para el link "Ver lista" de SCRUM-97.
+  SHOPPING_LIST: APP_ROUTE.LIST,
 } as const;
 
 export const RECIPE_FORM_ERROR = {
