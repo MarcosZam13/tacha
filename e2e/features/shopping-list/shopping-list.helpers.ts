@@ -33,3 +33,15 @@ export const getListSection = (page: Page, sectionName: string): Locator =>
 /** El botón que tacha y destacha la fila de un producto: su nombre es el del producto. */
 export const getCheckButton = (scope: Locator, productName: string): Locator =>
   scope.getByRole("button", { name: productName });
+
+/** La barra del modo compra (SCRUM-67). */
+export const getShoppingModeBar = (page: Page): Locator => page.getByRole("region", { name: "Modo compra" });
+
+/** El panel "Cerrar compra" (SCRUM-67). */
+export const getClosePurchasePanel = (page: Page): Locator => page.getByRole("region", { name: "Cerrar compra" });
+
+/** "Iniciar compra" y elegir el súper en el diálogo. */
+export const startPurchaseAt = async (page: Page, storeName: string): Promise<void> => {
+  await page.getByRole("button", { name: "Iniciar compra" }).click();
+  await page.getByRole("dialog", { name: "¿Dónde estás comprando?" }).getByRole("button", { name: storeName }).click();
+};
