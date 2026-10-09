@@ -7,6 +7,10 @@
 -- Si una regla no se cumple, un `assert` corta con su mensaje; si termina sin
 -- error, pasó. Contra la base sin 015 falla en el paso 1.
 --
+-- Ejecutarlo completo, nunca por partes: el paso 2 apaga el trigger de 015, y
+-- sin el begin/rollback quedaría apagado en la base compartida. Mientras corre
+-- bloquea las escrituras en list_items (milisegundos): mejor fuera de horas de uso.
+--
 -- Caso principal: un producto comprado ayer (3 unidades) y una receta que
 -- pide 2 unidades de ese producto. Antes de 015 la receta veía las 3 unidades
 -- compradas como "ya en la lista" y no pedía nada; con 015 lo comprado no
