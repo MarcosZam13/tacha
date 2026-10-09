@@ -98,8 +98,8 @@ Bloqueado / fuera de esta historia:
 - [x] 9. Hook `useRecipeCoverage` (abrir, cerrar, uno a la vez, carga, suscripción con limpieza, coalescencia, bandera de cancelación) y su composición en `useRecipeCatalogViewModel` (+ `coverage` en `RecipeCatalogViewModel`, en el mismo commit para que compile). Incluye `onRecipeRemoved`: borrar una receta con su panel abierto cierra el panel y cancela la suscripción.
 - [x] 10. Presentación: botón en `RecipeCard`, `RecipeCoveragePanel`, `RecipeCoverageIngredient` y la conexión en `RecipeCatalog`. Suma `ariaExpanded` y `ariaControls` opcionales al `Button` compartido (`components/ui/button`).
 - [x] 11. `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test`; tests de las utils y del hook.
-- [ ] 12. Validar en el navegador los casos de §13 de HU-66, incluido tachar desde **otra pestaña** con el panel abierto, y en el SQL Editor la RLS con otra sesión. Depende de la tarea 4.
-- [ ] 13. Revisión con `code-reviewer` y `security-reviewer` (RLS y publicación de Realtime), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Si cambia una decisión de producto, actualizar `docs/documento-proyecto.md` en el mismo PR.
+- [x] 12. Validar en el navegador los casos de §13 de HU-66, incluido tachar desde **otra pestaña** con el panel abierto, y en el SQL Editor la RLS con otra sesión. Depende de la tarea 4.
+- [x] 13. Revisión con `code-reviewer` y `security-reviewer` (RLS y publicación de Realtime), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Si cambia una decisión de producto, actualizar `docs/documento-proyecto.md` en el mismo PR. Revisiones hechas el 2026-10-09: corregidos el aviso al quedar activa la suscripción, la cancelación al entrar a `refresh` y la prueba de aislamiento del SQL (B con lista propia, permisos de `anon`); el Medium de los eventos delete de Realtime se documentó en SPEC §15.
 
 Bloqueado / fuera de esta historia:
 

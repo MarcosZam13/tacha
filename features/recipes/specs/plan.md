@@ -550,11 +550,13 @@ No se toca `features/shopping-list/` (SPEC §10): la lista no sabe que el panel 
 - La RPC es `security invoker` y de solo lectura: no puede devolver nada que el usuario no pueda leer directo. Receta ajena → `P0002`, sin revelar si existe.
 - Realtime respeta la RLS de `list_items`: un usuario solo recibe eventos de su propia lista. Se prueba con dos sesiones y lo revisa `security-reviewer` (toca RLS y publicación).
 - El cliente solo manda el id de la receta; el nombre del canal lleva ese id y nada sensible.
-- La publicación expone `list_items` a Realtime; el riesgo es el de cualquier tabla con RLS correcta. Queda anotado en la revisión.
+- La publicación expone `list_items` a Realtime. Insert y update respetan la RLS; **los eventos delete no** (limitación de Supabase): llegan a todos los suscriptores, solo con el `id` de la fila, y cada panel abierto vuelve a consultar. No se filtra ningún dato; es una amplificación de carga acotada por la coalescencia. Aceptado en la revisión de seguridad (Medium); detalle y siguiente paso en SPEC §15. `REPLICA IDENTITY FULL` queda prohibido en esta tabla.
+- Al quedar activa la suscripción se hace una consulta más (`SUBSCRIBED` → `onChange`), para no perder un cambio que ocurra entre la primera consulta y la suscripción.
 
 ### Deuda conocida
 
 - **Primer uso de Realtime en el repo:** si otra feature lo necesita, conviene extraer `subscribeToListChanges` a `services/`.
+- **Borrados ajenos disparan una consulta por panel abierto** (revisión de seguridad, Medium): ver Seguridad y SPEC §15. Siguiente paso si molesta: debounce de ~300 ms en `refresh`.
 - **Una consulta por cambio:** la coalescencia limita las llamadas, pero no es incremental. Suficiente para una lista de decenas de filas.
 - **Cubierto no mide cantidad** (regla 31). Si el usuario cambia las cantidades de la lista después de agregar la receta, el faltante no se recalcula (regla 23, SCRUM-115).
 - **La RPC se prueba en el SQL Editor** con casos fijos (tasks). El runner cubre `toCoverageIngredients`, `toCoverageSummaryText`, `toCoverageReasonText` y las transiciones de `useRecipeCoverage` con un servicio simulado.
