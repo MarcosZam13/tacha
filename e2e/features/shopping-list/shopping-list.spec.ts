@@ -3,13 +3,17 @@ import { deleteOwnListItems } from "../../support/supabase";
 import {
   LIST_PATH,
   addFirstSearchResult,
+  getCheckButton,
   getEmptyListMessage,
   getListRow,
+  getListSection,
 } from "./shopping-list.helpers";
 
 // Escenarios: features/shopping-list/specs/E2E.md. Cada test arranca con un
 // navegador nuevo, o sea un usuario anónimo nuevo con la lista vacía.
 const SEARCH_TERM = "leche";
+const PENDING_SECTION = "Pendientes";
+const CHECKED_SECTION = "Tachados hoy";
 
 test.describe("Lista general", () => {
   test.beforeEach(async ({ page }) => {
@@ -42,5 +46,26 @@ test.describe("Lista general", () => {
     await expect(row.getByText("2", { exact: true })).toBeVisible();
     await page.reload();
     await expect(getListRow(page, productName).getByText("2", { exact: true })).toBeVisible();
+  });
+
+  test("E2E-LISTA-04 — Tachar y destachar un producto", async ({ page }) => {
+    const productName = await addFirstSearchResult(page, SEARCH_TERM);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    const checkedSection = getListSection(page, CHECKED_SECTION);
+    await expect(getCheckButton(pendingSection, productName)).toBeVisible();
+
+    await getCheckButton(pendingSection, productName).click();
+
+    await expect(getCheckButton(checkedSection, productName)).toHaveAttribute("aria-pressed", "true");
+    await expect(getCheckButton(pendingSection, productName)).toHaveCount(0);
+    await page.reload();
+    await expect(getCheckButton(checkedSection, productName)).toBeVisible();
+
+    await getCheckButton(checkedSection, productName).click();
+
+    await expect(getCheckButton(pendingSection, productName)).toHaveAttribute("aria-pressed", "false");
+    await expect(checkedSection).toHaveCount(0);
+    await page.reload();
+    await expect(getCheckButton(pendingSection, productName)).toBeVisible();
   });
 });
