@@ -67,6 +67,18 @@ export const shoppingListReducer = (
         quantityErrorMessage: null,
       };
 
+    case SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED:
+      // Modo compra (SCRUM-67): mismo bloqueo y mismo error que la cantidad
+      // pedida (QUANTITY_CHANGE_STARTED / FAILED), pero cambia lo comprado.
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === action.itemId ? { ...item, quantityBought: action.quantityBought } : item,
+        ),
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+        quantityErrorMessage: null,
+      };
+
     case SHOPPING_LIST_ACTION.QUANTITY_CHANGE_FAILED:
       // La cantidad no se toca: la fila sigue mostrando lo último que confirmó la base.
       return {
@@ -80,14 +92,13 @@ export const shoppingListReducer = (
       return { ...state, pendingItemIds: [...state.pendingItemIds, action.itemId] };
 
     case SHOPPING_LIST_ACTION.CHECK_TOGGLED:
-      // Solo cambia checkedAt; la fila no se mueve dentro de items. La sección
-      // se deriva de checkedAt en el ViewModel, así destachar la devuelve a su lugar.
+      // Solo cambia el estado de tachado (cuándo, compra y lo comprado); la fila
+      // no se mueve dentro de items. La sección se deriva de checkedAt en el
+      // ViewModel, así destachar la devuelve a su lugar.
       return {
         ...state,
         checkErrorMessage: null,
-        items: state.items.map((item) =>
-          item.id === action.itemId ? { ...item, checkedAt: action.checkedAt } : item,
-        ),
+        items: state.items.map((item) => (item.id === action.itemId ? { ...item, ...action.check } : item)),
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
       };
 

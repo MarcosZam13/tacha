@@ -20,10 +20,14 @@ export const PURCHASE_SESSION_DB = {
   },
 } as const;
 
-// Espejo del check total_amount >= 0 de purchase_sessions (016): la UI no
-// deja enviar un negativo y la base lo rechaza igual.
+// Espejo de total_amount numeric(12, 2) de purchase_sessions (016): caben 10
+// dígitos enteros, así que el máximo es 9 999 999 999. La UI no deja enviar
+// más y la base lo rechaza igual. Un monto se escribe en colones enteros, con
+// separadores de miles opcionales (espacio, punto o coma) en grupos de 3.
 export const SPENT_TOTAL = {
-  MIN: 0,
+  MAX: 9_999_999_999,
+  PATTERN: /^(\d+|\d{1,3}([ .,]\d{3})+)$/,
+  THOUSANDS_SEPARATOR: /[ .,]/g,
 } as const;
 
 export const PURCHASE_SESSION_TEXT = {

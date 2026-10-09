@@ -8,7 +8,9 @@ const createItem = (overrides: Partial<ShoppingListItem> = {}): ShoppingListItem
   checkedAt: null,
   id: "item-leche",
   productName: "Leche entera",
+  purchaseSessionId: null,
   quantity: 1,
+  quantityBought: null,
   sizeLabel: "1000 ml",
   variantId: "variant-leche",
   ...overrides,
@@ -174,7 +176,7 @@ describe("shoppingListReducer: checking off (moving rows between sections)", () 
     });
 
     const state = shoppingListReducer(pendingState, {
-      checkedAt: CHECKED_AT,
+      check: { checkedAt: CHECKED_AT, purchaseSessionId: null, quantityBought: null },
       itemId: leche.id,
       type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
     });
@@ -189,7 +191,7 @@ describe("shoppingListReducer: checking off (moving rows between sections)", () 
     const cafe = createItem({ id: "item-cafe", variantId: "variant-cafe" });
 
     const state = shoppingListReducer(createLoadedState([leche, arroz, cafe]), {
-      checkedAt: null,
+      check: { checkedAt: null, purchaseSessionId: null, quantityBought: null },
       itemId: leche.id,
       type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
     });
@@ -228,7 +230,7 @@ describe("shoppingListReducer: checking off (moving rows between sections)", () 
     });
 
     const state = shoppingListReducer(failedState, {
-      checkedAt: CHECKED_AT,
+      check: { checkedAt: CHECKED_AT, purchaseSessionId: null, quantityBought: null },
       itemId: arroz.id,
       type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
     });
@@ -247,5 +249,71 @@ describe("shoppingListReducer: checking off (moving rows between sections)", () 
     });
 
     expect(state.items).toEqual([reopenedLeche]);
+  });
+});
+
+describe("shoppingListReducer: shopping mode (SCRUM-67)", () => {
+  const CHECKED_AT = "2026-10-09T15:30:00.000Z";
+  const SESSION_ID = "session-maxipali";
+
+  it("keeps the purchase and the bought quantity the database returned when checking off in a purchase", () => {
+    const leche = createItem({ quantity: 2 });
+
+    const state = shoppingListReducer(createLoadedState([leche]), {
+      // check_list_item_in_session (016): lo comprado arranca igual a lo pedido.
+      check: { checkedAt: CHECKED_AT, purchaseSessionId: SESSION_ID, quantityBought: 2 },
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
+    });
+
+    expect(state.items[0]).toMatchObject({ checkedAt: CHECKED_AT, purchaseSessionId: SESSION_ID, quantityBought: 2 });
+  });
+
+  it("drops the purchase and the bought quantity when the row is unchecked", () => {
+    const leche = createItem({ checkedAt: CHECKED_AT, purchaseSessionId: SESSION_ID, quantityBought: 3 });
+
+    const state = shoppingListReducer(createLoadedState([leche]), {
+      // El trigger de 016 limpia las tres columnas al destachar.
+      check: { checkedAt: null, purchaseSessionId: null, quantityBought: null },
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
+    });
+
+    expect(state.items[0]).toMatchObject({ checkedAt: null, purchaseSessionId: null, quantityBought: null });
+  });
+
+  it("shows the bought quantity the database returned, keeps the requested one and frees the row", () => {
+    const leche = createItem({ checkedAt: CHECKED_AT, purchaseSessionId: SESSION_ID, quantity: 2, quantityBought: 2 });
+    const pendingState = shoppingListReducer(createLoadedState([leche]), {
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.QUANTITY_CHANGE_STARTED,
+    });
+
+    const state = shoppingListReducer(pendingState, {
+      itemId: leche.id,
+      quantityBought: 3,
+      type: SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED,
+    });
+
+    expect(state.items[0].quantityBought).toBe(3);
+    expect(state.items[0].quantity).toBe(2);
+    expect(state.pendingItemIds).toEqual([]);
+  });
+
+  it("clears the quantity error after the bought quantity changes", () => {
+    const leche = createItem({ checkedAt: CHECKED_AT, purchaseSessionId: SESSION_ID, quantityBought: 1 });
+    const failedState = shoppingListReducer(createLoadedState([leche]), {
+      errorMessage: SHOPPING_LIST_TEXT.QUANTITY_ERROR,
+      itemId: leche.id,
+      type: SHOPPING_LIST_ACTION.QUANTITY_CHANGE_FAILED,
+    });
+
+    const state = shoppingListReducer(failedState, {
+      itemId: leche.id,
+      quantityBought: 2,
+      type: SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED,
+    });
+
+    expect(state.quantityErrorMessage).toBeNull();
   });
 });
