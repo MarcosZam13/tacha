@@ -1,9 +1,10 @@
-import type { NullableRef } from "@/types/nullable.types";
+import type { ItemCheck } from "./ItemCheck.interface";
 
-/** Una fila de la lista general tal como la muestra la pantalla. */
-export interface ShoppingListItem {
-  /** Cuándo se tachó (ISO, hora de la base); null = pendiente. */
-  checkedAt: NullableRef<string>;
+/**
+ * Una fila de la lista general tal como la muestra la pantalla. Su estado de
+ * tachado (cuándo, en qué compra, cuánto se compró) es un ItemCheck.
+ */
+export interface ShoppingListItem extends ItemCheck {
   id: string;
   productName: string;
   quantity: number;
