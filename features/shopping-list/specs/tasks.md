@@ -59,8 +59,8 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-67: modo compra
 
-- [ ] 31. Migración `016_create_purchase_sessions.sql` y su prueba `supabase/tests/016_create_purchase_sessions.test.sql`. **No se aplica sola:** Marcos reserva el `016` en el grupo y la aplica en una transacción con su fila (`supabase/README.md#migraciones`). Bloquea la 38 y la 39.
-- [ ] 32. `types/database.types.ts` a mano; regenerar con el MCP después de aplicar 016 y comprobar que coincide.
+- [x] 31. Migración `016_create_purchase_sessions.sql` y su prueba `supabase/tests/016_create_purchase_sessions.test.sql`. Aplicada el 2026-10-09 a pedido de Marcos, en una transacción con su fila `016` (`supabase/README.md#migraciones`), después de un ensayo de la migración + la prueba completa con `rollback` que pasó.
+- [x] 32. `types/database.types.ts`: lo nuevo de 016 copiado de los tipos que genera Supabase con la base ya migrada.
 - [ ] 33. Constantes (textos, RPC, parámetro `compra`) y modelos (`PurchaseSession`, `StoreOption`, `ItemCheck`, campos nuevos del item, acciones).
 - [ ] 34. Reducer: `CHECK_TOGGLED` con `ItemCheck` y `BOUGHT_QUANTITY_CHANGED`, tests primero. `parseSpentTotal` con test.
 - [ ] 35. Servicios: `purchase-session.service.ts` y lo nuevo de `shopping-list.service.ts`.
