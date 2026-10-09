@@ -1,6 +1,3 @@
-import { CATALOG_BASE_UNIT } from "@/constants";
-import type { CatalogBaseUnitType } from "@/constants";
-
 // Constantes propias de la lista general. Viven dentro de la feature porque
 // ninguna otra las usa todavía; se promueven a constants/ con el segundo consumidor.
 
@@ -18,6 +15,12 @@ export const ITEM_QUANTITY = {
 export type ItemQuantityStepType =
   (typeof ITEM_QUANTITY.STEP)[keyof typeof ITEM_QUANTITY.STEP];
 
+// Cuánto se ve el toast de "Producto eliminado". Es también el plazo para
+// deshacer: el borrado en la base sale recién cuando vence.
+export const ITEM_REMOVAL = {
+  UNDO_WINDOW_MS: 5000,
+} as const;
+
 // Espejo del check de lists.type en la base (documento-proyecto §6).
 export const LIST_TYPE = {
   DATE: "date",
@@ -27,15 +30,6 @@ export const LIST_TYPE = {
 
 export type ListTypeType = (typeof LIST_TYPE)[keyof typeof LIST_TYPE];
 
-// satisfies Record<CatalogBaseUnitType, ...> obliga a tener una etiqueta por
-// cada unidad (si se agrega una unidad arriba, esto deja de compilar) sin
-// perder los tipos literales de as const.
-export const CATALOG_BASE_UNIT_LABEL = {
-  [CATALOG_BASE_UNIT.GRAMS]: "g",
-  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
-  [CATALOG_BASE_UNIT.UNIT]: "u",
-} as const satisfies Record<CatalogBaseUnitType, string>;
-
 export const SHOPPING_LIST_DB = {
   // Embebe items → variante → producto madre en una sola petición (PostgREST).
   // Los nombres de columnas (aquí y en los .eq() del servicio) no llevan
@@ -43,6 +37,9 @@ export const SHOPPING_LIST_DB = {
   // valida al compilar, que es lo mismo que buscaría la constante.
   GENERAL_LIST_SELECT:
     "list_items(id, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+  // Detalle de una variante: sus marcas y el último precio de cada marca en
+  // cada tienda (la vista latest_prices ya se queda con el más reciente).
+  ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
   RPC: {
     ADD_ITEM_TO_GENERAL_LIST: "add_item_to_general_list",
     CHANGE_ITEM_QUANTITY: "change_item_quantity",
@@ -50,26 +47,43 @@ export const SHOPPING_LIST_DB = {
   TABLE: {
     LISTS: "lists",
     LIST_ITEMS: "list_items",
+    VARIANTS: "product_catalog_variants",
   },
 } as const;
 
 // Acciones del reducer de la lista (utils/shopping-list.reducer.ts).
 export const SHOPPING_LIST_ACTION = {
   ADD_FAILED: "addFailed",
+  ITEM_REMOVED: "itemRemoved",
   ITEM_UPSERTED: "itemUpserted",
   LOADED: "loaded",
   LOAD_FAILED: "loadFailed",
   QUANTITY_CHANGED: "quantityChanged",
   QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
+  REMOVE_FAILED: "removeFailed",
 } as const;
 
 export const SHOPPING_LIST_TEXT = {
   ADD_ERROR: "No se pudo añadir el producto. Intenta de nuevo.",
   DECREASE_QUANTITY: "Quitar uno",
+  DETAIL_BRANDS: "Marcas",
+  DETAIL_CLOSE: "Cerrar",
+  DETAIL_ERROR: "No se pudo cargar el detalle. Intenta de nuevo.",
+  DETAIL_NO_BRANDS: "Sin marcas registradas.",
+  DETAIL_NO_PRICES: "Todavía no hay precios de referencia.",
+  DETAIL_PRESENTATION: "Presentación",
+  DETAIL_PRICES: "Precio de referencia por supermercado",
   EMPTY_LIST: "Tu lista está vacía. Busca un producto para empezar.",
   INCREASE_QUANTITY: "Añadir uno",
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
+  OPEN_DETAIL: "Ver detalle",
+  OPEN_DETAIL_ICON: "i",
+  REMOVE_ERROR: "No se pudo eliminar el producto. Intenta de nuevo.",
+  REMOVE_ITEM: "Eliminar",
+  REMOVE_ITEM_ICON: "✕",
+  REMOVED_TOAST: "Producto eliminado",
+  UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",
 } as const;

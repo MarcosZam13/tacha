@@ -17,6 +17,26 @@ Usar siempre el **Page Object Model (POM)** para tests de interacción con UI/co
 
 Preferir las queries accesibles de Testing Library sobre APIs de shallow-rendering o de detalle de implementación.
 
+### 1.1 Cómo correr los tests
+
+```bash
+npm test             # corre todo una vez (lo mismo que el CI)
+npm run test:watch   # modo watch mientras se escribe código
+npx vitest run features/shopping-list   # solo los tests de una carpeta
+```
+
+- Configuración en `vitest.config.mts` (raíz). Toma cualquier `*.test.ts` o `*.test.tsx`, fuera de `node_modules/`, `.next/` y `supabase/functions/` (Deno).
+- El alias `@/` funciona igual que en `tsconfig.json`.
+- **Entorno por defecto: Node.** Los tests de funciones puras (utils, reducers, validaciones) no necesitan navegador y arrancan en menos de un segundo. Un test de componente pide el navegador simulado con este comentario en la **primera línea** del archivo:
+
+  ```ts
+  // @vitest-environment jsdom
+  ```
+
+- `vitest.setup.ts` agrega los matchers de `@testing-library/jest-dom` (`toBeInTheDocument`, `toBeDisabled`, ...).
+- Importar `describe`, `it`, `expect` y `vi` desde `vitest` en cada archivo (no hay globals): así cada test dice de dónde sale cada cosa.
+- Versiones fijadas para Node 20 (el del CI): Vitest 4 y jsdom 29. Vitest 5 y jsdom 30 piden Node 22; subirlos es cambiar primero la versión de Node del proyecto.
+
 ## 2. Layout de tests colocalizado por feature
 
 Los tests viven dentro de la carpeta de la feature, siguiendo [component-architecture](../component-architecture/SKILL.md):

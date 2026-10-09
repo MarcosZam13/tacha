@@ -107,3 +107,81 @@ Viene de la sesión anónima provisional; se cierra cuando exista el registro:
 
 - **Cuentas anónimas sin CAPTCHA:** cualquiera con la anon key puede crear usuarios anónimos en bucle (Supabase los limita por IP). Antes de producción: CAPTCHA en Auth › Attack Protection (y `captchaToken` en `signInAnonymously`), revisar el rate limit y limpiar anónimos viejos.
 - **Anónimo = `authenticated`:** las políticas de este sprint no distinguen anónimos de registrados, y hoy eso es lo buscado. La migración de households tiene que exigir `coalesce((select (auth.jwt()->>'is_anonymous')::boolean), false) = false` en toda acción que requiera cuenta real (crear o unirse a un household).
+
+## SCRUM-64: ver detalle de producto
+
+> **Verificado el 2026-10-03** contra la base real: cada variante de las listas tiene 1 marca y 1 precio (solo MaxiPali). La vista `latest_prices` es `security_invoker` y `anon`/`authenticated` pueden leerla, igual que `product_brands` y `stores`. PostgREST resuelve la relación variante → `latest_prices` → `stores` en una sola petición (probado con la anon key).
+
+Sin migraciones: todo lo que pide CA-02 ya existe en la base.
+
+```
+features/shopping-list/
+  components/
+    ShoppingListRow.tsx                + botón de detalle, hermano del QuantityStepper
+    ShoppingListItemDetail.tsx         contenido del modal: presentación, marcas, precios (solo presentación)
+    models/ShoppingListItemDetailProps.interface.ts
+  hooks/
+    useItemDetail.ts                   pide el detalle de la variante abierta; el "cargando" se deriva, no se guarda
+    useShoppingListViewModel.ts        + fila abierta, abrir/cerrar y textos ya formateados para el modal
+  models/
+    ItemDetail.interface.ts            marcas + precios por tienda (lo que devuelve el servicio)
+    ItemDetailViewModel.interface.ts   lo que dibuja el modal, ya calculado
+  services/
+    shopping-list.service.ts           + getItemDetail(variantId)
+  utils/
+    toStorePriceRanges.ts              precios por marca y tienda → rango por tienda, del más barato al más caro
+    formatPriceRange.ts                2300, 2500 → "₡2 300 – ₡2 500"
+```
+
+Flujo: tocar el botón de detalle → el ViewModel guarda la fila abierta → `useItemDetail` ve un `variantId` nuevo y pide `getItemDetail()` → una sola consulta a `product_catalog_variants` con `product_brands(name)` y `latest_prices(price, stores(display_name))` embebidos → `toStorePriceRanges()` agrupa por tienda → el modal muestra el nombre y el tamaño que la fila ya tenía, más las marcas y los precios. Cerrar el modal suelta la fila abierta.
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Pedir el detalle al abrirlo | Traer marcas y precios junto con la lista | La carga de la lista sigue siendo una consulta liviana; los precios solo se piden para el producto que se mira, y llegan frescos |
+| Una consulta con embeds (marcas + `latest_prices` + `stores`) | Dos o tres consultas, o calcular el último precio en el cliente | La vista `latest_prices` ya resuelve "el último precio por marca y tienda" en la base; una sola petición = un solo estado de carga y de error |
+| Rango por tienda (mínimo–máximo entre marcas) | Una fila por marca y tienda | Es lo que pide el diseño (DESIGN.md, product-detail-view) y HU-53; con una sola marca el rango es un solo precio |
+| Modal de `components/ui` | Ruta nueva `/lista/[itemId]` | No se pierde la lista de vista ni el scroll; se reusa el primitivo con cierre por Escape y por fondo |
+| `isLoading` derivado: hay fila abierta y todavía no hay respuesta para su `variantId` | `setIsLoading(true)` al inicio del efecto | Mismo criterio que la carga de la lista: nada de `setState` síncrono dentro de un efecto (renders en cascada, y el lint `set-state-in-effect` lo marca) |
+| Guardar la respuesta junto con el `variantId` que la pidió | Guardar solo el detalle | Si el usuario cierra y abre otro producto rápido, el detalle viejo no se muestra como si fuera del nuevo, ni siquiera un instante |
+| Nombre y tamaño desde la fila ya cargada | Pedirlos otra vez con el detalle | Ya están en pantalla; pedirlos de nuevo es más datos para mostrar lo mismo |
+| El detalle vive en `features/shopping-list/` | Ponerlo de una vez en `components/` | Hoy lo usa solo la lista. HU-53 (Sprint 3) es el segundo consumidor real y ahí se promueve, igual que el buscador en SCRUM-120 |
+| Botón de detalle hermano del `QuantityStepper` | Hacer clickeable la fila | La fila completa es la que va a tachar (HU-36e); un botón adentro de otro es HTML inválido y el click dispararía las dos acciones |
+
+## SCRUM-65: eliminar producto
+
+> **Verificado el 2026-10-03** contra la base real: `list_items` tiene RLS con políticas de select, insert y update del dueño, pero ninguna de delete, así que hoy un delete borra 0 filas sin error. `authenticated` ya tiene el privilegio `delete` (default de Supabase).
+
+Migración `012_delete_list_items.sql`: `grant delete` explícito y política `for delete to authenticated` con el mismo criterio que select y update (el item es de una lista cuyo `owner_id` es `auth.uid()`). Sin cambio de columnas, así que `types/database.types.ts` no se regenera. Lleva el número `012` porque `011` es de SCRUM-56 (households); las dos ya estaban aplicadas en la base, el número solo ordena los archivos.
+
+```
+features/shopping-list/
+  components/
+    ShoppingListRow.tsx                + botón de eliminar, hermano de los demás controles
+    UndoToast.tsx                      mensaje + "Deshacer", fijo abajo, role="status" (solo presentación)
+    models/UndoToastProps.interface.ts
+  hooks/
+    useItemRemoval.ts                  item pendiente, temporizador del toast, deshacer, borrar el anterior, borrar al salir
+    useShoppingList.ts                 + removeItem(itemId)
+    useShoppingListViewModel.ts        + oculta la fila pendiente, arma el toast, cancela el borrado si se vuelve a añadir
+  services/
+    shopping-list.service.ts           + deleteListItem(itemId)
+  utils/
+    shopping-list.reducer.ts           + ITEM_REMOVED, REMOVE_FAILED
+supabase/migrations/012_delete_list_items.sql
+```
+
+Flujo: tocar eliminar → `requestRemoval(itemId)` guarda el id pendiente (si había otro pendiente, ese se borra ya) → el ViewModel filtra esa fila de `rows` y muestra el toast → efecto con `setTimeout` de la duración del toast:
+- **Deshacer** → `cancelRemoval()` limpia el pendiente; el cleanup del efecto cancela el temporizador; la fila vuelve en su lugar porque nunca salió de `state.items`.
+- **Vence** → `removeItem(itemId)` → `deleteListItem()` → `dispatch(ITEM_REMOVED)` (sale de `state.items`). Si falla → `dispatch(REMOVE_FAILED)`: el item sigue en `state.items`, así que la fila vuelve sola, con el mensaje de error.
+- **La pantalla se desmonta con algo pendiente** → el cleanup de un efecto aparte manda el borrado.
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Borrar en la base cuando vence el toast | Borrar al tocar y re-insertar al deshacer | Deshacer no escribe nada: no hay una segunda escritura que pueda fallar, y la fila vuelve con su id, su cantidad y su lugar. Re-insertar daría un id nuevo y la fila al final de la lista |
+| El item pendiente sigue en `state.items` y se oculta en el ViewModel | Sacarlo del estado y guardar una copia para deshacer | Sin copia que pueda quedar vieja: deshacer y fallar son "dejar de ocultarlo". La fila oculta se deriva de `pendingItemId` |
+| Un solo item pendiente; eliminar otro borra el anterior en ese momento | Una cola de toasts | Un solo toast visible y un solo temporizador. Con cola habría que decidir qué deshace "Deshacer" |
+| `setTimeout` dentro de un efecto con cleanup | `setTimeout` suelto en el handler | El cleanup cancela el temporizador al deshacer o al cambiar de item; suelto, un temporizador viejo podría borrar algo que el usuario ya recuperó |
+| Borrar al salir de la pantalla (cleanup de un efecto con `[]` y una ref) | Perder el borrado si se navega | El usuario ya vio desaparecer el producto; si vuelve, no debería encontrarlo |
+| Deshabilitar eliminar mientras la fila guarda su cantidad | Permitirlo | Un `change_item_quantity` en vuelo sobre una fila que se borra podría responder después y revivir la cantidad en pantalla |
+| 0 filas borradas = éxito | Tratarlo como error | Si el item ya no existe (otra pestaña lo borró), para el usuario el resultado es el mismo: no está. Tampoco revela si existe un item ajeno |
+| `UndoToast` dentro de la feature | En `components/ui` desde ya | Hoy es el único consumidor (segundo consumidor real, como el buscador en SCRUM-120) |

@@ -1,6 +1,5 @@
 import type { NullableUndefined } from "@/types/nullable.types";
-import type { RecipeEditorValues } from "../models/RecipeEditorValues.interface";
-import type { SaveRecipePayload } from "../models/SaveRecipePayload.interface";
+import type { RecipeEditorValues, SaveRecipePayload } from "../models/recipe-editor.interfaces";
 import { normalizeDecimal } from "./normalizeDecimal";
 
 /**

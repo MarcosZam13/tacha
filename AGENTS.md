@@ -23,6 +23,8 @@ Actuar como ingeniero senior Next.js/React/TypeScript. Nunca volver a patrones j
 | [component-architecture](.agents/skills/component-architecture/SKILL.md) | Construir o revisar cualquier feature de UI — estructura de carpetas, Spec-Driven Development, separación Presentación/ViewModel |
 | [constants-standards](.agents/skills/constants-standards/SKILL.md) | Un string o número sin explicar está por entrar a un diff |
 | [unit-testing-standards](.agents/skills/unit-testing-standards/SKILL.md) | Escribir o revisar tests de componentes/unitarios |
+| [playwright-e2e](.agents/skills/playwright-e2e/SKILL.md) | Pruebas de punta a punta: escribir `E2E.md` de una feature, tests en `e2e/`, o diagnosticar por qué falla un E2E (qué se arregla en el test, en el producto o en el entorno) |
+| [playwright-cli](.agents/skills/playwright-cli/SKILL.md) | Manejar el navegador desde la terminal (`npx playwright cli`): inspeccionar la página para elegir localizadores, trazas, grabar acciones. Copia oficial que trae Playwright |
 | [nextjs-enterprise-patterns](.agents/skills/nextjs-enterprise-patterns/SKILL.md) | Reutilización de componentes, tipos nullable, estado compartido, patrón de mutaciones, baseline de lint |
 | [clean-code-practices](.agents/skills/clean-code-practices/SKILL.md) | Cualquier código no trivial — naming, tamaño de funciones, estructura de repo, cuándo usar un patrón de diseño |
 | [project-structure](.agents/skills/project-structure/SKILL.md) | Crear una carpeta o archivo nuevo, decidir dónde vive algo, importar entre carpetas, o escribir una ruta en un doc/skill |
@@ -39,6 +41,7 @@ features/         Una carpeta por feature/historia con todo lo suyo (component-a
 components/       Solo lo compartido entre features: ui/ con los primitivos
 constants/        Constantes por dominio + barrel constants/index.ts
 types/            Tipos compartidos entre features
+e2e/              Pruebas de punta a punta con Playwright: features/<feature>/, support/, smoke/ (playwright-e2e)
 supabase/         schema.sql, migrations/ (solo .sql), functions/ (Edge Functions, Deno)
 docs/             Documento de proyecto, historias de usuario, sprints, diseño, docs por módulo
 .agents/skills/   Skills de este archivo

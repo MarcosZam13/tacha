@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableUndefined } from "@/types/nullable.types";
 import { RECIPE_EDITOR_STATUS, RECIPE_EDITOR_TEXT, RECIPE_ROUTE } from "../constants/recipes.constants";
-import type { RecipeEditorViewModel } from "../models/RecipeEditorViewModel.interface";
+import type { RecipeEditorViewModel } from "../models/recipe-editor.interfaces";
 import { getDefaultUnit } from "../utils/getDefaultUnit";
 import { useRecipeEditor } from "./useRecipeEditor";
 
