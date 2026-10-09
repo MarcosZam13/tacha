@@ -89,8 +89,8 @@ Bloqueado / fuera de esta historia:
 
 - [x] 1. SPEC (huecos de HU-66 decididos con el responsable el 2026-10-09: panel en la tarjeta, cubierto = tachado, Realtime sobre `list_items`).
 - [x] 2. Plan y tareas.
-- [ ] 3. Migración `016_recipe_coverage.sql` (número provisional): RPC `get_recipe_coverage` y publicación de Realtime. Seguir `supabase/README.md#migraciones` si la PR #53 ya está mergeada.
-- [ ] 4. Aplicar la migración (SQL Editor, en una transacción con su fila de historial), regenerar `types/database.types.ts` y probar la RPC con los casos de §13 (no está en la lista, sin tachar, faltante registrado, conteo tachado, todo cubierto, destachar, receta ajena `P0002`). Bloquea la validación de la tarea 12, no el código del cliente.
+- [x] 3. Migración `017_recipe_coverage.sql` (la `016` la tomó SCRUM-67): RPC `get_recipe_coverage` y publicación de Realtime.
+- [ ] 4. Migración aplicada en el SQL Editor (2026-10-09). `types/database.types.ts`: se commitea SOLO `Functions.get_recipe_coverage`, tal como lo genera el dashboard; el resto del diff regenerado (tablas de SCRUM-67) se descartó para no chocar con su PR. Falta probar la RPC en el SQL Editor con los casos de §13 (no está en la lista, sin tachar, faltante registrado, conteo tachado, todo cubierto, destachar, receta ajena `P0002`). Bloquea la validación de la tarea 12, no el código del cliente.
 - [ ] 5. Constantes: estados, textos, motivos, RPC y nombre del canal.
 - [ ] 6. Modelos en `models/recipe-coverage.types.ts` y `models/recipe-coverage.interfaces.ts`.
 - [ ] 7. Utils puros: `toCoverageIngredients`, `toCoverageSummaryText`, `toCoverageReasonText`.

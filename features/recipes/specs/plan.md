@@ -465,7 +465,7 @@ No se toca `features/shopping-list/` (SPEC §10), ni `list_items`, ni `app/(app)
 
 ## SCRUM-98: ver qué falta de una receta
 
-> **Verificado el 2026-10-09** contra `develop` (con SCRUM-66 y SCRUM-135 mergeadas): `list_items.checked_at` existe (`015`), `list_item_recipe_requirements` existe (`013`) y la última migración es la `015`. En todo el repo no hay ningún uso de Realtime ni la publicación `supabase_realtime`. La rama `ticket/SCRUM-67-modo-compra` está abierta y podría tomar la `016`.
+> **Verificado el 2026-10-09** contra `develop` (con SCRUM-66 y SCRUM-135 mergeadas): `list_items.checked_at` existe (`015`), `list_item_recipe_requirements` existe (`013`) y la última migración es la `015`. En todo el repo no hay ningún uso de Realtime ni la publicación `supabase_realtime`. La rama `ticket/SCRUM-67-modo-compra` está abierta y ya tomó la `016` (`016_create_purchase_sessions.sql`), por eso esta historia usa la `017`.
 
 ### Archivos
 
@@ -494,7 +494,7 @@ features/recipes/
     toCoverageReasonText.ts            nuevo: motivo + faltante → "No está en tu lista" / "Te falta comprar 600 ml"
   constants/recipes.constants.ts       + estados, textos, motivos, RPC, nombre del canal
 
-supabase/migrations/016_recipe_coverage.sql   RPC + publicación de Realtime
+supabase/migrations/017_recipe_coverage.sql   RPC + publicación de Realtime
 types/database.types.ts                       regenerar (Functions.get_recipe_coverage)
 ```
 
@@ -502,7 +502,7 @@ No se toca `features/shopping-list/` (SPEC §10): la lista no sabe que el panel 
 
 ### Datos
 
-**Migración `016_recipe_coverage.sql`** (número provisional):
+**Migración `017_recipe_coverage.sql`:**
 
 - **RPC `get_recipe_coverage(target_recipe_id uuid) returns jsonb`**, `stable`, `security invoker`, `search_path` vacío, solo `authenticated`:
   1. Sin sesión → `42501`. La receta no se ve → `P0002` (igual que `add_recipe_to_general_list`).
