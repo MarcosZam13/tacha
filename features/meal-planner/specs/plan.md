@@ -253,14 +253,14 @@ Sin `.eq("owner_id", …)`: lo hace RLS. El rango de fechas sale de `getWeekStar
 
 ## SCRUM-101: agregar la semana a la lista
 
-> **Verificado el 2026-10-10** contra `develop` (con SCRUM-99 y SCRUM-100 mergeadas): existen `meal_plans` y `assign_meal_slot` (019), el recorrido de ingredientes vive entero dentro de `add_recipe_to_general_list` (013, reemplazada por la 015 con el filtro de lo tachado), y la última migración aplicada es la `019`. La `018` es de la PR #55 y la `020` de otra rama: esta historia usa la **`021`** o la siguiente libre al aplicarla (`supabase/README.md#migraciones`).
+> **Verificado el 2026-10-10** contra `develop` (con SCRUM-99 y SCRUM-100 mergeadas): existen `meal_plans` y `assign_meal_slot` (019), el recorrido de ingredientes vive entero dentro de `add_recipe_to_general_list` (013, reemplazada por la 015 con el filtro de lo tachado), y la última migración aplicada es la `019`. La `018` es de la PR #55 y la `020` de otra rama: esta historia usa la **`022`** (la `020` y la `021` son de otras ramas) o la siguiente libre al aplicarla (`supabase/README.md#migraciones`).
 
 ### Archivos
 
 ```
 supabase/
-  migrations/021_add_week_to_list.sql       función interna add_week_ingredients_to_list (copia de las reglas con multiplicador) y RPC add_week_to_general_list; no modifica nada existente
-  tests/021_add_week_to_list.test.sql       prueba con rollback (escala, mismo ingrediente en dos días, atómico, aislamiento, rango, equivalencia con la receta suelta)
+  migrations/022_add_week_to_list.sql       función interna add_week_ingredients_to_list (copia de las reglas con multiplicador) y RPC add_week_to_general_list; no modifica nada existente
+  tests/022_add_week_to_list.test.sql       prueba con rollback (escala, mismo ingrediente en dos días, atómico, aislamiento, rango, equivalencia con la receta suelta)
 
 features/meal-planner/
   MealPlanner.tsx                           + botón, diálogo y aviso
@@ -291,7 +291,7 @@ docs/documento-proyecto.md                  + regla de "agregar la semana" y el 
 
 ### Datos
 
-**Migración `021_add_week_to_list.sql`** (todas las funciones `security invoker`, `search_path` vacío, objetos con `public.`):
+**Migración `022_add_week_to_list.sql`** (todas las funciones `security invoker`, `search_path` vacío, objetos con `public.`):
 
 1. `add_week_ingredients_to_list(target_list_id uuid, target_recipe_id uuid, servings_multiplier numeric) returns jsonb`: **copia** del cuerpo del `for ingredient in …` de `add_recipe_to_general_list` (015), sin la sesión, la receta, la lista ni el bloqueo (los hace quien la llama). Cambia una sola cosa: `needed_quantity` es `ri.quantity_value * servings_multiplier`. Reusa sin cambios `pick_recipe_variant` y `add_units_to_list_item`. Devuelve `{ added, missing, skipped, processed }` (`processed`: nombres de todos los productos que entraron en la lista, sin los omitidos, para contar ingredientes distintos). Lleva un comentario que apunta a la función original y a la deuda de juntarlas.
 2. **`add_recipe_to_general_list` no se toca.**
@@ -331,7 +331,7 @@ La tabla `list_item_recipe_requirements` y `list_items` no cambian. Un espacio c
 - Todas son `security invoker`: RLS decide qué recetas, qué plan y qué lista ve el usuario. La RPC no recibe ids de usuario.
 - El rango máximo de 7 días acota el trabajo de una llamada directa (hasta 21 espacios × 50 ingredientes) mientras la lista está bloqueada.
 - La función interna queda con permiso para `authenticated`, como `pick_recipe_variant` y `add_units_to_list_item`: necesario para que otra función `security invoker` la llame y sin efecto extra, porque corre con los permisos del usuario.
-- Nada existente cambia, así que las pruebas SQL de la 015 y la 017 y los tests de recetas no se afectan; se vuelven a correr al aplicar la 021 solo como comprobación. Riesgo a vigilar: las dos copias de las reglas 17 a 26 se separan (la prueba de equivalencia lo detecta si se corre).
+- Nada existente cambia, así que las pruebas SQL de la 015 y la 017 y los tests de recetas no se afectan; se vuelven a correr al aplicar la 022 solo como comprobación. Riesgo a vigilar: las dos copias de las reglas 17 a 26 se separan (la prueba de equivalencia lo detecta si se corre).
 
 ### Deuda conocida
 
