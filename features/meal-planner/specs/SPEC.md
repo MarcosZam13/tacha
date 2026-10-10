@@ -317,7 +317,7 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 
 25. **Una semana a la vez.** El botón actúa sobre la semana a la vista, no sobre las dos. Al cambiar de semana con las flechas, el botón y el conteo cambian con ella.
 26. **Deshabilitado sin comidas.** Con 0 espacios asignados en la semana a la vista, mientras el plan carga y si falló la carga, el botón está deshabilitado.
-27. **Confirmación siempre.** Antes de agregar se pide confirmar, también la primera vez. Dice el número de comidas de la semana a la vista ("Vas a agregar a tu lista general los ingredientes de 5 comidas de esta semana."). A diferencia de SCRUM-97, no se guarda en el navegador qué se agregó: la pregunta es siempre.
+27. **Confirmación siempre.** Antes de agregar se pide confirmar, también la primera vez. Dice el número de comidas de la semana a la vista ("Vas a agregar a tu lista general los ingredientes de 5 comidas (12 – 18 oct)."). A diferencia de SCRUM-97, no se guarda en el navegador qué se agregó: la pregunta es siempre.
 28. **Destino: la lista general.** Elegir una sublista de fecha (HU-69 CA-03) queda pendiente hasta que existan las sublistas (HU-44 a HU-46, Sprint 4); ver sección 14.
 29. **Una vez por espacio.** Se recorre cada espacio asignado de la semana, en orden (fecha y luego desayuno, almuerzo, cena). Si la misma receta está en tres espacios, sus ingredientes se agregan tres veces, cada una con el multiplicador de su espacio.
 30. **Las cantidades se multiplican.** Los ingredientes de cada espacio se agregan con su cantidad × el multiplicador del espacio (×0,5 a ×4) antes de aplicar las reglas 17 a 26 de recetas. Esto cambia el contrato anterior ([sección 15](#15-notas-de-implementación)), que dejaba las cantidades en las porciones base.
@@ -336,7 +336,7 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 |---|---|---|
 | Agregar semana | `closed` · `confirming` · `adding` · `done` · `failed` | `confirming` y `adding` llevan la semana (lunes y domingo) y el número de comidas mostrado; `done` lleva el resumen; `failed`, el mensaje. Un solo diálogo a la vez |
 
-`done` y `failed` no son del diálogo: el aviso queda debajo del encabezado hasta que se cambia de semana, se vuelve a agregar o se abre otro diálogo.
+`failed` es del diálogo (sigue abierto con el mensaje y se puede reintentar). Solo `done` es el aviso: queda debajo del encabezado, solo en la semana que se agregó, hasta que se vuelve a abrir la confirmación o se recarga la pantalla. Cambiar de semana lo oculta y volver a esa semana lo muestra otra vez.
 
 ### 16.6 Errores
 
@@ -349,7 +349,7 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 
 ### 16.7 UI esperada
 
-- El botón **"Agregar semana a la lista"** (`Button` primario) va en el encabezado de la semana, a la derecha del rango o debajo en mobile. Deshabilitado según la regla 26.
+- El botón **"Agregar semana a la lista"** (`Button` primario) va debajo del selector de semana (el rango y las flechas), alineado a la izquierda, con el aviso final justo debajo. Deshabilitado según la regla 26.
 - El diálogo se titula **"Agregar semana a la lista"**, explica con una frase cuántas comidas se agregan y a qué lista, y tiene **"Agregar"** y **"Cancelar"**. Mientras agrega dice **"Agregando…"** y los botones se deshabilitan.
 - El aviso final repite la forma del resumen de SCRUM-97: la línea principal ("Agregaste 8 ingredientes de 5 comidas a tu lista."), las líneas de "No se pudieron agregar" y "Te falta comprar" si aplican, y el enlace **"Ver lista"**.
 
@@ -370,7 +370,7 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 - [ ] CA-01: "Agregar semana a la lista" abre una confirmación y, al aceptar, agrega de una vez todos los ingredientes de las comidas asignadas de la semana a la vista, con las mismas reglas de SCRUM-97.
 - [ ] CA-02: un ingrediente que aparece en varios espacios queda en una sola fila de la lista, sin duplicarse.
 - [ ] CA-03 (parcial): se agrega a la lista general; la elección de una sublista queda para cuando existan las sublistas (sección 14).
-- [ ] El multiplicador de cada espacio escala las cantidades (un espacio en ×2 agrega el doble que en ×1).
+- [x] El multiplicador de cada espacio escala las cantidades **pedidas y el faltante registrado** (un espacio en ×2 pide el doble que en ×1). Lo que se mide en `unidad` suma unidades a la lista; lo que se mide en ml o g no suma envases si el producto ya está (regla 20 de recetas), solo crece el faltante. Verificado en la prueba SQL (lunes ×2 y martes ×1 en ml o g; 3 unidades con ×1,5 en `unidad`); en pantalla solo se ve en el aviso al agregar, ver sección 16.11.
 - [ ] La misma receta en dos espacios se agrega dos veces.
 - [ ] Con la semana a la vista vacía, el botón está deshabilitado; con comidas, habilitado; cambia al cambiar de semana.
 - [ ] Cancelar la confirmación no cambia la lista.
@@ -385,6 +385,7 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 
 ### 16.11 Casos fuera de alcance
 
+- **Ver en pantalla el efecto del multiplicador y de las repeticiones en lo que se mide en ml o g (decidido el 2026-10-10, opción A):** agregar la semana sigue las reglas de SCRUM-97, así que un producto de volumen o peso que ya está en la lista no suma más envases por otra comida ni por volver a pulsar "Agregar": solo crece el faltante que queda registrado en `list_item_recipe_requirements`. Hoy ese faltante solo se ve en el aviso al agregar (con los nombres, "Te falta comprar: …"). El panel "Ver qué falta" de SCRUM-98 muestra el estado de cada ingrediente y la cantidad solo cuando el producto se tacha con faltante, y el aviso bajo cada producto en `/lista` es de SCRUM-114 (Marcos), todavía sin hacer. Cambiar esto para que la semana sume envases sería cambiar la regla 20, que es de SCRUM-97 y de la lista de otra persona.
 - **Elegir una sublista de fecha como destino (HU-69 CA-03):** depende de las sublistas (HU-44 a HU-46 / SCRUM-76 a SCRUM-78, de Marcos, Sprint 4) y de que `lists` las distinga por fecha; hoy solo existe la lista general. Cuando existan, el diálogo suma un selector de destino y la RPC recibe el id de la lista. Hasta entonces el destino es fijo y el CA-03 queda cumplido a medias; **hay que avisarlo en la PR**.
 - **Agregar las dos semanas de una vez:** el botón actúa sobre la semana a la vista.
 - **Agregar solo algunos días o comidas** (casillas por espacio): no lo pide la historia.

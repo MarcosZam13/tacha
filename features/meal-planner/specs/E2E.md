@@ -105,7 +105,7 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
   2. En el diálogo, tocar "Cancelar".
   3. Volver a tocar "Agregar semana a la lista" y confirmar con "Agregar".
   4. Tocar "Ver lista".
-- **Resultado esperado:** después del paso 1 el diálogo "Agregar semana a la lista" dice "Vas a agregar a tu lista general los ingredientes de 2 comidas" y todavía no hay aviso. Después del paso 2 el diálogo se cierra y no hay aviso. Después del paso 3 el diálogo se cierra y aparece el aviso "Agregaste N ingrediente(s) de 2 comidas a tu lista." con el enlace "Ver lista". Después del paso 4 la URL es `/lista`.
+- **Resultado esperado:** después del paso 1 el diálogo "Agregar semana a la lista" dice "Vas a agregar a tu lista general los ingredientes de 2 comidas" y todavía no hay aviso. Después del paso 2 el diálogo se cierra y no hay aviso. Después del paso 3 el diálogo se cierra y aparece el aviso "Agregaste N ingrediente(s) de 2 comidas a tu lista." con el enlace "Ver lista". Después del paso 4 la URL es `/lista`, la sección "Pendientes" tiene al menos un producto y la lista ya no dice que está vacía.
 
 ### E2E-PLANNER-10: el botón sigue a las comidas de la semana a la vista
 

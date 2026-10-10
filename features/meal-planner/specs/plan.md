@@ -336,6 +336,7 @@ La tabla `list_item_recipe_requirements` y `list_items` no cambian. Un espacio c
 ### Deuda conocida
 
 - **Sin sublistas de fecha (CA-03):** el destino es solo la lista general hasta HU-44 a HU-46 (Sprint 4).
+- **El efecto del multiplicador y de las repeticiones no se ve en pantalla en ml o g:** el producto que ya está en la lista no suma envases (regla 20 de SCRUM-97), solo crece el faltante registrado, que hoy solo muestra el aviso al agregar (nombres). El aviso bajo cada producto en `/lista` es de SCRUM-114 (Marcos); el panel "Ver qué falta" de SCRUM-98 solo da cantidades al tachar. Decidido el 2026-10-10 dejarlo así (SPEC §16.11).
 - **Los conteos pueden sobrar** con presentaciones de varias unidades (SPEC §16.12).
 - **Dos copias de las reglas 17 a 26** (`add_recipe_to_general_list` y `add_week_ingredients_to_list`): una corrección a una hay que hacerla en la otra. Cuando los dueños lo acuerden, la original puede llamar a la interna con multiplicador 1 y se borra la copia.
 - **La función interna queda expuesta en la API** (mismo caso que las dos auxiliares de la 013).
