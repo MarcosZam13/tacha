@@ -8,6 +8,7 @@ import { getPlanRange } from "../utils/getPlanRange";
 import { getWeekStartForOffset } from "../utils/getWeekStartForOffset";
 import { useMealSlotDialog } from "./useMealSlotDialog";
 import { useToday } from "./useToday";
+import { useWeekListAddition } from "./useWeekListAddition";
 import { useWeekMealPlan } from "./useWeekMealPlan";
 
 /**
@@ -41,6 +42,16 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
     onSaved: plan.saveEntry,
   });
 
+  const rangeLabel = weekStart ? formatWeekRange(weekStart) : null;
+  // Agregar la semana (SCRUM-101): actúa sobre la semana a la vista y solo con un diálogo abierto a la vez.
+  const weekAddition = useWeekListAddition({
+    days,
+    getEntry: plan.getEntry,
+    isBlocked: dialog.isOpen,
+    isPlanReady: plan.isPlanReady,
+    rangeLabel,
+  });
+
   return {
     // Las flechas no se ocultan: se deshabilitan en el extremo (SPEC regla 4).
     canGoToNextWeek: !isNextWeek,
@@ -51,7 +62,8 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
     onNextWeek: (): void => setWeekOffset(WEEK_OFFSET.NEXT),
     onPreviousWeek: (): void => setWeekOffset(WEEK_OFFSET.CURRENT),
     plan,
-    rangeLabel: weekStart ? formatWeekRange(weekStart) : null,
+    rangeLabel,
+    weekAddition,
     weekLabel: isNextWeek ? MEAL_PLANNER_TEXT.NEXT_WEEK : MEAL_PLANNER_TEXT.THIS_WEEK,
   };
 };

@@ -223,3 +223,63 @@ export const COOK_OPTIONS = [
   { label: MEAL_SLOT_TEXT.COOK_SELF, value: COOK_CHOICE.SELF },
   { label: MEAL_SLOT_TEXT.COOK_NONE, value: COOK_CHOICE.NONE },
 ] as const;
+
+// --- Agregar la semana a la lista (SCRUM-101) ---
+
+// Estados del diálogo de agregar la semana (WeekListState en models/week-list-addition.types.ts).
+export const WEEK_LIST_STATUS = {
+  ADDING: "adding",
+  CLOSED: "closed",
+  CONFIRMING: "confirming",
+  DONE: "done",
+  FAILED: "failed",
+} as const;
+
+// Acciones del reducer (utils/week-list-addition.reducer.ts).
+export const WEEK_LIST_ACTION = {
+  CLOSED: "closed",
+  CONFIRMED: "confirmed",
+  FAILED: "failed",
+  OPENED: "opened",
+  SUCCEEDED: "succeeded",
+} as const;
+
+export const WEEK_LIST_DB = {
+  RPC: {
+    ADD_WEEK_TO_GENERAL_LIST: "add_week_to_general_list",
+  },
+} as const;
+
+// Dónde se reemplazan los datos en las frases con huecos de WEEK_LIST_TEXT.
+export const WEEK_LIST_TOKEN = {
+  INGREDIENTS: "{ingredients}",
+  MEALS: "{meals}",
+  RANGE: "{range}",
+} as const;
+
+export const WEEK_LIST_TEXT = {
+  ADDING: "Agregando…",
+  ALREADY_COVERED: "Tu lista ya tenía lo necesario para esta semana.",
+  BUTTON: "Agregar semana a la lista",
+  CANCEL: "Cancelar",
+  CONFIRM: "Agregar",
+  CONFIRM_MESSAGE: "Vas a agregar a tu lista general los ingredientes de {meals} ({range}).",
+  DIALOG_TITLE: "Agregar semana a la lista",
+  ERROR: "No se pudo agregar la semana a tu lista. Intenta de nuevo.",
+  INGREDIENT_PLURAL: "ingredientes",
+  INGREDIENT_SINGULAR: "ingrediente",
+  MEAL_PLURAL: "comidas",
+  MEAL_SINGULAR: "comida",
+  MISSING_PREFIX: "Te falta comprar:",
+  NO_MEALS: "No había comidas planeadas esta semana.",
+  SKIPPED_PREFIX: "No se pudieron agregar:",
+  SUCCESS: "Agregaste {ingredients} de {meals} a tu lista.",
+  // Separa los productos dentro de "Te falta comprar: …" y "No se pudieron agregar: …".
+  SUMMARY_SEPARATOR: ", ",
+  VIEW_LIST: "Ver lista",
+} as const;
+
+// A dónde lleva "Ver lista": la lista general (constants/routes.constants.ts).
+export const WEEK_LIST_ROUTE = {
+  LIST: APP_ROUTE.LIST,
+} as const;
