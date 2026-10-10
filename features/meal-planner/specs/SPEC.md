@@ -4,9 +4,9 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 
 - [SCRUM-99 / HU-67](https://tacha.atlassian.net/browse/SCRUM-99): ver el calendario semanal de comidas. Sprint 3.
 - [SCRUM-100 / HU-68](https://tacha.atlassian.net/browse/SCRUM-100): asignar receta, cocinero y porciones a un espacio. Sprint 3, en curso.
-- [SCRUM-101 / HU-69](https://tacha.atlassian.net/browse/SCRUM-101): agregar la semana completa a la lista. Sprint 3, todavía no empezada.
+- [SCRUM-101 / HU-69](https://tacha.atlassian.net/browse/SCRUM-101): agregar la semana completa a la lista. Sprint 3, en curso.
 
-Esta spec cubre **SCRUM-99** (el calendario, mergeada) y **SCRUM-100** (asignar). SCRUM-101 la extiende cuando empiece. El cómo (archivos, flujo, decisiones) está en [plan.md](plan.md); los pasos, en [tasks.md](tasks.md).
+Esta spec cubre **SCRUM-99** (el calendario, mergeada), **SCRUM-100** (asignar, mergeada) y **SCRUM-101** (agregar la semana a la lista, [sección 16](#16-scrum-101-agregar-la-semana-a-la-lista)). El cómo (archivos, flujo, decisiones) está en [plan.md](plan.md); los pasos, en [tasks.md](tasks.md).
 
 ## 1. Objetivo
 
@@ -241,8 +241,8 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
 - **Mover o copiar una comida a otro espacio** (arrastrar, "repetir el lunes"): no lo pide la historia.
 - **Notas por comida, ingredientes extra o recetas sueltas sin cargar al catálogo:** no están en la historia.
 - **Aviso si se asigna una receta con ingredientes que no están en la lista:** "qué falta" del plan es una historia propia.
-- **Bloquear días pasados o fechas fuera de las dos semanas en la base:** la pantalla solo ofrece las dos semanas; la base acepta cualquier fecha válida (regla 20).
-- **"Agregar semana a la lista":** HU-69 (SCRUM-101).
+- **Bloquear días pasados o fechas fuera de las dos semanas en la base:** la pantalla solo ofrece las dos semanas; la base acepta de 2020-01-01 a 2100-12-31 (regla 20).
+- **"Agregar semana a la lista":** HU-69 (SCRUM-101); ver la [sección 16](#16-scrum-101-agregar-la-semana-a-la-lista).
 - **"Qué falta" del plan semanal** (documento-proyecto §4.9): historia propia, más adelante.
 - **Navegar a semanas pasadas o a más de una semana adelante:** la historia pide solo actual y próxima.
 - **Botón "Hoy" o saltar a una fecha:** con dos semanas no hace falta.
@@ -284,4 +284,122 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
   - *Qué se deja hecho para que sea un cambio pequeño después:* `household_id` nullable y sin FK, el índice único parcial (como el de la lista general en `004`), el cocinero como columna `uuid`, el selector de cocinero con una sola fuente de opciones, todo el acceso por RLS y no por filtros del cliente, y la pantalla sin saber de quién es el plan. Cuando se haga, el cambio es de base y de un servicio; la pantalla y los textos no cambian.
 - **La RPC y no un `upsert` directo.** PostgREST no puede usar el índice parcial `where household_id is null` como destino de `on conflict`; una RPC hace el `insert … on conflict` con el predicado y valida adentro. Quitar sí es un `delete` directo, que ya es atómico (igual que borrar una receta).
 - **El diálogo.** Es un `Modal` único con receta, cocinero y multiplicador, no un flujo por pasos: son tres campos y "corto" es lo que pide la historia. El diálogo de asignar y el de reasignar son el mismo, con "Quitar" solo si ya hay algo.
-- **Contrato con SCRUM-101.** Agregar la semana recorre las filas de `meal_plans` de la semana y llama a `add_recipe_to_general_list` por cada una (SPEC de recetas §15). El multiplicador no cambia las cantidades en SCRUM-97: la RPC de recetas usa las porciones base. Si SCRUM-101 necesita escalar los ingredientes por el multiplicador, es una decisión de esa historia.
+- **Contrato con SCRUM-101 (cumplido).** Agregar la semana recorre las filas de `meal_plans` de la semana. SCRUM-97 usa las porciones base y no escala; SCRUM-101 decidió que **sí se multiplican** por el multiplicador del espacio, así que la lógica de `add_recipe_to_general_list` pasa a una función interna con multiplicador (sección 16.9).
+
+## 16. SCRUM-101: agregar la semana a la lista
+
+Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no cierra): un botón que actúa sobre **la semana a la vista**; destino fijo en la **lista general**, con las sublistas como pendiente; las cantidades se **multiplican** por el multiplicador de cada espacio; la misma receta cuenta **una vez por espacio**; **confirmación** antes de agregar y aviso con el número de ingredientes y el enlace "Ver lista"; con la semana vacía el botón se **deshabilita**.
+
+### 16.1 Alcance
+
+- Un botón **"Agregar semana a la lista"** en el planificador. Actúa sobre la **semana que está a la vista** (la actual o la próxima, lunes a domingo): son dos botones posibles pero uno solo visible a la vez, porque las flechas cambian de semana. No agrega las dos semanas juntas.
+- Antes de agregar, un **diálogo de confirmación** (Modal compartido) dice cuántas comidas se van a agregar. Cancelar no cambia nada.
+- Se agregan los ingredientes de **cada espacio asignado** de esa semana a la **lista general** del usuario (se crea si no existe), con las mismas reglas que agregar una receta (reglas 17 a 26 de [la SPEC de recetas](../../recipes/specs/SPEC.md)), con las cantidades **multiplicadas** por el ×N del espacio.
+- Al terminar, un aviso en la pantalla dice **cuántos ingredientes** de cuántas comidas se agregaron, lo que no se pudo agregar y lo que falta comprar, con el enlace **"Ver lista"** a `/lista`.
+- Con **ninguna comida asignada** en la semana a la vista, el botón está **deshabilitado**.
+
+### 16.2 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Semana a la vista | lunes y domingo de la semana elegida, como claves `"2026-10-12"` / `"2026-10-18"` | las que ya arma el planificador (`days`) |
+| Comidas de esa semana | entradas de `meal_plans` con receta y multiplicador | el plan ya cargado (SCRUM-100); el cliente solo las cuenta para el botón y el diálogo |
+| Confirmación | confirmar / cancelar (botón, clic fuera o Escape) | diálogo |
+| Recetas, presentaciones y lista general | `recipe_ingredients`, `product_catalog_variants`, `lists`, `list_items`, `list_item_recipe_requirements` | leídos en la base por la RPC |
+
+### 16.3 Salidas
+
+- Filas nuevas o cantidades sumadas en `list_items` de la lista general, y registros en `list_item_recipe_requirements` (uno por receta, producto y unidad, que acumula), igual que SCRUM-97.
+- Un aviso (`role="status"`) con el resumen y "Ver lista". Si algo falla: un mensaje de error (`role="alert"`) y la lista queda como estaba.
+- Nada cambia en `meal_plans`.
+
+### 16.4 Reglas de negocio
+
+25. **Una semana a la vez.** El botón actúa sobre la semana a la vista, no sobre las dos. Al cambiar de semana con las flechas, el botón y el conteo cambian con ella.
+26. **Deshabilitado sin comidas.** Con 0 espacios asignados en la semana a la vista, mientras el plan carga y si falló la carga, el botón está deshabilitado.
+27. **Confirmación siempre.** Antes de agregar se pide confirmar, también la primera vez. Dice el número de comidas de la semana a la vista ("Vas a agregar a tu lista general los ingredientes de 5 comidas (12 – 18 oct)."). A diferencia de SCRUM-97, no se guarda en el navegador qué se agregó: la pregunta es siempre.
+28. **Destino: la lista general.** Elegir una sublista de fecha (HU-69 CA-03) queda pendiente hasta que existan las sublistas (HU-44 a HU-46, Sprint 4); ver sección 14.
+29. **Una vez por espacio.** Se recorre cada espacio asignado de la semana, en orden (fecha y luego desayuno, almuerzo, cena). Si la misma receta está en tres espacios, sus ingredientes se agregan tres veces, cada una con el multiplicador de su espacio.
+30. **Las cantidades se multiplican.** Los ingredientes de cada espacio se agregan con su cantidad × el multiplicador del espacio (×0,5 a ×4) antes de aplicar las reglas 17 a 26 de recetas. Esto cambia el contrato anterior ([sección 15](#15-notas-de-implementación)), que dejaba las cantidades en las porciones base.
+31. **Mismo ingrediente en varios días (CA-02).** Todo lo que pide el mismo producto cae en una sola fila de la lista por presentación, sin duplicarse. Las cantidades se acumulan exactamente como si las recetas se hubieran agregado una detrás de otra con SCRUM-97: lo de volumen o peso descuenta lo que ya hay y lo que ya pidieron las otras comidas (regla 20 de recetas), y lo que se mide en unidades suma encima hasta cubrir cada comida (regla 19, "aunque sobre"). Esa última regla puede dejar más de lo estrictamente necesario cuando la presentación trae varias unidades; es el mismo comportamiento de SCRUM-97 y queda como decisión abierta (sección 15).
+32. **Atómico.** Entra toda la semana o nada: si una comida falla, la lista queda como estaba.
+33. **Sin presentación en el catálogo.** Como en la regla 26 de recetas, el ingrediente cuyo producto no tiene presentación no se agrega, el resumen lo nombra y el resto sí se agrega.
+34. **Resumen.** Cuántas comidas se agregaron, **cuántos ingredientes distintos** entraron en la lista, y las dos listas que ya muestra SCRUM-97: los productos que no se pudieron agregar y los que te falta comprar. Si la lista ya tenía todo lo necesario, lo dice.
+35. **Qué cuenta como "comida".** La base agrega lo que hay en `meal_plans` al momento de confirmar, no lo que mostraba la pantalla: si otra pestaña cambió el plan, el resumen dice cuántas comidas se agregaron de verdad. Con 0, no es un error: dice que no había comidas planeadas y no escribe nada.
+36. **Máximo una semana por llamada.** La base rechaza un rango de más de 7 días (`22023`), para que una llamada directa no recorra un plan enorme con la lista bloqueada. Con 21 espacios y hasta 50 ingredientes por receta son como mucho 1.050 ingredientes.
+37. **Una sola petición.** Un doble clic en "Agregar" no manda dos.
+38. **Permisos.** La RPC es `security invoker`: solo ve y agrega sobre las recetas, el plan y la lista del propio usuario (RLS). No recibe ids de usuario.
+
+### 16.5 Estados
+
+| Pantalla | Estado | Notas |
+|---|---|---|
+| Agregar semana | `closed` · `confirming` · `adding` · `done` · `failed` | `confirming` y `adding` llevan la semana (lunes y domingo) y el número de comidas mostrado; `done` lleva el resumen; `failed`, el mensaje. Un solo diálogo a la vez |
+
+`failed` es del diálogo (sigue abierto con el mensaje y se puede reintentar). Solo `done` es el aviso: queda debajo del encabezado, solo en la semana que se agregó, hasta que se vuelve a abrir la confirmación o se recarga la pantalla. Cambiar de semana lo oculta y volver a esa semana lo muestra otra vez.
+
+### 16.6 Errores
+
+| Caso | Qué se muestra |
+|---|---|
+| Falla de red o de Supabase al agregar | Dentro del diálogo, que sigue abierto: "No se pudo agregar la semana a tu lista. Intenta de nuevo." |
+| Una receta de la semana ya no existe (se borró en otra pestaña) | No es error: su espacio ya no está en `meal_plans` (cascade), así que no se agrega; el resumen cuenta las comidas que sí entraron |
+| Sin comidas al confirmar | Aviso "No había comidas planeadas esta semana." |
+| Receta con más de 50 ingredientes | Mismo error de la RPC de recetas (`22023`): mensaje general de error |
+
+### 16.7 UI esperada
+
+- El botón **"Agregar semana a la lista"** (`Button` primario) va debajo del selector de semana (el rango y las flechas), alineado a la izquierda, con el aviso final justo debajo. Deshabilitado según la regla 26.
+- El diálogo se titula **"Agregar semana a la lista"**, explica con una frase cuántas comidas se agregan y a qué lista, y tiene **"Agregar"** y **"Cancelar"**. Mientras agrega dice **"Agregando…"** y los botones se deshabilitan.
+- El aviso final repite la forma del resumen de SCRUM-97: la línea principal ("Agregaste 8 ingredientes de 5 comidas a tu lista."), las líneas de "No se pudieron agregar" y "Te falta comprar" si aplican, y el enlace **"Ver lista"**.
+
+### 16.8 Accesibilidad
+
+- El botón deshabilitado se anuncia como no disponible; al cambiar de semana su estado cambia con ella.
+- El diálogo es el `Modal` compartido (`role="dialog"`, `aria-modal`, título, Escape y foco de vuelta al botón al cerrar).
+- El aviso es `role="status"` (éxito) o `role="alert"` (error): aparece sin que cambie la página y el lector lo anuncia solo.
+
+### 16.9 Contratos externos
+
+- **RPC nueva `add_week_to_general_list(week_from date, week_to date) returns jsonb`**, `security invoker`, `search_path` vacío, transaccional. Recorre los espacios de `meal_plans` del rango en orden y aplica, por espacio, la misma lógica que `add_recipe_to_general_list` con las cantidades × el multiplicador. Devuelve `{ meals, ingredients, added, missing, skipped }`. Sin sesión: `42501`. Rango inválido (`week_to < week_from` o más de 7 días): `22023`.
+- **No se modifica ninguna función ni tabla existente (migración 022).** `add_week_to_general_list` trae su propio recorrido de ingredientes (las reglas 17 a 26 con el multiplicador) en una función interna nueva, `add_week_ingredients_to_list`, y reusa sin cambios las auxiliares `pick_recipe_variant` y `add_units_to_list_item`. `add_recipe_to_general_list`, `list_items` y `list_item_recipe_requirements` quedan exactamente como están: SCRUM-97, SCRUM-66 y SCRUM-98 no se ven afectadas y las pruebas SQL de la 015 y la 017 no cambian. `types/database.types.ts` solo suma las dos funciones nuevas.
+- Sin tablas nuevas ni cambios de RLS.
+
+### 16.10 Casos de aceptación (HU-69, SCRUM-101)
+
+- [x] CA-01: "Agregar semana a la lista" abre una confirmación y, al aceptar, agrega de una vez todos los ingredientes de las comidas asignadas de la semana a la vista, con las mismas reglas de SCRUM-97.
+- [x] CA-02: un ingrediente que aparece en varios espacios queda en una sola fila de la lista, sin duplicarse.
+- [x] CA-03 (parcial): se agrega a la lista general; la elección de una sublista queda para cuando existan las sublistas (sección 14).
+- [x] El multiplicador de cada espacio escala las cantidades **pedidas y el faltante registrado** (un espacio en ×2 pide el doble que en ×1). Lo que se mide en `unidad` suma unidades a la lista; lo que se mide en ml o g no suma envases si el producto ya está (regla 20 de recetas), solo crece el faltante. Verificado en la prueba SQL (lunes ×2 y martes ×1 en ml o g; 3 unidades con ×1,5 en `unidad`); en pantalla solo se ve en el aviso al agregar, ver sección 16.11.
+- [x] La misma receta en dos espacios se agrega dos veces.
+- [x] Con la semana a la vista vacía, el botón está deshabilitado; con comidas, habilitado; cambia al cambiar de semana.
+- [x] Cancelar la confirmación no cambia la lista.
+- [x] El aviso dice cuántos ingredientes y cuántas comidas se agregaron y tiene el enlace "Ver lista" a `/lista`.
+- [x] Falla de red al agregar: mensaje dentro del diálogo, la lista queda como estaba y se puede reintentar.
+- [x] Doble clic en "Agregar": una sola petición.
+- [x] Todo o nada: si una comida falla, no entra ninguna.
+- [x] Otro usuario no ve ni suma sobre mi plan, mis recetas ni mi lista; sin sesión, `42501` (SQL con dos usuarios).
+- [x] Un rango de más de 7 días o invertido se rechaza en la base.
+- [x] Una semana con un solo espacio en ×1 deja la lista igual que agregar esa receta suelta con `add_recipe_to_general_list` (prueba de equivalencia, para detectar que las dos copias de las reglas se separen).
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+
+### 16.11 Casos fuera de alcance
+
+- **Ver en pantalla el efecto del multiplicador y de las repeticiones en lo que se mide en ml o g (decidido el 2026-10-10, opción A):** agregar la semana sigue las reglas de SCRUM-97, así que un producto de volumen o peso que ya está en la lista no suma más envases por otra comida ni por volver a pulsar "Agregar": solo crece el faltante que queda registrado en `list_item_recipe_requirements`. Hoy ese faltante solo se ve en el aviso al agregar (con los nombres, "Te falta comprar: …"). El panel "Ver qué falta" de SCRUM-98 muestra el estado de cada ingrediente y la cantidad solo cuando el producto se tacha con faltante, y el aviso bajo cada producto en `/lista` es de SCRUM-114 (Marcos), todavía sin hacer. Cambiar esto para que la semana sume envases sería cambiar la regla 20, que es de SCRUM-97 y de la lista de otra persona.
+- **Elegir una sublista de fecha como destino (HU-69 CA-03):** depende de las sublistas (HU-44 a HU-46 / SCRUM-76 a SCRUM-78, de Marcos, Sprint 4) y de que `lists` las distinga por fecha; hoy solo existe la lista general. Cuando existan, el diálogo suma un selector de destino y la RPC recibe el id de la lista. Hasta entonces el destino es fijo y el CA-03 queda cumplido a medias; **hay que avisarlo en la PR**.
+- **Agregar las dos semanas de una vez:** el botón actúa sobre la semana a la vista.
+- **Agregar solo algunos días o comidas** (casillas por espacio): no lo pide la historia.
+- **Avisar que la semana ya se agregó antes** (como la regla 27 de recetas): se pregunta siempre, sin recordar nada en el navegador.
+- **Deshacer lo agregado:** la lista se edita a mano o se tachan los productos (SCRUM-66).
+- **Ver cuánto se gasta o qué falta por receta:** es de la lista y de "qué falta" (SCRUM-98, SCRUM-115).
+- **Convertir unidades:** igual que SCRUM-97, no se convierte (documento-proyecto §4.9.1).
+
+### 16.12 Notas de implementación
+
+- **Por qué una RPC nueva y no N llamadas desde el cliente.** Llamar a `add_recipe_to_general_list` una vez por espacio desde el navegador no es atómico (si la tercera falla, las dos primeras ya entraron) y no puede multiplicar. Una sola RPC con todo el plan de la semana es una transacción: o entra la semana o nada, con una sola ida a la base.
+- **Por qué se duplica el recorrido en vez de tocar `add_recipe_to_general_list`.** El multiplicador exige cambiar el recorrido de ingredientes. Extraerlo y dejar la RPC de recetas como envoltorio la volvería a escribir en una migración de SCRUM-101, y el último `create or replace` aplicado gana: si el dueño de la lista (o de recetas) la modifica después, una de las dos pisaría a la otra. Se decidió (2026-10-10) **no modificar nada de otras historias** y aceptar la copia (~200 líneas) como deuda anotada: `add_week_ingredients_to_list` es la copia con multiplicador, con un comentario que apunta a la original.
+- **La función interna queda expuesta** (`grant execute` a `authenticated`, igual que `pick_recipe_variant` y `add_units_to_list_item`, que la nueva reusa sin cambios): una función `security invoker` llamada desde otra necesita el permiso de quien la llama. No hay riesgo: corre con los permisos y la RLS del usuario.
+- **El bloqueo de la lista** (`pg_advisory_xact_lock`) lo toma `add_week_to_general_list` una sola vez, con la misma clave que `add_recipe_to_general_list` (el id de la lista general), así que una receta suelta y una semana agregadas a la vez se hacen una detrás de otra. La función interna no lo toma.
+- **Decisión abierta: conteos que sobran.** Con la regla 19 cada espacio suma encima hasta cubrir su comida, así que 2 cebollas pedidas en dos días con una bolsa de 6 dan 2 bolsas, no 1. Es lo que haría SCRUM-97 agregando las recetas una por una. Sumar primero todo lo que pide el producto en la semana y redondear una vez daría 1 bolsa, pero perdería el registro por receta de `list_item_recipe_requirements`. Si en QA molesta, es un ajuste de la función interna.
+- **Cuando las dos copias se junten.** Si los dueños lo acuerdan, `add_recipe_to_general_list` puede pasar a llamar a `add_week_ingredients_to_list` con multiplicador 1 y se borra la copia (un `create or replace` del cuerpo, probado con las pruebas SQL de la 015, la 017 y la de equivalencia de la 022). Mientras tanto, cualquier corrección a las reglas 17 a 26 hay que hacerla en las dos.
+- **Tiempo.** El rango es de lunes a domingo en hora local del navegador (regla 1); el cliente manda las dos claves y la base solo compara fechas.

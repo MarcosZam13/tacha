@@ -7,12 +7,13 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
 ## Datos y entorno
 
 - **Usuario:** desde SCRUM-100 la pantalla lee el plan de la base, así que **todos** los escenarios abren una sesión anónima nueva (la crea la app al cargar). Cada prueba abre un navegador nuevo y no comparte plan ni recetas con otra.
-- **Recetas de prueba (E2E-PLANNER-06 a 08):** para asignar hace falta tener recetas. Se crean antes de cada prueba con la API de Supabase y el token de la propia sesión (`save_recipe`, con el primer producto del catálogo como ingrediente): `E2E Flan` (6 porciones) y `E2E Arroz` (4). Supuesto: el catálogo de la base compartida tiene al menos un producto; si no, la falla es de **entorno / datos de prueba**.
+- **Recetas de prueba (E2E-PLANNER-06 a 10):** para asignar hace falta tener recetas. Se crean antes de cada prueba con la API de Supabase y el token de la propia sesión (`save_recipe`, con el primer producto del catálogo como ingrediente): `E2E Flan` (6 porciones) y `E2E Arroz` (4). Supuesto: el catálogo de la base compartida tiene al menos un producto; si no, la falla es de **entorno / datos de prueba**.
 - **Limpieza:** después de cada prueba se borran todas las recetas del usuario (`deleteOwnRecipes`, con su propio token; RLS solo deja borrar lo suyo). Sus espacios del plan se van con ellas (`on delete cascade`). En la base queda el usuario anónimo sin datos.
+- **Lista de prueba (E2E-PLANNER-09):** agregar la semana escribe en la lista general del usuario anónimo. Al terminar se borran sus items (`deleteOwnListItems`, con su propio token) además de sus recetas. Supuesto: el primer producto del catálogo tiene al menos una presentación; si no, el aviso dice "No se pudieron agregar" en vez de "Agregaste…" y la falla es de **entorno / datos de prueba**.
 - **Fechas:** el navegador de Playwright usa la misma zona horaria y el mismo reloj que Node. Cada prueba calcula los lunes y el día de hoy esperados con su propia aritmética de fechas (no importa las funciones de la app), para que el oráculo sea independiente. Los espacios de las pruebas de asignar son los de **hoy** (el día marcado con `aria-current="date"`), así que no dependen de qué día de la semana sea.
 - **Servidor en frío:** si Playwright levanta `next dev` desde cero, la primera compilación de `/recetas/planificador` o `/recetas` puede pasar los 5 s del `expect`. Es del **entorno**: levantar `npm run dev`, abrir las rutas una vez y después correr la suite (Playwright reusa el servidor).
 - **Sesión y plan lentos:** las pruebas de asignar esperan hasta 15 s a que el espacio se habilite (sesión anónima y lectura del plan en la base compartida). El espacio sigue deshabilitado mientras el plan carga.
-- **Fallo intermitente observado (sin causa confirmada):** en una corrida completa hecha justo después de `npm run build`, E2E-PLANNER-06 y 08 fallaron solo en `mobile-chrome`: a los 15 s el espacio de hoy seguía deshabilitado y **sin** el aviso "No se pudo cargar tu plan" (el plan seguía cargando). En serie (`--workers=1`, 3 repeticiones) y en la corrida completa siguiente pasaron todos. No se reprodujo un defecto del producto. Las causas posibles son la compilación en frío del servidor de desarrollo con los proyectos en paralelo o el inicio de sesión anónimo bajo carga; la hipótesis del límite de `/signup` (429) **no se confirmó**. Si vuelve a pasar: repetir con `--workers=1`, y si falla, revisar la traza (`--trace=retain-on-failure`) y la red antes de clasificarlo; no reintentar en bucle.
+- **Fallo intermitente observado (causa confirmada el 2026-10-10: límite de altas anónimas de Supabase, 429):** en una corrida completa hecha justo después de `npm run build`, E2E-PLANNER-06 y 08 fallaron solo en `mobile-chrome`: a los 15 s el espacio de hoy seguía deshabilitado y **sin** el aviso "No se pudo cargar tu plan" (el plan seguía cargando). En serie (`--workers=1`, 3 repeticiones) y en la corrida completa siguiente pasaron todos. No se reprodujo un defecto del producto. Las causas posibles son la compilación en frío del servidor de desarrollo con los proyectos en paralelo o el inicio de sesión anónimo bajo carga; la hipótesis del límite de `/signup` (429) **no se confirmó**. Si vuelve a pasar: repetir con `--workers=1`, y si falla, revisar la traza (`--trace=retain-on-failure`) y la red antes de clasificarlo; no reintentar en bucle. Confirmación: tras muchas corridas seguidas, una llamada directa a `/auth/v1/signup` devolvió 429 (Too Many Requests) y el E2E completo falló en 9 y 10 de 20 pruebas, todas con el espacio de hoy deshabilitado y el aviso "No se pudo cargar tu plan", porque la app no consigue su sesión anónima. Es del **entorno**: el producto responde bien (muestra el error). Correr `npm run build` con un `npm run dev` abierto no fue la causa. Esperar a que se libere el límite (por hora) antes de volver a correr y no reintentar en bucle.
 - **Base:** la compartida del equipo. Por eso E2E todavía no corre en el CI (ver `.agents/skills/playwright-e2e`, "Setup en este repo").
 
 ## Escenarios
@@ -94,6 +95,28 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
   2. En el diálogo, confirmar con "Eliminar".
   3. Volver a `/recetas/planificador`.
 - **Resultado esperado:** después del paso 1 el diálogo dice "Está en 2 espacios de tu plan; quedarán vacíos." Después del paso 2 la tarjeta desaparece. Después del paso 3 los espacios de almuerzo y cena de hoy dicen "vacío, asignar".
+
+### E2E-PLANNER-09: agregar la semana a la lista
+
+- **Cubre:** HU-69 CA-01 y la regla 27 de la SPEC (confirmar siempre).
+- **Precondición:** la de E2E-PLANNER-06, con `E2E Flan` asignada al "Almuerzo" y a la "Cena" de hoy.
+- **Pasos:**
+  1. Tocar "Agregar semana a la lista".
+  2. En el diálogo, tocar "Cancelar".
+  3. Volver a tocar "Agregar semana a la lista" y confirmar con "Agregar".
+  4. Tocar "Ver lista".
+- **Resultado esperado:** después del paso 1 el diálogo "Agregar semana a la lista" dice "Vas a agregar a tu lista general los ingredientes de 2 comidas" y todavía no hay aviso. Después del paso 2 el diálogo se cierra y no hay aviso. Después del paso 3 el diálogo se cierra y aparece el aviso "Agregaste N ingrediente(s) de 2 comidas a tu lista." con el enlace "Ver lista". Después del paso 4 la URL es `/lista`, la sección "Pendientes" tiene al menos un producto y la lista ya no dice que está vacía.
+
+### E2E-PLANNER-10: el botón sigue a las comidas de la semana a la vista
+
+- **Cubre:** HU-69 y la regla 26 de la SPEC (deshabilitado sin comidas).
+- **Precondición:** la de E2E-PLANNER-06, sin ninguna comida asignada.
+- **Pasos:**
+  1. Mirar el botón "Agregar semana a la lista".
+  2. Asignar `E2E Flan` al "Almuerzo" de hoy.
+  3. Pasar a la próxima semana con la flecha.
+  4. Volver a la semana actual.
+- **Resultado esperado:** después del paso 1 el botón está deshabilitado. Después del paso 2 está habilitado. Después del paso 3 está deshabilitado (la próxima semana no tiene comidas). Después del paso 4 está habilitado.
 
 ### Fuera del navegador
 
