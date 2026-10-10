@@ -28,7 +28,7 @@ Bloqueado / fuera de esta historia:
 
 ## SCRUM-100: asignar receta, cocinero y porciones a un espacio
 
-- [x] 1. SPEC (huecos de HU-68 decididos con el responsable el 2026-10-10: plan personal con estructura lista para el household, cocinero "Yo" / "Sin cocinero", multiplicador ×0,5 a ×4, receta borrada libera el espacio con aviso). La fusión al household se evaluó y no se incluyó (SPEC §15).
+- [x] 1. SPEC (huecos de HU-68 decididos con el responsable el 2026-10-09: plan personal con estructura lista para el household, cocinero "Yo" / "Sin cocinero", multiplicador ×0,5 a ×4, receta borrada libera el espacio con aviso). La fusión al household se evaluó y no se incluyó (SPEC §15).
 - [x] 2. Plan y tareas.
 - [x] 3. Migración `019_meal_plans.sql` (número provisional: la `018` es de la PR #55): tabla, índice único parcial, RLS, permisos por columna y RPC `assign_meal_slot`.
 - [x] 4. Prueba SQL `supabase/tests/019_meal_plans.test.sql` con rollback: reemplazar un espacio, multiplicador fuera de rango, receta ajena (`P0002`), otro usuario no ve ni cambia el plan, columnas protegidas, cascada al borrar la receta, `anon` sin permiso.

@@ -89,7 +89,7 @@ SCRUM-99 no escribía nada en ninguna parte.
 
 | Pantalla | Estado | Notas |
 |---|---|---|
-| Planificador | `weekOffset`: `current` · `next` | Una unión derivada de constantes, no un booleano. No hay estados de carga ni error porque no hay datos remotos |
+| Planificador | `weekOffset`: `current` · `next` | Una unión derivada de constantes, no un booleano. En SCRUM-99 no hay estados de carga ni error porque no hay datos remotos; con SCRUM-100 el plan sí se lee de la base (filas de abajo) |
 
 | Plan (SCRUM-100) | `loading` · `error` · `ready` | Se carga una vez para las dos semanas. `ready` sin asignaciones es el plan vacío, no un estado aparte. Mientras carga o si falla, la grilla se dibuja con los espacios vacíos y deshabilitados: no se afirma que "no hay nada planeado" sin saberlo |
 | Diálogo de asignar (SCRUM-100) | `closed` · `editing` · `saving` · `failed` | `editing`, `saving` y `failed` siempre llevan el espacio elegido y los valores del formulario. Un solo diálogo a la vez |
@@ -119,8 +119,8 @@ SCRUM-100:
 - Mobile: los 7 días apilados, cada uno con su etiqueta ("Lunes 12") y debajo sus 3 espacios.
 - Espacio vacío: caja con borde punteado y el texto "+ Desayuno", "+ Almuerzo" o "+ Cena".
 - El día de hoy con la etiqueta en teal, como en el mockup (`docs/mockup-web-v2.html`).
-- **SCRUM-100:** espacio vacío = botón con borde punteado y "+ Almuerzo". Espacio asignado = botón con borde sólido que muestra el nombre de la receta (una línea, recortada), debajo "Yo" o nada si no hay cocinero, y un chip "×2" si el multiplicador no es ×1.
-- **SCRUM-100:** diálogo (`Modal` compartido) con título "Asignar comida" o "Cambiar comida" y debajo el día y la comida ("Almuerzo · lunes 12 oct"). Contiene: la lista de recetas (una opción por receta, con sus porciones base), el selector de cocinero ("Yo" / "Sin cocinero"), el contador del multiplicador con su resultado ("× 2 · 24 porciones"), y las acciones "Guardar", "Quitar" (solo en un espacio asignado) y "Cancelar". "Guardando…" con los botones deshabilitados mientras guarda.
+- **SCRUM-100:** espacio vacío = botón con borde punteado y "+ Almuerzo". Espacio asignado = botón con borde sólido que muestra la etiqueta de la comida en mayúsculas pequeñas ("ALMUERZO"), el nombre de la receta (una línea, recortada), debajo "Yo" o nada si no hay cocinero, y un chip "×2" si el multiplicador no es ×1.
+- **SCRUM-100:** diálogo (`Modal` compartido) con título "Asignar comida" o "Cambiar comida" y debajo el día y la comida ("Almuerzo · lunes 12 oct"). Contiene: la lista de recetas (una opción por receta, con sus porciones base), el selector de cocinero ("Yo" / "Sin cocinero"), el contador del multiplicador con su resultado ("×2 · 24 porciones"), y las acciones "Guardar", "Quitar" (solo en un espacio asignado) y "Cancelar". "Guardando…" con los botones deshabilitados mientras guarda.
 - **SCRUM-100:** el diálogo de eliminar receta suma, si la receta está en el plan, el aviso con el número de espacios.
 - El mismo HTML sirve para desktop y mobile: solo cambia la disposición con CSS (`md:grid` / apilado), igual que el shell, sin medir el ancho en JS.
 
@@ -130,10 +130,10 @@ SCRUM-100:
 - El encabezado con el rango tiene `aria-live="polite"`: al pasar de semana el lector anuncia la nueva ("Próxima semana, 19 – 25 oct") sin que el usuario tenga que buscarla.
 - La grilla es una lista de días (`<ul>` de `<li>`), y cada día contiene su lista de espacios. Cada día lleva su fecha en un `<time datetime="2026-10-12">`.
 - El día de hoy lleva `aria-current="date"`: se dice con semántica, no solo con el color.
-- Un espacio vacío es texto, no un botón. El "+" es decorativo (`aria-hidden`); el lector lee "Almuerzo, vacío".
+- ~~Un espacio vacío es texto, no un botón.~~ Reemplazado en SCRUM-100: los espacios son botones (ver abajo). El "+" es decorativo (`aria-hidden`).
 - Los sub-tabs ya anuncian la página activa con `aria-current="page"`.
 - **SCRUM-100:** los espacios son botones con nombre completo ("Almuerzo del lunes 12, vacío, asignar" / "Almuerzo del lunes 12: Arroz con leche, cambiar"), así que el lector sabe qué día, qué comida y qué pasa al tocarlos. El "+" es decorativo.
-- **SCRUM-100:** el diálogo es `role="dialog"` con `aria-modal`, título y cierre con Escape (comportamiento del `Modal` compartido). Las recetas son un grupo de opciones (`radiogroup`) con la receta elegida marcada; el cocinero, otro grupo de opciones. El contador del multiplicador tiene botones "Menos porciones" / "Más porciones" y el valor se anuncia ("×2, 24 porciones") con `aria-live="polite"`. Los errores del diálogo son `role="alert"`.
+- **SCRUM-100:** el diálogo es `role="dialog"` con `aria-modal`, título y cierre con Escape (comportamiento del `Modal` compartido). Las recetas son un grupo de opciones (un `fieldset` con `legend` y radios, rol `group`) con la receta elegida marcada; el cocinero, otro grupo igual. El contador del multiplicador tiene botones "Menos porciones" / "Más porciones" y el valor se anuncia ("×2, 24 porciones") con `aria-live="polite"`. Los errores del diálogo son `role="alert"`.
 - **SCRUM-100:** al cerrar el diálogo el foco vuelve al espacio que lo abrió. Al guardar o quitar, el espacio muestra su nuevo estado.
 - **Límite conocido (revisión de código, 2026-10-09):** al pulsar una flecha esta queda deshabilitada (`disabled` nativo del `Button` compartido) y el foco del teclado se pierde: en Chrome pasa al `body`. Quien navega con teclado tiene que volver a tabular hasta la otra flecha. Se acepta porque con solo dos semanas el costo es de un Tab, y arreglarlo bien exige mover el foco a la otra flecha desde un componente de presentación (refs) o sumar `aria-disabled` al `Button` compartido, que usan otras features. Si se decide arreglar, lo natural es `aria-disabled` en el `Button` con el clic ignorado cuando está "deshabilitado".
 
@@ -232,7 +232,7 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
 
 ### Todas
 
-- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan (se marca al cerrar la tarea 17).
 
 ## 14. Casos fuera de alcance
 
@@ -262,12 +262,12 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
 - **Los sub-tabs pasan a `components/recipes-tabs/`.** Antes vivían en `features/recipes/components/RecipesTabs.tsx` porque tenían un solo consumidor y el planificador no existía (`plan.md` de recetas, decisión "Tabs dentro de la feature": "se promueve cuando exista el planificador"). Es ese momento. Se mueve con `git mv` y se actualiza el import del catálogo.
 - **"Hoy" y la hidratación.** La página se prerrenderiza en el servidor, donde "hoy" y la zona horaria no son los del usuario. Si el servidor dibujara una fecha y el navegador otra, React avisaría de un desajuste y el día resaltado saltaría. Por eso "hoy" sale de `useSyncExternalStore` con un valor nulo en el servidor, y la grilla se dibuja desde el navegador.
 - **Documentos del producto (SCRUM-99):** no cambiaba ninguna decisión de producto ni el modelo de datos, así que `docs/documento-proyecto.md` no se tocó. SCRUM-100 sí lo cambia (sección 12).
-- **Cómo se llenaron los huecos de HU-68 (SCRUM-100, decidido con el responsable el 2026-10-10).** La historia no dice de quién es el plan, cómo se elige un cocinero que todavía no se puede listar, qué rango tiene el multiplicador ni qué pasa al borrar una receta asignada:
+- **Cómo se llenaron los huecos de HU-68 (SCRUM-100, decidido con el responsable el 2026-10-09).** La historia no dice de quién es el plan, cómo se elige un cocinero que todavía no se puede listar, qué rango tiene el multiplicador ni qué pasa al borrar una receta asignada:
   - **plan personal con estructura lista para el household** (ver abajo);
   - **cocinero "Yo" / "Sin cocinero"**; los miembros se suman al mismo selector cuando exista HU-35. `assigned_cook` apunta a `auth.users` y no a `household_members` como decía documento-proyecto §6, porque un usuario sin household no está en `household_members` y no podría asignarse a sí mismo;
   - **multiplicador ×0,5 a ×4 en pasos de 0,5** y se guarda el multiplicador (como pide la tabla), no las porciones;
   - **receta borrada: el espacio queda libre** (`on delete cascade`) y el diálogo de eliminar avisa cuántos espacios usa. Cierra el CA-02 de HU-64b (SCRUM-96), que la SPEC de recetas §15 dejó para esta historia.
-- **Fusionar recetas y plan semanal al household: evaluado, no incluido (pedido del responsable, 2026-10-10).** Se examinó si se podía hacer en esta historia. Es posible, pero no entra por tamaño y por lo que arrastra:
+- **Fusionar recetas y plan semanal al household: evaluado, no incluido (pedido del responsable, 2026-10-09).** Se examinó si se podía hacer en esta historia. Es posible, pero no entra por tamaño y por lo que arrastra:
   - *Qué habría que hacer* (los pasos 1 a 6 de "Integración con households" del plan de recetas, más lo del plan):
     1. FK de `recipes.household_id` y `meal_plans.household_id` → `households(id)`;
     2. una función de membresía `security definer` con `search_path` vacío (por ejemplo `current_household_id()`) para que las políticas no se llamen a sí mismas;
