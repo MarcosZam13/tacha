@@ -11,8 +11,8 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
 - **Limpieza:** después de cada prueba se borran todas las recetas del usuario (`deleteOwnRecipes`, con su propio token; RLS solo deja borrar lo suyo). Sus espacios del plan se van con ellas (`on delete cascade`). En la base queda el usuario anónimo sin datos.
 - **Fechas:** el navegador de Playwright usa la misma zona horaria y el mismo reloj que Node. Cada prueba calcula los lunes y el día de hoy esperados con su propia aritmética de fechas (no importa las funciones de la app), para que el oráculo sea independiente. Los espacios de las pruebas de asignar son los de **hoy** (el día marcado con `aria-current="date"`), así que no dependen de qué día de la semana sea.
 - **Servidor en frío:** si Playwright levanta `next dev` desde cero, la primera compilación de `/recetas/planificador` o `/recetas` puede pasar los 5 s del `expect`. Es del **entorno**: levantar `npm run dev`, abrir las rutas una vez y después correr la suite (Playwright reusa el servidor).
-- **Sesión y plan lentos:** las pruebas de asignar esperan hasta 15 s a que el espacio se habilite (sesión anónima y lectura del plan en la base compartida). Si aun así falla, es del **entorno** (la base lenta o limitada), no del test.
-- **Límite de Supabase:** cada prueba crea un usuario anónimo, y una corrida completa del planificador crea unos 16 (8 escenarios en dos proyectos). Muchas corridas seguidas desde la misma IP llegan al límite de `/signup` (429): es del **entorno**, no reintentar en bucle.
+- **Sesión y plan lentos:** las pruebas de asignar esperan hasta 15 s a que el espacio se habilite (sesión anónima y lectura del plan en la base compartida). El espacio sigue deshabilitado mientras el plan carga.
+- **Fallo intermitente observado (sin causa confirmada):** en una corrida completa hecha justo después de `npm run build`, E2E-PLANNER-06 y 08 fallaron solo en `mobile-chrome`: a los 15 s el espacio de hoy seguía deshabilitado y **sin** el aviso "No se pudo cargar tu plan" (el plan seguía cargando). En serie (`--workers=1`, 3 repeticiones) y en la corrida completa siguiente pasaron todos. No se reprodujo un defecto del producto. Las causas posibles son la compilación en frío del servidor de desarrollo con los proyectos en paralelo o el inicio de sesión anónimo bajo carga; la hipótesis del límite de `/signup` (429) **no se confirmó**. Si vuelve a pasar: repetir con `--workers=1`, y si falla, revisar la traza (`--trace=retain-on-failure`) y la red antes de clasificarlo; no reintentar en bucle.
 - **Base:** la compartida del equipo. Por eso E2E todavía no corre en el CI (ver `.agents/skills/playwright-e2e`, "Setup en este repo").
 
 ## Escenarios
@@ -37,7 +37,7 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
   - hay 7 días, del lunes al domingo de la semana en que está hoy, cada uno con su fecha (`<time datetime>`);
   - cada día tiene los 3 espacios "Desayuno", "Almuerzo" y "Cena": 7 de cada uno, todos vacíos;
   - exactamente un día está marcado como hoy (`aria-current="date"`) y es el de la fecha de hoy;
-  - los espacios no son botones: los únicos botones de la pantalla son las dos flechas de semana.
+  - los 21 espacios son botones con nombre "<Comida> del <día>, vacío, asignar" (SCRUM-100), además de las dos flechas de semana.
 
 ### E2E-PLANNER-03: pasar a la próxima semana y volver
 

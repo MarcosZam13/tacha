@@ -143,7 +143,7 @@ const ARROZ = "E2E Arroz";
 const FLAN_BASE_SERVINGS = 6;
 const ARROZ_BASE_SERVINGS = 4;
 // Abrir la pantalla crea una sesión anónima y lee el plan de la base compartida: con varias pruebas
-// a la vez puede pasar de los 5 s por defecto. Es del entorno, no del producto.
+// a la vez puede pasar de los 5 s por defecto (ver "Fallo intermitente observado" en E2E.md).
 const SESSION_AND_PLAN_TIMEOUT_MS = 15_000;
 
 test.describe("Asignar comidas al plan", () => {
