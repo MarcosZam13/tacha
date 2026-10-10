@@ -13,7 +13,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 7. Mover los sub-tabs a `components/recipes-tabs/` con `git mv`, con sus constantes a `constants/recipes-tabs.constants.ts` (+ barrel) y `href` en cada tab; el disponible pasa a link. Actualizar `RecipeCatalog.tsx`, el plan de recetas y `project-structure` si lista `components/`.
 - [x] 8. `getWeekStartForOffset` (lunes de la semana a la vista), `useToday` (`useSyncExternalStore`, `null` en el servidor) y `useMealPlannerViewModel` (semana elegida, flechas deshabilitadas, semana armada, rango y etiqueta).
 - [x] 9. Test de `useMealPlannerViewModel` (arranca en la actual, flechas en los extremos, pasar a la próxima y volver, "hoy" nulo no arma la grilla).
-- [ ] 10. Presentación: `WeekSelector`, `MealSlot`, `MealPlannerDay`, `WeekGrid`, `MealPlanner` y la ruta `app/(app)/recetas/planificador/page.tsx`.
+- [x] 10. Presentación: `WeekSelector`, `MealSlot`, `MealPlannerDay`, `WeekGrid`, `MealPlanner` y la ruta `app/(app)/recetas/planificador/page.tsx`.
 - [ ] 11. Test de la pantalla con Page Object (`MealPlanner.page.ts` + `MealPlanner.test.tsx`): 7 días y 21 espacios, sub-tab activo, flechas, hoy resaltado, espacio vacío sin botón.
 - [ ] 12. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): ir de Recetas al planificador y volver, pasar a la próxima semana y regresar, mobile apilado.
 - [ ] 13. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`.

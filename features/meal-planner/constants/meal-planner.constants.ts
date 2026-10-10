@@ -63,10 +63,16 @@ export const DATE_KEY = {
 } as const;
 
 export const MEAL_PLANNER_TEXT = {
-  // "+ Almuerzo": el espacio vacío. El "+" es decorativo.
+  // "+ Almuerzo": el espacio vacío. El "+" es decorativo; el lector de
+  // pantalla lee "Almuerzo, vacío".
   EMPTY_SLOT_MARK: "+",
+  EMPTY_SLOT_SCREEN_READER: ", vacío",
+  // Las flechas del selector son decorativas; el nombre del botón es el texto oculto.
+  NEXT_ARROW_MARK: "›",
   NEXT_WEEK: "Próxima semana",
   NEXT_WEEK_ARROW: "Semana siguiente",
+  PAGE_TITLE: "Planificador semanal",
+  PREVIOUS_ARROW_MARK: "‹",
   PREVIOUS_WEEK_ARROW: "Semana anterior",
   RANGE_SEPARATOR: " – ",
   THIS_WEEK: "Esta semana",
