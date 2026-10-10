@@ -19,7 +19,9 @@ export const createMealPlannerPage = () => {
   const getPreviousWeekButton = (): HTMLElement =>
     screen.getByRole("button", { name: MEAL_PLANNER_TEXT.PREVIOUS_WEEK_ARROW });
   const getNextWeekButton = (): HTMLElement => screen.getByRole("button", { name: MEAL_PLANNER_TEXT.NEXT_WEEK_ARROW });
-  const getButtons = (): HTMLElement[] => screen.getAllByRole("button");
+  // Los espacios son botones cuyo nombre termina en lo que pasa al tocarlos.
+  const getSlotButtons = (): HTMLElement[] => screen.getAllByRole("button", { name: /, (vacío, asignar|cambiar)$/ });
+  const getSlotButton = (name: string): HTMLElement => screen.getByRole("button", { name });
 
   const getRange = (range: string): HTMLElement => screen.getByText(range);
   const getWeekLabel = (label: string): HTMLElement => screen.getByText(label);
@@ -48,7 +50,6 @@ export const createMealPlannerPage = () => {
   };
 
   return {
-    getButtons,
     getDay,
     getDays,
     getEmptySlots,
@@ -56,6 +57,8 @@ export const createMealPlannerPage = () => {
     getPlannerTab,
     getPreviousWeekButton,
     getRange,
+    getSlotButton,
+    getSlotButtons,
     getRecipesTab,
     getTitle,
     getWeekLabel,

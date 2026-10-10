@@ -16,6 +16,7 @@ import type {
 } from "../models/meal-plan.interfaces";
 import type { CookChoiceType, RecipeOptionsState } from "../models/meal-plan.types";
 import { clearMealSlot, getRecipeOptions, saveMealSlot } from "../services/meal-plan.service";
+import { formatMultiplier } from "../utils/formatMultiplier";
 import { getMealSlotName } from "../utils/getMealSlotLabel";
 import { CLOSED_DIALOG_STATE, mealSlotDialogReducer } from "../utils/meal-slot-dialog.reducer";
 import { toInitialSlotValues } from "../utils/toInitialSlotValues";
@@ -175,6 +176,7 @@ export const useMealSlotDialog = ({
     isAssigned,
     isOpen,
     isSaving,
+    multiplierLabel: formatMultiplier(values?.servingsMultiplier ?? SERVINGS_MULTIPLIER.DEFAULT),
     onClose: () => dispatch({ type: MEAL_SLOT_DIALOG_ACTION.CLOSED }),
     onCookChange,
     onMultiplierDecrease: () => dispatch({ type: MEAL_SLOT_DIALOG_ACTION.MULTIPLIER_DECREASED }),

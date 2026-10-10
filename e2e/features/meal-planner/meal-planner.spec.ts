@@ -63,8 +63,9 @@ test.describe("Planificador semanal", () => {
     await expect(getTodayDate(page)).toHaveCount(1);
     await expect(getTodayDate(page)).toHaveAttribute("datetime", expectedTodayDate());
 
-    // Los espacios no son botones: los únicos son las dos flechas de semana.
-    await expect(page.locator("main").getByRole("button")).toHaveCount(2);
+    // Cada espacio es un botón con su nombre completo ("Almuerzo del lunes 12, vacío, asignar"):
+    // un usuario nuevo no tiene nada planeado, así que los 21 están vacíos.
+    await expect(page.getByRole("button", { name: /, vacío, asignar$/ })).toHaveCount(DAYS_IN_WEEK * MEALS.length);
   });
 
   test("E2E-PLANNER-03 — Pasar a la próxima semana y volver", async ({ page }) => {

@@ -85,10 +85,12 @@ describe("MealPlanner", () => {
     expect(page.getDays().filter((day) => day.hasAttribute("aria-current"))).toHaveLength(1);
   });
 
-  it("has no buttons in the grid: the empty slots do nothing yet", () => {
+  it("makes every slot a button named with its day, its meal and what pressing it does", () => {
     const page = renderPlanner();
 
-    expect(page.getButtons()).toEqual([page.getPreviousWeekButton(), page.getNextWeekButton()]);
+    expect(page.getSlotButtons()).toHaveLength(21);
+    expect(page.getSlotButton("Almuerzo del lunes 12, vacío, asignar")).toBeInTheDocument();
+    expect(page.getSlotButton("Cena del domingo 18, vacío, asignar")).toBeInTheDocument();
   });
 
   it("starts with the back arrow disabled and the forward one enabled", () => {

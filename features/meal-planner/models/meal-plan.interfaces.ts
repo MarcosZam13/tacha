@@ -139,6 +139,8 @@ export interface MealSlotDialogViewModel {
   isOpen: boolean;
   /** true mientras guarda o quita: los botones se deshabilitan y no se cierra. */
   isSaving: boolean;
+  /** "×1": el multiplicador elegido, para mostrarlo mientras no hay receta con porciones. */
+  multiplierLabel: string;
   onClose: () => void;
   onCookChange: (cookChoice: CookChoiceType) => void;
   onMultiplierDecrease: () => void;

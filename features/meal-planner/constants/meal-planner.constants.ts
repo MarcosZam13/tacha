@@ -1,4 +1,4 @@
-import { RECIPES_TAB, RECIPES_TAB_LABEL, RECIPES_TABS_TEXT } from "@/constants";
+import { APP_ROUTE, RECIPES_TAB, RECIPES_TAB_LABEL, RECIPES_TABS_TEXT } from "@/constants";
 
 // Constantes propias del planificador semanal. Viven dentro de la feature
 // porque ninguna otra las usa todavía; se promueven a constants/ con el
@@ -66,9 +66,8 @@ export const DATE_KEY = {
 
 export const MEAL_PLANNER_TEXT = {
   // "+ Almuerzo": el espacio vacío. El "+" es decorativo; el lector de
-  // pantalla lee "Almuerzo, vacío".
+  // pantalla lee el nombre accesible del botón (MEAL_SLOT_TEXT).
   EMPTY_SLOT_MARK: "+",
-  EMPTY_SLOT_SCREEN_READER: ", vacío",
   // Las flechas del selector son decorativas; el nombre del botón es el texto oculto.
   NEXT_ARROW_MARK: "›",
   NEXT_WEEK: "Próxima semana",
@@ -174,6 +173,20 @@ export const MEAL_PLAN_ERROR_CODE = {
   NO_DATA_FOUND: "P0002",
 } as const;
 
+// Opciones del selector de cocinero, en el orden en que se dibujan.
+export const COOK_OPTIONS = [
+  { label: "Yo", value: COOK_CHOICE.SELF },
+  { label: "Sin cocinero", value: COOK_CHOICE.NONE },
+] as const;
+
+// Rutas y nombres de campo del diálogo de asignar.
+export const MEAL_SLOT_FORM = {
+  COOK_FIELD_NAME: "meal-slot-cook",
+  // Igual que RECIPE_ROUTE.NEW de features/recipes: esta feature no importa de la otra.
+  NEW_RECIPE_PATH: `${APP_ROUTE.RECIPES}/nueva`,
+  RECIPE_FIELD_NAME: "meal-slot-recipe",
+} as const;
+
 export const MEAL_SLOT_TEXT = {
   // Nombre accesible del espacio: "Almuerzo del lunes 12, vacío, asignar" /
   // "Almuerzo del lunes 12: Arroz con leche, cambiar".
@@ -194,6 +207,7 @@ export const MEAL_SLOT_TEXT = {
   PLAN_LOAD_ERROR: "No se pudo cargar tu plan. Intenta de nuevo.",
   RECIPE_GONE: "Esa receta ya no existe. Elige otra.",
   RECIPE_LABEL: "Receta",
+  RECIPES_LOADING: "Cargando recetas",
   RECIPES_LOAD_ERROR: "No se pudieron cargar tus recetas. Intenta de nuevo.",
   REMOVE: "Quitar",
   REMOVE_ERROR: "No se pudo quitar la comida. Intenta de nuevo.",
@@ -202,7 +216,9 @@ export const MEAL_SLOT_TEXT = {
   SAVE_ERROR: "No se pudo guardar la comida. Intenta de nuevo.",
   SAVING: "Guardando…",
   SERVINGS_LABEL: "Porciones",
+  SERVINGS_MINUS_MARK: "−",
   SERVINGS_PLURAL: "porciones",
+  SERVINGS_PLUS_MARK: "+",
   SERVINGS_SINGULAR: "porción",
   SERVINGS_SUMMARY_SEPARATOR: " · ",
 } as const;
