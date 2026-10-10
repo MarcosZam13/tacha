@@ -367,21 +367,21 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 
 ### 16.10 Casos de aceptación (HU-69, SCRUM-101)
 
-- [ ] CA-01: "Agregar semana a la lista" abre una confirmación y, al aceptar, agrega de una vez todos los ingredientes de las comidas asignadas de la semana a la vista, con las mismas reglas de SCRUM-97.
-- [ ] CA-02: un ingrediente que aparece en varios espacios queda en una sola fila de la lista, sin duplicarse.
-- [ ] CA-03 (parcial): se agrega a la lista general; la elección de una sublista queda para cuando existan las sublistas (sección 14).
+- [x] CA-01: "Agregar semana a la lista" abre una confirmación y, al aceptar, agrega de una vez todos los ingredientes de las comidas asignadas de la semana a la vista, con las mismas reglas de SCRUM-97.
+- [x] CA-02: un ingrediente que aparece en varios espacios queda en una sola fila de la lista, sin duplicarse.
+- [x] CA-03 (parcial): se agrega a la lista general; la elección de una sublista queda para cuando existan las sublistas (sección 14).
 - [x] El multiplicador de cada espacio escala las cantidades **pedidas y el faltante registrado** (un espacio en ×2 pide el doble que en ×1). Lo que se mide en `unidad` suma unidades a la lista; lo que se mide en ml o g no suma envases si el producto ya está (regla 20 de recetas), solo crece el faltante. Verificado en la prueba SQL (lunes ×2 y martes ×1 en ml o g; 3 unidades con ×1,5 en `unidad`); en pantalla solo se ve en el aviso al agregar, ver sección 16.11.
-- [ ] La misma receta en dos espacios se agrega dos veces.
-- [ ] Con la semana a la vista vacía, el botón está deshabilitado; con comidas, habilitado; cambia al cambiar de semana.
-- [ ] Cancelar la confirmación no cambia la lista.
-- [ ] El aviso dice cuántos ingredientes y cuántas comidas se agregaron y tiene el enlace "Ver lista" a `/lista`.
-- [ ] Falla de red al agregar: mensaje dentro del diálogo, la lista queda como estaba y se puede reintentar.
-- [ ] Doble clic en "Agregar": una sola petición.
-- [ ] Todo o nada: si una comida falla, no entra ninguna.
-- [ ] Otro usuario no ve ni suma sobre mi plan, mis recetas ni mi lista; sin sesión, `42501` (SQL con dos usuarios).
-- [ ] Un rango de más de 7 días o invertido se rechaza en la base.
-- [ ] Una semana con un solo espacio en ×1 deja la lista igual que agregar esa receta suelta con `add_recipe_to_general_list` (prueba de equivalencia, para detectar que las dos copias de las reglas se separen).
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+- [x] La misma receta en dos espacios se agrega dos veces.
+- [x] Con la semana a la vista vacía, el botón está deshabilitado; con comidas, habilitado; cambia al cambiar de semana.
+- [x] Cancelar la confirmación no cambia la lista.
+- [x] El aviso dice cuántos ingredientes y cuántas comidas se agregaron y tiene el enlace "Ver lista" a `/lista`.
+- [x] Falla de red al agregar: mensaje dentro del diálogo, la lista queda como estaba y se puede reintentar.
+- [x] Doble clic en "Agregar": una sola petición.
+- [x] Todo o nada: si una comida falla, no entra ninguna.
+- [x] Otro usuario no ve ni suma sobre mi plan, mis recetas ni mi lista; sin sesión, `42501` (SQL con dos usuarios).
+- [x] Un rango de más de 7 días o invertido se rechaza en la base.
+- [x] Una semana con un solo espacio en ×1 deja la lista igual que agregar esa receta suelta con `add_recipe_to_general_list` (prueba de equivalencia, para detectar que las dos copias de las reglas se separen).
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
 
 ### 16.11 Casos fuera de alcance
 

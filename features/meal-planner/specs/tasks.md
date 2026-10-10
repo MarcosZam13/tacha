@@ -69,8 +69,8 @@ Bloqueado / fuera de esta historia:
 - [x] 11. Tests de la pantalla con Page Object (`MealPlanner.page.ts` se extiende): botón deshabilitado y habilitado, cambiar de semana, confirmación, cancelar, éxito con "Ver lista", error, doble clic.
 - [x] 12. (`types/database.types.ts` ya tiene las dos funciones) `docs/documento-proyecto.md` (agregar la semana y el multiplicador en la lista).
 - [x] 13. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): con dos comidas asignadas, agregar la semana, confirmar y ver los productos en `/lista`; botón deshabilitado sin comidas.
-- [ ] 14. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`; validar en el navegador los casos de §16.10 (desktop y mobile) y las pruebas SQL.
-- [ ] 15. Revisión con `code-reviewer` y `security-reviewer` (RPC con escritura y refactor de una mergeada), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
+- [x] 14. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`; validar en el navegador los casos de §16.10 (desktop y mobile) y las pruebas SQL.
+- [x] 15. Revisión con `code-reviewer` y `security-reviewer` (RPC con escritura y refactor de una mergeada), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
 
 Bloqueado / fuera de esta historia:
 
