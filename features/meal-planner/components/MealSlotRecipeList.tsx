@@ -54,6 +54,7 @@ export const MealSlotRecipeList = ({
                 onChange={() => onRecipeChoose(option.id)}
               />
               <span className="flex-1">{option.name}</span>
+              {/* Un espacio de texto entre los dos: sin él, el nombre accesible queda "Flan4 porciones". */}{" "}
               <span className="text-xs text-tacha-textsec">{option.servingsLabel}</span>
             </label>
           </li>
