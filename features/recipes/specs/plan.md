@@ -10,11 +10,10 @@ Deriva de [SPEC.md](SPEC.md). Pasos en orden en [tasks.md](tasks.md). Las seccio
 features/recipes/
   RecipeCatalog.tsx                    entrada ("use client"): tabs + estados + grilla (solo presentación)
   components/
-    RecipesTabs.tsx                    sub-tabs "Recetas" / "Planificador semanal"
+    RecipesTabs.tsx                    (movido a components/recipes-tabs/ en SCRUM-99: lo usan el catálogo y el planificador)
     RecipeCard.tsx                     una tarjeta: foto o marcador, nombre, porciones, ingredientes
     RecipeCatalogEmptyState.tsx        catálogo vacío
     models/RecipeCardProps.interface.ts
-    models/RecipesTabsProps.interface.ts
   hooks/
     useRecipeCatalogViewModel.ts       carga inicial (useEffect) y deriva lo que dibuja la pantalla
   models/                              (agrupados por pantalla en SCRUM-96; antes, un archivo por tipo)
@@ -84,7 +83,7 @@ Sin `.eq("owner_id", ...)`: el filtro lo hace RLS (requerimiento 4 del spec). El
 | Unión `loading` / `error` / `ready` con `useState` | Tres booleanos / `useReducer` | Una sola acción (cargar) no justifica un reducer; la unión impide estados imposibles como "cargando y con error" |
 | Adapter `toRecipeSummary` en `utils/` | Mapear dentro del componente | La pantalla nunca ve la forma cruda de la base (patrón Adapter, component-architecture §5), y es una función pura fácil de probar |
 | `next/image` con `unoptimized` | Configurar `images.remotePatterns` / `<img>` | `<img>` lo marca el lint de Next; `remotePatterns` hoy no tiene a qué apuntar (el bucket de fotos se decide en SCRUM-95). `unoptimized` sirve cualquier URL sin tocar `next.config.ts` |
-| Tabs dentro de la feature | Componente compartido | Hoy tiene un solo consumidor; se promueve cuando exista el planificador (SCRUM-99) |
+| Tabs dentro de la feature | Componente compartido | Hoy tiene un solo consumidor; se promueve cuando exista el planificador (SCRUM-99). **SCRUM-99 lo promovió** a `components/recipes-tabs/`, con sus constantes en `constants/recipes-tabs.constants.ts` |
 | Seed de demo aparte de las migraciones | Insertar datos en la migración | Las migraciones son esquema; los datos de ejemplo dependen de un usuario concreto y no van a producción |
 
 ## Integración con households (pendiente)

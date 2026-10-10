@@ -24,7 +24,7 @@ Que el usuario tenga sus recetas en un solo lugar para reutilizarlas en la lista
 
 ### SCRUM-94: catálogo
 
-- Ruta `/recetas` con la barra de sub-tabs de la sección: "Recetas" (activa) y "Planificador semanal" (visible pero deshabilitada hasta SCRUM-99).
+- Ruta `/recetas` con la barra de sub-tabs de la sección: "Recetas" (activa) y "Planificador semanal" (visible pero deshabilitada hasta SCRUM-99; desde SCRUM-99 es un link a `/recetas/planificador` y la barra vive en `components/recipes-tabs/`).
 - Catálogo de recetas en tarjetas: foto (o un marcador si la receta no tiene), nombre, porciones base y los primeros ingredientes, con un "+N más" si hay más.
 - Las recetas vienen de Supabase (`recipes` + `recipe_ingredients`); cada ingrediente está ligado a un producto madre del catálogo (`product_catalog`), como pide documento-proyecto §4.9.
 - Tablas nuevas `recipes` y `recipe_ingredients`, con RLS.
@@ -218,7 +218,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 
 ### SCRUM-94
 
-- Sub-tabs "Recetas" y "Planificador semanal · Próximamente".
+- Sub-tabs "Recetas" y "Planificador semanal" (este último con "· Próximamente" hasta SCRUM-99; ahora es un link).
 - Grilla de tarjetas: foto o marcador con la inicial, nombre, porciones, chips de ingredientes y "+N más".
 - Mensaje de catálogo vacío y mensaje de error.
 
@@ -413,7 +413,7 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
 - **Recetas del household (verlas, editarlas, borrarlas o agregarlas a la lista como miembro):** `households` todavía no existe. Por ahora cada usuario usa sus recetas y su lista personal; `household_id` queda nullable y sin FK, igual que en `lists`. La integración está en [plan.md](plan.md#integración-con-households-pendiente).
 - **Foto (subirla y borrarla de Storage):** el formulario no la pide, y subirla necesita Supabase Storage (bucket, políticas, validación de archivo), que es una decisión de equipo pendiente. Queda para un ticket propio; el catálogo ya muestra la foto cuando existe.
 - **Aviso por asignaciones en el plan semanal (CA-02 de HU-64b):** `meal_plans` lo crea SCRUM-100. Un aviso que hoy siempre dijera "no está en el plan" sería código sin uso real.
-- **Planificador semanal:** SCRUM-99 en adelante.
+- **Planificador semanal:** SCRUM-99 en adelante, en su propia feature (`features/meal-planner/`).
 - **Inventario o despensa ("lo que ya tengo en casa"):** HU-66 lo menciona ("ya tengo comprados o en casa"), pero no hay tabla ni historia que lo defina. SCRUM-98 solo ve lo que está en la lista (tachado = comprado). Si el equipo crea una despensa, la regla 29 gana una condición más y la RPC es el único lugar a tocar.
 - **Vista de detalle de receta (`/recetas/[id]`):** se resolvió con un panel dentro de la tarjeta (decidido el 2026-10-09). Una ruta propia queda para cuando el planificador o la edición necesiten una pantalla de receta.
 - **Comparar contra cantidades compradas:** regla 31. No se convierte ni se suma entre unidades.
