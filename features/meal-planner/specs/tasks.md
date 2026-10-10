@@ -33,10 +33,10 @@ Bloqueado / fuera de esta historia:
 - [x] 3. Migración `019_meal_plans.sql` (número provisional: la `018` es de la PR #55): tabla, índice único parcial, RLS, permisos por columna y RPC `assign_meal_slot`.
 - [x] 4. Prueba SQL `supabase/tests/019_meal_plans.test.sql` con rollback: reemplazar un espacio, multiplicador fuera de rango, receta ajena (`P0002`), otro usuario no ve ni cambia el plan, columnas protegidas, cascada al borrar la receta, `anon` sin permiso.
 - [x] 5. Aplicar la `019` en Supabase (SQL Editor, en una transacción con su fila de historial según `supabase/README.md#migraciones`) y correr la prueba. Bloquea la validación de la tarea 17, no el código del cliente.
-- [ ] 6. Constantes: estados del plan y del diálogo, acciones del reducer, textos, límites del multiplicador, nombres de tabla, columnas y RPC, códigos de error.
-- [ ] 7. Modelos en `models/meal-plan.interfaces.ts` y `models/meal-plan.types.ts`.
-- [ ] 8. Utils puros y sus tests: `toMealPlanEntry`, `toRecipeOption`, `toSlotKey`, `formatMultiplier`, `formatResultingServings`, `clampServingsMultiplier`, `getMealSlotLabel`, `meal-slot-dialog.reducer`.
-- [ ] 9. Servicio `meal-plan.service.ts`: `getMealPlan()`, `saveMealSlot()` (con `P0002` → `null`), `clearMealSlot()` y `getRecipeOptions()`, con su test (cliente de Supabase simulado).
+- [x] 6. Constantes: estados del plan y del diálogo, acciones del reducer, textos, límites del multiplicador, nombres de tabla, columnas y RPC, códigos de error.
+- [x] 7. Modelos en `models/meal-plan.interfaces.ts` y `models/meal-plan.types.ts`.
+- [x] 8. Utils puros y sus tests: `toMealPlanEntry`, `toRecipeOption`, `toSlotKey`, `formatMultiplier`, `formatResultingServings`, `clampServingsMultiplier`, `getMealSlotLabel`, `meal-slot-dialog.reducer`.
+- [x] 9. Servicio `meal-plan.service.ts`: `getMealPlan()`, `saveMealSlot()` (con `P0002` → `null`), `clearMealSlot()` y `getRecipeOptions()`, con su test (cliente de Supabase simulado).
 - [ ] 10. `useWeekMealPlan` (carga con bandera de cancelación, reintento, aplicar guardado y quitado al estado) y su test.
 - [ ] 11. `useMealSlotDialog` (abrir, reducer, cargar recetas, guardar, quitar, doble clic, receta borrada, cierre) y su test; composición en `useMealPlannerViewModel`.
 - [ ] 12. Presentación: `MealSlot` (botón vacío/asignado), `MealSlotDialog`, `MealSlotRecipeList`, `MealSlotCookField`, `MealSlotServingsField`, `MealPlanLoadError` y la conexión en `MealPlanner`, `WeekGrid` y `MealPlannerDay`.

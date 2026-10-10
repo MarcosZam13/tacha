@@ -141,7 +141,11 @@ features/meal-planner/
     formatMultiplier.ts                 2 → "×2", 0.5 → "×0,5"
     formatResultingServings.ts          12 y ×2 → "24 porciones"; 3 y ×0,5 → "1,5 porciones"
     toSlotKey.ts                        fecha + comida → clave para buscar una asignación en el plan
-    getMealSlotLabel.ts                 nombre accesible del espacio ("Almuerzo del lunes 12, vacío, asignar")
+    toCookLabel.ts                      elección de cocinero → "Yo" o nada
+    toSavedMealPlanEntry.ts             lo elegido + el id que devolvió la base → entrada para el estado (sin volver a pedir el plan)
+    toInitialSlotValues.ts              entrada (o nada) → valores con que abre el diálogo
+    toServingsSummaryText.ts            base + multiplicador → "×2 · 24 porciones"
+    getMealSlotLabel.ts                 nombre accesible del espacio ("Almuerzo del lunes 12, vacío, asignar") y getMealSlotName
   constants/meal-planner.constants.ts   + estados, acciones, textos, límites del multiplicador, tablas y RPC
 
 features/recipes/
