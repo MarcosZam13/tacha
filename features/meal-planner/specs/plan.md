@@ -29,6 +29,7 @@ features/meal-planner/
     buildWeek.ts                        lunes + hoy → 7 WeekDay con sus 3 espacios y si es hoy
     formatWeekRange.ts                  lunes → "12 – 18 oct", "28 sep – 4 oct", "29 dic – 4 ene"
     toLocalDateKey.ts                   fecha → "2026-10-12" en hora local
+    getWeekdayIndex.ts                  fecha → días desde el lunes (lunes = 0 … domingo = 6)
   constants/meal-planner.constants.ts   WEEK_OFFSET, MEAL_TYPE, MEAL_TYPES (orden), nombres de días y meses, textos
   specs/  SPEC.md · plan.md · tasks.md · E2E.md
   tests/  getWeekStart.test.ts · buildWeek.test.ts · formatWeekRange.test.ts · toLocalDateKey.test.ts

@@ -6,10 +6,10 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 - [x] 1. SPEC (huecos de HU-67 decididos con el responsable el 2026-10-09: 7 días de lunes a domingo, flechas con el rango, espacio vacío sin acción, feature y ruta propias).
 - [x] 2. Plan y tareas.
-- [ ] 3. Constantes (`constants/meal-planner.constants.ts`): `WEEK_OFFSET`, `MEAL_TYPE` y `MEAL_TYPES` (orden), nombres de días y meses, textos. `APP_ROUTE.MEAL_PLANNER` en `constants/routes.constants.ts`.
-- [ ] 4. Modelos: `WeekOffsetType`, `MealTypeType`, `WeekDay`, `WeekSlot`, `MealPlannerViewModel`.
-- [ ] 5. Utils puros: `toLocalDateKey`, `getWeekStart`, `buildWeek`, `formatWeekRange`.
-- [ ] 6. Tests de los cuatro utils (fecha en domingo, en lunes, cambio de mes, cambio de año, año bisiesto, después de las 6 p. m. en UTC-6, semana con hoy resaltado).
+- [x] 3. Constantes (`constants/meal-planner.constants.ts`): `WEEK_OFFSET`, `MEAL_TYPE` y `MEAL_TYPES` (orden), nombres de días y meses, textos. `APP_ROUTE.MEAL_PLANNER` en `constants/routes.constants.ts`.
+- [x] 4. Modelos: `WeekOffsetType`, `MealTypeType`, `WeekDay`, `WeekSlot`, `MealPlannerViewModel`.
+- [x] 5. Utils puros: `toLocalDateKey`, `getWeekdayIndex` (lunes = 0 … domingo = 6, lo usan `getWeekStart` y `buildWeek`), `getWeekStart`, `buildWeek`, `formatWeekRange`.
+- [x] 6. Tests de los cuatro utils (fecha en domingo, en lunes, cambio de mes, cambio de año, año bisiesto, después de las 6 p. m. en UTC-6, semana con hoy resaltado).
 - [ ] 7. Mover los sub-tabs a `components/recipes-tabs/` con `git mv`, con sus constantes a `constants/recipes-tabs.constants.ts` (+ barrel) y `href` en cada tab; el disponible pasa a link. Actualizar `RecipeCatalog.tsx`, el plan de recetas y `project-structure` si lista `components/`.
 - [ ] 8. `useToday` (`useSyncExternalStore`, `null` en el servidor) y `useMealPlannerViewModel` (semana elegida, flechas deshabilitadas, semana armada, rango y etiqueta).
 - [ ] 9. Test de `useMealPlannerViewModel` (arranca en la actual, flechas en los extremos, pasar a la próxima y volver, "hoy" nulo no arma la grilla).
