@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { MEAL_TYPE, MEAL_TYPE_LABEL } from "../constants/meal-planner.constants";
 import { buildWeek } from "../utils/buildWeek";
+import { setTimeZoneForSuite } from "./setTimeZoneForSuite";
 
 // El 12 de octubre de 2026 es lunes.
 const MONDAY = new Date(2026, 9, 12);
@@ -115,31 +116,24 @@ describe("buildWeek", () => {
   });
 
   describe("across a daylight saving change", () => {
-    const originalTimeZone = process.env.TZ;
+    // Nueva York retrasa el reloj el domingo 1 de noviembre de 2026 a las 2:00,
+    // así que ese día dura 25 horas. Costa Rica no usa hora de verano, pero la
+    // función no tiene que depender de eso.
+    setTimeZoneForSuite("America/New_York");
 
-    // Nueva York retrasa el reloj el domingo 1 de noviembre de 2026: ese día
-    // tiene 25 horas. Costa Rica no usa hora de verano, pero la función no
-    // tiene que depender de eso.
-    beforeAll(() => {
-      process.env.TZ = "America/New_York";
-    });
-
-    afterAll(() => {
-      if (originalTimeZone === undefined) delete process.env.TZ;
-      else process.env.TZ = originalTimeZone;
-    });
-
-    it("keeps seven consecutive days", () => {
-      const week = buildWeek(new Date(2026, 9, 26), new Date(2026, 9, 28));
+    it("keeps seven consecutive days when the week starts before the change and ends after it", () => {
+      // Empieza el viernes 30 de octubre: sumar milisegundos daría "2026-11-01"
+      // dos veces, porque el domingo 1 dura 25 horas.
+      const week = buildWeek(new Date(2026, 9, 30), new Date(2026, 9, 30));
 
       expect(week.map((day) => day.dateKey)).toEqual([
-        "2026-10-26",
-        "2026-10-27",
-        "2026-10-28",
-        "2026-10-29",
         "2026-10-30",
         "2026-10-31",
         "2026-11-01",
+        "2026-11-02",
+        "2026-11-03",
+        "2026-11-04",
+        "2026-11-05",
       ]);
     });
   });

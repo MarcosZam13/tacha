@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useToday } from "../hooks/useToday";
 import { toLocalDateKey } from "../utils/toLocalDateKey";
+import { setTimeZoneForSuite } from "./setTimeZoneForSuite";
 
 const TodayProbe = (): React.JSX.Element => <span>{String(useToday())}</span>;
 
@@ -24,12 +25,17 @@ describe("useToday", () => {
     expect(result.current).toEqual(new Date(2026, 9, 14));
   });
 
-  it("still says the same day late at night, whatever UTC says", () => {
-    vi.setSystemTime(new Date(2026, 9, 14, 23, 59, 59));
+  describe("in Costa Rica (UTC-6)", () => {
+    setTimeZoneForSuite("America/Costa_Rica");
 
-    const { result } = renderHook(() => useToday());
+    it("still says today after 6 p.m., when UTC is already tomorrow", () => {
+      // 02:00 UTC del 13 son las 8 p. m. del 12 en Costa Rica.
+      vi.setSystemTime(new Date("2026-10-13T02:00:00Z"));
 
-    expect(result.current ? toLocalDateKey(result.current) : null).toBe("2026-10-14");
+      const { result } = renderHook(() => useToday());
+
+      expect(result.current ? toLocalDateKey(result.current) : null).toBe("2026-10-12");
+    });
   });
 
   it("gives the same Date on every render while the day does not change", () => {

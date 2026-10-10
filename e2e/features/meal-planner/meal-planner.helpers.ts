@@ -7,7 +7,7 @@ export const RECIPES_PATH = "/recetas";
 
 const RECIPES_TABS_NAME = "Secciones de recetas";
 const APP_NAV_NAME = "Secciones de la app";
-const DAYS_IN_WEEK = 7;
+export const DAYS_IN_WEEK = 7;
 
 export const getRecipesTabs = (page: Page): Locator => page.getByRole("navigation", { name: RECIPES_TABS_NAME });
 
@@ -28,8 +28,12 @@ export const getDayDates = (page: Page): Locator => page.locator("main time[date
 
 export const getTodayDate = (page: Page): Locator => page.locator('main time[aria-current="date"]');
 
-/** Los espacios de una comida: un <li> por día cuyo texto es "+ Almuerzo, vacío". */
-export const getEmptySlots = (page: Page, mealLabel: string): Locator => page.getByText(mealLabel);
+/**
+ * Los espacios de una comida: el <li> de cada día cuyo texto es "+ Almuerzo, vacío".
+ * Se acota a los <li> anidados de la pantalla: así no cuenta el menú ni el día que los contiene.
+ */
+export const getEmptySlots = (page: Page, mealLabel: string): Locator =>
+  page.locator("main li li").filter({ hasText: mealLabel });
 
 // --- Fechas esperadas, con aritmética propia (oráculo independiente de la app) ---
 

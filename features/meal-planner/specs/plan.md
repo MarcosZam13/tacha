@@ -98,6 +98,7 @@ Todo en hora local del navegador (SPEC regla 1). Con `new Date(año, mes, día)`
 ## Deuda conocida
 
 - **Los espacios siempre están vacíos** hasta SCRUM-100: la pantalla es un calendario sin contenido. Es lo que HU-67 pide, pero conviene que se mergee cerca de SCRUM-100 para que el usuario no vea una pantalla "vacía" mucho tiempo.
+- **El foco del teclado se pierde al pulsar una flecha**, porque queda deshabilitada (SPEC §9): un Tab para llegar a la otra. Arreglo posible: `aria-disabled` en el `Button` compartido.
 - **La semana no se actualiza a medianoche** con la pantalla abierta (SPEC regla 9).
 - **Sin household:** el calendario no sabe de quién es el plan. Cuando `meal_plans` use `household_id` (SCRUM-100) hay que decidir qué ve un usuario sin household.
 - **Hora de verano:** Costa Rica no la usa, pero `buildWeek` suma días con `new Date(año, mes, día + n)` y no con milisegundos, así que tampoco falla donde sí exista.

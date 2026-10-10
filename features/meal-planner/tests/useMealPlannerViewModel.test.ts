@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
+import type { RenderHookResult } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NullableRef } from "@/types/nullable.types";
 import { MEAL_PLANNER_TEXT } from "../constants/meal-planner.constants";
 import { useMealPlannerViewModel } from "../hooks/useMealPlannerViewModel";
 import { useToday } from "../hooks/useToday";
+import type { MealPlannerViewModel } from "../models/meal-planner.interfaces";
 
 vi.mock("../hooks/useToday", () => ({ useToday: vi.fn() }));
 const useTodayMock = vi.mocked(useToday);
@@ -12,7 +14,7 @@ const useTodayMock = vi.mocked(useToday);
 // El 14 de octubre de 2026 es miércoles: la semana actual va del 12 al 18 y la próxima, del 19 al 25.
 const WEDNESDAY = new Date(2026, 9, 14);
 
-const renderPlanner = (today: NullableRef<Date> = WEDNESDAY) => {
+const renderPlanner = (today: NullableRef<Date> = WEDNESDAY): RenderHookResult<MealPlannerViewModel, unknown> => {
   useTodayMock.mockReturnValue(today);
   return renderHook(() => useMealPlannerViewModel());
 };

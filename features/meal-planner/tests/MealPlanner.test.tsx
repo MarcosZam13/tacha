@@ -13,7 +13,7 @@ const useTodayMock = vi.mocked(useToday);
 // El 14 de octubre de 2026 es miércoles: la semana actual va del 12 al 18 y la próxima, del 19 al 25.
 const WEDNESDAY = new Date(2026, 9, 14);
 
-const renderPlanner = (today: NullableRef<Date> = WEDNESDAY) => {
+const renderPlanner = (today: NullableRef<Date> = WEDNESDAY): ReturnType<typeof createMealPlannerPage> => {
   useTodayMock.mockReturnValue(today);
   render(<MealPlanner />);
   return createMealPlannerPage();

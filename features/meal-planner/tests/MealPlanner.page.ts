@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { RECIPES_TAB, RECIPES_TAB_LABEL } from "@/constants";
 import { MEAL_PLANNER_TEXT, MEAL_TYPE_LABEL } from "../constants/meal-planner.constants";
 
 /**
@@ -10,8 +11,10 @@ export const createMealPlannerPage = () => {
   const user = userEvent.setup();
 
   const getTitle = (): HTMLElement => screen.getByRole("heading", { level: 1, name: MEAL_PLANNER_TEXT.TITLE });
-  const getPlannerTab = (): HTMLElement => screen.getByRole("link", { name: /^planificador semanal$/i });
-  const getRecipesTab = (): HTMLElement => screen.getByRole("link", { name: /^recetas$/i });
+  const getPlannerTab = (): HTMLElement =>
+    screen.getByRole("link", { name: RECIPES_TAB_LABEL[RECIPES_TAB.PLANNER] });
+  const getRecipesTab = (): HTMLElement =>
+    screen.getByRole("link", { name: RECIPES_TAB_LABEL[RECIPES_TAB.RECIPES] });
 
   const getPreviousWeekButton = (): HTMLElement =>
     screen.getByRole("button", { name: MEAL_PLANNER_TEXT.PREVIOUS_WEEK_ARROW });

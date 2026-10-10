@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { toLocalDateKey } from "../utils/toLocalDateKey";
+import { setTimeZoneForSuite } from "./setTimeZoneForSuite";
 
 describe("toLocalDateKey", () => {
   it("writes the local date as year, month and day", () => {
@@ -20,17 +21,7 @@ describe("toLocalDateKey", () => {
   });
 
   describe("in Costa Rica (UTC-6)", () => {
-    const originalTimeZone = process.env.TZ;
-
-    // La zona se fija antes de crear cada fecha: Node la toma de process.env.TZ.
-    beforeAll(() => {
-      process.env.TZ = "America/Costa_Rica";
-    });
-
-    afterAll(() => {
-      if (originalTimeZone === undefined) delete process.env.TZ;
-      else process.env.TZ = originalTimeZone;
-    });
+    setTimeZoneForSuite("America/Costa_Rica");
 
     it("still says today after 6 p.m., when UTC is already tomorrow", () => {
       // 02:00 UTC del 13 son las 8 p. m. del 12 en Costa Rica.

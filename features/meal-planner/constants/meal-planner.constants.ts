@@ -1,3 +1,5 @@
+import { RECIPES_TAB, RECIPES_TAB_LABEL, RECIPES_TABS_TEXT } from "@/constants";
+
 // Constantes propias del planificador semanal. Viven dentro de la feature
 // porque ninguna otra las usa todavía; se promueven a constants/ con el
 // segundo consumidor.
@@ -71,10 +73,10 @@ export const MEAL_PLANNER_TEXT = {
   NEXT_ARROW_MARK: "›",
   NEXT_WEEK: "Próxima semana",
   NEXT_WEEK_ARROW: "Semana siguiente",
-  PAGE_TITLE: "Planificador semanal",
+  PAGE_TITLE: RECIPES_TAB_LABEL[RECIPES_TAB.PLANNER],
   PREVIOUS_ARROW_MARK: "‹",
   PREVIOUS_WEEK_ARROW: "Semana anterior",
   RANGE_SEPARATOR: " – ",
   THIS_WEEK: "Esta semana",
-  TITLE: "Recetas",
+  TITLE: RECIPES_TABS_TEXT.SECTION_TITLE,
 } as const;

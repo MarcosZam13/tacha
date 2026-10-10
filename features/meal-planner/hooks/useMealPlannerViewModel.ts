@@ -31,8 +31,8 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
     canGoToPreviousWeek: isNextWeek,
     days: today && weekStart ? buildWeek(weekStart, today) : [],
     isReady: today !== null,
-    onNextWeek: () => setWeekOffset(WEEK_OFFSET.NEXT),
-    onPreviousWeek: () => setWeekOffset(WEEK_OFFSET.CURRENT),
+    onNextWeek: (): void => setWeekOffset(WEEK_OFFSET.NEXT),
+    onPreviousWeek: (): void => setWeekOffset(WEEK_OFFSET.CURRENT),
     rangeLabel: weekStart ? formatWeekRange(weekStart) : null,
     weekLabel: isNextWeek ? MEAL_PLANNER_TEXT.NEXT_WEEK : MEAL_PLANNER_TEXT.THIS_WEEK,
   };

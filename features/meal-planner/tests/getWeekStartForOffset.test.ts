@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { setTimeZoneForSuite } from "./setTimeZoneForSuite";
 import { WEEK_OFFSET } from "../constants/meal-planner.constants";
 import { getWeekStartForOffset } from "../utils/getWeekStartForOffset";
 import { toLocalDateKey } from "../utils/toLocalDateKey";
@@ -31,5 +32,19 @@ describe("getWeekStartForOffset", () => {
 
     expect(toLocalDateKey(getWeekStartForOffset(sunday, WEEK_OFFSET.CURRENT))).toBe("2026-10-12");
     expect(toLocalDateKey(getWeekStartForOffset(sunday, WEEK_OFFSET.NEXT))).toBe("2026-10-19");
+  });
+
+  describe("across a daylight saving change", () => {
+    // Nueva York retrasa el reloj el domingo 1 de noviembre de 2026 a las 2:00.
+    setTimeZoneForSuite("America/New_York");
+
+    it("goes to the Monday after the change, not to the Sunday that lasts 25 hours", () => {
+      // Miércoles 28 de octubre: su lunes es el 26 y el de la próxima semana, el 2 de noviembre.
+      // Sumando 7 × 24 horas al lunes 26 se llegaría al domingo 1 a las 23:00.
+      const wednesday = new Date(2026, 9, 28);
+
+      expect(toLocalDateKey(getWeekStartForOffset(wednesday, WEEK_OFFSET.CURRENT))).toBe("2026-10-26");
+      expect(toLocalDateKey(getWeekStartForOffset(wednesday, WEEK_OFFSET.NEXT))).toBe("2026-11-02");
+    });
   });
 });

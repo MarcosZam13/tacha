@@ -1,4 +1,4 @@
-import { APP_ROUTE, CATALOG_BASE_UNIT } from "@/constants";
+import { APP_ROUTE, CATALOG_BASE_UNIT, RECIPES_TABS_TEXT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 
 // Constantes propias de recetas. Viven dentro de la feature porque ninguna
@@ -177,7 +177,7 @@ export const RECIPE_TEXT = {
   NEW_RECIPE: "+ Nueva receta",
   SERVINGS_PLURAL: "porciones",
   SERVINGS_SINGULAR: "porción",
-  TITLE: "Recetas",
+  TITLE: RECIPES_TABS_TEXT.SECTION_TITLE,
 } as const;
 
 // Estados de la eliminación (RecipeDeletionState en models/recipe-deletion.types.ts).

@@ -83,6 +83,7 @@ No aplica: la pantalla no llama a ningún servicio. Las flechas deshabilitadas s
 - El día de hoy lleva `aria-current="date"`: se dice con semántica, no solo con el color.
 - Un espacio vacío es texto, no un botón. El "+" es decorativo (`aria-hidden`); el lector lee "Almuerzo, vacío".
 - Los sub-tabs ya anuncian la página activa con `aria-current="page"`.
+- **Límite conocido (revisión de código, 2026-10-09):** al pulsar una flecha esta queda deshabilitada (`disabled` nativo del `Button` compartido) y el foco del teclado se pierde: en Chrome pasa al `body`. Quien navega con teclado tiene que volver a tabular hasta la otra flecha. Se acepta porque con solo dos semanas el costo es de un Tab, y arreglarlo bien exige mover el foco a la otra flecha desde un componente de presentación (refs) o sumar `aria-disabled` al `Button` compartido, que usan otras features. Si se decide arreglar, lo natural es `aria-disabled` en el `Button` con el clic ignorado cuando está "deshabilitado".
 
 ## 10. Restricciones técnicas
 
