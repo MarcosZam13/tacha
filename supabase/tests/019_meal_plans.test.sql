@@ -184,11 +184,14 @@ begin
     when insufficient_privilege then null;
   end;
 
-  -- Columnas sin permiso: dueño, household y fecha no se escriben a mano.
+  -- Columnas sin permiso: dueño, household y fecha no se escriben a mano. Estos
+  -- casos prueban el PERMISO DE COLUMNA (el insert ni llega a la política); la
+  -- cláusula `household_id is null` de la política queda como segunda defensa
+  -- que el cliente no puede ejercer mientras ese permiso esté cerrado.
   begin
     insert into public.meal_plans (date, meal_type, recipe_id, owner_id)
     values (date '2026-10-15', 'dinner', current_setting('tacha_test.recipe_a1')::uuid, current_setting('tacha_test.user_b')::uuid);
-    assert false, 'insert directo fijando owner_id';
+    assert false, 'el permiso de columna debe rechazar el insert directo fijando owner_id';
   exception
     when insufficient_privilege then null;
   end;
@@ -196,7 +199,7 @@ begin
   begin
     insert into public.meal_plans (date, meal_type, recipe_id, household_id)
     values (date '2026-10-15', 'dinner', current_setting('tacha_test.recipe_a1')::uuid, gen_random_uuid());
-    assert false, 'insert directo fijando household_id';
+    assert false, 'el permiso de columna debe rechazar el insert directo fijando household_id';
   exception
     when insufficient_privilege then null;
   end;
@@ -232,6 +235,41 @@ begin
     assert false, 'update directo con B como cocinero';
   exception
     when insufficient_privilege then null;
+  end;
+
+  -- Lo permitido sí funciona: cambiar a mano la receta propia, el cocinero
+  -- (uno mismo o nadie) y el multiplicador de un espacio propio. Sin esto, una
+  -- política que rechazara todo pasaría todos los negativos de arriba.
+  declare
+    own_rows integer;
+  begin
+    update public.meal_plans
+    set recipe_id = current_setting('tacha_test.recipe_a1')::uuid
+    where id = current_setting('tacha_test.slot_id')::uuid;
+    get diagnostics own_rows = row_count;
+    assert own_rows = 1, 'update directo de la receta propia: debe cambiar 1 fila';
+
+    update public.meal_plans set assigned_cook = auth.uid() where id = current_setting('tacha_test.slot_id')::uuid;
+    get diagnostics own_rows = row_count;
+    assert own_rows = 1, 'update directo con uno mismo como cocinero: debe cambiar 1 fila';
+
+    update public.meal_plans set assigned_cook = null where id = current_setting('tacha_test.slot_id')::uuid;
+    get diagnostics own_rows = row_count;
+    assert own_rows = 1, 'update directo sin cocinero: debe cambiar 1 fila';
+
+    update public.meal_plans set servings_multiplier = 3 where id = current_setting('tacha_test.slot_id')::uuid;
+    get diagnostics own_rows = row_count;
+    assert own_rows = 1, 'update directo del multiplicador: debe cambiar 1 fila';
+
+    assert (
+      select recipe_id = current_setting('tacha_test.recipe_a1')::uuid and servings_multiplier = 3
+      from public.meal_plans where id = current_setting('tacha_test.slot_id')::uuid
+    ), 'los updates directos permitidos quedaron guardados';
+
+    -- Se deja el espacio como estaba para los pasos siguientes.
+    update public.meal_plans
+    set recipe_id = current_setting('tacha_test.recipe_a2')::uuid, servings_multiplier = 2.5
+    where id = current_setting('tacha_test.slot_id')::uuid;
   end;
 
   -- Dos inserts directos al mismo espacio: la clave parcial lo impide.
@@ -366,6 +404,18 @@ begin
   assert not exists (select 1 from public.meal_plans where date = '2026-10-17'),
     'una fila con household_id no se ve en el plan personal';
 
+  -- Ni se cambia ni se borra: el dueño la ve como si no existiera (0 filas, sin
+  -- error). Esto prueba el resultado de select + update + delete juntos; el
+  -- predicado `household_id is null` de cada política por separado no se puede
+  -- aislar desde el cliente, porque la política de lectura ya oculta la fila.
+  update public.meal_plans set servings_multiplier = 3 where date = '2026-10-17';
+  get diagnostics deleted_rows = row_count;
+  assert deleted_rows = 0, 'una fila con household_id no se puede cambiar desde el plan personal';
+
+  delete from public.meal_plans where date = '2026-10-17';
+  get diagnostics deleted_rows = row_count;
+  assert deleted_rows = 0, 'una fila con household_id no se puede borrar desde el plan personal';
+
   -- Quitar un espacio propio: borra una fila y el espacio queda vacío.
   delete from public.meal_plans where date = '2026-10-13' and meal_type = 'lunch';
   get diagnostics deleted_rows = row_count;
@@ -394,6 +444,8 @@ do $$
 begin
   assert exists (select 1 from public.meal_plans where household_id is not null),
     'la fila de household solo se ve con el rol dueño';
+  assert (select servings_multiplier from public.meal_plans where date = '2026-10-17') = 1,
+    'la fila de household no cambió: el update desde el plan personal no la tocó';
 end $$;
 
 -- Borrar un usuario borra su plan (cascade) y, si era cocinero de un espacio de
