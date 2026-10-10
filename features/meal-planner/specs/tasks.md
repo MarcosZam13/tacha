@@ -18,7 +18,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 12. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): E2E-PLANNER-01 a 05 (sub-tabs, semana actual con hoy, próxima semana y volver, 7 columnas en desktop, días apilados en mobile).
 - [x] 13. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`.
 - [x] 14. Validar en el navegador los casos de §13 de HU-67 (desktop y mobile).
-- [ ] 15. Revisión con `code-reviewer` y completar los pasos de prueba manual del PR antes de `waiting qa`. No toca auth, RLS ni formularios: `security-reviewer` no aplica.
+- [x] 15. Revisión con `code-reviewer` y completar los pasos de prueba manual del PR antes de `waiting qa`. No toca auth, RLS ni formularios: `security-reviewer` no aplica.
 
 Bloqueado / fuera de esta historia:
 
@@ -30,9 +30,9 @@ Bloqueado / fuera de esta historia:
 
 - [x] 1. SPEC (huecos de HU-68 decididos con el responsable el 2026-10-10: plan personal con estructura lista para el household, cocinero "Yo" / "Sin cocinero", multiplicador ×0,5 a ×4, receta borrada libera el espacio con aviso). La fusión al household se evaluó y no se incluyó (SPEC §15).
 - [x] 2. Plan y tareas.
-- [ ] 3. Migración `019_meal_plans.sql` (número provisional: la `018` es de la PR #55): tabla, índice único parcial, RLS, permisos por columna y RPC `assign_meal_slot`.
-- [ ] 4. Prueba SQL `supabase/tests/019_meal_plans.test.sql` con rollback: reemplazar un espacio, multiplicador fuera de rango, receta ajena (`P0002`), otro usuario no ve ni cambia el plan, columnas protegidas, cascada al borrar la receta, `anon` sin permiso.
-- [ ] 5. Aplicar la `019` en Supabase (SQL Editor, en una transacción con su fila de historial según `supabase/README.md#migraciones`) y correr la prueba. Bloquea la validación de la tarea 17, no el código del cliente.
+- [x] 3. Migración `019_meal_plans.sql` (número provisional: la `018` es de la PR #55): tabla, índice único parcial, RLS, permisos por columna y RPC `assign_meal_slot`.
+- [x] 4. Prueba SQL `supabase/tests/019_meal_plans.test.sql` con rollback: reemplazar un espacio, multiplicador fuera de rango, receta ajena (`P0002`), otro usuario no ve ni cambia el plan, columnas protegidas, cascada al borrar la receta, `anon` sin permiso.
+- [x] 5. Aplicar la `019` en Supabase (SQL Editor, en una transacción con su fila de historial según `supabase/README.md#migraciones`) y correr la prueba. Bloquea la validación de la tarea 17, no el código del cliente.
 - [ ] 6. Constantes: estados del plan y del diálogo, acciones del reducer, textos, límites del multiplicador, nombres de tabla, columnas y RPC, códigos de error.
 - [ ] 7. Modelos en `models/meal-plan.interfaces.ts` y `models/meal-plan.types.ts`.
 - [ ] 8. Utils puros y sus tests: `toMealPlanEntry`, `toRecipeOption`, `toSlotKey`, `formatMultiplier`, `formatResultingServings`, `clampServingsMultiplier`, `getMealSlotLabel`, `meal-slot-dialog.reducer`.

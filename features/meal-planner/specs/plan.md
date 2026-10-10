@@ -167,7 +167,7 @@ Detalle de columnas, RLS y RPC en la [SPEC §12](SPEC.md#12-contratos-externos).
 
 - Tabla `meal_plans` con las columnas de la SPEC; `unique (owner_id, date, meal_type) where household_id is null` (índice parcial, como el de la lista general en `004`).
 - RLS activa y sin políticas por defecto. Políticas para `authenticated`: `select` y `delete` por `owner_id = (select auth.uid())` con `household_id is null`; `insert` y `update` con las mismas condiciones **y** `exists` sobre una receta propia (`update` con `using` y `with check`, como `007`).
-- `revoke all … from public, anon, authenticated` y devolver solo `select`, `delete` y `insert`/`update` de las columnas del espacio. `owner_id`, `household_id` y `created_at` quedan fuera (mismo criterio que `008`).
+- `revoke all … from public, anon, authenticated` y devolver solo `select`, `delete`, `insert` de las columnas del espacio y `update` de `recipe_id`, `assigned_cook` y `servings_multiplier` (un espacio no cambia de fecha ni de comida). `owner_id`, `household_id` y `created_at` quedan fuera (mismo criterio que `008`). Las políticas de `insert` y `update` exigen además que `assigned_cook` sea nulo o el propio usuario.
 - Función `assign_meal_slot(...)` `security invoker`, `search_path` vacío, solo `authenticated`: valida sesión (`42501`), busca la receta (`P0002`), y hace `insert … on conflict (owner_id, date, meal_type) where household_id is null do update set recipe_id, assigned_cook, servings_multiplier`. `assigned_cook = case when cook_is_self then auth.uid() end`. Devuelve el id de la fila.
 - Los `check` de la tabla (tipo de comida, multiplicador de 0,5 a 4 y múltiplo de 0,5) repiten lo que valida la pantalla.
 
