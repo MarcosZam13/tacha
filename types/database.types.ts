@@ -780,6 +780,18 @@ export type Database = {
         }
         Returns: string
       }
+      add_week_ingredients_to_list: {
+        Args: {
+          servings_multiplier: number
+          target_list_id: string
+          target_recipe_id: string
+        }
+        Returns: Json
+      }
+      add_week_to_general_list: {
+        Args: { week_from: string; week_to: string }
+        Returns: Json
+      }
       assign_meal_slot: {
         Args: {
           cook_is_self: boolean
