@@ -16,7 +16,7 @@ Incluye:
 - Botón con ícono de ojo en el campo de contraseña para alternar entre texto oculto (puntos) y visible (texto plano). Oculto por defecto.
 - Mensaje genérico para credenciales incorrectas y mensajes específicos para cuenta no verificada, cuenta bloqueada y demasiados intentos. Los mensajes son visibles y no bloquean el formulario: el usuario puede corregir y reintentar.
 - Aviso de contraseña débil tras un inicio de sesión exitoso, con la opción de cambiarla desde el mismo flujo (formulario de nueva contraseña con medidor de fortaleza) o de continuar sin cambiarla.
-- Cierre de sesión por inactividad (SCRUM-50): un componente montado en el layout raíz mide el tiempo desde la última acción (clics o toques, teclas, scroll, cambio de ruta) mientras haya una sesión real; al superar el límite (30 minutos por defecto, configurable por variable de entorno) cierra la sesión, navega a `/login?motivo=inactividad` y el login muestra el aviso "Tu sesión se cerró por inactividad".
+- Cierre de sesión por inactividad (SCRUM-50): un componente montado en el layout raíz mide el tiempo desde la última acción (clics o toques, teclas, scroll, cambio de ruta) mientras haya una sesión real; al superar el límite (30 minutos por defecto, configurable por variable de entorno) cierra la sesión, deja una bandera en `sessionStorage`, redirige a `/login` y el login muestra el aviso "Tu sesión se cerró por inactividad" una sola vez.
 - La última actividad se comparte entre pestañas (`localStorage`): estar activo en una evita el cierre en las otras.
 - `signOutUser()` en `services/session.service.ts` (HU-32 lo reutilizará).
 
@@ -32,8 +32,8 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - Decisión del usuario ante el aviso: cambiar la contraseña o continuar ("Ahora no")
 - Eventos de actividad del navegador: `pointerdown`, `keydown`, `scroll`, `visibilitychange`; el pathname (un cambio de ruta cuenta como actividad)
 - La sesión de Supabase (vía `subscribeToSessionChanges`) y la marca de última actividad en `localStorage`
-- `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES`: minutos permitidos de inactividad (vacío, no numérico o menor que 1 → 30)
-- Parámetro `motivo` de la URL de `/login`
+- `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES`: minutos permitidos de inactividad (vacío, no numérico, menor que 1 o mayor que 1440 → 30)
+- La bandera de "se cerró por inactividad" en `sessionStorage` (por pestaña)
 
 ## 4. Salidas
 
@@ -48,8 +48,8 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - Cambio exitoso: la contraseña queda actualizada, se confirma con un mensaje y el usuario continúa a la app.
 - "Ahora no": el usuario continúa a la app con su contraseña actual.
 - Sin sesión real: el componente de inactividad no hace nada (sin temporizador ni escuchas).
-- Límite superado: se cierra la sesión y se navega con `replace` a `/login?motivo=inactividad`.
-- `/login` con `motivo=inactividad`: aviso visible "Tu sesión se cerró por inactividad. Iniciá sesión de nuevo." encima del formulario.
+- Límite superado: se anota la bandera, se cierra la sesión y se navega con `replace` a `/login`.
+- `/login` con la bandera puesta: aviso visible "Tu sesión se cerró por inactividad. Iniciá sesión de nuevo." encima del formulario. Se muestra una sola vez: al mostrarlo se borra la bandera.
 
 ## 5. Reglas de negocio
 
@@ -70,13 +70,17 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - El aviso no bloquea: "Ahora no" siempre está disponible. Reaparece en cada inicio de sesión con contraseña débil mientras no se cambie.
 - La nueva contraseña es obligatoria, tiene al menos el largo mínimo, coincide con su repetición y alcanza al menos el nivel intermedio de fortaleza. El botón de guardar queda deshabilitado mientras no se cumpla.
 - El cambio usa la sesión que acaba de crearse; no se pide la contraseña actual otra vez.
-- El límite de inactividad por defecto es 30 minutos. Una variable vacía, no numérica o menor que 1 usa el valor por defecto (nunca `0`: cerraría la sesión al instante).
+- El límite de inactividad por defecto es 30 minutos. Una variable vacía, no numérica, menor que 1 o mayor que 1440 (un día) usa el valor por defecto: nunca `0` (cerraría la sesión al instante) ni un valor que desborde el temporizador del navegador (más de ~24,8 días).
 - La inactividad se mide con la marca compartida: vence cuando `ahora - últimaActividad >= límite`, no cuando un temporizador local lo diga. Si otra pestaña tuvo actividad, la marca es más nueva y esta pestaña espera.
 - Registrar actividad se limita a una escritura por segundo (`scroll` y `pointerdown` pueden dispararse decenas de veces por segundo).
 - Una sesión anónima no cuenta: no se mide ni se cierra (igual que el guard, SCRUM-49). El componente actúa según la sesión, no según la ruta ni según el interruptor del guard.
 - Al volver a una pestaña oculta (`visibilitychange`) se revisa la marca de inmediato: los temporizadores de pestañas en segundo plano se retrasan.
-- El cierre usa `signOut` con alcance local: borra la sesión del navegador (y por compartir almacenamiento, de todas las pestañas) sin depender del servidor ni cerrar otros dispositivos. Se borra la marca de actividad.
-- El motivo de la redirección es una bandera, nunca un destino: la URL no decide a dónde se navega (sin redirección abierta). Solo `motivo=inactividad` muestra el aviso.
+- El cierre usa `signOut` con alcance local: el cliente llama al servidor, que revoca la sesión actual (no las de otros dispositivos), y borra la sesión del navegador (y por compartir almacenamiento, de todas las pestañas). Si esa llamada falla, la sesión local se borra igual; si se cuelga, se sigue pasados 5 segundos para no dejar la pantalla privada abierta, y la sesión local puede quedar hasta que la llamada termine.
+- La marca de actividad se borra cuando la sesión termina por cualquier causa (cierre por inactividad, cierre manual futuro, token que no se renueva, otra pestaña), no solo en el cierre por inactividad: una marca vieja haría que el siguiente inicio de sesión venciera al instante.
+- La marca nunca es posterior a la hora actual: si el reloj estuvo adelantado y se corrigió, se toma la hora actual.
+- El motivo va en una bandera de `sessionStorage` y no en la URL: con el guard encendido, el guard y el cierre por inactividad redirigen a `/login` a la vez, y el último `replace` pisaría un parámetro de la URL (se comprobó: el aviso no aparecía). Con la bandera, da igual quién redirija primero. La bandera se anota antes de cerrar la sesión.
+- La URL no decide nada: no hay parámetro que lea el login, así que no hay redirección abierta ni un mensaje que cualquiera pueda provocar con un enlace.
+- El aviso se consume: se muestra, se borra la bandera y no vuelve a salir al recargar.
 
 ## 6. Estados
 
@@ -110,6 +114,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 | `localStorage` no disponible (bloqueado, modo privado estricto) | La actividad se guarda solo en memoria de la pestaña: el cierre funciona, sin compartir entre pestañas |
 | La marca guardada no es un número | Se trata como sin marca: se toma el momento actual |
 | `signOut` falla (red) | Igual se redirige a `/login` con el aviso; la sesión local se limpia por el alcance local |
+| `signOut` no responde (red colgada) | A los 5 segundos se redirige a `/login` con el aviso; la sesión local puede seguir hasta que la llamada termine (limitación aceptada, §15) |
 | Faltan las variables de Supabase | Se trata como sin sesión: el componente de inactividad no hace nada |
 
 ## 8. UI esperada
@@ -124,7 +129,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 - Aviso de contraseña débil: título, explicación, botón "Cambiar contraseña" y botón "Ahora no".
 - Formulario de cambio: dos campos de contraseña con el botón de ojo (los mismos de la HU-23), el medidor de fortaleza bajo la nueva contraseña, botón "Guardar contraseña" ("Guardando..." mientras envía), un mensaje de error general y una forma de volver al aviso.
 - Confirmación de éxito con un botón "Continuar".
-- Aviso de inactividad: un bloque de texto sobre el título del login, visible solo con `?motivo=inactividad`. El componente que mide la inactividad no dibuja nada; no hay cuenta regresiva ni modal de "¿sigues ahí?".
+- Aviso de inactividad: un bloque de texto sobre el título del login, visible solo si hay una bandera de inactividad pendiente. El componente que mide la inactividad no dibuja nada; no hay cuenta regresiva ni modal de "¿sigues ahí?".
 
 ## 9. Accesibilidad
 
@@ -161,7 +166,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 - Código compartido promovido desde `features/registro-manual/`: `constants/password.constants.ts`, `types/password.types.ts`, `utils/password.utils.ts` (`evaluatePasswordStrength`) y `components/password-strength-meter/`.
 - `PasswordInput` y el servicio de Supabase de la HU-22 y HU-23.
 - Variables: `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (cliente) y secret `RECAPTCHA_SECRET_KEY` (Edge Function).
-- Inactividad (SCRUM-50): `services/session.service.ts` (`subscribeToSessionChanges`) y `utils/getSessionStatus.ts` (de SCRUM-49/135), `next/navigation` (`usePathname`, `useRouter`, `useSearchParams`) y la variable opcional `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES`.
+- Inactividad (SCRUM-50): `services/session.service.ts` (`subscribeToSessionChanges`) y `utils/getSessionStatus.ts` (de SCRUM-49/135), `next/navigation` (`usePathname`, `useRouter`) y la variable opcional `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES`.
 
 ## 12. Contratos externos
 
@@ -181,7 +186,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 
 **Cambio de contraseña (SCRUM-48):** `supabase.auth.updateUser({ password })` desde el cliente, con la sesión recién creada. Errores relevantes de Supabase Auth: `same_password` (igual a la actual) y `weak_password` (incumple la política configurada en el proyecto). No hay tablas ni RLS nuevas.
 
-**Cierre por inactividad (SCRUM-50):** `supabase.auth.signOut({ scope: "local" })` desde el cliente: borra la sesión del navegador sin depender de que el servidor responda y sin cerrar los demás dispositivos. `onAuthStateChange` (ya usado por `subscribeToSessionChanges`) avisa del `SIGNED_OUT`. No hay tablas, RLS ni Edge Functions nuevas.
+**Cierre por inactividad (SCRUM-50):** `supabase.auth.signOut({ scope: "local" })` desde el cliente: llama al servidor para revocar la sesión actual y borra la sesión del navegador; si la llamada falla la sesión local se borra igual, y no cierra los demás dispositivos. `onAuthStateChange` (ya usado por `subscribeToSessionChanges`) avisa del `SIGNED_OUT`. No hay tablas, RLS ni Edge Functions nuevas.
 
 ## 13. Casos de aceptación
 
@@ -217,17 +222,19 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 - Caso 30: se puede volver del formulario al aviso sin perder la sesión.
 
 Con `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES=1` (SCRUM-50):
-- Caso 31: con sesión real y sin tocar nada durante 1 minuto, la sesión se cierra y se llega a `/login?motivo=inactividad` con el aviso.
+- Caso 31: con sesión real y sin tocar nada durante 1 minuto, la sesión se cierra y se llega a `/login` con el aviso.
 - Caso 32: hacer clic o teclear antes del minuto evita el cierre y el conteo arranca de nuevo.
 - Caso 33: hacer scroll cuenta como actividad.
 - Caso 34: navegar a otra pantalla privada cuenta como actividad.
 - Caso 35: con dos pestañas abiertas, estar activo en una evita el cierre en la otra.
 - Caso 36: dejar la pestaña en segundo plano más allá del límite y volver: la sesión se cierra al volver, sin esperar al temporizador.
 - Caso 37: tras el cierre, "atrás" no devuelve a la pantalla privada.
-- Caso 38: el aviso aparece solo con `?motivo=inactividad`; un `/login` normal no lo muestra, y `?motivo=otra-cosa` tampoco.
+- Caso 38: el aviso aparece solo tras un cierre por inactividad: un `/login` normal no lo muestra, `?motivo=inactividad` en la URL tampoco, y tras mostrarlo, recargar no lo vuelve a mostrar.
+- Caso 43: con el guard encendido el aviso aparece igual (el guard y el cierre redirigen a `/login` a la vez; la bandera no depende de la URL).
+- Caso 44: con `sessionStorage` bloqueado el aviso aparece igual (queda la bandera en memoria, porque la navegación a `/login` no recarga la página).
 - Caso 39: sin sesión (en `/login`, `/` o `/registro`) no se mide ni se cierra nada.
 - Caso 40: con una sesión anónima no se cierra nada.
-- Caso 41: sin la variable, el límite es 30 minutos; con valor vacío, `0` o texto, también.
+- Caso 41: sin la variable, el límite es 30 minutos; con valor vacío, `0`, texto o mayor que 1440, también.
 - Caso 42: con `localStorage` bloqueado, la pestaña igual se cierra por su propia inactividad.
 
 ## 14. Casos fuera de alcance
@@ -261,6 +268,10 @@ Con `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES=1` (SCRUM-50):
 - La evaluación de fortaleza en el cliente es ayuda al usuario, no una barrera de seguridad: quien la salte solo evita el aviso, y no obtiene ningún acceso. Por eso no se repite en el servidor.
 - **Inactividad: "configurable" se resuelve con una variable de entorno,** leída al compilar (igual que el interruptor del guard): cambiar el límite exige reiniciar `npm run dev` o reconstruir. No es un ajuste que cada persona cambie en la app.
 - **Los temporizadores del navegador no son exactos** en pestañas ocultas (se reducen a una vez por minuto o menos). Por eso la comprobación real compara marcas de tiempo y se repite al volver a la pestaña.
-- **Inactividad no es expiración del token:** el token de acceso se renueva solo mientras la sesión viva; este cierre corta la sesión aunque el token se pueda renovar. El cierre es local: el token de renovación sigue válido en el servidor hasta que Supabase lo expire; cerrarlo con alcance global afectaría los demás dispositivos de la persona y no se hace.
+- **Inactividad no es expiración del token:** el token de acceso se renueva solo mientras la sesión viva; este cierre corta la sesión aunque el token se pueda renovar. El cierre es local: según la documentación de Supabase, con alcance local el servidor revoca la sesión actual (un refresh token de esta sesión deja de servir) y deja vivas las demás sesiones de la persona; si la llamada al servidor falla, solo se borra la sesión local y ese token podría seguir siendo válido. Pendiente de verificar con una sesión real: guardar el refresh token antes del cierre y comprobar que Supabase lo rechaza después. Cerrar con alcance global afectaría los demás dispositivos y no se hace.
+- **El servidor no expira por inactividad:** el cierre lo ejecuta el navegador. Si el cliente nunca lo ejecuta (pestaña cerrada, equipo apagado), la sesión sigue válida en el servidor hasta que venza por su cuenta.
+- **La marca de actividad no es una barrera:** vive en `localStorage` y quien ya ejecuta código en la página (o tiene el navegador desbloqueado) puede borrarla o moverla, pero también puede leer el token de la sesión. Es defensa en profundidad contra un equipo desatendido, no contra un atacante en la página.
+- **Red colgada al cerrar:** si la llamada de cierre no responde, a los 5 segundos se redirige al login, pero no hay una API pública de supabase-js para borrar solo la sesión local sin esperar al servidor; la sesión local puede quedar hasta que la llamada termine.
+- **El aviso solo sale en la pestaña que cerró por inactividad.** La bandera es de `sessionStorage` (por pestaña). Si hay otra pestaña abierta, pierde la sesión por compartir almacenamiento y, con el guard encendido, va a `/login` sin aviso; con el guard apagado se queda en la pantalla privada sin sesión hasta la siguiente acción.
 - **Probar a mano:** poner `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES=1` en `.env.local`, reiniciar `npm run dev`, iniciar sesión con un usuario real y no tocar nada 1 minuto. Quitar la variable de prueba al terminar.
 - Mientras el equipo no registre el reCAPTCHA real, se usan las claves de prueba que publica Google (la casilla siempre pasa); se cambian por las reales sin tocar código.

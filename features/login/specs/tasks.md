@@ -62,18 +62,20 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 
 ## SCRUM-50: cierre de sesión por inactividad
 
-- [ ] 1. Constantes: límite por defecto, eventos, claves de `localStorage`, parámetro `motivo` y su valor, textos del aviso (`constants/login.constants.ts`).
-- [ ] 2. Funciones puras con sus pruebas: `utils/isInactivityExpired.ts` y `utils/parseInactivityLimit.ts` (`tests/`). Casos borde: justo en el límite, marca futura, valor vacío, `0`, texto.
-- [ ] 3. Servicio de actividad: `services/activity.service.ts` (`recordActivity`, `readLastActivity`, `clearLastActivity`), con respaldo en memoria si `localStorage` falla.
-- [ ] 4. `signOutUser()` en `services/session.service.ts` (`scope: "local"`, no lanza).
-- [ ] 5. ViewModel: `hooks/useInactivityTimeoutViewModel.ts` (suscripción a la sesión, listeners, temporizador, comprobación al volver a la pestaña, cierre y redirección).
-- [ ] 6. Presentación: `InactivityTimeout.tsx` (devuelve `null`) y montarlo en `app/layout.tsx`.
-- [ ] 7. Aviso en el login: `InactivityNotice.tsx`, leer `?motivo=inactividad` en `useLoginViewModel` y pintarlo en `LoginForm`; `Suspense` si el build lo exige.
-- [ ] 8. `.env.example`: documentar `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES` (comentada).
-- [ ] 9. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
-- [ ] 10. Validar los casos 31 a 42 del SPEC con el límite en 1 minuto (incluye dos pestañas y pestaña en segundo plano).
+- [x] 1. Constantes: límite por defecto, eventos, claves de `localStorage`, bandera del aviso, textos del aviso (`constants/login.constants.ts`).
+- [x] 2. Funciones puras con sus pruebas: `utils/isInactivityExpired.ts` y `utils/parseInactivityLimit.ts` (`tests/`). Casos borde: justo en el límite, marca futura, valor vacío, `0`, texto.
+- [x] 3. Servicio de actividad: `services/activity.service.ts` (`recordActivity`, `readLastActivity`, `clearLastActivity`), con respaldo en memoria si `localStorage` falla.
+- [x] 4. `signOutUser()` en `services/session.service.ts` (`scope: "local"`, no lanza).
+- [x] 5. ViewModel: `hooks/useInactivityTimeoutViewModel.ts` (suscripción a la sesión, listeners, temporizador, comprobación al volver a la pestaña, cierre y redirección).
+- [x] 6. Presentación: `InactivityTimeout.tsx` (devuelve `null`) y montarlo en `app/layout.tsx`.
+- [x] 7. Aviso en el login: `services/inactivity-notice.service.ts` (bandera en `sessionStorage`), `useInactivityNoticeViewModel.ts` e `InactivityNotice.tsx`, pintado en `LoginForm`. El hook de inactividad anota la bandera antes de cerrar la sesión (paso 5).
+- [x] 8. `.env.example`: documentar `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES` (comentada).
+- [x] 9. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
+- [x] 10. Validar los casos 31 a 44 del SPEC con el límite en 1 minuto (incluye dos pestañas y pestaña en segundo plano).
 - [ ] 11. Quitar la variable de prueba de `.env.local`.
-- [ ] 12. `E2E.md` y prueba en `e2e/` (playwright-e2e): casos 31, 32, 37 y 38.
-- [ ] 13. Pasar el PR a `waiting qa` y la tarjeta de Jira a Waiting QA.
+- [x] 12. `E2E.md` y prueba en `e2e/` (playwright-e2e): casos 31, 32, 37, 38 y 43.
+- [x] 13. Aplicar la revisión de `code-reviewer` y `security-reviewer`: marca limpia al terminar la sesión, tope de 5 s en `signOutUser`, mínimo y máximo del límite, marca nunca futura, constantes y legibilidad, tests de los dos servicios, y corrección del SPEC §15 sobre el token de renovación.
+- [ ] 14. Verificar con una sesión real que el refresh token queda rechazado tras el cierre (SPEC §15).
+- [ ] 15. Pasar el PR a `waiting qa` y la tarjeta de Jira a Waiting QA.
 
 El guard de sesión (SCRUM-49) tiene sus propias tareas en `features/session-guard/specs/tasks.md`.
