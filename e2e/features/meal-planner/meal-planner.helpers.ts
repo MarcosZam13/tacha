@@ -49,6 +49,14 @@ export const getTodaySlot = (page: Page, mealLabel: string): Locator =>
 
 export const getAssignDialog = (page: Page, title: string): Locator => page.getByRole("dialog", { name: title });
 
+const ADD_WEEK_LABEL = "Agregar semana a la lista";
+
+/** El botón que agrega la semana a la vista a la lista. */
+export const getAddWeekButton = (page: Page): Locator => page.getByRole("button", { name: ADD_WEEK_LABEL });
+
+/** La confirmación de agregar la semana (el mismo texto que el botón, pero con rol de diálogo). */
+export const getAddWeekDialog = (page: Page): Locator => page.getByRole("dialog", { name: ADD_WEEK_LABEL });
+
 /** Asigna una receta (por su nombre) al espacio de hoy. Espera a que el diálogo se cierre. */
 export const assignRecipeToToday = async (page: Page, mealLabel: string, recipeName: string): Promise<void> => {
   await getTodaySlot(page, mealLabel).click();
