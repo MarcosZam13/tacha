@@ -4,7 +4,9 @@ export const APP_ROUTE = {
   CATALOG: "/catalogo",
   HOUSEHOLD: "/household",
   LIST: "/lista",
+  MEAL_PLANNER: "/recetas/planificador",
   RECIPES: "/recetas",
+  RECIPE_NEW: "/recetas/nueva",
 } as const;
 
 export type AppRouteType = (typeof APP_ROUTE)[keyof typeof APP_ROUTE];

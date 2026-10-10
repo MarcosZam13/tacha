@@ -292,6 +292,50 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_plans: {
+        Row: {
+          assigned_cook: string | null
+          created_at: string
+          date: string
+          household_id: string | null
+          id: string
+          meal_type: string
+          owner_id: string
+          recipe_id: string
+          servings_multiplier: number
+        }
+        Insert: {
+          assigned_cook?: string | null
+          created_at?: string
+          date: string
+          household_id?: string | null
+          id?: string
+          meal_type: string
+          owner_id?: string
+          recipe_id: string
+          servings_multiplier?: number
+        }
+        Update: {
+          assigned_cook?: string | null
+          created_at?: string
+          date?: string
+          household_id?: string | null
+          id?: string
+          meal_type?: string
+          owner_id?: string
+          recipe_id?: string
+          servings_multiplier?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_brands: {
         Row: {
           created_at: string
@@ -806,6 +850,16 @@ export type Database = {
         }
         Returns: string
       }
+      assign_meal_slot: {
+        Args: {
+          cook_is_self: boolean
+          slot_date: string
+          slot_meal_type: string
+          slot_servings_multiplier: number
+          target_recipe_id: string
+        }
+        Returns: string
+      }
       change_bought_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
@@ -912,6 +966,7 @@ export type Database = {
           status: string
         }[]
       }
+      get_recipe_coverage: { Args: { target_recipe_id: string }; Returns: Json }
       normalize_pending_staging: {
         Args: { batch_size?: number }
         Returns: {

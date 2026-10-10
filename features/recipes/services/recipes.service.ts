@@ -124,3 +124,21 @@ export const addRecipeToList = async (
   // La RPC devuelve jsonb: la base no le da tipo, lo fija el contrato de la función (013).
   return toAddRecipeToListResponse(addedRecipeRow as unknown as AddRecipeToListRow);
 };
+
+/**
+ * Cuenta cuántos espacios del plan semanal usan una receta, para avisarlo en el
+ * diálogo de eliminar (al borrarla esos espacios quedan vacíos). Solo cuenta:
+ * `head` no trae las filas. RLS acota a lo propio, así que no hace falta
+ * filtrar por dueño.
+ */
+export const countRecipeMealPlans = async (recipeId: string): Promise<number> => {
+  await ensureSession();
+
+  const { count, error } = await getSupabaseClient()
+    .from(RECIPES_DB.TABLE.MEAL_PLANS)
+    .select(RECIPES_DB.COLUMN.ID, { count: "exact", head: true })
+    .eq(RECIPES_DB.COLUMN.RECIPE_ID, recipeId);
+  if (error) throw error;
+
+  return count ?? 0;
+};
