@@ -54,6 +54,25 @@ El criterio "las búsquedas de arroz, huevo, pan, frijol, azúcar, aceite, café
 
 **Ajustes posteriores.** Una auditoría de la base (2026-10-06) agregó criterios de seguridad a SCRUM-130 y SCRUM-131: fijar el `search_path` de las funciones de normalización y de `search_catalog`, revocar a `anon` la ejecución de `normalize_*` y `parse_size_text`, revocar los permisos de escritura de `anon` y `authenticated` sobre las tablas del catálogo (incluido `TRUNCATE`, que RLS no controla), cerrar `get_recent_staging` y decidir qué hacer con la Edge Function `search-products`, que está desplegada pero no existe en el repo. El detalle vive en esos tickets.
 
+## Corrección 2026-10-09 (SCRUM-131) — la categoría de VTEX pasa a ser la señal principal, no el respaldo
+
+**Lo que decía el punto 2 de la Decisión, arriba:** "cada fila de staging se asigna a una madre de la lista usando palabras clave como señal principal y la ruta de categoría de VTEX (`product.categories` dentro de `raw_json`) como respaldo."
+
+**Por qué era un error.** Esa redacción repite, sin querer, el riesgo que `docs/catalogo-scraping/specs/spec-03-normalizacion-staging.md` (la spec original del normalizador, Requirement 2 y su sección de Edge Cases) ya había identificado y resuelto antes de esta decisión: "nunca matchear solo por similitud de texto sin considerar categoría cuando esta esté disponible", porque un falso positivo (fusionar dos productos distintos en la misma madre) es mucho más dañino para la confianza del catálogo que un falso negativo (dejar una fila sin asignar). Al describir la regla de la lista curada, el punto 2 no volvió a aplicar ese principio y puso el keyword primero — exactamente la configuración que spec-03 ya advertía evitar.
+
+**Evidencia concreta** (100 filas reales de staging, MaxiPali, verificadas 2026-10-09): la palabra "leche" aparece en 4 productos que no son leche, cada uno con una categoría de VTEX correcta y sin ambigüedad:
+
+| `scraped_name` | Categoría real de VTEX |
+|---|---|
+| Jabón Dove Leche de Coco - 90 g | `/Higiene y Belleza/Cuidado Corporal/Jabón y gel corporal/` |
+| Leche De Magnesia Phillips, Sabor Original -360 ml | `/Farmacia/Sistema Digestivo/Antiácidos/` |
+| Crema de Leche Nestlé - 236g | `/Abarrotes/Harinas y Repostería/Repostería/` |
+| Torta Dulce Leche Economica Bucca 938g | `/Panadería y tortillería/Repostería y Pastelería/Pasteles, Tartas y Pays/` |
+
+Con el keyword decidiendo primero, los 4 se habrían fusionado incorrectamente en la madre "Leche".
+
+**Corrección.** SCRUM-131 invierte el orden: la categoría de VTEX decide primero cuando la fila trae una y coincide con una regla; el keyword queda como respaldo — para desempatar dentro de una misma categoría (ej. "Leche" vs. "Leche de coco", que VTEX ubica bajo la misma categoría) o cuando la fila no trae categoría utilizable. El resto de esta decisión no cambia: lista versionada con `name`/`category`/`match_keywords`/`exclude_keywords`, normalización que asigna en vez de crear, lote mensual en SCRUM-132. Detalle completo en [`supabase/specs/SCRUM-131/SPEC.md`](../../supabase/specs/SCRUM-131/SPEC.md).
+
 ## Alternativas consideradas
 
 | Alternativa | Por qué se descartó |

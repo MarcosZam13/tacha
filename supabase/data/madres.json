@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Leche",
+    "category": "Lácteos",
+    "match_keywords": ["leche"],
+    "exclude_keywords": ["magnesia", "jabon", "jabón", "condensada", "evaporada", "coco"],
+    "vtex_category_prefix": "/Lácteos/Leche/"
+  },
+  {
+    "name": "Leche condensada",
+    "category": "Lácteos",
+    "match_keywords": ["leche condensada", "condensada"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Lácteos/Leche/Condensada/"
+  },
+  {
+    "name": "Leche evaporada",
+    "category": "Lácteos",
+    "match_keywords": ["leche evaporada", "evaporada"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Lácteos/Leche/Evaporada/"
+  },
+  {
+    "name": "Leche de coco",
+    "category": "Lácteos",
+    "match_keywords": ["leche de coco", "coco"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Lácteos/Leche/"
+  },
+  {
+    "name": "Crema de leche",
+    "category": "Repostería",
+    "match_keywords": ["crema de leche"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Abarrotes/Harinas y Repostería/Repostería/"
+  },
+  {
+    "name": "Chocolate",
+    "category": "Dulces y Chocolates",
+    "match_keywords": ["chocolate"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Abarrotes/Dulces y Chocolates/"
+  },
+  {
+    "name": "Cereal",
+    "category": "Cereales",
+    "match_keywords": ["cereal", "cereales"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Abarrotes/Cereales y Barras/"
+  },
+  {
+    "name": "Dulces",
+    "category": "Dulces y Chocolates",
+    "match_keywords": ["dulce", "dulces", "caramelo", "caramelos"],
+    "exclude_keywords": ["chocolate"],
+    "vtex_category_prefix": "/Abarrotes/Dulces y Chocolates/"
+  },
+  {
+    "name": "Jabón",
+    "category": "Higiene y Belleza",
+    "match_keywords": ["jabon", "jabón"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Higiene y Belleza/Cuidado Corporal/Jabón y gel corporal/"
+  },
+  {
+    "name": "Arroz",
+    "category": "Abarrotes",
+    "match_keywords": ["arroz"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Abarrotes/Arroz, Frijol y Semillas/"
+  },
+  {
+    "name": "Helado",
+    "category": "Congelados",
+    "match_keywords": ["helado", "helados"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Alimentos Congelados/"
+  },
+  {
+    "name": "Repostería",
+    "category": "Repostería",
+    "match_keywords": ["torta", "pastel", "reposteria", "repostería"],
+    "exclude_keywords": [],
+    "vtex_category_prefix": "/Panadería y tortillería/Repostería y Pastelería/"
+  }
+]
