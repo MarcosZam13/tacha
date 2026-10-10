@@ -35,6 +35,29 @@ export const getTodayDate = (page: Page): Locator => page.locator('main time[ari
 export const getEmptySlots = (page: Page, mealLabel: string): Locator =>
   page.locator("main li li").filter({ hasText: mealLabel });
 
+/** El día de hoy de la grilla: el <li> que contiene la fecha marcada como hoy. */
+const getTodayItem = (page: Page): Locator =>
+  page.locator("main li").filter({ has: page.locator('time[aria-current="date"]') });
+
+/**
+ * El espacio de una comida de hoy ("Desayuno", "Almuerzo" o "Cena"): un botón cuyo nombre
+ * empieza con la comida ("Almuerzo del lunes 12, vacío, asignar"). Hoy siempre está en la
+ * semana actual, así que no depende de qué día de la semana sea.
+ */
+export const getTodaySlot = (page: Page, mealLabel: string): Locator =>
+  getTodayItem(page).getByRole("button", { name: new RegExp(`^${mealLabel} del `) });
+
+export const getAssignDialog = (page: Page, title: string): Locator => page.getByRole("dialog", { name: title });
+
+/** Asigna una receta (por su nombre) al espacio de hoy. Espera a que el diálogo se cierre. */
+export const assignRecipeToToday = async (page: Page, mealLabel: string, recipeName: string): Promise<void> => {
+  await getTodaySlot(page, mealLabel).click();
+  const dialog = getAssignDialog(page, "Asignar comida");
+  await dialog.getByRole("radio", { name: new RegExp(`^${recipeName}`) }).check();
+  await dialog.getByRole("button", { name: "Guardar" }).click();
+  await dialog.waitFor({ state: "hidden" });
+};
+
 // --- Fechas esperadas, con aritmética propia (oráculo independiente de la app) ---
 
 const pad = (value: number): string => String(value).padStart(2, "0");

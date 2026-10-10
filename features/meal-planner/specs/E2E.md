@@ -6,11 +6,13 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
 
 ## Datos y entorno
 
-- **Usuario:** la pantalla no usa sesión ni base. Solo E2E-PLANNER-01 llega al catálogo de recetas (`/recetas`), que sí crea una sesión anónima nueva al cargar; los demás escenarios no tocan Supabase.
-- **Sin datos propios:** el planificador no lee ni escribe en la base (SPEC §4); no hace falta limpieza.
-- **Fechas:** el navegador de Playwright usa la misma zona horaria y el mismo reloj que Node. Cada test calcula los lunes y el día de hoy esperados con su propia aritmética de fechas (no importa las funciones de la app), para que el oráculo sea independiente.
-- **Servidor en frío:** si Playwright levanta `next dev` desde cero, la primera compilación de `/recetas/planificador` puede pasar los 5 s del `expect`. Es del **entorno**: levantar `npm run dev`, abrir la ruta una vez y después correr la suite (Playwright reusa el servidor).
-- **Límite de Supabase:** E2E-PLANNER-01 crea un usuario anónimo por corrida y por proyecto. Muchas corridas seguidas desde la misma IP llegan al límite de `/signup` (429): es del **entorno**, no reintentar en bucle.
+- **Usuario:** desde SCRUM-100 la pantalla lee el plan de la base, así que **todos** los escenarios abren una sesión anónima nueva (la crea la app al cargar). Cada prueba abre un navegador nuevo y no comparte plan ni recetas con otra.
+- **Recetas de prueba (E2E-PLANNER-06 a 08):** para asignar hace falta tener recetas. Se crean antes de cada prueba con la API de Supabase y el token de la propia sesión (`save_recipe`, con el primer producto del catálogo como ingrediente): `E2E Flan` (6 porciones) y `E2E Arroz` (4). Supuesto: el catálogo de la base compartida tiene al menos un producto; si no, la falla es de **entorno / datos de prueba**.
+- **Limpieza:** después de cada prueba se borran todas las recetas del usuario (`deleteOwnRecipes`, con su propio token; RLS solo deja borrar lo suyo). Sus espacios del plan se van con ellas (`on delete cascade`). En la base queda el usuario anónimo sin datos.
+- **Fechas:** el navegador de Playwright usa la misma zona horaria y el mismo reloj que Node. Cada prueba calcula los lunes y el día de hoy esperados con su propia aritmética de fechas (no importa las funciones de la app), para que el oráculo sea independiente. Los espacios de las pruebas de asignar son los de **hoy** (el día marcado con `aria-current="date"`), así que no dependen de qué día de la semana sea.
+- **Servidor en frío:** si Playwright levanta `next dev` desde cero, la primera compilación de `/recetas/planificador` o `/recetas` puede pasar los 5 s del `expect`. Es del **entorno**: levantar `npm run dev`, abrir las rutas una vez y después correr la suite (Playwright reusa el servidor).
+- **Sesión y plan lentos:** las pruebas de asignar esperan hasta 15 s a que el espacio se habilite (sesión anónima y lectura del plan en la base compartida). Si aun así falla, es del **entorno** (la base lenta o limitada), no del test.
+- **Límite de Supabase:** cada prueba crea un usuario anónimo, y una corrida completa del planificador crea unos 16 (8 escenarios en dos proyectos). Muchas corridas seguidas desde la misma IP llegan al límite de `/signup` (429): es del **entorno**, no reintentar en bucle.
 - **Base:** la compartida del equipo. Por eso E2E todavía no corre en el CI (ver `.agents/skills/playwright-e2e`, "Setup en este repo").
 
 ## Escenarios
@@ -60,6 +62,38 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
 - **Precondición:** ninguna. El ancho lo fija el propio test (412 px), no el proyecto: corre igual en `chromium` y en `mobile-chrome`.
 - **Pasos:** abrir `/recetas/planificador` y mirar la posición de los primeros dos días.
 - **Resultado esperado:** el segundo día está en la misma columna que el primero, más abajo, y la página no se desplaza horizontalmente.
+
+### E2E-PLANNER-06: asignar una receta a un espacio y que siga después de recargar
+
+- **Cubre:** HU-68 CA-01, CA-02.
+- **Precondición:** usuario anónimo nuevo con las recetas `E2E Flan` (6 porciones) y `E2E Arroz` (4). Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/recetas/planificador` y tocar el espacio "Almuerzo" de hoy (vacío).
+  2. En el diálogo "Asignar comida": "Guardar" está deshabilitado. Elegir `E2E Flan`, tocar "Más porciones" una vez y ver el resumen.
+  3. Tocar "Guardar".
+  4. Recargar la página.
+- **Resultado esperado:** después del paso 2 el resumen dice "×1,5 · 9 porciones". Después del paso 3 el diálogo se cierra y el espacio de hoy muestra `E2E Flan`, "Yo" y "×1,5". Después del paso 4 sigue mostrándolos.
+
+### E2E-PLANNER-07: reasignar y quitar una comida
+
+- **Cubre:** HU-68 CA-03.
+- **Precondición:** la de E2E-PLANNER-06, con `E2E Flan` ya asignada a la "Cena" de hoy.
+- **Pasos:**
+  1. Tocar el espacio de la cena: el diálogo es "Cambiar comida" y `E2E Flan` está elegida. Elegir `E2E Arroz` y tocar "Guardar".
+  2. Recargar la página.
+  3. Tocar otra vez el espacio y tocar "Quitar".
+  4. Recargar la página.
+- **Resultado esperado:** después del paso 1 el espacio muestra `E2E Arroz` y ya no `E2E Flan`; después del paso 2 sigue así. Después del paso 3 el diálogo se cierra, sin pedir confirmación, y el espacio vuelve a decir "vacío, asignar"; después del paso 4 sigue vacío.
+
+### E2E-PLANNER-08: eliminar una receta que está en el plan avisa y libera sus espacios
+
+- **Cubre:** HU-64b CA-02 (SCRUM-96) y la regla 22 de la SPEC (receta borrada libera el espacio).
+- **Precondición:** la de E2E-PLANNER-06, con `E2E Flan` asignada al "Almuerzo" y a la "Cena" de hoy.
+- **Pasos:**
+  1. Abrir `/recetas` y tocar "Eliminar" en la tarjeta de `E2E Flan`.
+  2. En el diálogo, confirmar con "Eliminar".
+  3. Volver a `/recetas/planificador`.
+- **Resultado esperado:** después del paso 1 el diálogo dice "Está en 2 espacios de tu plan; quedarán vacíos." Después del paso 2 la tarjeta desaparece. Después del paso 3 los espacios de almuerzo y cena de hoy dicen "vacío, asignar".
 
 ### Fuera del navegador
 
