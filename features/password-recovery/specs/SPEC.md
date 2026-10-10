@@ -24,17 +24,18 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 
 ## 4. Salidas
 
-- Correo vacío o con formato inválido: mensaje de error bajo el campo; no se envía nada.
+- Correo vacío: el botón queda deshabilitado, sin mensaje. Correo con formato inválido: mensaje de error bajo el campo. En ambos casos no se envía nada.
 - Solicitud aceptada, correo sin cuenta o límite de envíos de Supabase: la misma confirmación genérica.
 - Error de red u otro fallo inesperado: mensaje de reintento; el formulario queda editable.
 
 ## 5. Reglas de negocio
 
-- La confirmación es una sola: "Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña." No cambia según exista o no la cuenta.
+- La confirmación es una sola: "Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisá también la carpeta de spam." No cambia según exista o no la cuenta.
 - El correo se normaliza (recortar y minúsculas) antes de validarlo y de enviarlo, igual que en el login.
 - Supabase no devuelve error cuando el correo no existe; el código no intenta distinguirlo ni lo pregunta.
 - **El límite de envíos se muestra como la confirmación genérica, no como un mensaje propio.** Supabase limita cada cuenta a un correo de recuperación por minuto y también tiene un tope global de correos por hora, y ambos responden con el mismo código (`over_email_send_rate_limit`, HTTP 429). Si la pantalla mostrara "esperá un momento" solo en ese caso, pedir dos veces seguidas el mismo correo diría si tiene cuenta (con cuenta: límite; sin cuenta: confirmación). Costo: si el tope global se agota, la persona espera un correo que no llega; puede reintentar más tarde.
-- Solo los fallos que no dependen de la cuenta (red, servidor, faltan las variables de Supabase) muestran el mensaje de error.
+- **Los errores del servidor de Supabase (5xx) también se muestran como la confirmación genérica.** Supabase solo intenta mandar el correo si la cuenta existe: si el SMTP está caído o rechaza la dirección, el error solo aparece con cuentas reales, y mostrarlo delataría cuáles lo son. Costo: con Supabase o el SMTP caídos la persona ve "enviado" y espera un correo que no llega; puede reintentar más tarde.
+- Solo los fallos que no dependen de la cuenta muestran el mensaje de error: la petición que no llega a Supabase (red caída o faltan las variables) y un 4xx que depende de la dirección y no de la cuenta (por ejemplo, un formato que Supabase rechaza).
 - La pantalla siempre espera la respuesta de Supabase antes de confirmar: no hay un camino más rápido para correos sin cuenta.
 - El enlace de redirección se arma con el origen de la propia página (`window.location.origin`) y la ruta `/actualizar-contrasena`; nunca con un valor tomado de la URL (sin redirección abierta).
 - Mientras se envía, el botón queda deshabilitado (no hay doble envío).
@@ -48,11 +49,12 @@ Unión derivada de constantes: `idle | submitting | sent | error`. El valor del 
 
 | Situación | Resultado |
 |---|---|
-| Correo vacío | "El correo es obligatorio." |
+| Correo vacío | El botón "Enviar enlace" está deshabilitado y no se muestra error (el mensaje "El correo es obligatorio." queda como defensa en la validación, como en el login) |
 | Formato inválido | "Ingresá un correo válido." |
 | Correo sin cuenta | La confirmación genérica |
-| Límite de envíos de Supabase | La confirmación genérica (ver §5) |
-| Error de red o del servidor | "No pudimos enviar el correo. Intentá de nuevo en unos minutos." |
+| Límite de envíos de Supabase (429) | La confirmación genérica (ver §5) |
+| Error del servidor de Supabase (5xx) | La confirmación genérica (ver §5) |
+| Red caída, faltan las variables, o un 4xx que Supabase da por la dirección | "No pudimos enviar el correo. Intentá de nuevo en unos minutos." |
 | Faltan las variables de Supabase | El mismo mensaje de error de red |
 
 ## 8. UI esperada
@@ -65,7 +67,7 @@ Unión derivada de constantes: `idle | submitting | sent | error`. El valor del 
 ## 9. Accesibilidad
 
 - El campo tiene su etiqueta visible; el error se anuncia con `role="alert"` (como el login).
-- La confirmación es `role="status"`: un lector de pantalla la anuncia al aparecer, aunque el botón de enviar ya no exista.
+- Al aparecer la confirmación el foco pasa a su título (`tabIndex={-1}`): el botón de enviar, que lo tenía, desaparece y el foco caería en el body. El mensaje es `role="status"` para que un lector de pantalla lo anuncie.
 - El botón deshabilitado mientras envía no depende solo del color.
 - Los enlaces son `<Link>` (cambian de página).
 
@@ -98,7 +100,7 @@ No hay tablas, RLS ni Edge Functions nuevas.
 
 - Caso 1: en `/login` hay un enlace "¿Olvidaste tu contraseña?" que lleva a `/recuperar-contrasena`.
 - Caso 2: `/recuperar-contrasena` se abre sin sesión, con el guard encendido y apagado.
-- Caso 3: el correo vacío o con formato inválido muestra el error y no envía nada.
+- Caso 3: con el correo vacío el botón está deshabilitado y no se envía nada; con un formato inválido se muestra el error bajo el campo y el botón sigue deshabilitado.
 - Caso 4: con un correo registrado aparece la confirmación genérica y llega el correo con el enlace.
 - Caso 5: con un correo sin cuenta aparece exactamente la misma confirmación y no llega correo.
 - Caso 6: la confirmación y la pantalla de los casos 4 y 5 son idénticas (no hay otra diferencia observable).
@@ -111,20 +113,27 @@ No hay tablas, RLS ni Edge Functions nuevas.
 ## 14. Casos fuera de alcance
 
 - La vista para escribir la nueva contraseña, la expiración del enlace y reenviar si venció: HU-29 (SCRUM-52).
-- reCAPTCHA en esta pantalla: la historia no lo pide. La defensa contra abuso es el límite de envíos de Supabase.
+- reCAPTCHA en esta pantalla: la historia no lo pide, y no frenaría el abuso, porque cualquiera puede llamar `/auth/v1/recover` directo con la anon key. La defensa es el límite de envíos de Supabase (un correo por minuto por cuenta). Riesgo aceptado y sus costos: hasta ~60 correos por hora a una víctima, y agotar el tope global por hora deja a todos sin recuperación (negación de servicio sin autenticación). Mitigaciones fuera de esta historia: el CAPTCHA de Attack Protection de Supabase y un SMTP propio con cuota propia.
 - Recuperación por código de 6 dígitos (OTP) en vez de enlace.
 - Diseño e idioma de la plantilla del correo: es configuración del proyecto de Supabase.
-- Un SMTP propio. El correo por defecto de Supabase tiene un tope muy bajo de envíos por hora y no es para producción.
+- Un SMTP propio. Es un requisito para que la recuperación funcione con usuarios reales (ver §15) y va en un ticket aparte, no en este PR. El correo por defecto de Supabase tiene un tope muy bajo de envíos por hora y solo entrega a miembros de la organización.
 - Un mensaje propio de "demasiados intentos" (ver §5: revelaría si la cuenta existe).
 - Cambiar la contraseña desde el perfil (HU-31, Sprint 4).
 
 ## 15. Notas de implementación
 
 - **No se puede probar a mano sin dos cosas:** la URL de redirección permitida en Supabase y un correo real que reciba el mensaje. Anotar en el PR qué se configuró.
-- **El SMTP por defecto de Supabase solo entrega a miembros de la organización del proyecto** (según su documentación; pendiente de confirmar al probar). A cualquier otro correo no llega nada aunque la pantalla confirme el envío, así que para la prueba manual hay que usar un correo de un miembro de la organización. Con un SMTP propio desaparece esa restricción.
+- **El SMTP por defecto de Supabase solo entrega a miembros de la organización del proyecto** (verificado, ver más abajo). A cualquier otro correo no llega nada aunque la pantalla confirme el envío, así que para la prueba manual hay que usar un correo de un miembro de la organización. Con un SMTP propio desaparece esa restricción, pero aparecen los fallos de envío (rebotes, proveedor caído): por eso los 5xx se muestran como confirmación (§5).
 - **La respuesta genérica es la regla de seguridad de la historia.** Una revisión que "mejore" el mensaje diciendo "ese correo no existe", o que muestre el límite de envíos como error, la rompe. Los casos 6 y 7 la protegen.
-- **Pendiente de verificar con el proyecto real** (SPEC §5 se apoya en el comportamiento documentado de Supabase): pedir dos veces seguidas un correo con cuenta y uno sin cuenta, y confirmar que la pantalla muestra lo mismo en las dos.
+- **Verificado a mano en el proyecto (SCRUM-51), casos 1 a 10:**
+  - Caso 4: un correo con cuenta recibe el mensaje y el enlace trae `redirect_to=<origen>/actualizar-contrasena`, así que la URL quedó en Redirect URLs.
+  - Caso 5: un correo sin cuenta en Tacha muestra la misma confirmación genérica y no recibe ningún mensaje.
+  - Caso 7: pedir dos veces seguidas, dentro del minuto, un correo con cuenta y uno sin cuenta muestra la misma confirmación en los dos, así que el límite de envíos no delata la cuenta.
+  - Casos 1, 2, 3, 6, 8, 9 y 10: pasan en el navegador (con el guard encendido y apagado).
+  - Un correo **con cuenta en Tacha pero que no es miembro de la organización de Supabase** no recibe el mensaje, y la pantalla muestra igual la confirmación genérica. Confirma que el SMTP por defecto de Supabase solo entrega a miembros de la organización.
+- **Consecuencia para producción:** con el SMTP por defecto, la recuperación de contraseña **no funciona para usuarios reales** (solo para miembros de la organización). Antes de usarla con usuarios hay que configurar un SMTP propio (Authentication → SMTP Settings). No es parte del código de esta historia; hace falta un ticket aparte en Jira.
 - **No se promete resistencia al análisis de tiempos:** Supabase responde parecido en ambos casos, pero no se garantiza igual al milisegundo. Se promete "mismo mensaje y misma pantalla".
 - **El flujo del cliente usa el enlace implícito:** el token llega en el fragmento `#` de la URL y lo procesa SCRUM-52. Cambiar a PKCE sería una decisión de todo el cliente de Supabase.
+- **Redirect URLs sin comodines abiertos:** la lista debe tener solo las URLs exactas (`<origen>/actualizar-contrasena`). Con un comodín amplio (`https://*.vercel.app/**` o `**`), un atacante con un despliegue propio recibiría el token de recuperación en el fragmento `#`. No se puede verificar desde el repo: se revisa en el dashboard.
 - **Cada página pública nueva** debe agregarse a `PUBLIC_ROUTES` del guard o quedará protegida. `/actualizar-contrasena` se agrega en SCRUM-52.
 - El correo por defecto de Supabase limita los envíos por hora para todo el proyecto (y solo entrega a miembros de la organización): si el equipo prueba mucho, el límite global puede agotarse y la confirmación seguirá apareciendo sin que llegue el correo.

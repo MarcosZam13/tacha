@@ -15,6 +15,7 @@ features/password-recovery/
     models/  ForgotPasswordFormProps.interface.ts · ForgotPasswordSentProps.interface.ts
   hooks/
     useForgotPasswordViewModel.ts          valor, validación derivada, estado del envío
+    useFocusHeadingOnMount.ts              ref de un título que recibe el foco al montarse (copia de la del login)
   models/
     ForgotPasswordViewModel.interface.ts
   services/
@@ -24,7 +25,8 @@ features/password-recovery/
   constants/
     password-recovery.constants.ts         textos, estados, resultados, código de Supabase
   tests/
-    validateForgotPasswordEmail.test.ts · password-recovery.service.test.ts
+    validateForgotPasswordEmail.test.ts · password-recovery.service.test.ts · useForgotPasswordViewModel.test.ts
+    ForgotPasswordForm.test.tsx · ForgotPasswordSent.test.tsx · ForgotPassword.page.ts
   specs/  SPEC.md · plan.md · tasks.md
 
 app/recuperar-contrasena/page.tsx          solo la ruta (metadata + <ForgotPassword />)
@@ -55,7 +57,8 @@ Toco "¿Olvidaste tu contraseña?" en `LoginForm` → `/recuperar-contrasena` �
 | Rutas en `constants/routes.constants.ts` (`AUTH_ROUTE`) | Texto suelto en cada archivo o constantes en la feature | Las usan tres lugares: el enlace del login, el guard y esta feature; importar de la feature desde `login/` los amarraría |
 | Sin reCAPTCHA | Agregarlo como en el login | No está en los criterios y suma una Edge Function. El límite de Supabase cubre el abuso básico |
 | Ruta `/recuperar-contrasena` en español | `/forgot-password` | Coherente con `/registro`, `/terminos`, `/nosotros` |
-| Sin mover el foco a la confirmación; `role="status"` | Reutilizar `FocusedHeading` del login | Está dentro de `features/login/` y se promovería a `components/` tocando SCRUM-45 a 48, fuera del alcance. El `role="status"` hace que se anuncie igual; promoverlo queda como mejora |
+| Foco al título de la confirmación (`useFocusHeadingOnMount` propio) | Importar `FocusedHeading` del login, o promoverlo a `components/` | Importar de otra feature está prohibido y promoverlo tocaría SCRUM-45 a 48. Costo: ~10 líneas duplicadas; se unifican al tocar el login |
+| Los errores 5xx de Supabase se muestran como confirmación | Mostrarlos como error | Supabase solo intenta mandar el correo si la cuenta existe, así que un fallo del envío solo pasa con cuentas reales y delataría cuáles. Costo: con el servicio caído la persona ve "enviado" y espera un correo que no llega |
 | "Usar otro correo" en la confirmación | Un temporizador de reenvío | Un temporizador es un estado y un efecto más; el límite lo aplica Supabase |
 
 ### Conceptos nuevos
@@ -70,3 +73,4 @@ Toco "¿Olvidaste tu contraseña?" en `LoginForm` → `/recuperar-contrasena` �
 1. Dashboard de Supabase → Authentication → URL Configuration: agregar `http://localhost:3000/actualizar-contrasena` (y la URL desplegada) a Redirect URLs.
 2. No tocar la plantilla del correo: sin un SMTP propio Supabase no deja editarla y usa la predeterminada, que ya trae el enlace.
 3. Probar con el correo de un miembro de la organización de Supabase (el SMTP por defecto no entrega a otros) y con uno inexistente, y pedir cada uno dos veces seguidas.
+4. Antes de usarlo con usuarios reales: configurar un SMTP propio en Supabase (Authentication → SMTP Settings). Con el SMTP por defecto solo reciben el correo los miembros de la organización (verificado).
