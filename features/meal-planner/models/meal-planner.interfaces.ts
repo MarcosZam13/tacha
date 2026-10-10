@@ -1,4 +1,5 @@
 import type { NullableRef } from "@/types/nullable.types";
+import type { MealSlotDialogViewModel, WeekMealPlanViewModel } from "./meal-plan.interfaces";
 import type { MealTypeType } from "./meal-planner.types";
 
 // Interfaces del planificador semanal (SCRUM-99). Los types (la semana a la
@@ -30,10 +31,14 @@ export interface MealPlannerViewModel {
   canGoToPreviousWeek: boolean;
   /** Los 7 días de la semana a la vista; vacío mientras no se conoce "hoy". */
   days: WeekDay[];
+  /** El diálogo de asignar (SCRUM-100), agrupado aparte: lo usa solo el diálogo y el espacio que lo abre. */
+  dialog: MealSlotDialogViewModel;
   /** false hasta que el navegador entrega "hoy": no se dibuja una fecha que luego cambie. */
   isReady: boolean;
   onNextWeek: () => void;
   onPreviousWeek: () => void;
+  /** El plan cargado (SCRUM-100): qué espacios tienen receta y si ya se puede tocar la grilla. */
+  plan: Pick<WeekMealPlanViewModel, "getEntry" | "hasLoadError" | "isPlanReady" | "onPlanRetry">;
   /** "12 – 18 oct"; null mientras no se conoce "hoy". */
   rangeLabel: NullableRef<string>;
   /** "Esta semana" o "Próxima semana". */

@@ -108,6 +108,7 @@ export const MEAL_SLOT_DIALOG_ACTION = {
   RECIPE_CHOSEN: "recipeChosen",
   SAVE_FAILED: "saveFailed",
   SAVE_STARTED: "saveStarted",
+  SAVE_SUCCEEDED: "saveSucceeded",
 } as const;
 
 // Estados de la lista de recetas del diálogo.

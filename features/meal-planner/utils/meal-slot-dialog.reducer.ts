@@ -65,6 +65,10 @@ export const mealSlotDialogReducer = (state: MealSlotDialogState, action: MealSl
           }
         : state;
 
+    case MEAL_SLOT_DIALOG_ACTION.SAVE_SUCCEEDED:
+      // Guardar o quitar salió bien: el diálogo se cierra. Solo desde "guardando".
+      return state.status === MEAL_SLOT_DIALOG_STATUS.SAVING ? CLOSED_DIALOG_STATE : state;
+
     case MEAL_SLOT_DIALOG_ACTION.CLOSED:
       // Mientras guarda no se cierra: la petición ya salió y su resultado se tiene que ver.
       return state.status === MEAL_SLOT_DIALOG_STATUS.SAVING ? state : CLOSED_DIALOG_STATE;

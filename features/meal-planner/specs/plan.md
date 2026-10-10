@@ -141,6 +141,9 @@ features/meal-planner/
     formatMultiplier.ts                 2 → "×2", 0.5 → "×0,5"
     formatResultingServings.ts          12 y ×2 → "24 porciones"; 3 y ×0,5 → "1,5 porciones"
     toSlotKey.ts                        fecha + comida → clave para buscar una asignación en el plan
+    upsertMealPlanEntry.ts              pone una entrada en el plan (reemplaza la del espacio o la agrega)
+    removeMealPlanEntry.ts              saca la entrada de un espacio
+    getPlanRange.ts                     hoy → lunes de la semana actual y domingo de la próxima (los 14 días a pedir)
     toCookLabel.ts                      elección de cocinero → "Yo" o nada
     toSavedMealPlanEntry.ts             lo elegido + el id que devolvió la base → entrada para el estado (sin volver a pedir el plan)
     toInitialSlotValues.ts              entrada (o nada) → valores con que abre el diálogo
@@ -197,7 +200,7 @@ Sin `.eq("owner_id", …)`: lo hace RLS. El rango de fechas sale de `getWeekStar
 2. **Cargar:** cuando se conoce "hoy" (`isReady`), `useWeekMealPlan` pide el plan de las dos semanas (`getMealPlan`) en un efecto con bandera de cancelación. Estado `loading` → `ready` con las entradas, o `error` (con "Reintentar").
 3. **Dibujar:** `buildWeek` arma los días como antes; el ViewModel junta cada espacio con su entrada (`toSlotKey`) y la grilla dibuja el espacio como vacío o asignado. Mientras el plan no está `ready`, los espacios están deshabilitados.
 4. **Abrir el diálogo:** tocar un espacio → `onSlotOpen({ dateKey, mealType })` → estado `editing`. Si hay una entrada, el formulario arranca con sus valores; si no, receta sin elegir, cocinero "Yo", ×1. En paralelo se piden las recetas (`getRecipeOptions`).
-5. **Editar:** cada cambio es una acción del reducer (`recipeChosen`, `cookChanged`, `multiplierIncreased`, `multiplierDecreased`). El contador no pasa de ×0,5 ni de ×4. "Guardar" se habilita con una receta elegida.
+5. **Editar:** cada cambio es una acción del reducer (`recipeChosen`, `cookChanged`, `multiplierIncreased`, `multiplierDecreased`). Guardar y quitar usan la misma acción `saveStarted` (una petición en vuelo) y, si salen bien, `saveSucceeded`, que cierra el diálogo; el reducer no deja cerrarlo mientras la petición está en vuelo. El contador no pasa de ×0,5 ni de ×4. "Guardar" se habilita con una receta elegida.
 6. **Guardar:** `saving` → `saveMealSlot` (RPC `assign_meal_slot`) → con éxito el hook del plan reemplaza o agrega la entrada en su estado y el diálogo se cierra; con `P0002` (la receta se borró) se muestra "Esa receta ya no existe. Elige otra." y se recargan las recetas; con otro error, `failed` con el mensaje y el formulario conservado.
 7. **Quitar:** `saving` → `clearMealSlot` → con éxito se quita la entrada del estado y se cierra el diálogo.
 8. **Cerrar:** "Cancelar", Escape o clic fuera → `closed` sin cambios (mientras guarda no se cierra). El foco vuelve al espacio que abrió el diálogo.

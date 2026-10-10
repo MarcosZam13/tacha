@@ -37,8 +37,8 @@ Bloqueado / fuera de esta historia:
 - [x] 7. Modelos en `models/meal-plan.interfaces.ts` y `models/meal-plan.types.ts`.
 - [x] 8. Utils puros y sus tests: `toMealPlanEntry`, `toRecipeOption`, `toSlotKey`, `formatMultiplier`, `formatResultingServings`, `clampServingsMultiplier`, `getMealSlotLabel`, `meal-slot-dialog.reducer`.
 - [x] 9. Servicio `meal-plan.service.ts`: `getMealPlan()`, `saveMealSlot()` (con `P0002` → `null`), `clearMealSlot()` y `getRecipeOptions()`, con su test (cliente de Supabase simulado).
-- [ ] 10. `useWeekMealPlan` (carga con bandera de cancelación, reintento, aplicar guardado y quitado al estado) y su test.
-- [ ] 11. `useMealSlotDialog` (abrir, reducer, cargar recetas, guardar, quitar, doble clic, receta borrada, cierre) y su test; composición en `useMealPlannerViewModel`.
+- [x] 10. `useWeekMealPlan` (carga con bandera de cancelación, reintento, aplicar guardado y quitado al estado) y su test.
+- [x] 11. `useMealSlotDialog` (abrir, reducer, cargar recetas, guardar, quitar, doble clic, receta borrada, cierre) y su test; composición en `useMealPlannerViewModel`.
 - [ ] 12. Presentación: `MealSlot` (botón vacío/asignado), `MealSlotDialog`, `MealSlotRecipeList`, `MealSlotCookField`, `MealSlotServingsField`, `MealPlanLoadError` y la conexión en `MealPlanner`, `WeekGrid` y `MealPlannerDay`.
 - [ ] 13. Aviso al eliminar una receta en `features/recipes/`: `countRecipeMealPlans`, `useRecipeDeletion`, `RecipeDeleteDialog` y sus modelos, textos y tests (cierra el CA-02 de SCRUM-96).
 - [ ] 14. Tests de la pantalla con Page Object (`MealPlanner.page.ts` y `MealPlanner.test.tsx` se extienden): abrir el diálogo, elegir y guardar, reasignar, quitar, sin recetas, errores, foco al cerrar.

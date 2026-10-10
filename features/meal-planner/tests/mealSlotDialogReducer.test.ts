@@ -144,6 +144,15 @@ describe("mealSlotDialogReducer", () => {
       expect(state).toEqual(FAILED);
     });
 
+    it("closes when saving succeeds", () => {
+      expect(reduce(SAVING, { type: MEAL_SLOT_DIALOG_ACTION.SAVE_SUCCEEDED })).toBe(CLOSED_DIALOG_STATE);
+    });
+
+    it("only closes on success from saving", () => {
+      expect(reduce(EDITING, { type: MEAL_SLOT_DIALOG_ACTION.SAVE_SUCCEEDED })).toBe(EDITING);
+      expect(reduce(FAILED, { type: MEAL_SLOT_DIALOG_ACTION.SAVE_SUCCEEDED })).toBe(FAILED);
+    });
+
     it("only fails from saving", () => {
       expect(reduce(EDITING, { type: MEAL_SLOT_DIALOG_ACTION.SAVE_FAILED, errorMessage: "x" })).toBe(EDITING);
     });

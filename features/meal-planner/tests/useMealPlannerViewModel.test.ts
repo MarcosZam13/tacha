@@ -1,15 +1,26 @@
 // @vitest-environment jsdom
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { RenderHookResult } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NullableRef } from "@/types/nullable.types";
 import { MEAL_PLANNER_TEXT } from "../constants/meal-planner.constants";
 import { useMealPlannerViewModel } from "../hooks/useMealPlannerViewModel";
 import { useToday } from "../hooks/useToday";
+import { getMealPlan, getRecipeOptions } from "../services/meal-plan.service";
 import type { MealPlannerViewModel } from "../models/meal-planner.interfaces";
 
 vi.mock("../hooks/useToday", () => ({ useToday: vi.fn() }));
 const useTodayMock = vi.mocked(useToday);
+
+// Sin Supabase real: el plan y las recetas salen de servicios simulados.
+vi.mock("../services/meal-plan.service", () => ({
+  clearMealSlot: vi.fn(),
+  getMealPlan: vi.fn(),
+  getRecipeOptions: vi.fn(),
+  saveMealSlot: vi.fn(),
+}));
+const getMealPlanMock = vi.mocked(getMealPlan);
+const getRecipeOptionsMock = vi.mocked(getRecipeOptions);
 
 // El 14 de octubre de 2026 es miércoles: la semana actual va del 12 al 18 y la próxima, del 19 al 25.
 const WEDNESDAY = new Date(2026, 9, 14);
@@ -21,6 +32,8 @@ const renderPlanner = (today: NullableRef<Date> = WEDNESDAY): RenderHookResult<M
 
 beforeEach(() => {
   useTodayMock.mockReset();
+  getMealPlanMock.mockReset().mockResolvedValue([]);
+  getRecipeOptionsMock.mockReset().mockResolvedValue([]);
 });
 
 describe("useMealPlannerViewModel", () => {
@@ -125,5 +138,41 @@ describe("useMealPlannerViewModel", () => {
     const { result } = renderPlanner();
 
     expect(result.current.isReady).toBe(true);
+  });
+
+  describe("the plan and the dialog (SCRUM-100)", () => {
+    it("asks for the plan of the two weeks once today is known", async () => {
+      const { result } = renderPlanner();
+
+      await waitFor(() => expect(result.current.plan.isPlanReady).toBe(true));
+      expect(getMealPlanMock).toHaveBeenCalledTimes(1);
+      expect(getMealPlanMock).toHaveBeenCalledWith({ fromDateKey: "2026-10-12", toDateKey: "2026-10-25" });
+    });
+
+    it("does not ask for the plan while today is not known", () => {
+      renderPlanner(null);
+
+      expect(getMealPlanMock).not.toHaveBeenCalled();
+    });
+
+    it("does not ask again when it goes to the next week and back", async () => {
+      const { result } = renderPlanner();
+      await waitFor(() => expect(result.current.plan.isPlanReady).toBe(true));
+
+      act(() => result.current.onNextWeek());
+      act(() => result.current.onPreviousWeek());
+
+      expect(getMealPlanMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("opens the dialog on a slot of the week in view, named with its day", async () => {
+      const { result } = renderPlanner();
+      await waitFor(() => expect(result.current.plan.isPlanReady).toBe(true));
+
+      act(() => result.current.dialog.onSlotOpen({ dateKey: "2026-10-14", mealType: "dinner" }));
+
+      expect(result.current.dialog.isOpen).toBe(true);
+      expect(result.current.dialog.subtitle).toBe("Cena del miércoles 14");
+    });
   });
 });

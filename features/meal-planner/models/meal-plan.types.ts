@@ -13,6 +13,9 @@ import type { MealPlanEntry, MealSlotFormValues, MealSlotTarget, RecipeOption } 
 /** Quién cocina: el propio usuario o nadie (SPEC regla 14). */
 export type CookChoiceType = (typeof COOK_CHOICE)[keyof typeof COOK_CHOICE];
 
+/** Qué pasa con la lista de recetas del diálogo: cargando, error o lista. */
+export type RecipeOptionsStatusType = (typeof RECIPE_OPTIONS_STATUS)[keyof typeof RECIPE_OPTIONS_STATUS];
+
 /**
  * El plan cargado para las dos semanas. Unión discriminada por `status`: solo
  * `ready` tiene entradas, así que no se puede dibujar un plan sin haberlo leído.
@@ -53,4 +56,5 @@ export type MealSlotDialogAction =
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.MULTIPLIER_DECREASED }
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.SAVE_STARTED }
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.SAVE_FAILED; errorMessage: string }
+  | { type: typeof MEAL_SLOT_DIALOG_ACTION.SAVE_SUCCEEDED }
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.CLOSED };
