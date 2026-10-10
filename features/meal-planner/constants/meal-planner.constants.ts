@@ -261,7 +261,7 @@ export const WEEK_LIST_TEXT = {
   ADDING: "Agregando…",
   ALREADY_COVERED: "Tu lista ya tenía lo necesario para esta semana.",
   BUTTON: "Agregar semana a la lista",
-  CANCEL: "Cancelar",
+  CANCEL: MEAL_SLOT_TEXT.CANCEL,
   CONFIRM: "Agregar",
   CONFIRM_MESSAGE: "Vas a agregar a tu lista general los ingredientes de {meals} ({range}).",
   DIALOG_TITLE: "Agregar semana a la lista",
@@ -277,9 +277,4 @@ export const WEEK_LIST_TEXT = {
   // Separa los productos dentro de "Te falta comprar: …" y "No se pudieron agregar: …".
   SUMMARY_SEPARATOR: ", ",
   VIEW_LIST: "Ver lista",
-} as const;
-
-// A dónde lleva "Ver lista": la lista general (constants/routes.constants.ts).
-export const WEEK_LIST_ROUTE = {
-  LIST: APP_ROUTE.LIST,
 } as const;

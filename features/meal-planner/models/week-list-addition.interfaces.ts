@@ -1,6 +1,7 @@
 import type { NullableRef } from "@/types/nullable.types";
 import type { MealPlanEntry } from "./meal-plan.interfaces";
 import type { WeekDay } from "./meal-planner.interfaces";
+import type { MealTypeType } from "./meal-planner.types";
 
 // Interfaces de agregar la semana a la lista (SCRUM-101), en el orden en que se
 // usan: lo que devuelve la base, lo que se manda, lo que ve la pantalla. Los
@@ -43,7 +44,7 @@ export interface AddWeekToListResponse {
 /** Lo que usa useWeekListAddition: la semana a la vista y el plan ya cargado. */
 export interface UseWeekListAdditionParams {
   days: WeekDay[];
-  getEntry: (dateKey: string, mealType: MealPlanEntry["mealType"]) => NullableRef<MealPlanEntry>;
+  getEntry: (dateKey: string, mealType: MealTypeType) => NullableRef<MealPlanEntry>;
   /** true mientras otro diálogo (el de asignar) está abierto: solo uno a la vez. */
   isBlocked: boolean;
   isPlanReady: boolean;

@@ -1,26 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { MEAL_TYPE } from "../constants/meal-planner.constants";
 import type { MealPlanEntry } from "../models/meal-plan.interfaces";
-import type { WeekDay } from "../models/meal-planner.interfaces";
 import type { AddWeekToListResponse } from "../models/week-list-addition.interfaces";
 import { countWeekMeals } from "../utils/countWeekMeals";
 import { getWeekRange } from "../utils/getWeekRange";
 import { toAddWeekToListResponse } from "../utils/toAddWeekToListResponse";
 import { toCountLabel } from "../utils/toCountLabel";
 import { toWeekAdditionSummary } from "../utils/toWeekAdditionSummary";
-import { createEntry } from "./mealPlan.fixtures";
-
-const createDay = (dateKey: string): WeekDay => ({
-  dateKey,
-  isToday: false,
-  longLabel: dateKey,
-  shortLabel: dateKey,
-  slots: [
-    { label: "Desayuno", mealType: MEAL_TYPE.BREAKFAST },
-    { label: "Almuerzo", mealType: MEAL_TYPE.LUNCH },
-    { label: "Cena", mealType: MEAL_TYPE.DINNER },
-  ],
-});
+import { createDay, createEntry } from "./mealPlan.fixtures";
 
 const MONDAY = createDay("2026-10-12");
 const TUESDAY = createDay("2026-10-13");

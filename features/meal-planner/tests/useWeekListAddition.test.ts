@@ -4,25 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MEAL_TYPE } from "../constants/meal-planner.constants";
 import { useWeekListAddition } from "../hooks/useWeekListAddition";
 import type { MealPlanEntry } from "../models/meal-plan.interfaces";
-import type { WeekDay } from "../models/meal-planner.interfaces";
 import type { AddWeekToListResponse, UseWeekListAdditionParams } from "../models/week-list-addition.interfaces";
 import { addWeekToList } from "../services/week-list.service";
-import { createEntry, createPending } from "./mealPlan.fixtures";
+import { createDay, createEntry, createPending } from "./mealPlan.fixtures";
 
 vi.mock("../services/week-list.service", () => ({ addWeekToList: vi.fn() }));
 const addWeekToListMock = vi.mocked(addWeekToList);
-
-const createDay = (dateKey: string): WeekDay => ({
-  dateKey,
-  isToday: false,
-  longLabel: dateKey,
-  shortLabel: dateKey,
-  slots: [
-    { label: "Desayuno", mealType: MEAL_TYPE.BREAKFAST },
-    { label: "Almuerzo", mealType: MEAL_TYPE.LUNCH },
-    { label: "Cena", mealType: MEAL_TYPE.DINNER },
-  ],
-});
 
 const THIS_WEEK = [createDay("2026-10-12"), createDay("2026-10-13"), createDay("2026-10-14")];
 const NEXT_WEEK = [createDay("2026-10-19"), createDay("2026-10-20")];

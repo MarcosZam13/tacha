@@ -34,11 +34,7 @@ export const useWeekListAddition = ({
 
   // Las comidas que dijo la confirmación; null con el diálogo cerrado o con el aviso final (done).
   const openMealCount =
-    state.status === WEEK_LIST_STATUS.CONFIRMING ||
-    state.status === WEEK_LIST_STATUS.ADDING ||
-    state.status === WEEK_LIST_STATUS.FAILED
-      ? state.mealCount
-      : null;
+    state.status !== WEEK_LIST_STATUS.CLOSED && state.status !== WEEK_LIST_STATUS.DONE ? state.mealCount : null;
   const isOpen = openMealCount !== null;
 
   useEffect(() => {

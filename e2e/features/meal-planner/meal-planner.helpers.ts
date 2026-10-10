@@ -57,6 +57,10 @@ export const getAddWeekButton = (page: Page): Locator => page.getByRole("button"
 /** La confirmación de agregar la semana (el mismo texto que el botón, pero con rol de diálogo). */
 export const getAddWeekDialog = (page: Page): Locator => page.getByRole("dialog", { name: ADD_WEEK_LABEL });
 
+/** Las filas de la sección "Pendientes" de /lista: lo que la semana agregó. */
+export const getPendingListRows = (page: Page): Locator =>
+  page.getByRole("region", { name: "Pendientes" }).getByRole("listitem");
+
 /** Asigna una receta (por su nombre) al espacio de hoy. Espera a que el diálogo se cierre. */
 export const assignRecipeToToday = async (page: Page, mealLabel: string, recipeName: string): Promise<void> => {
   await getTodaySlot(page, mealLabel).click();

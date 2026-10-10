@@ -13,6 +13,7 @@ import {
   getAssignDialog,
   getDayDates,
   getEmptySlots,
+  getPendingListRows,
   getRecipesSubTab,
   getTodayDate,
   getTodaySlot,
@@ -246,6 +247,9 @@ test.describe("Asignar comidas al plan", () => {
     await expect(page.getByText(/^Agregaste \d+ ingredientes? de 2 comidas a tu lista\.$/)).toBeVisible();
     await page.getByRole("link", { name: "Ver lista" }).click();
     await expect(page).toHaveURL("/lista");
+    // La semana dejó al menos un producto en "Pendientes" y la lista ya no está vacía.
+    await expect(getPendingListRows(page)).not.toHaveCount(0);
+    await expect(page.getByText("Tu lista está vacía. Busca un producto para empezar.")).toBeHidden();
   });
 
   test("E2E-PLANNER-10 — El botón de agregar la semana sigue a las comidas de la semana a la vista", async ({

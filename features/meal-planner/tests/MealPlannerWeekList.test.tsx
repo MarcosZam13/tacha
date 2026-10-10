@@ -108,6 +108,19 @@ describe("MealPlanner: add the week to the list", () => {
       await waitFor(() => expect(page.getAddWeekButton()).toBeEnabled());
     });
 
+    it("is disabled when the plan could not be loaded, and enabled once a retry reads it", async () => {
+      useTodayMock.mockReturnValue(WEDNESDAY);
+      getMealPlanMock.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce(PLAN);
+      render(<MealPlanner />);
+      const page = createMealPlannerPage();
+
+      await waitFor(() => expect(page.getPlanError()).toBeInTheDocument());
+      expect(page.getAddWeekButton()).toBeDisabled();
+
+      await page.retryPlan();
+      await waitFor(() => expect(page.getAddWeekButton()).toBeEnabled());
+    });
+
     it("follows the week in view", async () => {
       const page = await renderPlanner([PLAN[0]]);
       expect(page.getAddWeekButton()).toBeEnabled();

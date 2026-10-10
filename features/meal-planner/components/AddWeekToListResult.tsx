@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { WEEK_LIST_ROUTE, WEEK_LIST_TEXT } from "../constants/meal-planner.constants";
+import { APP_ROUTE } from "@/constants";
+import { WEEK_LIST_TEXT } from "../constants/meal-planner.constants";
 import type { AddWeekToListResultProps } from "./models/AddWeekToListResultProps.type";
 
 /**
@@ -16,7 +17,7 @@ export const AddWeekToListResult = ({ resultLines }: AddWeekToListResultProps): 
       {resultLines.map((line) => (
         <p key={line}>{line}</p>
       ))}
-      <Link href={WEEK_LIST_ROUTE.LIST} className="self-start font-semibold text-tacha-teal hover:underline">
+      <Link href={APP_ROUTE.LIST} className="self-start font-semibold text-tacha-teal hover:underline">
         {WEEK_LIST_TEXT.VIEW_LIST}
       </Link>
     </div>
