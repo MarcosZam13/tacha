@@ -80,3 +80,128 @@ export const MEAL_PLANNER_TEXT = {
   THIS_WEEK: "Esta semana",
   TITLE: RECIPES_TABS_TEXT.SECTION_TITLE,
 } as const;
+
+// --- SCRUM-100: asignar una receta a un espacio ---
+
+// Estados del plan cargado (MealPlanState en models/meal-plan.types.ts).
+export const MEAL_PLAN_STATUS = {
+  ERROR: "error",
+  LOADING: "loading",
+  READY: "ready",
+} as const;
+
+// Estados del diálogo de asignar (MealSlotDialogState en models/meal-plan.types.ts).
+export const MEAL_SLOT_DIALOG_STATUS = {
+  CLOSED: "closed",
+  EDITING: "editing",
+  FAILED: "failed",
+  SAVING: "saving",
+} as const;
+
+// Acciones del reducer del diálogo (utils/meal-slot-dialog.reducer.ts).
+export const MEAL_SLOT_DIALOG_ACTION = {
+  CLOSED: "closed",
+  COOK_CHANGED: "cookChanged",
+  MULTIPLIER_DECREASED: "multiplierDecreased",
+  MULTIPLIER_INCREASED: "multiplierIncreased",
+  OPENED: "opened",
+  RECIPE_CHOSEN: "recipeChosen",
+  SAVE_FAILED: "saveFailed",
+  SAVE_STARTED: "saveStarted",
+} as const;
+
+// Estados de la lista de recetas del diálogo.
+export const RECIPE_OPTIONS_STATUS = {
+  ERROR: "error",
+  LOADING: "loading",
+  READY: "ready",
+} as const;
+
+// Quién cocina. Hoy solo el propio usuario o nadie: la lista de miembros del
+// household no existe todavía (HU-35). Es un valor del cliente, no un id: el id
+// del usuario lo pone la base (RPC assign_meal_slot, parámetro cook_is_self).
+export const COOK_CHOICE = {
+  NONE: "none",
+  SELF: "self",
+} as const;
+
+// Multiplicador de porciones (SPEC regla 15): de ×0,5 a ×4 en pasos de 0,5. Los
+// check de meal_plans (019_meal_plans.sql) repiten estos límites.
+export const SERVINGS_MULTIPLIER = {
+  DEFAULT: 1,
+  MAX: 4,
+  MIN: 0.5,
+  STEP: 0.5,
+} as const;
+
+// Cómo se escribe un multiplicador: "×2", "×0,5" (coma decimal, como en Costa Rica).
+export const MULTIPLIER_FORMAT = {
+  DECIMAL_COMMA: ",",
+  DECIMAL_POINT: ".",
+  PREFIX: "×",
+} as const;
+
+// Clave de un espacio dentro del plan: "2026-10-12|lunch".
+export const SLOT_KEY = {
+  SEPARATOR: "|",
+} as const;
+
+// El diálogo de asignar y el plan; los literales de la base (SPEC §12).
+export const MEAL_PLAN_DB = {
+  // .order(), .gte() y .lte() aceptan cualquier string: estas columnas van como
+  // constante para que un typo no compile en silencio.
+  COLUMN: {
+    DATE: "date",
+    MEAL_TYPE: "meal_type",
+    NAME: "name",
+  },
+  // La receta embebida da el nombre y las porciones base en una sola petición.
+  PLAN_SELECT: "id, date, meal_type, assigned_cook, servings_multiplier, recipes(id, name, base_servings)",
+  RECIPE_OPTIONS_SELECT: "id, name, base_servings",
+  RPC: {
+    ASSIGN_MEAL_SLOT: "assign_meal_slot",
+  },
+  TABLE: {
+    MEAL_PLANS: "meal_plans",
+    RECIPES: "recipes",
+  },
+} as const;
+
+// Código de Postgres que el servicio traduce a "la receta ya no existe":
+// assign_meal_slot responde P0002 si no la encuentra (inexistente, ajena o borrada).
+export const MEAL_PLAN_ERROR_CODE = {
+  NO_DATA_FOUND: "P0002",
+} as const;
+
+export const MEAL_SLOT_TEXT = {
+  // Nombre accesible del espacio: "Almuerzo del lunes 12, vacío, asignar" /
+  // "Almuerzo del lunes 12: Arroz con leche, cambiar".
+  ASSIGNED_ACTION: ", cambiar",
+  ASSIGNED_SEPARATOR: ": ",
+  ASSIGN_TITLE: "Asignar comida",
+  CANCEL: "Cancelar",
+  CHANGE_TITLE: "Cambiar comida",
+  COOK_LABEL: "Quién cocina",
+  COOK_NONE: "Sin cocinero",
+  COOK_SELF: "Yo",
+  CREATE_RECIPE: "Crear una receta",
+  DECREASE_SERVINGS: "Menos porciones",
+  EMPTY_ACTION: ", vacío, asignar",
+  INCREASE_SERVINGS: "Más porciones",
+  NO_RECIPES: "Todavía no tienes recetas.",
+  OF_DAY: " del ",
+  PLAN_LOAD_ERROR: "No se pudo cargar tu plan. Intenta de nuevo.",
+  RECIPE_GONE: "Esa receta ya no existe. Elige otra.",
+  RECIPE_LABEL: "Receta",
+  RECIPES_LOAD_ERROR: "No se pudieron cargar tus recetas. Intenta de nuevo.",
+  REMOVE: "Quitar",
+  REMOVE_ERROR: "No se pudo quitar la comida. Intenta de nuevo.",
+  RETRY: "Reintentar",
+  SAVE: "Guardar",
+  SAVE_ERROR: "No se pudo guardar la comida. Intenta de nuevo.",
+  SAVING: "Guardando…",
+  SERVINGS_LABEL: "Porciones",
+  SERVINGS_PLURAL: "porciones",
+  SERVINGS_SINGULAR: "porción",
+  SERVINGS_SUMMARY_SEPARATOR: " · ",
+} as const;
