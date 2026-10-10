@@ -1,4 +1,4 @@
-import { APP_ROUTE, CATALOG_BASE_UNIT } from "@/constants";
+import { APP_ROUTE, CATALOG_BASE_UNIT, RECIPES_TABS_TEXT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 
 // Constantes propias de recetas. Viven dentro de la feature porque ninguna
@@ -168,23 +168,7 @@ export const RECIPE_EDITOR_TEXT = {
   UNIT_LABEL: "Unidad",
 } as const;
 
-// Sub-tabs de la sección "Recetas" (DESIGN.md §3.1). El planificador es SCRUM-99.
-export const RECIPES_TAB = {
-  PLANNER: "planner",
-  RECIPES: "recipes",
-} as const;
-
-export type RecipesTabType = (typeof RECIPES_TAB)[keyof typeof RECIPES_TAB];
-
-// Orden en que se dibujan los tabs. isAvailable = false: se ve, pero todavía
-// no navega (cuando exista el planificador pasa a true y gana su ruta).
-export const RECIPES_TABS = [
-  { id: RECIPES_TAB.RECIPES, isAvailable: true, label: "Recetas" },
-  { id: RECIPES_TAB.PLANNER, isAvailable: false, label: "Planificador semanal" },
-] as const satisfies ReadonlyArray<{ id: RecipesTabType; isAvailable: boolean; label: string }>;
-
 export const RECIPE_TEXT = {
-  COMING_SOON: "· Próximamente",
   EDIT: "Editar",
   EMPTY_CATALOG: "Todavía no tienes recetas.",
   INGREDIENTS_LABEL: "Ingredientes",
@@ -193,8 +177,7 @@ export const RECIPE_TEXT = {
   NEW_RECIPE: "+ Nueva receta",
   SERVINGS_PLURAL: "porciones",
   SERVINGS_SINGULAR: "porción",
-  TABS_LABEL: "Secciones de recetas",
-  TITLE: "Recetas",
+  TITLE: RECIPES_TABS_TEXT.SECTION_TITLE,
 } as const;
 
 // Estados de la eliminación (RecipeDeletionState en models/recipe-deletion.types.ts).

@@ -38,7 +38,7 @@ Actuar como ingeniero senior Next.js/React/TypeScript. Nunca volver a patrones j
 ```
 app/              Solo rutas: page.tsx, layout.tsx, grupos (debug)/ y (demo)/
 features/         Una carpeta por feature/historia con todo lo suyo (component-architecture)
-components/       Solo lo compartido entre features: ui/ con los primitivos; app-shell/ (navegación de las rutas privadas)
+components/       Solo lo compartido entre features: ui/ con los primitivos; app-shell/ (navegación de las rutas privadas); recipes-tabs/ (sub-tabs de Recetas)
 constants/        Constantes por dominio + barrel constants/index.ts
 types/            Tipos compartidos entre features
 e2e/              Pruebas de punta a punta con Playwright: features/<feature>/, support/, smoke/ (playwright-e2e)

@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { RecipesTabs } from "@/components/recipes-tabs/RecipesTabs";
 import { Spinner } from "@/components/ui";
-import { RECIPE_ROUTE, RECIPE_TEXT, RECIPES_TAB } from "./constants/recipes.constants";
+import { RECIPES_TAB } from "@/constants";
+import { RECIPE_ROUTE, RECIPE_TEXT } from "./constants/recipes.constants";
 import { RecipeCard } from "./components/RecipeCard";
 import { RecipeCatalogEmptyState } from "./components/RecipeCatalogEmptyState";
 import { RecipeDeleteDialog } from "./components/RecipeDeleteDialog";
 import { RecipeRepeatAddDialog } from "./components/RecipeRepeatAddDialog";
-import { RecipesTabs } from "./components/RecipesTabs";
 import { useRecipeCatalogViewModel } from "./hooks/useRecipeCatalogViewModel";
 
 /**

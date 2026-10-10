@@ -4,6 +4,7 @@ export const APP_ROUTE = {
   CATALOG: "/catalogo",
   HOUSEHOLD: "/household",
   LIST: "/lista",
+  MEAL_PLANNER: "/recetas/planificador",
   RECIPES: "/recetas",
 } as const;
 

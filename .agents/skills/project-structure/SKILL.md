@@ -18,7 +18,7 @@ tacha/
 ├── app/            Solo rutas: grupos (debug)/, (demo)/, page.tsx, layout.tsx,
 │                   loading/error/not-found, route handlers, globals.css, favicon
 ├── features/       Una carpeta por feature, con todo lo que solo usa esa feature (ver component-architecture)
-├── components/     Solo lo compartido entre features: ui/ con los primitivos; app-shell/ (navegación de las rutas privadas)
+├── components/     Solo lo compartido entre features: ui/ con los primitivos; app-shell/ (navegación de las rutas privadas); recipes-tabs/ (sub-tabs de Recetas)
 ├── constants/      Constantes por dominio + barrel constants/index.ts (ver constants-standards)
 ├── types/          Tipos compartidos entre features
 ├── docs/           Documento de proyecto, historias de usuario, sprints, docs por módulo
