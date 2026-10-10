@@ -344,6 +344,8 @@ Reglas de negocio que deben vivir en la base de datos (funciones/triggers), no e
 
 > Nota de decisión explícita: se descartó GraphQL (Hasura o pg_graphql) como capa de API. El modelo de datos es jerárquico y no tiene el problema de over/under-fetching que GraphQL resuelve; PostgREST + RPC de Postgres cubre la necesidad con menor complejidad operativa.
 
+> **Decisión de arquitectura 2026-10-09 (SCRUM-131) — lista curada de productos madre, como JSON + script generador:** la lista curada de "productos madre" (~200-300, con `name`, `category`, `match_keywords`, `exclude_keywords`) vive como JSON legible y versionado en `supabase/data/madres.json`, fuente única de verdad. Un script (`scripts/generate-madres-migration.ts`) la lee y genera los `insert` ya como SQL plano, que se incluyen dentro de la migración `supabase/migrations/020_...sql` — el JSON nunca se ejecuta directo contra la base, solo el `.sql` ya generado. Se eligió sobre embeber el JSON en la migración con `jsonb_to_recordset` porque separa el dato (JSON), la conversión (script) y la ejecución (migración); el script queda reutilizable para los normalizadores futuros de SCRUM-130, 132 y 133.
+
 ## 8. Referencias de producto (research de mercado)
 
 Apps de lista de compras analizadas como referencia de patrones de UX (no de identidad visual, que es propia del equipo):
