@@ -118,23 +118,23 @@ Ninguno en esta historia. Dos cosas que SCRUM-100 y SCRUM-101 van a necesitar y 
 
 ### HU-67 (SCRUM-99)
 
-- [ ] CA-01: `/recetas/planificador` muestra una grilla de 7 días por 3 comidas (desayuno, almuerzo, cena); cada día tiene sus 3 espacios.
-- [ ] CA-02: con las flechas se pasa de la semana actual a la próxima y de vuelta; no hay más semanas.
-- [ ] La semana a la vista empieza en lunes y termina en domingo. Con hoy en domingo, la semana actual es la que termina hoy (lunes anterior a hoy).
-- [ ] La pantalla arranca en la semana actual, con "Esta semana" y el rango correcto.
-- [ ] Con la semana actual a la vista, la flecha de atrás está deshabilitada; con la próxima, la de adelante.
-- [ ] Hoy aparece resaltado en la semana actual y en ningún día de la próxima.
-- [ ] Una semana que cruza de mes muestra el mes en las dos puntas del rango ("28 sep – 4 oct"); una que cruza de año, también ("29 dic – 4 ene").
-- [ ] Un espacio vacío muestra "+ Almuerzo" y no es botón ni link (no se puede enfocar con Tab).
-- [ ] El sub-tab "Planificador semanal" está activo y habilitado en la pantalla; "Recetas" lleva a `/recetas`; en `/recetas` el sub-tab del planificador ya no dice "Próximamente" y lleva a `/recetas/planificador`.
-- [ ] El ítem "Recetas" del menú lateral sigue activo en `/recetas/planificador`.
-- [ ] En mobile los días se apilan y no hay desplazamiento horizontal.
-- [ ] Recargar `/recetas/planificador` vuelve a la semana actual (la semana a la vista no se guarda).
-- [ ] El día de hoy se calcula en hora local: con la hora del navegador después de las 6 p. m. en UTC-6 sigue siendo el día local.
+- [x] CA-01: `/recetas/planificador` muestra una grilla de 7 días por 3 comidas (desayuno, almuerzo, cena); cada día tiene sus 3 espacios. (navegador en desktop y mobile; E2E-PLANNER-02)
+- [x] CA-02: con las flechas se pasa de la semana actual a la próxima y de vuelta; no hay más semanas. (navegador; E2E-PLANNER-03)
+- [x] La semana a la vista empieza en lunes y termina en domingo. Con hoy en domingo, la semana actual es la que termina hoy (lunes anterior a hoy). (el domingo, en `getWeekStart.test.ts` y `useMealPlannerViewModel.test.ts`: la fecha real de la prueba era viernes)
+- [x] La pantalla arranca en la semana actual, con "Esta semana" y el rango correcto.
+- [x] Con la semana actual a la vista, la flecha de atrás está deshabilitada; con la próxima, la de adelante.
+- [x] Hoy aparece resaltado en la semana actual y en ningún día de la próxima.
+- [x] Una semana que cruza de mes muestra el mes en las dos puntas del rango ("28 sep – 4 oct"); una que cruza de año, también ("29 dic – 4 ene"). (en `formatWeekRange.test.ts` y `buildWeek.test.ts`: con la fecha real de la prueba ninguna de las dos semanas cruza de mes)
+- [x] Un espacio vacío muestra "+ Almuerzo" y no es botón ni link (no se puede enfocar con Tab). (navegador y E2E-PLANNER-02: no hay ningún enlace ni botón dentro de la grilla)
+- [x] El sub-tab "Planificador semanal" está activo y habilitado en la pantalla; "Recetas" lleva a `/recetas`; en `/recetas` el sub-tab del planificador ya no dice "Próximamente" y lleva a `/recetas/planificador`.
+- [x] El ítem "Recetas" del menú lateral sigue activo en `/recetas/planificador`.
+- [x] En mobile los días se apilan y no hay desplazamiento horizontal.
+- [x] Recargar `/recetas/planificador` vuelve a la semana actual (la semana a la vista no se guarda).
+- [x] El día de hoy se calcula en hora local: con la hora del navegador después de las 6 p. m. en UTC-6 sigue siendo el día local. (en `toLocalDateKey.test.ts` con zona America/Costa_Rica; no se reprodujo en el navegador)
 
 ### Todas
 
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
 
 ## 14. Casos fuera de alcance
 
