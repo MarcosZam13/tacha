@@ -417,7 +417,51 @@ begin
   assert not has_column_privilege('authenticated', 'public.meal_plans', 'owner_id', 'update'), 'owner_id no se actualiza';
   assert not has_column_privilege('authenticated', 'public.meal_plans', 'date', 'update'), 'la fecha no se actualiza';
   assert has_column_privilege('authenticated', 'public.meal_plans', 'recipe_id', 'update'), 'la receta sí se actualiza';
+  assert not has_column_privilege('authenticated', 'public.meal_plans', 'id', 'insert'), 'id no se inserta a mano';
+  assert not has_column_privilege('authenticated', 'public.meal_plans', 'id', 'update'), 'id no se actualiza';
+  assert not has_column_privilege('authenticated', 'public.meal_plans', 'created_at', 'insert'), 'created_at no se inserta a mano';
+  assert not has_column_privilege('authenticated', 'public.meal_plans', 'created_at', 'update'), 'created_at no se actualiza';
+  assert not has_column_privilege('authenticated', 'public.meal_plans', 'meal_type', 'update'), 'la comida no se actualiza';
 end $$;
+
+-- La RPC corre con los permisos de quien la llama (security invoker) y con el
+-- search_path vacío: si alguien la cambiara a security definer o le quitara el
+-- search_path, ningún otro caso lo notaría.
+do $$
+declare
+  rpc pg_proc;
+begin
+  select * into rpc from pg_proc
+  where oid = 'public.assign_meal_slot(date, text, uuid, boolean, numeric)'::regprocedure;
+
+  assert not rpc.prosecdef, 'assign_meal_slot es security invoker, no definer';
+  assert coalesce(rpc.proconfig, array[]::text[]) @> array['search_path=""'],
+    'assign_meal_slot fija un search_path vacío';
+end $$;
+
+-- Una sesión anónima de Supabase es un usuario authenticated con is_anonymous:
+-- es la que usa la app, así que planifica lo suyo igual que cualquiera.
+set local role authenticated;
+
+select set_config(
+  'request.jwt.claims',
+  json_build_object(
+    'sub', current_setting('tacha_test.user_a'), 'role', 'authenticated', 'is_anonymous', true
+  )::text,
+  true
+);
+
+do $$
+begin
+  perform public.assign_meal_slot(date '2026-10-19', 'lunch', current_setting('tacha_test.recipe_a1')::uuid, true, 1);
+
+  assert (select owner_id from public.meal_plans where date = '2026-10-19') = current_setting('tacha_test.user_a')::uuid,
+    'una sesión anónima planifica a su nombre';
+
+  delete from public.meal_plans where date = '2026-10-19';
+end $$;
+
+reset role;
 
 -- ----------------------------------------------------------------------------
 -- 6. Rol dueño: una fila de household no es visible para su dueño (el plan de
