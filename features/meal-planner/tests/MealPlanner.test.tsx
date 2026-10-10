@@ -4,11 +4,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NullableRef } from "@/types/nullable.types";
 import { MEAL_PLANNER_TEXT, MEAL_TYPE_LABEL } from "../constants/meal-planner.constants";
 import { useToday } from "../hooks/useToday";
+import { getMealPlan, getRecipeOptions } from "../services/meal-plan.service";
 import { MealPlanner } from "../MealPlanner";
 import { createMealPlannerPage } from "./MealPlanner.page";
 
 vi.mock("../hooks/useToday", () => ({ useToday: vi.fn() }));
 const useTodayMock = vi.mocked(useToday);
+
+// Sin Supabase real: el plan y las recetas salen de servicios simulados.
+vi.mock("../services/meal-plan.service", () => ({
+  clearMealSlot: vi.fn(),
+  getMealPlan: vi.fn(),
+  getRecipeOptions: vi.fn(),
+  saveMealSlot: vi.fn(),
+}));
+const getMealPlanMock = vi.mocked(getMealPlan);
+const getRecipeOptionsMock = vi.mocked(getRecipeOptions);
 
 // El 14 de octubre de 2026 es miércoles: la semana actual va del 12 al 18 y la próxima, del 19 al 25.
 const WEDNESDAY = new Date(2026, 9, 14);
@@ -24,6 +35,8 @@ afterEach(cleanup);
 
 beforeEach(() => {
   useTodayMock.mockReset();
+  getMealPlanMock.mockReset().mockResolvedValue([]);
+  getRecipeOptionsMock.mockReset().mockResolvedValue([]);
 });
 
 describe("MealPlanner", () => {
@@ -72,10 +85,12 @@ describe("MealPlanner", () => {
     expect(page.getDays().filter((day) => day.hasAttribute("aria-current"))).toHaveLength(1);
   });
 
-  it("has no buttons in the grid: the empty slots do nothing yet", () => {
+  it("makes every slot a button named with its day, its meal and what pressing it does", () => {
     const page = renderPlanner();
 
-    expect(page.getButtons()).toEqual([page.getPreviousWeekButton(), page.getNextWeekButton()]);
+    expect(page.getSlotButtons()).toHaveLength(21);
+    expect(page.getSlotButton("Almuerzo del lunes 12, vacío, asignar")).toBeInTheDocument();
+    expect(page.getSlotButton("Cena del domingo 18, vacío, asignar")).toBeInTheDocument();
   });
 
   it("starts with the back arrow disabled and the forward one enabled", () => {

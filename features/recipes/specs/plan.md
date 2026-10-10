@@ -342,7 +342,7 @@ Una sola petición a PostgREST (`.delete().eq("id", recipeId)`), sin `.select()`
 - **Sin tests automatizados** (no hay runner): lo primero a cubrir es `useRecipeDeletion` (transiciones, doble clic, reintento) y la tarjeta + diálogo con un Page Object.
 - **Otra pestaña con el catálogo abierto** sigue mostrando la receta borrada hasta recargar (no hay Realtime en recetas). Si la intenta borrar ahí, se quita sin error (regla 16).
 - **El `Modal` compartido no atrapa el foco** (anotado en su propio hook): con el teclado se puede salir del diálogo con Tab. Es del primitivo, no de esta historia.
-- **CA-02 bloqueado:** el aviso por asignaciones en el plan llega con SCRUM-100 (contrato en la SPEC, sección 15).
+- **CA-02 cerrado por SCRUM-100:** el diálogo de eliminar avisa cuántos espacios del plan semanal usan la receta (`countRecipeMealPlans` y `mealPlanNotice` en `useRecipeDeletion`); ver la SPEC, sección 13.
 
 ---
 

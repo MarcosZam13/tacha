@@ -8,12 +8,16 @@ import type { RecipeDeleteDialogProps } from "./models/RecipeDeleteDialogProps.t
  * confirmar o cancelar lo decide useRecipeDeletion. Clic fuera y Escape
  * llaman a onDeleteCancel (comportamiento del Modal), que no cierra mientras borra.
  *
- * El rojo (destructive) va solo acá, en el botón que de verdad borra.
+ * El rojo (destructive) va solo acá, en el botón que de verdad borra. Si la
+ * receta está en el plan semanal, el aviso dice cuántos espacios quedarán
+ * vacíos; role="status" porque llega después de abrir el diálogo, cuando la
+ * base responde el conteo.
  */
 export const RecipeDeleteDialog = ({
   errorMessage,
   isDeleting,
   isDialogOpen,
+  mealPlanNotice,
   onDeleteCancel,
   onDeleteConfirm,
   recipeName,
@@ -22,6 +26,11 @@ export const RecipeDeleteDialog = ({
     <div className="flex flex-col gap-4">
       <p className="font-body text-base font-semibold text-tacha-text">{recipeName}</p>
       <p className="font-body text-sm text-tacha-textsec">{RECIPE_DELETE_TEXT.IRREVERSIBLE_NOTICE}</p>
+      {mealPlanNotice ? (
+        <p role="status" className="font-body text-sm font-semibold text-tacha-terracotta">
+          {mealPlanNotice}
+        </p>
+      ) : null}
       {errorMessage ? (
         <p role="alert" className="font-body text-sm text-red-600">
           {errorMessage}

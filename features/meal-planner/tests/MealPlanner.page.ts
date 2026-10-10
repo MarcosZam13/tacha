@@ -1,7 +1,7 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RECIPES_TAB, RECIPES_TAB_LABEL } from "@/constants";
-import { MEAL_PLANNER_TEXT, MEAL_TYPE_LABEL } from "../constants/meal-planner.constants";
+import { MEAL_PLANNER_TEXT, MEAL_SLOT_TEXT, MEAL_TYPE_LABEL } from "../constants/meal-planner.constants";
 
 /**
  * Page Object del planificador semanal: cómo encontrar sus elementos y las
@@ -19,7 +19,9 @@ export const createMealPlannerPage = () => {
   const getPreviousWeekButton = (): HTMLElement =>
     screen.getByRole("button", { name: MEAL_PLANNER_TEXT.PREVIOUS_WEEK_ARROW });
   const getNextWeekButton = (): HTMLElement => screen.getByRole("button", { name: MEAL_PLANNER_TEXT.NEXT_WEEK_ARROW });
-  const getButtons = (): HTMLElement[] => screen.getAllByRole("button");
+  // Los espacios son botones cuyo nombre termina en lo que pasa al tocarlos.
+  const getSlotButtons = (): HTMLElement[] => screen.getAllByRole("button", { name: /, (vacío, asignar|cambiar)$/ });
+  const getSlotButton = (name: string): HTMLElement => screen.getByRole("button", { name });
 
   const getRange = (range: string): HTMLElement => screen.getByText(range);
   const getWeekLabel = (label: string): HTMLElement => screen.getByText(label);
@@ -34,10 +36,80 @@ export const createMealPlannerPage = () => {
   const getDays = (): HTMLElement[] => screen.getAllByRole("time");
   const queryDays = (): HTMLElement[] => screen.queryAllByRole("time");
 
-  // Un espacio vacío es un <li> cuyo texto propio es el nombre de la comida.
+  // Busca por el texto de la comida: en los vacíos ("+ Almuerzo") y también en los asignados, que la muestran como etiqueta.
   const getEmptySlots = (mealLabel: string): HTMLElement[] => screen.getAllByText(mealLabel);
   const queryAllEmptySlots = (): HTMLElement[] =>
     Object.values(MEAL_TYPE_LABEL).flatMap((mealLabel) => screen.queryAllByText(mealLabel));
+
+  // --- El diálogo de asignar (SCRUM-100) ---
+
+  const getDialog = (title: string): HTMLElement => screen.getByRole("dialog", { name: title });
+  const queryDialog = (): HTMLElement | null => screen.queryByRole("dialog");
+  const inDialog = () => within(screen.getByRole("dialog"));
+
+  const getDialogSubtitle = (subtitle: string): HTMLElement => inDialog().getByText(subtitle);
+  // Cada receta es una opción de radio cuyo nombre empieza con el de la receta y sigue con sus porciones base.
+  const getRecipeRadio = (recipeName: string): HTMLElement =>
+    inDialog().getByRole("radio", { name: new RegExp(`^${recipeName}`) });
+  const findRecipeRadio = (recipeName: string): Promise<HTMLElement> =>
+    within(screen.getByRole("dialog")).findByRole("radio", { name: new RegExp(`^${recipeName}`) });
+  const getCookRadio = (cookName: string): HTMLElement => inDialog().getByRole("radio", { name: cookName });
+  const getServingsSummary = (): HTMLElement => inDialog().getByText(/^×/);
+  const getIncreaseServingsButton = (): HTMLElement =>
+    inDialog().getByRole("button", { name: MEAL_SLOT_TEXT.INCREASE_SERVINGS });
+  const getDecreaseServingsButton = (): HTMLElement =>
+    inDialog().getByRole("button", { name: MEAL_SLOT_TEXT.DECREASE_SERVINGS });
+  const getSaveButton = (): HTMLElement => inDialog().getByRole("button", { name: /^(Guardar|Guardando)/ });
+  const getRemoveButton = (): HTMLElement => inDialog().getByRole("button", { name: MEAL_SLOT_TEXT.REMOVE });
+  const queryRemoveButton = (): HTMLElement | null => inDialog().queryByRole("button", { name: MEAL_SLOT_TEXT.REMOVE });
+  const getCancelButton = (): HTMLElement => inDialog().getByRole("button", { name: MEAL_SLOT_TEXT.CANCEL });
+  const getDialogAlert = (): HTMLElement => inDialog().getByRole("alert");
+  const getCreateRecipeLink = (): HTMLElement => inDialog().getByRole("link", { name: MEAL_SLOT_TEXT.CREATE_RECIPE });
+  const getDialogRetryButton = (): HTMLElement => inDialog().getByRole("button", { name: MEAL_SLOT_TEXT.RETRY });
+
+  // El error de carga del plan está fuera del diálogo (que está cerrado cuando se ve).
+  const getPlanError = (): HTMLElement => screen.getByRole("alert");
+  const getPlanRetryButton = (): HTMLElement => screen.getByRole("button", { name: MEAL_SLOT_TEXT.RETRY });
+
+  const getFocusedElement = (): Element | null => document.activeElement;
+
+  /** Espera a que el plan se lea: antes, los espacios están deshabilitados. */
+  const waitForEnabledSlot = async (name: string): Promise<void> => {
+    await waitFor(() => {
+      if (getSlotButton(name).hasAttribute("disabled")) throw new Error(`El espacio "${name}" sigue deshabilitado`);
+    });
+  };
+
+  const openSlot = async (name: string): Promise<void> => {
+    await user.click(getSlotButton(name));
+  };
+  const chooseRecipe = async (recipeName: string): Promise<void> => {
+    await user.click(await findRecipeRadio(recipeName));
+  };
+  const chooseCook = async (cookName: string): Promise<void> => {
+    await user.click(getCookRadio(cookName));
+  };
+  const increaseServings = async (): Promise<void> => {
+    await user.click(getIncreaseServingsButton());
+  };
+  const decreaseServings = async (): Promise<void> => {
+    await user.click(getDecreaseServingsButton());
+  };
+  const save = async (): Promise<void> => {
+    await user.click(getSaveButton());
+  };
+  const remove = async (): Promise<void> => {
+    await user.click(getRemoveButton());
+  };
+  const cancel = async (): Promise<void> => {
+    await user.click(getCancelButton());
+  };
+  const pressEscape = async (): Promise<void> => {
+    await user.keyboard("{Escape}");
+  };
+  const retryPlan = async (): Promise<void> => {
+    await user.click(getPlanRetryButton());
+  };
 
   const goToNextWeek = async (): Promise<void> => {
     await user.click(getNextWeekButton());
@@ -48,7 +120,36 @@ export const createMealPlannerPage = () => {
   };
 
   return {
-    getButtons,
+    cancel,
+    chooseCook,
+    chooseRecipe,
+    decreaseServings,
+    findRecipeRadio,
+    getCancelButton,
+    getCookRadio,
+    getCreateRecipeLink,
+    getDecreaseServingsButton,
+    getDialog,
+    getDialogAlert,
+    getDialogRetryButton,
+    getDialogSubtitle,
+    getFocusedElement,
+    getIncreaseServingsButton,
+    getPlanError,
+    getPlanRetryButton,
+    getRecipeRadio,
+    getRemoveButton,
+    getSaveButton,
+    getServingsSummary,
+    increaseServings,
+    openSlot,
+    pressEscape,
+    queryDialog,
+    queryRemoveButton,
+    remove,
+    retryPlan,
+    save,
+    waitForEnabledSlot,
     getDay,
     getDays,
     getEmptySlots,
@@ -56,6 +157,8 @@ export const createMealPlannerPage = () => {
     getPlannerTab,
     getPreviousWeekButton,
     getRange,
+    getSlotButton,
+    getSlotButtons,
     getRecipesTab,
     getTitle,
     getWeekLabel,

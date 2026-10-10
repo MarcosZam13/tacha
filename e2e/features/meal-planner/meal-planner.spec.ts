@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createOwnRecipe, deleteOwnRecipes } from "../../support/supabase";
 import {
   DAYS_IN_WEEK,
   PLANNER_PATH,
@@ -6,10 +7,13 @@ import {
   expectedTodayDate,
   expectedWeekDates,
   getAppNavItem,
+  assignRecipeToToday,
+  getAssignDialog,
   getDayDates,
   getEmptySlots,
   getRecipesSubTab,
   getTodayDate,
+  getTodaySlot,
   getWeekArrow,
 } from "./meal-planner.helpers";
 
@@ -63,8 +67,9 @@ test.describe("Planificador semanal", () => {
     await expect(getTodayDate(page)).toHaveCount(1);
     await expect(getTodayDate(page)).toHaveAttribute("datetime", expectedTodayDate());
 
-    // Los espacios no son botones: los únicos son las dos flechas de semana.
-    await expect(page.locator("main").getByRole("button")).toHaveCount(2);
+    // Cada espacio es un botón con su nombre completo ("Almuerzo del lunes 12, vacío, asignar"):
+    // un usuario nuevo no tiene nada planeado, así que los 21 están vacíos.
+    await expect(page.getByRole("button", { name: /, vacío, asignar$/ })).toHaveCount(DAYS_IN_WEEK * MEALS.length);
   });
 
   test("E2E-PLANNER-03 — Pasar a la próxima semana y volver", async ({ page }) => {
@@ -128,5 +133,92 @@ test.describe("Planificador semanal", () => {
       expect(secondDay?.y).toBeGreaterThan(firstDay?.y ?? NaN);
       expect(hasHorizontalScroll).toBe(false);
     });
+  });
+});
+
+// Para asignar hace falta tener recetas: se crean con la API de Supabase usando la sesión
+// de la propia página, y al terminar se borran (con ellas, sus espacios del plan).
+const FLAN = "E2E Flan";
+const ARROZ = "E2E Arroz";
+const FLAN_BASE_SERVINGS = 6;
+const ARROZ_BASE_SERVINGS = 4;
+// Abrir la pantalla crea una sesión anónima y lee el plan de la base compartida: con varias pruebas
+// a la vez puede pasar de los 5 s por defecto (ver "Fallo intermitente observado" en E2E.md).
+const SESSION_AND_PLAN_TIMEOUT_MS = 15_000;
+
+test.describe("Asignar comidas al plan", () => {
+  test.beforeEach(async ({ page, request }) => {
+    await page.goto(PLANNER_PATH);
+    // El espacio se habilita cuando el plan ya se leyó: para entonces hay sesión abierta.
+    await expect(getTodaySlot(page, "Almuerzo")).toBeEnabled({ timeout: SESSION_AND_PLAN_TIMEOUT_MS });
+    await createOwnRecipe(page, request, FLAN, FLAN_BASE_SERVINGS);
+    await createOwnRecipe(page, request, ARROZ, ARROZ_BASE_SERVINGS);
+  });
+
+  test.afterEach(async ({ page, request }) => {
+    await deleteOwnRecipes(page, request);
+  });
+
+  test("E2E-PLANNER-06 — Asignar una receta a un espacio y que siga después de recargar", async ({ page }) => {
+    await getTodaySlot(page, "Almuerzo").click();
+    const dialog = getAssignDialog(page, "Asignar comida");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Guardar" })).toBeDisabled();
+
+    await dialog.getByRole("radio", { name: new RegExp(`^${FLAN}`) }).check();
+    await dialog.getByRole("button", { name: "Más porciones" }).click();
+    await expect(dialog.getByText("×1,5 · 9 porciones")).toBeVisible();
+    await dialog.getByRole("button", { name: "Guardar" }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(getTodaySlot(page, "Almuerzo")).toContainText(FLAN);
+    await expect(getTodaySlot(page, "Almuerzo")).toContainText("Yo");
+    await expect(getTodaySlot(page, "Almuerzo")).toContainText("×1,5");
+
+    await page.reload();
+
+    await expect(getTodaySlot(page, "Almuerzo")).toContainText(FLAN);
+    await expect(getTodaySlot(page, "Almuerzo")).toContainText("×1,5");
+  });
+
+  test("E2E-PLANNER-07 — Reasignar y quitar una comida", async ({ page }) => {
+    await assignRecipeToToday(page, "Cena", FLAN);
+
+    await getTodaySlot(page, "Cena").click();
+    const dialog = getAssignDialog(page, "Cambiar comida");
+    await expect(dialog.getByRole("radio", { name: new RegExp(`^${FLAN}`) })).toBeChecked();
+    await dialog.getByRole("radio", { name: new RegExp(`^${ARROZ}`) }).check();
+    await dialog.getByRole("button", { name: "Guardar" }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(getTodaySlot(page, "Cena")).toContainText(ARROZ);
+    await expect(getTodaySlot(page, "Cena")).not.toContainText(FLAN);
+    await page.reload();
+    await expect(getTodaySlot(page, "Cena")).toContainText(ARROZ);
+
+    await getTodaySlot(page, "Cena").click();
+    await getAssignDialog(page, "Cambiar comida").getByRole("button", { name: "Quitar" }).click();
+
+    await expect(getAssignDialog(page, "Cambiar comida")).toBeHidden();
+    await expect(getTodaySlot(page, "Cena")).toHaveAccessibleName(/, vacío, asignar$/);
+    await page.reload();
+    await expect(getTodaySlot(page, "Cena")).toHaveAccessibleName(/, vacío, asignar$/);
+  });
+
+  test("E2E-PLANNER-08 — Eliminar una receta que está en el plan avisa y libera sus espacios", async ({ page }) => {
+    await assignRecipeToToday(page, "Almuerzo", FLAN);
+    await assignRecipeToToday(page, "Cena", FLAN);
+    await page.goto(RECIPES_PATH);
+
+    await page.getByRole("button", { name: `Eliminar ${FLAN}` }).click();
+
+    const deleteDialog = page.getByRole("dialog", { name: "¿Eliminar esta receta?" });
+    await expect(deleteDialog.getByText("Está en 2 espacios de tu plan; quedarán vacíos.")).toBeVisible();
+    await deleteDialog.getByRole("button", { name: "Eliminar", exact: true }).click();
+    await expect(page.getByRole("heading", { name: FLAN })).toHaveCount(0);
+
+    await page.goto(PLANNER_PATH);
+    await expect(getTodaySlot(page, "Almuerzo")).toHaveAccessibleName(/, vacío, asignar$/);
+    await expect(getTodaySlot(page, "Cena")).toHaveAccessibleName(/, vacío, asignar$/);
   });
 });

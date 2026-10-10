@@ -6,10 +6,10 @@ import type { WeekGridProps } from "./models/WeekGridProps.type";
  * desde `md`, igual que el shell (sin medir el ancho en JS ni duplicar los 21
  * espacios en el DOM).
  */
-export const WeekGrid = ({ days }: WeekGridProps): React.JSX.Element => (
+export const WeekGrid = ({ days, getEntry, isDisabled, onSlotOpen }: WeekGridProps): React.JSX.Element => (
   <ul className="flex flex-col gap-4 md:grid md:grid-cols-7 md:gap-2">
     {days.map((day) => (
-      <MealPlannerDay key={day.dateKey} day={day} />
+      <MealPlannerDay key={day.dateKey} day={day} getEntry={getEntry} isDisabled={isDisabled} onSlotOpen={onSlotOpen} />
     ))}
   </ul>
 );
