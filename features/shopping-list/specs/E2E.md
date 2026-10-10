@@ -54,3 +54,24 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
 - **Resultado esperado:** después del paso 1 la fila está en la sección "Tachados hoy", marcada como presionada, y ya no está en "Pendientes", sin recargar. Después del paso 2 sigue en "Tachados hoy". Después del paso 3 vuelve a "Pendientes" y "Tachados hoy" desaparece. Después del paso 4 sigue en "Pendientes".
 - **Sincronización (desde el tachado optimista, 2026-10-09):** la fila cambia de sección antes de que la base guarde. Antes de recargar se espera a que el botón de la fila vuelva a estar habilitado, que es la señal visible de que la base confirmó. Recargar antes daba un falso fallo intermitente (mobile-chrome).
 - **Fuera del navegador:** que "+" o detalle no tachen (CA-02) lo garantiza que son botones hermanos, verificado a mano; el orden de las filas y los errores, en `tests/shopping-list.reducer.test.ts`; la medianoche local (CA-05), en `tests/startOfLocalDay.test.ts`.
+
+### E2E-LISTA-05: modo compra de punta a punta
+
+- **Cubre:** HU-36f CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, CA-07 (y que la compra se guarda en la base: migración `016`).
+- **Precondición:** usuario anónimo nuevo con un producto en la lista (pasos 1 a 4 de E2E-LISTA-01).
+- **Pasos:**
+  1. Tocar "Iniciar compra" y elegir "MaxiPali" en el diálogo "¿Dónde estás comprando?".
+  2. Tocar el nombre del producto.
+  3. Tocar "Añadir uno" en esa fila.
+  4. Tocar "Salir".
+  5. Tocar "Iniciar compra" y elegir "MaxiPali" otra vez.
+  6. En el panel "Cerrar compra", escribir `12500` en "Total gastado (₡)" y tocar "Cerrar compra".
+- **Resultado esperado:**
+  - Paso 1: la URL lleva `?compra=<id>` y la barra "Modo compra" dice MaxiPali; la lista es la misma (CA-01, CA-02).
+  - Paso 2: la fila pasa a "Tachados hoy", igual que fuera de modo compra (CA-03).
+  - Paso 3: la cantidad pasa a `2` y la fila dice "Pedido 1": cambió lo comprado, no lo pedido (CA-04).
+  - Paso 4: la URL vuelve a `/lista`, sin la barra; la fila sigue tachada (CA-06).
+  - Paso 5: la URL lleva el **mismo** id del paso 1: la compra se retomó (CA-05). Como no queda nada pendiente, aparece el panel "Cerrar compra" (CA-07).
+  - Paso 6: la URL vuelve a `/lista`, sin la barra ni el panel.
+- **Sincronización:** igual que E2E-LISTA-04, antes de tocar otra cosa en la fila se espera a que vuelva a estar habilitada (la base confirmó).
+- **Datos que quedan:** la compra cerrada del usuario anónimo queda en `purchase_sessions` (la limpieza solo borra los items, como en los otros escenarios).

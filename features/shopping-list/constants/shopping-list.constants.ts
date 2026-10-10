@@ -36,13 +36,15 @@ export const SHOPPING_LIST_DB = {
   // constante propia: el genérico Database de types/database.types.ts los
   // valida al compilar, que es lo mismo que buscaría la constante.
   GENERAL_LIST_SELECT:
-    "list_items(id, quantity_requested, checked_at, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+    "list_items(id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   // Detalle de una variante: sus marcas y el último precio de cada marca en
   // cada tienda (la vista latest_prices ya se queda con el más reciente).
   ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
   RPC: {
     ADD_ITEM_TO_GENERAL_LIST: "add_item_to_general_list",
+    CHANGE_BOUGHT_QUANTITY: "change_bought_quantity",
     CHANGE_ITEM_QUANTITY: "change_item_quantity",
+    CHECK_LIST_ITEM_IN_SESSION: "check_list_item_in_session",
     SET_LIST_ITEM_CHECKED: "set_list_item_checked",
   },
   TABLE: {
@@ -55,6 +57,7 @@ export const SHOPPING_LIST_DB = {
 // Acciones del reducer de la lista (utils/shopping-list.reducer.ts).
 export const SHOPPING_LIST_ACTION = {
   ADD_FAILED: "addFailed",
+  BOUGHT_QUANTITY_CHANGED: "boughtQuantityChanged",
   CHECK_TOGGLED: "checkToggled",
   CHECK_TOGGLE_FAILED: "checkToggleFailed",
   CHECK_TOGGLE_STARTED: "checkToggleStarted",

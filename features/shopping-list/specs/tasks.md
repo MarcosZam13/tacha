@@ -57,4 +57,17 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
   - Hecho: test del hook, implementación, `tsc`, lint, build, 83 tests unitarios y prueba manual (tachar, destachar y que se guarde). E2E: 6/6 dos veces seguidas con el servidor ya compilado (2026-10-09), después de que se liberó el límite de Supabase.
 - [x] 29. E2E: escenario E2E-LISTA-04 en `specs/E2E.md` y su test (pasa en chromium y mobile-chrome). Pendiente: repetir la prueba manual con una cuenta QA cuando exista el ambiente de pruebas.
 
+## SCRUM-67: modo compra
+
+- [x] 31. Migración `016_create_purchase_sessions.sql` y su prueba `supabase/tests/016_create_purchase_sessions.test.sql`. Aplicada el 2026-10-09 a pedido de Marcos, en una transacción con su fila `016` (`supabase/README.md#migraciones`), después de un ensayo de la migración + la prueba completa con `rollback` que pasó.
+- [x] 32. `types/database.types.ts`: lo nuevo de 016 copiado de los tipos que genera Supabase con la base ya migrada.
+- [x] 33. Constantes (textos, RPC, parámetro `compra`) y modelos (`PurchaseSession`, `StoreOption`, `ItemCheck`, campos nuevos del item, acciones).
+- [x] 34. Reducer: `CHECK_TOGGLED` con `ItemCheck` y `BOUGHT_QUANTITY_CHANGED`, tests primero. `parseSpentTotal` con test.
+- [x] 35. Servicios: `purchase-session.service.ts` y lo nuevo de `shopping-list.service.ts`.
+- [x] 36. Hooks: `usePurchaseSession`, `useStorePicker` y `useClosePurchase` (la compra quedó repartida en tres hooks chicos), tachar en compra y `changeBoughtQuantity` en `useShoppingList`, modo compra en el ViewModel. Tests de hooks.
+- [x] 37. Presentación: `ShoppingList` (frontera) + `ShoppingListInner`, `ShoppingModeBar`, `StorePicker`, `ClosePurchasePanel`, "Pedido N" en la fila.
+- [x] 38. `docs/documento-proyecto.md` §6 con las columnas reales; E2E-LISTA-05 en `specs/E2E.md` y su test.
+- [x] 38b. Migración `018_harden_purchase_sessions.sql` con su prueba (hallazgos de `security-reviewer`), ensayada con `rollback` y aplicada con su fila `018`.
+- [x] 39. Validar CA-01..07 en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; revisores; body de la PR y guía de estudio.
+
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.

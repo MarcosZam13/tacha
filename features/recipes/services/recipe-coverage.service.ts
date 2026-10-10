@@ -1,8 +1,8 @@
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
+import { POSTGRES_ERROR_CODE } from "@/constants";
 import type { NullableRef } from "@/types/nullable.types";
 import {
-  POSTGRES_ERROR_CODE,
   RECIPE_COVERAGE_REALTIME,
   RECIPES_DB,
 } from "../constants/recipes.constants";

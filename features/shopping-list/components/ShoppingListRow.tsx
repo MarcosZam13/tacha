@@ -37,13 +37,17 @@ export const ShoppingListRow = ({
       >
         <span className={`block font-body text-sm ${checkedTextClass}`}>{row.item.productName}</span>
         <span className={`block font-body text-xs ${checkedTextClass}`}>{row.item.sizeLabel}</span>
+        {/* Modo compra (SCRUM-67): el stepper muestra lo comprado; esto recuerda lo pedido. */}
+        {row.requestedNote ? (
+          <span className="block font-body text-xs text-tacha-textsec">{row.requestedNote}</span>
+        ) : null}
       </button>
       <QuantityStepper
         canDecrease={row.canDecrease}
         canIncrease={row.canIncrease}
         onDecrease={onDecrease}
         onIncrease={onIncrease}
-        quantity={row.item.quantity}
+        quantity={row.displayedQuantity}
       />
       <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onOpenDetail}>
         <span aria-hidden="true">{SHOPPING_LIST_TEXT.OPEN_DETAIL_ICON}</span>

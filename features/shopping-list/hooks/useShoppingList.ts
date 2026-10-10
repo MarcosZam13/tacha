@@ -3,11 +3,14 @@ import type { NullableRef } from "@/types/nullable.types";
 import { SHOPPING_LIST_ACTION, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
+import type { ItemCheck } from "../models/ItemCheck.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { ShoppingListState } from "../models/ShoppingListState.interface";
 import {
   addItemToGeneralList,
+  changeItemBoughtQuantity,
   changeItemQuantity,
+  checkItemInSession,
   deleteListItem,
   getGeneralList,
   setItemChecked,
@@ -16,20 +19,36 @@ import { INITIAL_SHOPPING_LIST_STATE, shoppingListReducer } from "../utils/shopp
 
 interface UseShoppingListReturn {
   addItem: (searchResult: CatalogSearchResult) => Promise<void>;
+  /** Modo compra (SCRUM-67): ±1 a lo comprado de una fila tachada en la compra. */
+  changeBoughtQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
   changeQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   state: ShoppingListState;
-  toggleChecked: (itemId: string, isChecked: boolean) => void;
+  /** sessionId = la compra activa (modo compra) o null. */
+  toggleChecked: (itemId: string, isChecked: boolean, sessionId: NullableRef<string>) => void;
 }
 
 /** Un tachado que todavía viaja a la base. */
-interface OptimisticCheck {
-  checkedAt: NullableRef<string>;
+interface OptimisticCheck extends ItemCheck {
   itemId: string;
 }
 
-const applyOptimisticCheck = (items: ShoppingListItem[], check: OptimisticCheck): ShoppingListItem[] =>
-  items.map((item) => (item.id === check.itemId ? { ...item, checkedAt: check.checkedAt } : item));
+const applyOptimisticCheck = (items: ShoppingListItem[], { itemId, ...check }: OptimisticCheck): ShoppingListItem[] =>
+  items.map((item) => (item.id === itemId ? { ...item, ...check } : item));
+
+/**
+ * Lo que se ve mientras viaja el tachado. La hora es provisoria (del
+ * navegador, solo para dibujar); la real la pone la base. En modo compra lo
+ * comprado arranca igual a lo pedido, como hace la base (016).
+ */
+const toOptimisticCheck = (item: ShoppingListItem, isChecked: boolean, sessionId: NullableRef<string>): ItemCheck => {
+  if (!isChecked) return { checkedAt: null, purchaseSessionId: null, quantityBought: null };
+  return {
+    checkedAt: new Date().toISOString(),
+    purchaseSessionId: sessionId,
+    quantityBought: sessionId ? (item.quantityBought ?? item.quantity) : null,
+  };
+};
 
 /** Estado de la lista general: carga al montar, añade, cambia cantidades, tacha y borra productos vía servicio. */
 export const useShoppingList = (): UseShoppingListReturn => {
@@ -84,20 +103,39 @@ export const useShoppingList = (): UseShoppingListReturn => {
     }
   };
 
+  // Igual que changeQuantity, sobre lo comprado. Comparte el bloqueo por fila y el error.
+  const changeBoughtQuantity = async (itemId: string, quantityStep: ItemQuantityStepType): Promise<void> => {
+    dispatch({ itemId, type: SHOPPING_LIST_ACTION.QUANTITY_CHANGE_STARTED });
+    try {
+      const quantityBought = await changeItemBoughtQuantity(itemId, quantityStep);
+      dispatch({ itemId, quantityBought, type: SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED });
+    } catch {
+      dispatch({
+        errorMessage: SHOPPING_LIST_TEXT.QUANTITY_ERROR,
+        itemId,
+        type: SHOPPING_LIST_ACTION.QUANTITY_CHANGE_FAILED,
+      });
+    }
+  };
+
   // Optimista (a diferencia de la cantidad): la fila cambia de sección al
   // tocarla. Sigue pendiente (deshabilitada) hasta que responde la base, y si
   // la base falla la fila vuelve sola: al terminar la transición React descarta
   // el valor optimista y queda lo del reducer, que nunca cambió.
-  const toggleChecked = (itemId: string, isChecked: boolean): void => {
+  // En modo compra, tachar usa la RPC de la compra; destachar es igual en los
+  // dos modos: la base borra la compra y lo comprado (trigger de 016).
+  const toggleChecked = (itemId: string, isChecked: boolean, sessionId: NullableRef<string>): void => {
+    const item = state.items.find((listedItem) => listedItem.id === itemId);
+    if (!item) return;
     dispatch({ itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED });
     startTransition(async () => {
-      // Hora provisoria del navegador, solo para dibujar; la real la pone la base.
-      setOptimisticCheck({ checkedAt: isChecked ? new Date().toISOString() : null, itemId });
+      setOptimisticCheck({ ...toOptimisticCheck(item, isChecked, sessionId), itemId });
       try {
-        const checkedAt = await setItemChecked(itemId, isChecked);
+        const check =
+          isChecked && sessionId ? await checkItemInSession(itemId, sessionId) : await setItemChecked(itemId, isChecked);
         // Después de un await, React pide envolver otra vez en startTransition
         // para que el cambio siga siendo parte de la misma transición.
-        startTransition(() => dispatch({ checkedAt, itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLED }));
+        startTransition(() => dispatch({ check, itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLED }));
       } catch {
         startTransition(() =>
           dispatch({
@@ -120,5 +158,12 @@ export const useShoppingList = (): UseShoppingListReturn => {
     }
   };
 
-  return { addItem, changeQuantity, removeItem, state: { ...state, items: optimisticItems }, toggleChecked };
+  return {
+    addItem,
+    changeBoughtQuantity,
+    changeQuantity,
+    removeItem,
+    state: { ...state, items: optimisticItems },
+    toggleChecked,
+  };
 };

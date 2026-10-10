@@ -4,20 +4,32 @@ import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatPriceRange } from "@/utils/formatPriceRange";
 import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
+import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
+import type { ClosePurchaseViewModel } from "../models/ClosePurchaseViewModel.interface";
 import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
+import type { StorePickerViewModel } from "../models/StorePickerViewModel.interface";
 import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
+import { isBoughtInSession, toShoppingListRow } from "../utils/toShoppingListRow";
 import { toStorePriceRanges } from "../utils/toStorePriceRanges";
+import { useClosePurchase } from "./useClosePurchase";
 import { useItemDetail } from "./useItemDetail";
 import { useItemRemoval } from "./useItemRemoval";
+import { usePurchaseSession } from "./usePurchaseSession";
 import { useShoppingList } from "./useShoppingList";
+import { useStorePicker } from "./useStorePicker";
 
 interface UseShoppingListViewModelReturn {
+  /** Súper de la compra activa; null fuera de modo compra (SCRUM-67). */
+  activeStoreName: NullableRef<string>;
   addErrorMessage: NullableRef<string>;
   canAddItems: boolean;
+  /** "Iniciar compra" se ofrece fuera de modo compra y con algo en la lista. */
+  canStartPurchase: boolean;
   checkErrorMessage: NullableRef<string>;
   /** Sección "Tachados hoy", en el orden en que se añadieron. */
   checkedRows: ShoppingListRowViewModel[];
+  closePurchase: ClosePurchaseViewModel;
   detail: NullableRef<ItemDetailViewModel>;
   hasCheckedRows: boolean;
   hasItems: boolean;
@@ -32,11 +44,14 @@ interface UseShoppingListViewModelReturn {
   loadErrorMessage: NullableRef<string>;
   onCloseDetail: () => void;
   onDecreaseQuantity: (itemId: string) => void;
+  onExitShoppingMode: () => void;
   onIncreaseQuantity: (itemId: string) => void;
   onOpenDetail: (itemId: string) => void;
   onQueryChange: (query: string) => void;
   onRemoveItem: (itemId: string) => void;
+  onRequestClosePurchase: () => void;
   onSelectSearchOption: (variantId: string) => void;
+  onStartPurchase: () => void;
   onToggleChecked: (itemId: string) => void;
   onUndoRemove: () => void;
   /** Sección "Pendientes", en el orden en que se añadieron. */
@@ -46,16 +61,22 @@ interface UseShoppingListViewModelReturn {
   removeErrorMessage: NullableRef<string>;
   searchErrorMessage: NullableRef<string>;
   searchOptions: ProductSearchOption[];
+  /** Aviso cuando la compra de la URL no está abierta. */
+  sessionNoticeMessage: NullableRef<string>;
+  storePicker: StorePickerViewModel;
 }
 
 /**
- * Facade de la pantalla: une la lista y el buscador y le entrega a
- * ShoppingList.tsx exactamente lo que dibuja, ya calculado.
+ * Facade de la pantalla: une la lista, el buscador y el modo compra y le
+ * entrega a ShoppingListInner.tsx exactamente lo que dibuja, ya calculado.
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
-  const { addItem, changeQuantity, removeItem, state, toggleChecked } = useShoppingList();
+  const { addItem, changeBoughtQuantity, changeQuantity, removeItem, state, toggleChecked } = useShoppingList();
   const search = useProductSearch();
   const removal = useItemRemoval({ removeItem });
+  const purchase = usePurchaseSession();
+  const storePicker = useStorePicker({ onStarted: purchase.enterShoppingMode });
+  const activeSessionId = purchase.activeSession?.id ?? null;
   // Se guarda solo el id de la fila abierta; la fila en sí se busca en la
   // lista, así el modal siempre muestra la cantidad y el nombre actuales.
   const [openItemId, setOpenItemId] = useState<NullableRef<string>>(null);
@@ -93,13 +114,22 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     void changeQuantity(listedItem.id, ITEM_QUANTITY.STEP.INCREASE);
   };
 
-  // changeQuantity también maneja su propio error, por eso tampoco se espera.
+  // El mismo "−"/"+" cambia lo pedido o, en una fila comprada en esta compra,
+  // lo comprado. Los dos manejan su propio error, por eso no se esperan.
+  const changeDisplayedQuantity = (itemId: string, quantityStep: ItemQuantityStepType): void => {
+    const item = state.items.find((listedItem) => listedItem.id === itemId);
+    if (!item) return;
+    // En modo compra, una fila tachada en ESTA compra ajusta lo comprado (SCRUM-67, regla 16).
+    if (isBoughtInSession(item, activeSessionId)) void changeBoughtQuantity(itemId, quantityStep);
+    else void changeQuantity(itemId, quantityStep);
+  };
+
   const onIncreaseQuantity = (itemId: string): void => {
-    void changeQuantity(itemId, ITEM_QUANTITY.STEP.INCREASE);
+    changeDisplayedQuantity(itemId, ITEM_QUANTITY.STEP.INCREASE);
   };
 
   const onDecreaseQuantity = (itemId: string): void => {
-    void changeQuantity(itemId, ITEM_QUANTITY.STEP.DECREASE);
+    changeDisplayedQuantity(itemId, ITEM_QUANTITY.STEP.DECREASE);
   };
 
   const onOpenDetail = (itemId: string): void => {
@@ -130,7 +160,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     const item = state.items.find((listedItem) => listedItem.id === itemId);
     // Fila esperando respuesta: se ignora, igual que el botón deshabilitado.
     if (!item || state.pendingItemIds.includes(itemId)) return;
-    toggleChecked(itemId, item.checkedAt === null);
+    toggleChecked(itemId, item.checkedAt === null, activeSessionId);
   };
 
   const onRemoveItem = (itemId: string): void => {
@@ -141,48 +171,62 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   // mientras tanto solo se deja de mostrar.
   const rows = state.items
     .filter((item) => !removal.hiddenItemIds.includes(item.id))
-    .map((item) => {
-      const isPending = state.pendingItemIds.includes(item.id);
-      return {
-        canDecrease: !isPending && item.quantity > ITEM_QUANTITY.MIN,
-        canIncrease: !isPending,
-        // Mientras la cantidad se guarda no se elimina: la respuesta podría llegar después del borrado.
-        canRemove: !isPending,
-        canToggleChecked: !isPending,
-        isChecked: item.checkedAt !== null,
-        item,
-      };
-    });
+    .map((item) =>
+      toShoppingListRow({ activeSessionId, isPending: state.pendingItemIds.includes(item.id), item }),
+    );
   // Las dos secciones salen del mismo arreglo, filtrado: cada una conserva el
   // orden en que se añadieron y una fila destachada vuelve a su lugar.
   const pendingRows = rows.filter((row) => !row.isChecked);
   const checkedRows = rows.filter((row) => row.isChecked);
+  const isAllChecked = rows.length > 0 && pendingRows.length === 0;
+  const closePurchase = useClosePurchase({
+    isAllChecked,
+    onClosed: purchase.leaveClosedSession,
+    sessionId: activeSessionId,
+  });
 
   return {
+    activeStoreName: purchase.activeSession?.storeName ?? null,
     addErrorMessage: state.addErrorMessage,
     // Si la lista no se pudo cargar no se ofrece añadir: la pantalla mostraría
     // solo lo recién añadido como si fuera toda la lista.
     canAddItems: !state.loadErrorMessage,
+    canStartPurchase:
+      !purchase.activeSession && !purchase.isLoadingSession && !state.loadErrorMessage && rows.length > 0,
     checkErrorMessage: state.checkErrorMessage,
     checkedRows,
+    closePurchase: {
+      closeErrorMessage: closePurchase.closeErrorMessage,
+      isAllChecked,
+      isClosing: closePurchase.isClosing,
+      isVisible: closePurchase.isVisible,
+      onDismiss: closePurchase.dismiss,
+      onSubmit: () => void closePurchase.submit(),
+      onTotalChange: closePurchase.onTotalChange,
+      totalErrorMessage: closePurchase.totalErrorMessage,
+      totalText: closePurchase.totalText,
+    },
     detail,
     hasCheckedRows: checkedRows.length > 0,
     hasItems: rows.length > 0,
     hasNoSearchResults: search.hasNoResults,
-    isAllChecked: rows.length > 0 && pendingRows.length === 0,
+    isAllChecked,
     // Con error de carga no se dice "tu lista está vacía": no se sabe si lo está.
     isEmpty: !state.isLoading && !state.loadErrorMessage && rows.length === 0,
-    isLoading: state.isLoading,
+    isLoading: state.isLoading || purchase.isLoadingSession,
     isSearching: search.isSearching,
     isUndoRemoveVisible: removal.undoItemId !== null,
     loadErrorMessage: state.loadErrorMessage,
     onCloseDetail,
     onDecreaseQuantity,
+    onExitShoppingMode: purchase.exitShoppingMode,
     onIncreaseQuantity,
     onOpenDetail,
     onQueryChange: search.setQuery,
     onRemoveItem,
+    onRequestClosePurchase: closePurchase.request,
     onSelectSearchOption,
+    onStartPurchase: storePicker.open,
     onToggleChecked,
     onUndoRemove: removal.cancelRemoval,
     pendingRows,
@@ -195,5 +239,15 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       id: result.variantId,
       label: result.productName,
     })),
+    sessionNoticeMessage: purchase.sessionNoticeMessage,
+    storePicker: {
+      errorMessage: storePicker.errorMessage,
+      isLoading: storePicker.isLoadingStores,
+      isOpen: storePicker.isOpen,
+      isStarting: storePicker.isStarting,
+      onClose: storePicker.close,
+      onPickStore: (storeId: string) => void storePicker.pickStore(storeId),
+      stores: storePicker.stores,
+    },
   };
 };

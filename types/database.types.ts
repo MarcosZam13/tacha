@@ -215,6 +215,8 @@ export type Database = {
           id: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
           quantity_requested: number
         }
         Insert: {
@@ -224,6 +226,8 @@ export type Database = {
           id?: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id?: string | null
+          quantity_bought?: number | null
           quantity_requested?: number
         }
         Update: {
@@ -233,6 +237,8 @@ export type Database = {
           id?: string
           list_id?: string
           product_catalog_variant_id?: string
+          purchase_session_id?: string | null
+          quantity_bought?: number | null
           quantity_requested?: number
         }
         Relationships: [
@@ -248,6 +254,13 @@ export type Database = {
             columns: ["product_catalog_variant_id"]
             isOneToOne: false
             referencedRelation: "product_catalog_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_purchase_session_id_fkey"
+            columns: ["purchase_session_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -550,6 +563,61 @@ export type Database = {
           },
         ]
       }
+      purchase_sessions: {
+        Row: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          household_id?: string | null
+          id?: string
+          list_id?: string | null
+          owner_id?: string
+          started_at?: string
+          store_id: string
+          total_amount?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          household_id?: string | null
+          id?: string
+          list_id?: string | null
+          owner_id?: string
+          started_at?: string
+          store_id?: string
+          total_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_sessions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_sessions_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_sessions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe_ingredients: {
         Row: {
           created_at: string
@@ -759,6 +827,8 @@ export type Database = {
           id: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
           quantity_requested: number
         }
         SetofOptions: {
@@ -790,6 +860,26 @@ export type Database = {
         }
         Returns: string
       }
+      change_bought_quantity: {
+        Args: { quantity_delta: number; target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       change_item_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
@@ -799,11 +889,52 @@ export type Database = {
           id: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
           quantity_requested: number
         }
         SetofOptions: {
           from: "*"
           to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      check_list_item_in_session: {
+        Args: { target_item_id: string; target_session_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      close_purchase_session: {
+        Args: { spent_total: number; target_session_id: string }
+        Returns: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "purchase_sessions"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -899,6 +1030,8 @@ export type Database = {
           id: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
           quantity_requested: number
         }
         SetofOptions: {
@@ -910,6 +1043,25 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_purchase_session: {
+        Args: { local_day_start: string; target_store_id: string }
+        Returns: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "purchase_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
