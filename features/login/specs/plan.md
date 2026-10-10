@@ -219,3 +219,65 @@ Escribo una contraseña débil e inicio sesión → `submitLogin` en `useLoginVi
 | Unión de estados `notice | form | saving | done` | Booleanos `isChanging`, `isSaving`, `isDone` | Tres booleanos admiten combinaciones imposibles (guardando y terminado a la vez); la unión no |
 | "Contraseña vencida" fuera de alcance | Inventar una fecha de vencimiento | Supabase Auth no la lleva; exigiría una tabla de perfil con una fecha y una política de duración, que son decisiones de producto |
 | Reusar `PasswordInput` (HU-23) para los dos campos nuevos | Un campo nuevo sin ojo | Ya existe, y el usuario escribe una contraseña nueva: es cuando más ayuda verla |
+
+## SCRUM-50: cierre de sesión por inactividad
+
+### Archivos
+
+```
+features/login/
+  components/
+    InactivityTimeout.tsx              ("use client") no dibuja nada: monta el ViewModel (solo presentación)
+    InactivityNotice.tsx               aviso "Tu sesión se cerró por inactividad" (role="status")
+    models/InactivityNoticeProps.interface.ts
+  hooks/
+    useInactivityTimeoutViewModel.ts   sesión → listeners + temporizador → cierre y redirección
+  services/
+    activity.service.ts                leer, registrar y borrar la última actividad (localStorage con respaldo en memoria)
+  utils/
+    isInactivityExpired.ts             función pura: (ahora, últimaActividad, límite) → ¿venció?
+    parseInactivityLimit.ts            función pura: texto de la variable → minutos válidos o el default
+  constants/
+    login.constants.ts                 + límite, eventos, claves, parámetro `motivo`, textos del aviso
+  tests/
+    isInactivityExpired.test.ts · parseInactivityLimit.test.ts
+  hooks/useLoginViewModel.ts           + lee ?motivo=inactividad (useSearchParams) y expone showInactivityNotice
+  components/LoginForm.tsx             + pinta InactivityNotice sobre el título
+
+services/session.service.ts            + signOutUser()
+app/layout.tsx                         + <InactivityTimeout /> junto al SessionGuard
+.env.example                           + NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES (comentada)
+```
+
+Sin tablas, RLS, RPC ni Edge Functions nuevas.
+
+### Flujo
+
+Abro Tacha con sesión → `app/layout.tsx` monta `InactivityTimeout` → `useInactivityTimeoutViewModel` se suscribe con `subscribeToSessionChanges` y reduce la sesión con `getSessionStatus`. Solo con `authenticated`, un efecto registra los listeners (`pointerdown`, `keydown`, `scroll`, `visibilitychange`) y arma un temporizador. Cada evento llama a `recordActivity()` (`activity.service.ts`, máximo una escritura por segundo). Al dispararse el temporizador, `isInactivityExpired(now, readLastActivity(), limit)` decide: si venció → `signOutUser()` + `router.replace("/login?motivo=inactividad")`; si no, se reprograma por el tiempo restante. En `/login`, `useLoginViewModel` lee el parámetro con `useSearchParams` y `LoginForm` pinta `InactivityNotice`.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Vive en `features/login/` | Una feature `inactivity-timeout/` | Así está la historia en Jira (es parte del ciclo de sesión del login). Costo: se monta desde `app/layout.tsx`, no desde `/login`, porque debe medir en todas las pantallas privadas |
+| Comparar marcas de tiempo (`ahora - últimaActividad`) | Un `setTimeout` que se reinicia en cada evento | Un temporizador en una pestaña oculta se retrasa y no sabe de otras pestañas; la marca compartida da una sola verdad |
+| Marca en `localStorage` con respaldo en memoria | Solo en memoria | Con dos pestañas, una inactiva cerraría la sesión de quien trabaja en la otra (el `signOut` local las cierra todas) |
+| Escritura limitada a 1 por segundo | Escribir en cada evento | `scroll` dispara decenas de eventos por segundo; cada uno sería una escritura síncrona a `localStorage` |
+| Función pura `isInactivityExpired` | Lógica dentro del efecto | Se prueba sin React ni reloj falso, y el caso borde (`>=` vs `>`) queda fijado en una prueba |
+| Límite por variable de entorno con default de 30 min | Constante fija o pantalla de ajustes | El criterio pide "configurable"; una pantalla de ajustes es otra historia. Costo: cambiarlo exige recompilar |
+| `parseInactivityLimit` defensivo | Confiar en `Number(...)` | `Number("")` es `0`: un valor vacío cerraría la sesión al instante |
+| `signOut({ scope: "local" })` | `scope: "global"` | Global cerraría la sesión en los demás dispositivos de la persona, que quizá sí están en uso |
+| `replace("/login?motivo=inactividad")` | `push` o un estado compartido | Con `push`, "atrás" volvería a una pantalla privada sin sesión. La URL es una bandera que se puede probar y recargar; un estado se perdería al recargar |
+| El parámetro es una bandera, no un destino | `?next=/lista` | Un destino que viene de la URL es una redirección abierta si no se valida |
+| `pointerdown` en vez de `click` o `mousemove` | `mousemove` | `pointerdown` cubre mouse y táctil; `mousemove` dispara sin parar y una vibración de la mesa contaría como actividad |
+| Sin aviso previo ni modal | Cuenta regresiva de 60 s | No lo piden los criterios y suma un componente, un estado y un temporizador más que defender |
+| Componente aparte, no dentro de `SessionGuard` | Meterlo al guard | El guard está apagado por defecto y el cierre por inactividad debe funcionar igual: son dos responsabilidades |
+| Una sesión anónima no se mide | Medir cualquier sesión | `ensureSession` crea anónimas para cualquiera; cerrarlas sería un `signOut` sin sentido y rompería las demos de `/lista` |
+
+### Conceptos nuevos
+
+- Efecto con limpieza: registra listeners y temporizador y los quita al desmontar o cuando cambia la sesión.
+- Throttle (limitar la frecuencia) a mano, con una marca de tiempo.
+- `visibilitychange` y por qué los temporizadores se retrasan en pestañas ocultas.
+- `localStorage` compartido entre pestañas y su fallo posible (acceso bloqueado).
+- `useSearchParams` de Next: en el build exige un límite `Suspense` alrededor del componente que lo usa.
