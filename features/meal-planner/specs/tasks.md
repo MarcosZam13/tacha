@@ -42,7 +42,7 @@ Bloqueado / fuera de esta historia:
 - [x] 12. Presentación: `MealSlot` (botón vacío/asignado), `MealSlotDialog`, `MealSlotRecipeList`, `MealSlotCookField`, `MealSlotServingsField`, `MealPlanLoadError` y la conexión en `MealPlanner`, `WeekGrid` y `MealPlannerDay`.
 - [x] 13. Aviso al eliminar una receta en `features/recipes/`: `countRecipeMealPlans`, `useRecipeDeletion`, `RecipeDeleteDialog` y sus modelos, textos y tests (cierra el CA-02 de SCRUM-96).
 - [x] 14. Tests de la pantalla con Page Object (`MealPlanner.page.ts` y `MealPlanner.test.tsx` se extienden): abrir el diálogo, elegir y guardar, reasignar, quitar, sin recetas, errores, foco al cerrar.
-- [ ] 15. `docs/documento-proyecto.md` §6 (`meal_plans` con `owner_id` y `assigned_cook` → `auth.users`, borrado de recetas) y la línea de `meal_plans` en `types/database.types.ts` (solo lo de esta historia).
+- [x] 15. `docs/documento-proyecto.md` §6 (`meal_plans` con `owner_id` y `assigned_cook` → `auth.users`, borrado de recetas) y la línea de `meal_plans` en `types/database.types.ts` (solo lo de esta historia).
 - [ ] 16. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): asignar y que siga tras recargar, reasignar, quitar, y el aviso al eliminar una receta del plan (con limpieza de las filas creadas).
 - [ ] 17. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`; validar en el navegador los casos de §13 de HU-68 (desktop y mobile) y la prueba SQL.
 - [ ] 18. Revisión con `code-reviewer` y `security-reviewer` (tabla nueva con RLS y una RPC), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
