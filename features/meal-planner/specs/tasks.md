@@ -24,7 +24,7 @@ Bloqueado / fuera de esta historia:
 
 - [ ] Asignar receta, cocinero y porciones a un espacio: SCRUM-100.
 - [ ] Tabla `meal_plans` y lectura del plan: SCRUM-100 (migración: la `018` es de la PR #55; sería la `019` o la siguiente libre).
-- [ ] "Agregar semana a la lista": SCRUM-101.
+- [ ] "Agregar semana a la lista": SCRUM-101 (sección de abajo).
 
 ## SCRUM-100: asignar receta, cocinero y porciones a un espacio
 
@@ -52,4 +52,26 @@ Bloqueado / fuera de esta historia:
 
 - [ ] Plan compartido del household y recetas compartidas: pasos en SPEC §15, cuando existan HU-35 y la integración de households.
 - [ ] Elegir a otro miembro como cocinero: HU-35 / SCRUM-60.
-- [ ] "Agregar semana a la lista": SCRUM-101.
+- [ ] "Agregar semana a la lista": SCRUM-101 (sección de abajo).
+
+## SCRUM-101: agregar la semana a la lista
+
+- [x] 1. SPEC (sección 16; huecos de HU-69 decididos con el responsable el 2026-10-10: un botón sobre la semana a la vista, destino lista general con las sublistas pendientes, cantidades × multiplicador, una vez por espacio, confirmación con aviso de ingredientes y "Ver lista", botón deshabilitado sin comidas).
+- [x] 2. Plan y tareas.
+- [ ] 3. Migración `021_add_week_to_list.sql` (número provisional: la `018` es de la PR #55 y la `020` de otra rama): función interna `add_week_ingredients_to_list` (copia de las reglas con multiplicador) y RPC `add_week_to_general_list`. **No modifica ninguna función ni tabla existente.**
+- [ ] 4. Prueba SQL `supabase/tests/021_add_week_to_list.test.sql` con rollback: un espacio ×2 agrega el doble que ×1, el mismo ingrediente en dos días queda en una fila, la misma receta en dos espacios se agrega dos veces, semana vacía no escribe nada, otro usuario no ve ni suma sobre mi plan, sin sesión `42501`, rango invertido o de más de 7 días `22023`, todo o nada (una receta con más de 50 ingredientes aborta toda la semana) y una semana con un solo espacio ×1 deja la lista igual que `add_recipe_to_general_list` con esa receta (equivalencia entre las dos copias).
+- [ ] 5. Aplicar la `021` en Supabase (SQL Editor, ensayo con rollback y luego con su fila de historial según `supabase/README.md#migraciones`) y correr la prueba `021` (y, como comprobación, las `015` y `017`, que no deberían cambiar). Bloquea la validación, no el código del cliente.
+- [ ] 6. Constantes: estados y acciones del diálogo, textos (botón, confirmación, resumen, errores), nombre de la RPC y su error; modelos en `models/week-list-addition.interfaces.ts` y `.types.ts`.
+- [ ] 7. Utils puros y sus tests: `countWeekMeals`, `getWeekRange`, `toWeekAdditionSummary`, `week-list-addition.reducer`.
+- [ ] 8. Servicio `week-list.service.ts`: `addWeekToList()` con su adapter y su test (cliente de Supabase simulado).
+- [ ] 9. `useWeekListAddition` (abrir, confirmar, cancelar, una sola petición, error) y su test; composición en `useMealPlannerViewModel`.
+- [ ] 10. Presentación: `AddWeekToListButton`, `AddWeekToListDialog`, `AddWeekToListResult` y la conexión en `MealPlanner`.
+- [ ] 11. Tests de la pantalla con Page Object (`MealPlanner.page.ts` se extiende): botón deshabilitado y habilitado, cambiar de semana, confirmación, cancelar, éxito con "Ver lista", error, doble clic.
+- [ ] 12. `types/database.types.ts` (solo `add_week_to_general_list` y `add_week_ingredients_to_list`) y `docs/documento-proyecto.md` (agregar la semana y el multiplicador en la lista).
+- [ ] 13. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): con dos comidas asignadas, agregar la semana, confirmar y ver los productos en `/lista`; botón deshabilitado sin comidas.
+- [ ] 14. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`; validar en el navegador los casos de §16.10 (desktop y mobile) y las pruebas SQL.
+- [ ] 15. Revisión con `code-reviewer` y `security-reviewer` (RPC con escritura y refactor de una mergeada), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Elegir una sublista de fecha como destino (HU-69 CA-03): depende de HU-44 a HU-46 (Sprint 4). Avisarlo en la PR.
