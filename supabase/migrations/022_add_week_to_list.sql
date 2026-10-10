@@ -28,8 +28,15 @@
 --
 -- security invoker: corre con los permisos de quien llama, así que RLS sigue
 -- siendo el control (una receta ajena no se ve, una lista ajena no se toca).
--- No toma el bloqueo de la lista ni crea la lista: lo hace quien la llama, una
--- sola vez para toda la semana.
+-- No crea la lista: la crea quien la llama, una sola vez para toda la semana.
+--
+-- Como está expuesta a authenticated (hace falta para que otra función invoker
+-- la llame), valida lo mismo que add_recipe_to_general_list y no depende de quien
+-- la llama: sesión, multiplicador, que la receta exista (P0002), el tope de 50
+-- ingredientes y el bloqueo de la lista. El bloqueo es de transacción y
+-- reentrante: si add_week_to_general_list ya lo tomó, tomarlo otra vez no cuesta
+-- nada; si alguien la llama directo y en paralelo, las llamadas se hacen una
+-- detrás de otra y no leen el mismo "disponible" (regla 20).
 --
 -- Devuelve: { "added": [nombre], "missing": [{ product_name, quantity, unit }],
 --             "skipped": [nombre], "processed": [nombre] }
@@ -48,6 +55,8 @@ security invoker
 set search_path = ''
 as $$
 declare
+  max_ingredients constant integer := 50;
+  ingredient_count integer;
   ingredient record;
   chosen_variant_id uuid;
   chosen_base_quantity numeric;
@@ -67,12 +76,38 @@ begin
       using errcode = '42501';
   end if;
 
-  -- Mismo rango que meal_plans.servings_multiplier (019): la función se puede
-  -- llamar directo, y un 0 o un negativo escribiría cantidades que no valen.
-  if servings_multiplier is null or servings_multiplier < 0.5 or servings_multiplier > 4 then
-    raise exception 'El multiplicador debe estar entre 0,5 y 4'
+  -- Mismo rango y mismo paso que meal_plans.servings_multiplier (019): la
+  -- función se puede llamar directo, y un 0, un negativo o un 0,7 escribirían
+  -- cantidades que el plan nunca produce.
+  if servings_multiplier is null
+    or servings_multiplier < 0.5
+    or servings_multiplier > 4
+    or servings_multiplier * 2 <> trunc(servings_multiplier * 2) then
+    raise exception 'El multiplicador debe estar entre 0,5 y 4, en pasos de 0,5'
       using errcode = '22023';
   end if;
+
+  -- RLS oculta las recetas ajenas: no existe y no es tuya dan el mismo error.
+  if not exists (select 1 from public.recipes r where r.id = target_recipe_id) then
+    raise exception 'Receta no encontrada'
+      using errcode = 'P0002';
+  end if;
+
+  -- Mismo tope que save_recipe y add_recipe_to_general_list: recipe_ingredients
+  -- también se puede escribir directo, sin pasar por save_recipe.
+  select count(*) into ingredient_count
+  from public.recipe_ingredients ri
+  where ri.recipe_id = target_recipe_id;
+
+  if ingredient_count > max_ingredients then
+    raise exception 'La receta puede tener hasta % ingredientes', max_ingredients
+      using errcode = '22023';
+  end if;
+
+  -- Misma clave que add_recipe_to_general_list (015): una receta suelta, una
+  -- semana y una llamada directa a esta función sobre la misma lista se hacen
+  -- una detrás de otra.
+  perform pg_advisory_xact_lock(hashtextextended(target_list_id::text, 0));
 
   for ingredient in
     select
@@ -283,11 +318,9 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
-  max_ingredients constant integer := 50;
   max_range_days constant integer := 6;
   general_list_id uuid;
   slot record;
-  ingredient_count integer;
   slot_result jsonb;
   meal_count integer := 0;
   added_names text[] := '{}';
@@ -336,7 +369,9 @@ begin
 
   -- La misma clave que add_recipe_to_general_list: una receta suelta y una
   -- semana agregadas a la vez se hacen una detrás de otra, y las dos ven el
-  -- mismo "disponible" (regla 20). Se suelta sola al terminar la función.
+  -- mismo "disponible" (regla 20). Se toma ya acá para que toda la semana quede
+  -- serializada (la interna lo vuelve a tomar sin costo). Se suelta sola al
+  -- terminar la transacción.
   perform pg_advisory_xact_lock(hashtextextended(general_list_id::text, 0));
 
   for slot in
@@ -347,17 +382,8 @@ begin
       mp.date,
       case mp.meal_type when 'breakfast' then 1 when 'lunch' then 2 else 3 end
   loop
-    -- Mismo tope que add_recipe_to_general_list: recipe_ingredients también se
-    -- puede escribir directo, sin pasar por save_recipe.
-    select count(*) into ingredient_count
-    from public.recipe_ingredients ri
-    where ri.recipe_id = slot.recipe_id;
-
-    if ingredient_count > max_ingredients then
-      raise exception 'La receta puede tener hasta % ingredientes', max_ingredients
-        using errcode = '22023';
-    end if;
-
+    -- El tope de 50 ingredientes y el resto de las validaciones los hace la
+    -- función interna, por espacio: un 22023 aborta toda la semana.
     slot_result := public.add_week_ingredients_to_list(
       general_list_id, slot.recipe_id, slot.servings_multiplier
     );
