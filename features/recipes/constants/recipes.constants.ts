@@ -1,4 +1,4 @@
-import { APP_ROUTE, CATALOG_BASE_UNIT } from "@/constants";
+import { APP_ROUTE, CATALOG_BASE_UNIT, RECIPES_TABS_TEXT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 
 // Constantes propias de recetas. Viven dentro de la feature porque ninguna
@@ -32,6 +32,7 @@ export const RECIPES_DB = {
     "id, name, base_servings, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
   RPC: {
     ADD_RECIPE_TO_GENERAL_LIST: "add_recipe_to_general_list",
+    GET_RECIPE_COVERAGE: "get_recipe_coverage",
     SAVE_RECIPE: "save_recipe",
   },
   TABLE: {
@@ -167,23 +168,7 @@ export const RECIPE_EDITOR_TEXT = {
   UNIT_LABEL: "Unidad",
 } as const;
 
-// Sub-tabs de la sección "Recetas" (DESIGN.md §3.1). El planificador es SCRUM-99.
-export const RECIPES_TAB = {
-  PLANNER: "planner",
-  RECIPES: "recipes",
-} as const;
-
-export type RecipesTabType = (typeof RECIPES_TAB)[keyof typeof RECIPES_TAB];
-
-// Orden en que se dibujan los tabs. isAvailable = false: se ve, pero todavía
-// no navega (cuando exista el planificador pasa a true y gana su ruta).
-export const RECIPES_TABS = [
-  { id: RECIPES_TAB.RECIPES, isAvailable: true, label: "Recetas" },
-  { id: RECIPES_TAB.PLANNER, isAvailable: false, label: "Planificador semanal" },
-] as const satisfies ReadonlyArray<{ id: RecipesTabType; isAvailable: boolean; label: string }>;
-
 export const RECIPE_TEXT = {
-  COMING_SOON: "· Próximamente",
   EDIT: "Editar",
   EMPTY_CATALOG: "Todavía no tienes recetas.",
   INGREDIENTS_LABEL: "Ingredientes",
@@ -192,8 +177,7 @@ export const RECIPE_TEXT = {
   NEW_RECIPE: "+ Nueva receta",
   SERVINGS_PLURAL: "porciones",
   SERVINGS_SINGULAR: "porción",
-  TABS_LABEL: "Secciones de recetas",
-  TITLE: "Recetas",
+  TITLE: RECIPES_TABS_TEXT.SECTION_TITLE,
 } as const;
 
 // Estados de la eliminación (RecipeDeletionState en models/recipe-deletion.types.ts).
@@ -242,6 +226,62 @@ export const RECIPE_ADD_TO_LIST_TEXT = {
   SUCCESS: "Agregaste la receta a tu lista.",
   TRIGGER: "Agregar receta a lista",
   VIEW_LIST: "Ver lista",
+} as const;
+
+// Estados del panel "Ver qué falta" (RecipeCoverageState en
+// models/recipe-coverage.types.ts).
+export const RECIPE_COVERAGE_STATUS = {
+  CLOSED: "closed",
+  ERROR: "error",
+  LOADING: "loading",
+  NOT_FOUND: "notFound",
+  READY: "ready",
+} as const;
+
+// Estado de cada ingrediente y su motivo, tal como los devuelve
+// get_recipe_coverage (017_recipe_coverage.sql, reglas 29 y 30 de la SPEC).
+export const RECIPE_COVERAGE_INGREDIENT_STATUS = {
+  COVERED: "covered",
+  MISSING: "missing",
+} as const;
+
+export const RECIPE_COVERAGE_REASON = {
+  NOT_CHECKED: "notChecked",
+  NOT_IN_LIST: "notInList",
+  SHORT: "short",
+} as const;
+
+// Realtime sobre list_items (regla 32): solo se usa como señal para volver a
+// pedir el estado a la base. EVENT "*" = insert, update y delete.
+export const RECIPE_COVERAGE_REALTIME = {
+  CHANNEL_PREFIX: "recipe-coverage-",
+  EVENT: "*",
+  LISTEN_TYPE: "postgres_changes",
+  SCHEMA: "public",
+  TABLE: "list_items",
+} as const;
+
+// Prefijo del id del panel de cada tarjeta (aria-controls del botón).
+export const RECIPE_COVERAGE_PANEL_ID_PREFIX = "recipe-coverage-panel-";
+
+export const RECIPE_COVERAGE_TEXT = {
+  ALL_COVERED: "Tienes todo para cocinarla",
+  CLOSE: "Ocultar qué falta",
+  COVERED: "Cubierto",
+  ERROR: "No se pudo revisar qué falta. Intenta de nuevo.",
+  INGREDIENTS_LABEL: "Ingredientes de la receta",
+  LOADING: "Revisando qué falta",
+  MISSING: "Falta",
+  NOT_FOUND: "No encontramos esa receta.",
+  OPEN: "Ver qué falta",
+  REASON_NOT_CHECKED: "En tu lista, sin tachar",
+  REASON_NOT_IN_LIST: "No está en tu lista",
+  REASON_SHORT: "Te falta comprar",
+  RETRY: "Reintentar",
+  SUMMARY_MISSING_PLURAL: "Te faltan",
+  SUMMARY_MISSING_SINGULAR: "Te falta",
+  SUMMARY_OF: "de",
+  SUMMARY_UNIT: "ingredientes",
 } as const;
 
 // Recetas ya agregadas desde este navegador (regla 27 de la SPEC). Con prefijo

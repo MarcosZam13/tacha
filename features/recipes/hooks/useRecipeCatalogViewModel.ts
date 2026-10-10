@@ -3,6 +3,7 @@ import { RECIPE_CATALOG_STATUS, RECIPE_TEXT } from "../constants/recipes.constan
 import type { RecipeCatalogViewModel } from "../models/recipe-catalog.interfaces";
 import type { RecipeCatalogState } from "../models/recipe-catalog.types";
 import { getRecipeSummaries } from "../services/recipes.service";
+import { useRecipeCoverage } from "./useRecipeCoverage";
 import { useRecipeDeletion } from "./useRecipeDeletion";
 import { useRecipeListAddition } from "./useRecipeListAddition";
 
@@ -10,9 +11,9 @@ import { useRecipeListAddition } from "./useRecipeListAddition";
  * Catálogo de recetas: carga al montar y le entrega a RecipeCatalog.tsx lo
  * que dibuja. En estado solo se guarda lo que no se puede calcular (en qué
  * estado está la carga y, si terminó, las recetas); el resto se deriva.
- * La eliminación y agregar a la lista viven en sus propios hooks
- * (useRecipeDeletion, useRecipeListAddition); este solo quita de la lista la
- * receta que el primero avisa que se borró.
+ * La eliminación, agregar a la lista y "Ver qué falta" viven en sus propios
+ * hooks (useRecipeDeletion, useRecipeListAddition, useRecipeCoverage); este
+ * solo quita de la lista la receta que el primero avisa que se borró.
  */
 export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   // Arranca en "cargando": el efecto nunca tiene que hacer un setState
@@ -29,7 +30,16 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
     );
   };
 
-  const deletion = useRecipeDeletion({ onDeleted: removeRecipe });
+  const coverage = useRecipeCoverage();
+  // Una receta borrada cierra su panel de "qué falta": si no, su suscripción
+  // seguiría abierta sin ninguna tarjeta que la muestre.
+  const { onRecipeRemoved } = coverage;
+  const deletion = useRecipeDeletion({
+    onDeleted: (recipeId) => {
+      removeRecipe(recipeId);
+      onRecipeRemoved(recipeId);
+    },
+  });
   const listAddition = useRecipeListAddition();
 
   useEffect(() => {
@@ -53,6 +63,7 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   const recipes = state.status === RECIPE_CATALOG_STATUS.READY ? state.recipes : [];
 
   return {
+    coverage,
     deletion,
     errorMessage: state.status === RECIPE_CATALOG_STATUS.ERROR ? RECIPE_TEXT.LOAD_ERROR : null,
     hasRecipes: recipes.length > 0,

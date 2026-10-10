@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { RecipesTabs } from "@/components/recipes-tabs/RecipesTabs";
 import { Spinner } from "@/components/ui";
-import { RECIPE_ROUTE, RECIPE_TEXT, RECIPES_TAB } from "./constants/recipes.constants";
+import { RECIPES_TAB } from "@/constants";
+import { RECIPE_ROUTE, RECIPE_TEXT } from "./constants/recipes.constants";
 import { RecipeCard } from "./components/RecipeCard";
 import { RecipeCatalogEmptyState } from "./components/RecipeCatalogEmptyState";
 import { RecipeDeleteDialog } from "./components/RecipeDeleteDialog";
 import { RecipeRepeatAddDialog } from "./components/RecipeRepeatAddDialog";
-import { RecipesTabs } from "./components/RecipesTabs";
 import { useRecipeCatalogViewModel } from "./hooks/useRecipeCatalogViewModel";
 
 /**
@@ -18,6 +19,7 @@ export const RecipeCatalog = (): React.JSX.Element => {
   const viewModel = useRecipeCatalogViewModel();
   const { onDeleteRequest, ...deleteDialog } = viewModel.deletion;
   const { getRecipeAddToList, onAddRequest, ...repeatAddDialog } = viewModel.listAddition;
+  const { getRecipeCoverage, onCoverageRetry, onCoverageToggle } = viewModel.coverage;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
@@ -46,7 +48,10 @@ export const RecipeCatalog = (): React.JSX.Element => {
             <RecipeCard
               key={recipe.id}
               addToList={getRecipeAddToList(recipe.id)}
+              coverage={getRecipeCoverage(recipe.id)}
               onAddToListRequest={onAddRequest}
+              onCoverageRetry={onCoverageRetry}
+              onCoverageToggle={onCoverageToggle}
               onDeleteRequest={onDeleteRequest}
               recipe={recipe}
             />
