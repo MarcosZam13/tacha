@@ -15,7 +15,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 9. Test de `useMealPlannerViewModel` (arranca en la actual, flechas en los extremos, pasar a la próxima y volver, "hoy" nulo no arma la grilla).
 - [x] 10. Presentación: `WeekSelector`, `MealSlot`, `MealPlannerDay`, `WeekGrid`, `MealPlanner` y la ruta `app/(app)/recetas/planificador/page.tsx`.
 - [x] 11. Test de la pantalla con Page Object (`MealPlanner.page.ts` + `MealPlanner.test.tsx`): 7 días y 21 espacios, sub-tab activo, flechas, hoy resaltado, espacio vacío sin botón.
-- [ ] 12. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): ir de Recetas al planificador y volver, pasar a la próxima semana y regresar, mobile apilado.
+- [x] 12. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): E2E-PLANNER-01 a 05 (sub-tabs, semana actual con hoy, próxima semana y volver, 7 columnas en desktop, días apilados en mobile).
 - [ ] 13. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`.
 - [ ] 14. Validar en el navegador los casos de §13 de HU-67 (desktop y mobile).
 - [ ] 15. Revisión con `code-reviewer` y completar los pasos de prueba manual del PR antes de `waiting qa`. No toca auth, RLS ni formularios: `security-reviewer` no aplica.
