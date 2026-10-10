@@ -97,8 +97,145 @@ Todo en hora local del navegador (SPEC regla 1). Con `new Date(año, mes, día)`
 
 ## Deuda conocida
 
-- **Los espacios siempre están vacíos** hasta SCRUM-100: la pantalla es un calendario sin contenido. Es lo que HU-67 pide, pero conviene que se mergee cerca de SCRUM-100 para que el usuario no vea una pantalla "vacía" mucho tiempo.
+- **Los espacios están vacíos hasta SCRUM-100** (esa deuda se cierra en la sección de esa historia más abajo). Es lo que HU-67 pide, pero conviene que se mergee cerca de SCRUM-100 para que el usuario no vea una pantalla "vacía" mucho tiempo.
 - **El foco del teclado se pierde al pulsar una flecha**, porque queda deshabilitada (SPEC §9): un Tab para llegar a la otra. Arreglo posible: `aria-disabled` en el `Button` compartido.
 - **La semana no se actualiza a medianoche** con la pantalla abierta (SPEC regla 9).
 - **Sin household:** el calendario no sabe de quién es el plan. Cuando `meal_plans` use `household_id` (SCRUM-100) hay que decidir qué ve un usuario sin household.
 - **Hora de verano:** Costa Rica no la usa, pero `buildWeek` suma días con `new Date(año, mes, día + n)` y no con milisegundos, así que tampoco falla donde sí exista.
+
+---
+
+## SCRUM-100: asignar receta, cocinero y porciones a un espacio
+
+> **Verificado el 2026-10-10** contra `develop` (con SCRUM-99, 97, 98 y 66 mergeadas): `features/meal-planner/` tiene el calendario con los espacios vacíos, `recipes` solo se lee por `owner_id` (`006`), `household_members` solo deja leer la propia fila (`011`) y no existe la lista de miembros (HU-35), la última migración es la `017` y la `018` está en la PR #55 (SCRUM-67): esta historia usa la **`019`** o la siguiente libre al aplicarla (`supabase/README.md#migraciones`). No existe `meal_plans`.
+
+### Archivos
+
+```
+features/meal-planner/
+  MealPlanner.tsx                       + conecta el plan, el diálogo y el reintento de carga
+  components/
+    MealSlot.tsx                        ahora es un botón: vacío ("+ Almuerzo") o asignado (receta, cocinero, ×N)
+    MealPlannerDay.tsx                  + pasa a cada espacio su asignación y el handler de abrir
+    WeekGrid.tsx                        + deshabilita los espacios mientras el plan no está listo
+    MealPlanLoadError.tsx               nuevo: mensaje de error de carga con "Reintentar"
+    MealSlotDialog.tsx                  nuevo: Modal con título, receta, cocinero, multiplicador y acciones
+    MealSlotRecipeList.tsx              nuevo: radiogroup de recetas (o vacío / error / cargando)
+    MealSlotCookField.tsx               nuevo: "Yo" / "Sin cocinero"
+    MealSlotServingsField.tsx           nuevo: contador ×0,5 a ×4 con las porciones resultantes
+    models/…Props.(interface|type).ts   props de cada mini componente
+  hooks/
+    useMealPlannerViewModel.ts          + compone el plan y el diálogo (facade)
+    useWeekMealPlan.ts                  nuevo: carga el plan de las dos semanas y aplica los cambios al estado
+    useMealSlotDialog.ts                nuevo: el diálogo (reducer, cargar recetas, guardar, quitar)
+  models/
+    meal-plan.interfaces.ts             nuevo: MealPlanRow, MealPlanEntry, RecipeOption, SaveMealSlotPayload/Response, ViewModels
+    meal-plan.types.ts                  nuevo: MealPlanState, MealSlotDialogState, MealSlotDialogAction, CookChoiceType
+  services/
+    meal-plan.service.ts                nuevo: getMealPlan(), saveMealSlot(), clearMealSlot(), getRecipeOptions()
+  utils/
+    toMealPlanEntry.ts                  fila de la base → entrada lista para la grilla (textos armados)
+    toRecipeOption.ts                   fila de recipes → opción del diálogo
+    meal-slot-dialog.reducer.ts         reducer puro + estado inicial del diálogo
+    clampServingsMultiplier.ts          sube o baja el multiplicador dentro de ×0,5 a ×4
+    formatMultiplier.ts                 2 → "×2", 0.5 → "×0,5"
+    formatResultingServings.ts          12 y ×2 → "24 porciones"; 3 y ×0,5 → "1,5 porciones"
+    toSlotKey.ts                        fecha + comida → clave para buscar una asignación en el plan
+    getMealSlotLabel.ts                 nombre accesible del espacio ("Almuerzo del lunes 12, vacío, asignar")
+  constants/meal-planner.constants.ts   + estados, acciones, textos, límites del multiplicador, tablas y RPC
+
+features/recipes/
+  hooks/useRecipeDeletion.ts            + cuenta los espacios del plan al pedir eliminar
+  services/recipes.service.ts           + countRecipeMealPlans()
+  components/RecipeDeleteDialog.tsx     + muestra el aviso si la receta está en el plan
+  models/recipe-deletion.*              + mealPlanCount en el estado y en el ViewModel
+  constants/recipes.constants.ts        + textos del aviso y nombre de la tabla
+
+supabase/migrations/019_meal_plans.sql  tabla, RLS, permisos por columna y RPC assign_meal_slot
+supabase/tests/019_meal_plans.test.sql  prueba SQL con rollback
+types/database.types.ts                 SOLO la entrada de meal_plans y assign_meal_slot (el resto lo regenera quien cierre el sprint)
+docs/documento-proyecto.md              §6: meal_plans con owner_id y assigned_cook → auth.users
+```
+
+No se toca `features/shopping-list/`, ni `supabase/schema.sql`.
+
+### Datos
+
+Detalle de columnas, RLS y RPC en la [SPEC §12](SPEC.md#12-contratos-externos). Lo que importa del cómo:
+
+**Migración `019_meal_plans.sql`:**
+
+- Tabla `meal_plans` con las columnas de la SPEC; `unique (owner_id, date, meal_type) where household_id is null` (índice parcial, como el de la lista general en `004`).
+- RLS activa y sin políticas por defecto. Políticas para `authenticated`: `select` y `delete` por `owner_id = (select auth.uid())` con `household_id is null`; `insert` y `update` con las mismas condiciones **y** `exists` sobre una receta propia (`update` con `using` y `with check`, como `007`).
+- `revoke all … from public, anon, authenticated` y devolver solo `select`, `delete` y `insert`/`update` de las columnas del espacio. `owner_id`, `household_id` y `created_at` quedan fuera (mismo criterio que `008`).
+- Función `assign_meal_slot(...)` `security invoker`, `search_path` vacío, solo `authenticated`: valida sesión (`42501`), busca la receta (`P0002`), y hace `insert … on conflict (owner_id, date, meal_type) where household_id is null do update set recipe_id, assigned_cook, servings_multiplier`. `assigned_cook = case when cook_is_self then auth.uid() end`. Devuelve el id de la fila.
+- Los `check` de la tabla (tipo de comida, multiplicador de 0,5 a 4 y múltiplo de 0,5) repiten lo que valida la pantalla.
+
+**Leer el plan (`getMealPlan`)** — una sola petición para las dos semanas:
+
+```
+meal_plans(id, date, meal_type, assigned_cook, servings_multiplier,
+           recipes(id, name, base_servings))
+where date >= {lunes de la semana actual} and date <= {domingo de la próxima}
+```
+
+Sin `.eq("owner_id", …)`: lo hace RLS. El rango de fechas sale de `getWeekStartForOffset` y `toLocalDateKey` (SCRUM-99), así que "las dos semanas" siguen siendo las que dibuja la grilla.
+
+**Recetas del diálogo (`getRecipeOptions`):** `recipes(id, name, base_servings)` ordenadas por nombre; sin filtro por dueño.
+
+**Quitar (`clearMealSlot`):** `delete from meal_plans where date = … and meal_type = …`. RLS acota a lo propio.
+
+**Aviso al eliminar una receta (`countRecipeMealPlans`, en `features/recipes/`):** `meal_plans` con `select("id", { count: "exact", head: true })` y `.eq("recipe_id", …)`: solo cuenta, no trae filas.
+
+### Flujo
+
+1. `/recetas/planificador` → `MealPlanner` → `useMealPlannerViewModel`, que ahora compone `useToday` + la semana elegida (SCRUM-99) + `useWeekMealPlan` + `useMealSlotDialog`.
+2. **Cargar:** cuando se conoce "hoy" (`isReady`), `useWeekMealPlan` pide el plan de las dos semanas (`getMealPlan`) en un efecto con bandera de cancelación. Estado `loading` → `ready` con las entradas, o `error` (con "Reintentar").
+3. **Dibujar:** `buildWeek` arma los días como antes; el ViewModel junta cada espacio con su entrada (`toSlotKey`) y la grilla dibuja el espacio como vacío o asignado. Mientras el plan no está `ready`, los espacios están deshabilitados.
+4. **Abrir el diálogo:** tocar un espacio → `onSlotOpen({ dateKey, mealType })` → estado `editing`. Si hay una entrada, el formulario arranca con sus valores; si no, receta sin elegir, cocinero "Yo", ×1. En paralelo se piden las recetas (`getRecipeOptions`).
+5. **Editar:** cada cambio es una acción del reducer (`recipeChosen`, `cookChanged`, `multiplierIncreased`, `multiplierDecreased`). El contador no pasa de ×0,5 ni de ×4. "Guardar" se habilita con una receta elegida.
+6. **Guardar:** `saving` → `saveMealSlot` (RPC `assign_meal_slot`) → con éxito el hook del plan reemplaza o agrega la entrada en su estado y el diálogo se cierra; con `P0002` (la receta se borró) se muestra "Esa receta ya no existe. Elige otra." y se recargan las recetas; con otro error, `failed` con el mensaje y el formulario conservado.
+7. **Quitar:** `saving` → `clearMealSlot` → con éxito se quita la entrada del estado y se cierra el diálogo.
+8. **Cerrar:** "Cancelar", Escape o clic fuera → `closed` sin cambios (mientras guarda no se cierra). El foco vuelve al espacio que abrió el diálogo.
+9. **Eliminar una receta (en `/recetas`):** `useRecipeDeletion.onDeleteRequest` abre el diálogo y pide `countRecipeMealPlans`; con N > 0 el diálogo muestra "Está en N espacios de tu plan; quedarán vacíos". Si el conteo falla, el diálogo se abre sin aviso. Al confirmar, el `delete` de la receta libera los espacios por `on delete cascade`.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Plan **personal** con `owner_id`, `household_id` nullable sin FK | Plan del household desde ya | Decidido con el responsable tras evaluarlo (SPEC §15): el household arrastra reescribir RLS de recetas, decisiones de producto abiertas y cuentas registradas para probar. Con esta estructura el cambio posterior es de base y de un servicio |
+| RPC `assign_meal_slot` | `upsert` directo de PostgREST | PostgREST no puede apuntar `on conflict` a un índice parcial. La RPC hace el `insert … on conflict` con el predicado y valida adentro. Mismo patrón que `save_recipe` |
+| `delete` directo para quitar | RPC `clear_meal_slot` | Es una sola sentencia ya atómica y RLS la acota; una RPC sería código sin hacer nada más (igual que borrar una receta) |
+| El cliente manda `cook_is_self` (booleano) | Mandar el id del cocinero | El cliente nunca manda ids de usuario (security-practices): la base pone `auth.uid()`. Cuando existan los miembros, el parámetro pasa a ser un id validado contra `household_members` |
+| `assigned_cook` → `auth.users` | → `household_members` como dice documento-proyecto §6 | Un usuario sin household no está en `household_members` y no podría asignarse a sí mismo. Se actualiza el documento en el mismo PR |
+| Guardar el multiplicador | Guardar las porciones | Es lo que pide la tabla del documento, y las porciones se recalculan si la receta cambia sus porciones base |
+| Un diálogo para asignar y reasignar, con "Quitar" solo si hay algo | Dos diálogos / un flujo por pasos | Son tres campos; "corto" es lo que pide la historia. Un solo componente y un solo reducer |
+| Reducer para el diálogo | Varios `useState` | Varias acciones con reglas (límites del multiplicador, receta obligatoria, errores que se limpian); las reglas quedan en una función pura que se prueba sin React |
+| Cargar el plan de las dos semanas de una vez | Una consulta por semana | Son 14 días como mucho; las flechas no esperan a la red y el estado es una sola lista |
+| Hooks separados (`useWeekMealPlan`, `useMealSlotDialog`) compuestos por el ViewModel | Todo en `useMealPlannerViewModel` | Tres responsabilidades (semana, plan, diálogo): cada hook se lee solo (component-architecture §5, Facade), igual que `useRecipeDeletion` en recetas |
+| Actualizar el estado local con el resultado de guardar o quitar | Volver a pedir el plan entero | Una petición menos y sin parpadeo; la base ya confirmó el cambio |
+| Recetas leídas con una consulta propia de `meal-planner` | Importar `getRecipeSummaries` de `features/recipes/` | Esa trae ingredientes que el diálogo no usa, y ataría las dos features. Pedir `id, name, base_servings` es una línea |
+| El aviso de eliminar cuenta con una consulta propia de `recipes` | Que `meal-planner` exporte una función | Ninguna feature importa de la otra: la de recetas lee `meal_plans` como lee `list_items`, solo para contar |
+| `on delete cascade` en `recipe_id` | `restrict` | Decidido con el responsable: el espacio queda libre y el diálogo avisa. Con `restrict` habría que quitar la receta del plan antes, y cambiaría el flujo de eliminar ya mergeado |
+| Espacio como `<button>` con nombre accesible completo | Un `<li>` con `onClick` | Un `<li>` no se enfoca con el teclado ni lo anuncia el lector; el nombre dice día, comida y acción |
+| Sin confirmación al quitar | Diálogo de confirmación | No se pierde nada que no se rehaga en segundos, y la acción ya vive dentro de un diálogo explícito |
+
+### Seguridad
+
+- Tabla nueva con RLS: se pasa `security-reviewer` antes de `waiting qa` (toca RLS y una RPC).
+- El control real es la base: `owner_id = auth.uid()` en todas las políticas, y la receta tiene que ser propia en `insert`/`update` (sin eso se podría colgar el id de una receta ajena y leer su nombre embebido desde el plan).
+- El cliente solo manda fecha, tipo de comida, id de receta, `cook_is_self` y multiplicador. Nunca `owner_id`, `household_id` ni un id de usuario; las columnas que no son del espacio no se pueden escribir (permisos por columna).
+- `assign_meal_slot` es `security invoker`: no puede hacer nada que el usuario no pueda hacer directo. Una receta ajena y una inexistente dan el mismo `P0002`.
+- Los `check` rechazan un multiplicador fuera de rango o un tipo de comida inválido aunque se llame a la API directo.
+- El `delete` directo de otra persona no borra nada (RLS no ve la fila) y no revela si existe.
+- Riesgo a vigilar: si falta una política, un `delete` sin efecto no da error y el espacio parece quitado. Por eso el caso "recargar y sigue vacío" es obligatorio en la validación.
+
+### Deuda conocida
+
+- **Sin household:** el plan es personal. Los pasos para compartirlo están en SPEC §15.
+- **Solo "Yo" como cocinero** hasta HU-35 (lista de miembros) y los perfiles.
+- **Sin buscador** en la lista de recetas del diálogo: con muchas recetas hay que desplazarse.
+- **La base acepta cualquier fecha:** la pantalla solo ofrece las dos semanas, pero la RPC no lo exige.
+- **Un plan por usuario sin límite de filas por semana:** el índice único limita a 21 por semana. No hay límite de semanas guardadas, que crecen una por semana planificada.
+- **El multiplicador no escala las cantidades de la lista** (SCRUM-101 lo decide cuando agregue la semana).
+- **El `Modal` compartido no atrapa el foco** (deuda ya anotada en recetas): con el teclado se puede salir del diálogo con Tab.
