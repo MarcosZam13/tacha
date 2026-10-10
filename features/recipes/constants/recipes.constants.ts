@@ -134,7 +134,7 @@ const RECIPES_BASE_PATH = APP_ROUTE.RECIPES;
 export const RECIPE_ROUTE = {
   CATALOG: RECIPES_BASE_PATH,
   EDIT_SEGMENT: "editar",
-  NEW: `${RECIPES_BASE_PATH}/nueva`,
+  NEW: APP_ROUTE.RECIPE_NEW,
   // Lista general, para el link "Ver lista" de SCRUM-97.
   SHOPPING_LIST: APP_ROUTE.LIST,
 } as const;

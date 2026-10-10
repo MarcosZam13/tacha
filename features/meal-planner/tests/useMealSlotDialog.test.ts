@@ -5,6 +5,7 @@ import { COOK_CHOICE, MEAL_SLOT_TEXT, MEAL_TYPE, RECIPE_OPTIONS_STATUS } from ".
 import { useMealSlotDialog } from "../hooks/useMealSlotDialog";
 import type { MealPlanEntry, RecipeOption, SaveMealSlotResponse } from "../models/meal-plan.interfaces";
 import { clearMealSlot, getRecipeOptions, saveMealSlot } from "../services/meal-plan.service";
+import { createPending } from "./mealPlan.fixtures";
 
 vi.mock("../services/meal-plan.service", () => ({
   clearMealSlot: vi.fn(),
@@ -30,17 +31,6 @@ const ARROZ_ENTRY: MealPlanEntry = {
   recipeId: "recipe-arroz",
   recipeName: "Arroz con leche",
   servingsMultiplier: 2,
-};
-
-/** Una respuesta que el test decide cuándo llega. */
-const createPending = <Value>() => {
-  let resolve: (value: Value) => void = () => undefined;
-  let reject: (error: Error) => void = () => undefined;
-  const promise = new Promise<Value>((onResolve, onReject) => {
-    resolve = onResolve;
-    reject = onReject;
-  });
-  return { promise, reject, resolve };
 };
 
 const getEntryMock = vi.fn();
@@ -116,6 +106,31 @@ describe("useMealSlotDialog", () => {
       await openAndWaitForRecipes(hook);
 
       expect(getRecipeOptionsMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("ignores the recipes that arrive after the dialog was closed", async () => {
+      const response = createPending<RecipeOption[]>();
+      getRecipeOptionsMock.mockReturnValue(response.promise);
+      const hook = renderDialog();
+      act(() => hook.result.current.onSlotOpen(TARGET));
+      act(() => hook.result.current.onClose());
+
+      await act(async () => response.resolve([FLAN]));
+
+      expect(hook.result.current.recipesStatus).toBe(RECIPE_OPTIONS_STATUS.LOADING);
+      expect(hook.result.current.recipeOptions).toEqual([]);
+    });
+
+    it("opens an assigned slot whose recipe is gone with nothing chosen and without saving", async () => {
+      getRecipeOptionsMock.mockResolvedValue([FLAN]);
+      const hook = renderDialog(ARROZ_ENTRY);
+
+      await openAndWaitForRecipes(hook);
+
+      expect(hook.result.current.isAssigned).toBe(true);
+      expect(hook.result.current.selectedRecipeId).toBeNull();
+      expect(hook.result.current.servingsSummary).toBeNull();
+      expect(hook.result.current.canSave).toBe(false);
     });
 
     it("shows the recipes as loading until they arrive", () => {
@@ -368,6 +383,51 @@ describe("useMealSlotDialog", () => {
       opener.blur();
 
       act(() => hook.result.current.onClose());
+
+      expect(document.activeElement).toBe(opener);
+      opener.remove();
+    });
+
+    it("gives the focus back to the button it was opened with even when the click did not focus it", async () => {
+      const opener = document.createElement("button");
+      document.body.appendChild(opener);
+      const hook = renderDialog();
+      act(() => hook.result.current.onSlotOpen(TARGET, opener));
+      await waitFor(() => expect(hook.result.current.recipesStatus).toBe(RECIPE_OPTIONS_STATUS.READY));
+      expect(document.activeElement).not.toBe(opener);
+
+      act(() => hook.result.current.onClose());
+
+      expect(document.activeElement).toBe(opener);
+      opener.remove();
+    });
+
+    it("gives the focus back to the opener after saving", async () => {
+      saveMealSlotMock.mockResolvedValue({ slotId: "slot-9" });
+      const opener = document.createElement("button");
+      document.body.appendChild(opener);
+      opener.focus();
+      const hook = renderDialog();
+      await openAndWaitForRecipes(hook);
+      opener.blur();
+      act(() => hook.result.current.onRecipeChoose("recipe-flan"));
+
+      await act(async () => hook.result.current.onSave());
+
+      expect(document.activeElement).toBe(opener);
+      opener.remove();
+    });
+
+    it("gives the focus back to the opener after removing", async () => {
+      clearMealSlotMock.mockResolvedValue(TARGET);
+      const opener = document.createElement("button");
+      document.body.appendChild(opener);
+      opener.focus();
+      const hook = renderDialog(ARROZ_ENTRY);
+      await openAndWaitForRecipes(hook);
+      opener.blur();
+
+      await act(async () => hook.result.current.onRemove());
 
       expect(document.activeElement).toBe(opener);
       opener.remove();

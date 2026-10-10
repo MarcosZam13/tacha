@@ -107,7 +107,7 @@ Todo en hora local del navegador (SPEC regla 1). Con `new Date(año, mes, día)`
 
 ## SCRUM-100: asignar receta, cocinero y porciones a un espacio
 
-> **Verificado el 2026-10-10** contra `develop` (con SCRUM-99, 97, 98 y 66 mergeadas): `features/meal-planner/` tiene el calendario con los espacios vacíos, `recipes` solo se lee por `owner_id` (`006`), `household_members` solo deja leer la propia fila (`011`) y no existe la lista de miembros (HU-35), la última migración es la `017` y la `018` está en la PR #55 (SCRUM-67): esta historia usa la **`019`** o la siguiente libre al aplicarla (`supabase/README.md#migraciones`). No existe `meal_plans`.
+> **Verificado el 2026-10-09** contra `develop` (con SCRUM-99, 97, 98 y 66 mergeadas): `features/meal-planner/` tiene el calendario con los espacios vacíos, `recipes` solo se lee por `owner_id` (`006`), `household_members` solo deja leer la propia fila (`011`) y no existe la lista de miembros (HU-35), la última migración es la `017` y la `018` está en la PR #55 (SCRUM-67): esta historia usa la **`019`** o la siguiente libre al aplicarla (`supabase/README.md#migraciones`). No existe `meal_plans`.
 
 ### Archivos
 
@@ -145,7 +145,11 @@ features/meal-planner/
     removeMealPlanEntry.ts              saca la entrada de un espacio
     getPlanRange.ts                     hoy → lunes de la semana actual y domingo de la próxima (los 14 días a pedir)
     toCookLabel.ts                      elección de cocinero → "Yo" o nada
+    buildMealPlanEntry.ts               lo crudo de un espacio → la entrada con sus textos ("Yo", "×2"): un solo lugar para leer el plan y para guardar
+    toDecimalCommaText.ts               número → texto con coma decimal ("1,5")
+    toMultiplierLabel.ts                multiplicador → "×2", o nada con ×1
     toSavedMealPlanEntry.ts             lo elegido + el id que devolvió la base → entrada para el estado (sin volver a pedir el plan)
+    findSelectedRecipeOption.ts         receta elegida + opciones cargadas → la opción, o nada si la receta ya no está (se borró en otra pestaña)
     toInitialSlotValues.ts              entrada (o nada) → valores con que abre el diálogo
     toServingsSummaryText.ts            base + multiplicador → "×2 · 24 porciones"
     getMealSlotLabel.ts                 nombre accesible del espacio ("Almuerzo del lunes 12, vacío, asignar") y getMealSlotName

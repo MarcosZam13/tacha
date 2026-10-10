@@ -1,39 +1,18 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { COOK_CHOICE, MEAL_TYPE } from "../constants/meal-planner.constants";
+import { MEAL_TYPE } from "../constants/meal-planner.constants";
 import { useWeekMealPlan } from "../hooks/useWeekMealPlan";
 import type { MealPlanEntry } from "../models/meal-plan.interfaces";
 import { getMealPlan } from "../services/meal-plan.service";
+import { createEntry, createPending } from "./mealPlan.fixtures";
 
 vi.mock("../services/meal-plan.service", () => ({ getMealPlan: vi.fn() }));
 const getMealPlanMock = vi.mocked(getMealPlan);
 
 const RANGE = { fromDateKey: "2026-10-12", toDateKey: "2026-10-25" };
 
-const createEntry = (id: string, dateKey: string, mealType: MealPlanEntry["mealType"], recipeName: string): MealPlanEntry => ({
-  baseServings: 4,
-  cookChoice: COOK_CHOICE.SELF,
-  cookLabel: "Yo",
-  dateKey,
-  id,
-  mealType,
-  multiplierLabel: null,
-  recipeId: `recipe-${recipeName}`,
-  recipeName,
-  servingsMultiplier: 1,
-});
-
 const MONDAY_LUNCH = createEntry("a", "2026-10-12", MEAL_TYPE.LUNCH, "Arroz");
-
-/** Una respuesta de la base que el test decide cuándo llega. */
-const createPendingPlan = () => {
-  let resolve: (entries: MealPlanEntry[]) => void = () => undefined;
-  const promise = new Promise<MealPlanEntry[]>((onResolve) => {
-    resolve = onResolve;
-  });
-  return { promise, resolve };
-};
 
 beforeEach(() => {
   getMealPlanMock.mockReset();
@@ -100,7 +79,7 @@ describe("useWeekMealPlan", () => {
   });
 
   it("ignores an answer that arrives after the screen was closed", async () => {
-    const response = createPendingPlan();
+    const response = createPending<MealPlanEntry[]>();
     getMealPlanMock.mockReturnValue(response.promise);
     const { result, unmount } = renderHook(() => useWeekMealPlan({ range: RANGE }));
 

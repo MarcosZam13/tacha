@@ -37,6 +37,18 @@ export interface MealPlanEntry {
   servingsMultiplier: number;
 }
 
+/** Lo crudo de un espacio asignado: con esto se arma la MealPlanEntry (los textos se derivan). */
+export interface MealPlanEntryParts {
+  baseServings: number;
+  cookChoice: CookChoiceType;
+  dateKey: string;
+  id: string;
+  mealType: MealTypeType;
+  recipeId: string;
+  recipeName: string;
+  servingsMultiplier: number;
+}
+
 /** Una receta tal como la devuelve MEAL_PLAN_DB.RECIPE_OPTIONS_SELECT. */
 export interface RecipeOptionRow {
   base_servings: number;
@@ -81,6 +93,14 @@ export interface SaveMealSlotPayload extends MealSlotTarget {
   cookChoice: CookChoiceType;
   recipeId: string;
   servingsMultiplier: number;
+}
+
+/** Lo que hace falta para armar la entrada que queda en pantalla después de guardar. */
+export interface SavedMealSlot {
+  option: RecipeOption;
+  slotId: string;
+  target: MealSlotTarget;
+  values: MealSlotFormValues;
 }
 
 /** El id de la fila creada o reemplazada. */
@@ -149,7 +169,8 @@ export interface MealSlotDialogViewModel {
   onRecipesRetry: () => void;
   onRemove: () => void;
   onSave: () => void;
-  onSlotOpen: (target: MealSlotTarget) => void;
+  /** `opener` es el botón tocado: el foco vuelve a él al cerrar (Safari no enfoca los botones al hacer clic). */
+  onSlotOpen: (target: MealSlotTarget, opener?: HTMLElement) => void;
   recipeOptions: RecipeOption[];
   recipesStatus: RecipeOptionsStatusType;
   /** La receta elegida, solo si sigue entre las opciones; null si no hay o ya no existe. */

@@ -22,7 +22,7 @@ export const MealSlot = ({ entry, isDisabled, label, onOpen, slot }: MealSlotPro
       type="button"
       aria-label={label}
       disabled={isDisabled}
-      onClick={onOpen}
+      onClick={(event) => onOpen(event.currentTarget)}
       className={entry ? ASSIGNED_SLOT_CLASS_NAME : EMPTY_SLOT_CLASS_NAME}
     >
       {entry ? (

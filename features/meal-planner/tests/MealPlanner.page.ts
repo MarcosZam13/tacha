@@ -36,7 +36,7 @@ export const createMealPlannerPage = () => {
   const getDays = (): HTMLElement[] => screen.getAllByRole("time");
   const queryDays = (): HTMLElement[] => screen.queryAllByRole("time");
 
-  // Un espacio vacío es un <li> cuyo texto propio es el nombre de la comida.
+  // Busca por el texto de la comida: en los vacíos ("+ Almuerzo") y también en los asignados, que la muestran como etiqueta.
   const getEmptySlots = (mealLabel: string): HTMLElement[] => screen.getAllByText(mealLabel);
   const queryAllEmptySlots = (): HTMLElement[] =>
     Object.values(MEAL_TYPE_LABEL).flatMap((mealLabel) => screen.queryAllByText(mealLabel));

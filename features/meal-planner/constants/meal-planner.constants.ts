@@ -173,17 +173,11 @@ export const MEAL_PLAN_ERROR_CODE = {
   NO_DATA_FOUND: "P0002",
 } as const;
 
-// Opciones del selector de cocinero, en el orden en que se dibujan.
-export const COOK_OPTIONS = [
-  { label: "Yo", value: COOK_CHOICE.SELF },
-  { label: "Sin cocinero", value: COOK_CHOICE.NONE },
-] as const;
-
 // Rutas y nombres de campo del diálogo de asignar.
 export const MEAL_SLOT_FORM = {
   COOK_FIELD_NAME: "meal-slot-cook",
-  // Igual que RECIPE_ROUTE.NEW de features/recipes: esta feature no importa de la otra.
-  NEW_RECIPE_PATH: `${APP_ROUTE.RECIPES}/nueva`,
+  // La misma ruta que usa features/recipes: sale de constants/routes.constants.ts.
+  NEW_RECIPE_PATH: APP_ROUTE.RECIPE_NEW,
   RECIPE_FIELD_NAME: "meal-slot-recipe",
 } as const;
 
@@ -222,3 +216,10 @@ export const MEAL_SLOT_TEXT = {
   SERVINGS_SINGULAR: "porción",
   SERVINGS_SUMMARY_SEPARATOR: " · ",
 } as const;
+
+// Opciones del selector de cocinero, en el orden en que se dibujan. Los textos
+// salen de MEAL_SLOT_TEXT para que haya una sola fuente de "Yo" y "Sin cocinero".
+export const COOK_OPTIONS = [
+  { label: MEAL_SLOT_TEXT.COOK_SELF, value: COOK_CHOICE.SELF },
+  { label: MEAL_SLOT_TEXT.COOK_NONE, value: COOK_CHOICE.NONE },
+] as const;

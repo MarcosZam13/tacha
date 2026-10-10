@@ -66,7 +66,7 @@ describe("toSavedMealPlanEntry", () => {
     servingsLabel: "12 porciones",
   };
 
-  it("builds the same entry that reading the saved row would give", () => {
+  it("builds the entry the screen shows after saving, with the texts written", () => {
     const savedEntry = toSavedMealPlanEntry({
       option: OPTION,
       slotId: "slot-1",
@@ -74,7 +74,30 @@ describe("toSavedMealPlanEntry", () => {
       values: { cookChoice: COOK_CHOICE.SELF, recipeId: OPTION.id, servingsMultiplier: 2 },
     });
 
-    expect(savedEntry).toEqual(toMealPlanEntry(ROW));
+    expect(savedEntry).toEqual({
+      baseServings: 12,
+      cookChoice: COOK_CHOICE.SELF,
+      cookLabel: "Yo",
+      dateKey: "2026-10-12",
+      id: "slot-1",
+      mealType: MEAL_TYPE.LUNCH,
+      multiplierLabel: "×2",
+      recipeId: "recipe-tres-leches",
+      recipeName: "Tres leches",
+      servingsMultiplier: 2,
+    });
+  });
+
+  it("leaves the cook and the chip out for no cook at x1", () => {
+    const savedEntry = toSavedMealPlanEntry({
+      option: OPTION,
+      slotId: "slot-2",
+      target: { dateKey: "2026-10-13", mealType: MEAL_TYPE.DINNER },
+      values: { cookChoice: COOK_CHOICE.NONE, recipeId: OPTION.id, servingsMultiplier: 1 },
+    });
+
+    expect(savedEntry.cookLabel).toBeNull();
+    expect(savedEntry.multiplierLabel).toBeNull();
   });
 });
 

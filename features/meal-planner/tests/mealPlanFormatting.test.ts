@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import { MEAL_TYPE } from "../constants/meal-planner.constants";
 import type { MealPlanEntry } from "../models/meal-plan.interfaces";
 import { clampServingsMultiplier } from "../utils/clampServingsMultiplier";
-import { formatMultiplier, toMultiplierLabel } from "../utils/formatMultiplier";
+import { formatMultiplier } from "../utils/formatMultiplier";
 import { formatResultingServings } from "../utils/formatResultingServings";
 import { getMealSlotLabel, getMealSlotName } from "../utils/getMealSlotLabel";
+import { toDecimalCommaText } from "../utils/toDecimalCommaText";
+import { toMultiplierLabel } from "../utils/toMultiplierLabel";
 import { toServingsSummaryText } from "../utils/toServingsSummaryText";
 import { toSlotKey } from "../utils/toSlotKey";
 
@@ -29,6 +31,16 @@ describe("formatMultiplier", () => {
   it("writes a decimal multiplier with a comma", () => {
     expect(formatMultiplier(0.5)).toBe("×0,5");
     expect(formatMultiplier(2.5)).toBe("×2,5");
+  });
+});
+
+describe("toDecimalCommaText", () => {
+  it("writes a whole number as is", () => {
+    expect(toDecimalCommaText(3)).toBe("3");
+  });
+
+  it("writes the decimal point as a comma", () => {
+    expect(toDecimalCommaText(1.5)).toBe("1,5");
   });
 });
 

@@ -1,4 +1,5 @@
-import { MEAL_SLOT_TEXT, MULTIPLIER_FORMAT } from "../constants/meal-planner.constants";
+import { MEAL_SLOT_TEXT } from "../constants/meal-planner.constants";
+import { toDecimalCommaText } from "./toDecimalCommaText";
 
 /**
  * Las porciones que salen de una receta con su multiplicador: 12 con ×2 →
@@ -7,8 +8,7 @@ import { MEAL_SLOT_TEXT, MULTIPLIER_FORMAT } from "../constants/meal-planner.con
  */
 export const formatResultingServings = (baseServings: number, multiplier: number): string => {
   const totalServings = baseServings * multiplier;
-  const totalText = String(totalServings).replace(MULTIPLIER_FORMAT.DECIMAL_POINT, MULTIPLIER_FORMAT.DECIMAL_COMMA);
   const unitLabel = totalServings === 1 ? MEAL_SLOT_TEXT.SERVINGS_SINGULAR : MEAL_SLOT_TEXT.SERVINGS_PLURAL;
 
-  return `${totalText} ${unitLabel}`;
+  return `${toDecimalCommaText(totalServings)} ${unitLabel}`;
 };

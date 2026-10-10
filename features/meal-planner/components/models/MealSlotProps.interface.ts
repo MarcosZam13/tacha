@@ -9,6 +9,7 @@ export interface MealSlotProps {
   isDisabled: boolean;
   /** El nombre accesible completo: día, comida, qué tiene y qué pasa al tocarlo. */
   label: string;
-  onOpen: () => void;
+  /** Recibe el botón tocado, para que el diálogo le devuelva el foco al cerrar. */
+  onOpen: (opener: HTMLElement) => void;
   slot: WeekSlot;
 }

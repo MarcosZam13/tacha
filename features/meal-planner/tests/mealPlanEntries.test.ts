@@ -1,23 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { COOK_CHOICE, MEAL_TYPE } from "../constants/meal-planner.constants";
-import type { MealPlanEntry } from "../models/meal-plan.interfaces";
+import { MEAL_TYPE } from "../constants/meal-planner.constants";
 import { getPlanRange } from "../utils/getPlanRange";
 import { removeMealPlanEntry } from "../utils/removeMealPlanEntry";
+import { createEntry } from "./mealPlan.fixtures";
 import { setTimeZoneForSuite } from "./setTimeZoneForSuite";
 import { upsertMealPlanEntry } from "../utils/upsertMealPlanEntry";
-
-const createEntry = (id: string, dateKey: string, mealType: MealPlanEntry["mealType"], recipeName: string): MealPlanEntry => ({
-  baseServings: 4,
-  cookChoice: COOK_CHOICE.SELF,
-  cookLabel: "Yo",
-  dateKey,
-  id,
-  mealType,
-  multiplierLabel: null,
-  recipeId: `recipe-${recipeName}`,
-  recipeName,
-  servingsMultiplier: 1,
-});
 
 const MONDAY_LUNCH = createEntry("a", "2026-10-12", MEAL_TYPE.LUNCH, "Arroz");
 const MONDAY_DINNER = createEntry("b", "2026-10-12", MEAL_TYPE.DINNER, "Sopa");

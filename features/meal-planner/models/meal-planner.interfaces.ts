@@ -5,7 +5,7 @@ import type { MealTypeType } from "./meal-planner.types";
 // Interfaces del planificador semanal (SCRUM-99). Los types (la semana a la
 // vista y el tipo de comida) están en meal-planner.types.ts.
 
-/** Un espacio del día. Hoy siempre está vacío: asignarlo es SCRUM-100. */
+/** Un espacio del día (qué comida es). Si tiene receta o no lo dice el plan (MealPlanEntry), no este modelo. */
 export interface WeekSlot {
   /** "Almuerzo". */
   label: string;
@@ -14,7 +14,7 @@ export interface WeekSlot {
 
 /** Un día de la semana listo para dibujar: los textos ya vienen armados. */
 export interface WeekDay {
-  /** "2026-10-12", en hora local: lo que SCRUM-100 compara contra meal_plans.date. */
+  /** "2026-10-12", en hora local: la misma clave con la que se busca en meal_plans.date. */
   dateKey: string;
   isToday: boolean;
   /** "Lunes 12", para mobile. */

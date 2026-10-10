@@ -16,6 +16,7 @@ import type {
 } from "../models/meal-plan.interfaces";
 import type { CookChoiceType, RecipeOptionsState } from "../models/meal-plan.types";
 import { clearMealSlot, getRecipeOptions, saveMealSlot } from "../services/meal-plan.service";
+import { findSelectedRecipeOption } from "../utils/findSelectedRecipeOption";
 import { formatMultiplier } from "../utils/formatMultiplier";
 import { getMealSlotName } from "../utils/getMealSlotLabel";
 import { CLOSED_DIALOG_STATE, mealSlotDialogReducer } from "../utils/meal-slot-dialog.reducer";
@@ -81,8 +82,9 @@ export const useMealSlotDialog = ({
     setOptionsReloadKey((currentKey) => currentKey + 1);
   };
 
-  const onSlotOpen = (target: MealSlotTarget): void => {
-    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const onSlotOpen = (target: MealSlotTarget, opener?: HTMLElement): void => {
+    // El botón tocado, si lo mandan: en Safari un clic no lo enfoca y activeElement sería el body.
+    openerRef.current = opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     // Las recetas se piden de nuevo en cada apertura: pueden haber cambiado desde la última vez.
     setOptionsState(LOADING_OPTIONS);
     dispatch({
@@ -98,14 +100,10 @@ export const useMealSlotDialog = ({
   const target = isOpen ? state.target : null;
   const values = isOpen ? state.values : null;
   const options: RecipeOption[] = optionsState.status === RECIPE_OPTIONS_STATUS.READY ? optionsState.options : [];
-  // La receta elegida solo cuenta si sigue entre las opciones: si se borró en
-  // otra pestaña, deja de estar elegida y "Guardar" se deshabilita hasta elegir otra.
-  const selectedOption =
-    values?.recipeId && optionsState.status === RECIPE_OPTIONS_STATUS.READY
-      ? (options.find((option) => option.id === values.recipeId) ?? null)
-      : null;
-  const selectedRecipeId =
-    optionsState.status === RECIPE_OPTIONS_STATUS.READY ? (selectedOption?.id ?? null) : (values?.recipeId ?? null);
+  const areOptionsReady = optionsState.status === RECIPE_OPTIONS_STATUS.READY;
+  const selectedOption = findSelectedRecipeOption(values?.recipeId ?? null, options);
+  // Con las opciones cargadas, solo cuenta la receta que sigue entre ellas; antes se muestra la que venía.
+  const selectedRecipeId = areOptionsReady ? (selectedOption?.id ?? null) : (values?.recipeId ?? null);
   const isAssigned = target ? getEntry(target.dateKey, target.mealType) !== null : false;
   const canSave = isEditable && selectedOption !== null;
   const dayLongLabel = target ? getDayLongLabel(target.dateKey) : null;
