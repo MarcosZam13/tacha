@@ -1,3 +1,4 @@
+import { getMealSlotLabel } from "../utils/getMealSlotLabel";
 import { MealSlot } from "./MealSlot";
 import type { MealPlannerDayProps } from "./models/MealPlannerDayProps.interface";
 
@@ -9,7 +10,7 @@ import type { MealPlannerDayProps } from "./models/MealPlannerDayProps.interface
  * las dos están en el HTML y el CSS muestra una, así que no se mide el ancho
  * en JS. Hoy se dice con aria-current="date", no solo con el color.
  */
-export const MealPlannerDay = ({ day }: MealPlannerDayProps): React.JSX.Element => (
+export const MealPlannerDay = ({ day, getEntry, isDisabled, onSlotOpen }: MealPlannerDayProps): React.JSX.Element => (
   <li className="flex flex-col gap-2">
     <time
       dateTime={day.dateKey}
@@ -22,9 +23,20 @@ export const MealPlannerDay = ({ day }: MealPlannerDayProps): React.JSX.Element 
       <span className="hidden md:inline">{day.shortLabel}</span>
     </time>
     <ul className="flex flex-col gap-2">
-      {day.slots.map((slot) => (
-        <MealSlot key={slot.mealType} slot={slot} />
-      ))}
+      {day.slots.map((slot) => {
+        const entry = getEntry(day.dateKey, slot.mealType);
+
+        return (
+          <MealSlot
+            key={slot.mealType}
+            entry={entry}
+            isDisabled={isDisabled}
+            label={getMealSlotLabel(slot.mealType, day.longLabel, entry)}
+            onOpen={(opener) => onSlotOpen({ dateKey: day.dateKey, mealType: slot.mealType }, opener)}
+            slot={slot}
+          />
+        );
+      })}
     </ul>
   </li>
 );

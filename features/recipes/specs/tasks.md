@@ -61,7 +61,7 @@ Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), e
 
 Bloqueado / fuera de esta historia:
 
-- [ ] CA-02 (aviso por asignaciones en el plan semanal): lo cierra SCRUM-100 al crear `meal_plans` (contrato en SPEC §15).
+- [x] CA-02 (aviso por asignaciones en el plan semanal): cerrado por SCRUM-100 (`countRecipeMealPlans`, `mealPlanNotice` y el aviso del diálogo).
 - [ ] Borrado por miembros del household (integración con households).
 
 ## SCRUM-97: agregar una receta a la lista

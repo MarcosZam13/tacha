@@ -27,6 +27,7 @@ export const RECIPES_DB = {
   COLUMN: {
     CREATED_AT: "created_at",
     ID: "id",
+    RECIPE_ID: "recipe_id",
   },
   EDITOR_SELECT:
     "id, name, base_servings, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
@@ -36,6 +37,8 @@ export const RECIPES_DB = {
     SAVE_RECIPE: "save_recipe",
   },
   TABLE: {
+    // meal_plans lo crea SCRUM-100: acá solo se cuenta cuántos espacios del plan usan una receta.
+    MEAL_PLANS: "meal_plans",
     RECIPES: "recipes",
   },
 } as const;
@@ -131,7 +134,7 @@ const RECIPES_BASE_PATH = APP_ROUTE.RECIPES;
 export const RECIPE_ROUTE = {
   CATALOG: RECIPES_BASE_PATH,
   EDIT_SEGMENT: "editar",
-  NEW: `${RECIPES_BASE_PATH}/nueva`,
+  NEW: APP_ROUTE.RECIPE_NEW,
   // Lista general, para el link "Ver lista" de SCRUM-97.
   SHOPPING_LIST: APP_ROUTE.LIST,
 } as const;
@@ -197,6 +200,11 @@ export const RECIPE_DELETE_TEXT = {
   DIALOG_TITLE: "¿Eliminar esta receta?",
   ERROR: "No se pudo eliminar la receta. Intenta de nuevo.",
   IRREVERSIBLE_NOTICE: "Se borra con todos sus ingredientes y no se puede deshacer.",
+  // Aviso cuando la receta está en el plan semanal (SPEC regla 22 de features/meal-planner):
+  // "Está en 3 espacios de tu plan; quedarán vacíos." / "Está en 1 espacio de tu plan; quedará vacío."
+  MEAL_PLAN_NOTICE_PLURAL_PREFIX: "Está en",
+  MEAL_PLAN_NOTICE_PLURAL_SUFFIX: "espacios de tu plan; quedarán vacíos.",
+  MEAL_PLAN_NOTICE_SINGULAR: "Está en 1 espacio de tu plan; quedará vacío.",
   TRIGGER: "Eliminar",
 } as const;
 

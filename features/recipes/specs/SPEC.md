@@ -354,7 +354,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 ### HU-64b (SCRUM-96)
 
 - [x] CA-01: cada receta del catálogo tiene una acción "Eliminar" que abre una confirmación; solo al confirmar se borra la receta con sus ingredientes, y deja de verse en el catálogo.
-- [ ] CA-02 (**bloqueado por SCRUM-100**): si la receta está asignada a algún espacio del plan semanal, el diálogo lo avisa antes de eliminarla. Hoy el plan no existe, así que ninguna receta puede estar asignada; el aviso se suma cuando SCRUM-100 cree `meal_plans` (contrato en la [sección 15](#15-notas-de-implementación)).
+- [x] CA-02: si la receta está asignada a algún espacio del plan semanal, el diálogo lo avisa antes de eliminarla ("Está en 3 espacios de tu plan; quedarán vacíos."). Cerrado por SCRUM-100: `meal_plans` ya existe (migración `019`) y el borrado libera los espacios por `on delete cascade`. Si no se pudo contar, el diálogo se abre sin el aviso y borrar sigue funcionando. (E2E y pruebas en `features/recipes/tests/`)
 - [x] Cancelar (botón, clic fuera o Escape): no se borra nada.
 - [x] Doble clic en "Eliminar" del diálogo: una sola petición.
 - [x] Falla de red: el diálogo muestra el error, la tarjeta sigue y se puede reintentar.
@@ -412,7 +412,7 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
 - **Sidebar / shell de la app:** no existe y no tiene historia asignada. Cuando exista, `/recetas` se engancha a él (la ruta y los sub-tabs no cambian).
 - **Recetas del household (verlas, editarlas, borrarlas o agregarlas a la lista como miembro):** `households` todavía no existe. Por ahora cada usuario usa sus recetas y su lista personal; `household_id` queda nullable y sin FK, igual que en `lists`. La integración está en [plan.md](plan.md#integración-con-households-pendiente).
 - **Foto (subirla y borrarla de Storage):** el formulario no la pide, y subirla necesita Supabase Storage (bucket, políticas, validación de archivo), que es una decisión de equipo pendiente. Queda para un ticket propio; el catálogo ya muestra la foto cuando existe.
-- **Aviso por asignaciones en el plan semanal (CA-02 de HU-64b):** `meal_plans` lo crea SCRUM-100. Un aviso que hoy siempre dijera "no está en el plan" sería código sin uso real.
+- **Aviso por asignaciones en el plan semanal (CA-02 de HU-64b):** resuelto en SCRUM-100 (ver la sección 13). Queda aquí como historial de por qué se había dejado fuera.
 - **Planificador semanal:** SCRUM-99 en adelante, en su propia feature (`features/meal-planner/`).
 - **Inventario o despensa ("lo que ya tengo en casa"):** HU-66 lo menciona ("ya tengo comprados o en casa"), pero no hay tabla ni historia que lo defina. SCRUM-98 solo ve lo que está en la lista (tachado = comprado). Si el equipo crea una despensa, la regla 29 gana una condición más y la RPC es el único lugar a tocar.
 - **Vista de detalle de receta (`/recetas/[id]`):** se resolvió con un panel dentro de la tarjeta (decidido el 2026-10-09). Una ruta propia queda para cuando el planificador o la edición necesiten una pantalla de receta.
@@ -437,7 +437,7 @@ Validado el 2026-10-03: en el navegador (lo marcado "navegador") y en el SQL Edi
 
 ## 15. Notas de implementación
 
-- **Contrato para SCRUM-100 (cierra el CA-02 de HU-64b):** cuando cree `meal_plans` con `recipe_id → recipes`, tiene que decidir qué pasa al borrar la receta: `on delete cascade` (el espacio del plan queda libre) o `restrict` (hay que quitar la asignación primero). Sin decisión explícita, Postgres usa `no action` y eliminar una receta asignada falla con `23503`. Además, antes de abrir el diálogo de esta historia, tiene que consultar cuántos espacios usan la receta y sumar el aviso al mismo diálogo.
+- **Contrato para SCRUM-100 (cierra el CA-02 de HU-64b):** cuando cree `meal_plans` con `recipe_id → recipes`, tiene que decidir qué pasa al borrar la receta: `on delete cascade` (el espacio del plan queda libre) o `restrict` (hay que quitar la asignación primero). Sin decisión explícita, Postgres usa `no action` y eliminar una receta asignada falla con `23503`. Además, antes de abrir el diálogo de esta historia, tiene que consultar cuántos espacios usan la receta y sumar el aviso al mismo diálogo. **Resuelto en SCRUM-100 (2026-10-09):** `on delete cascade`; el diálogo de eliminar cuenta los espacios con `countRecipeMealPlans` y avisa antes de confirmar.
 - **Spec migrada** a la plantilla de 15 secciones en SCRUM-96 (component-architecture §2, "Specs existentes"): el contenido de SCRUM-94 y SCRUM-95 no cambió, solo se reordenó.
 - **Cómo se llenaron los huecos de HU-65 (SCRUM-97, decidido con el responsable de la historia el 2026-10-03).** La historia no define cómo pasar de una cantidad cruda de receta a presentaciones de la lista. Se siguió documento-proyecto §4.9.1 (para volumen o peso la app no calcula unidades: suma en unidad base y registra lo que falta) y se decidió lo que la historia no dice:
   - **conteos:** se suma encima, en unidades de la presentación, hasta cubrir la receta; con varias presentaciones, la más chica que cubre (o la más grande si ninguna cubre) (regla 19). La HU-76 dice que los conteos nunca llevan aviso, y así queda;
