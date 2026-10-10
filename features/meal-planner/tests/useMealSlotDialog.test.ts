@@ -36,6 +36,7 @@ const ARROZ_ENTRY: MealPlanEntry = {
 const getEntryMock = vi.fn();
 const onSavedMock = vi.fn();
 const onRemovedMock = vi.fn();
+const onRecipeGoneMock = vi.fn();
 
 const renderDialog = (entry: MealPlanEntry | null = null) => {
   getEntryMock.mockReturnValue(entry);
@@ -43,6 +44,7 @@ const renderDialog = (entry: MealPlanEntry | null = null) => {
     useMealSlotDialog({
       getDayLongLabel: () => "Lunes 12",
       getEntry: getEntryMock,
+      onRecipeGone: onRecipeGoneMock,
       onRemoved: onRemovedMock,
       onSaved: onSavedMock,
     }),
@@ -309,6 +311,39 @@ describe("useMealSlotDialog", () => {
       expect(hook.result.current.selectedRecipeId).toBeNull();
       expect(hook.result.current.canSave).toBe(false);
       expect(hook.result.current.isOpen).toBe(true);
+    });
+
+    it("tells the plan the recipe is gone so its slots stop showing it", async () => {
+      saveMealSlotMock.mockResolvedValue(null);
+      const hook = renderDialog(ARROZ_ENTRY);
+      await openAndWaitForRecipes(hook);
+      act(() => hook.result.current.onRecipeChoose("recipe-flan"));
+
+      await act(async () => hook.result.current.onSave());
+
+      expect(onRecipeGoneMock).toHaveBeenCalledTimes(1);
+      expect(onRecipeGoneMock).toHaveBeenCalledWith("recipe-flan");
+      expect(onSavedMock).not.toHaveBeenCalled();
+    });
+
+    it("ignores a tap on another slot while a save is in progress", async () => {
+      const response = createPending<SaveMealSlotResponse | null>();
+      saveMealSlotMock.mockReturnValue(response.promise);
+      const hook = renderDialog();
+      await openAndWaitForRecipes(hook);
+      act(() => hook.result.current.onRecipeChoose("recipe-flan"));
+      act(() => hook.result.current.onSave());
+      expect(hook.result.current.isSaving).toBe(true);
+
+      act(() => hook.result.current.onSlotOpen({ dateKey: "2026-10-13", mealType: MEAL_TYPE.DINNER }));
+
+      expect(hook.result.current.isSaving).toBe(true);
+      expect(hook.result.current.recipesStatus).toBe(RECIPE_OPTIONS_STATUS.READY);
+      expect(getRecipeOptionsMock).toHaveBeenCalledTimes(1);
+
+      await act(async () => response.resolve({ slotId: "slot-9" }));
+      expect(hook.result.current.isOpen).toBe(false);
+      expect(onSavedMock).toHaveBeenCalledWith(expect.objectContaining({ dateKey: TARGET.dateKey }));
     });
   });
 

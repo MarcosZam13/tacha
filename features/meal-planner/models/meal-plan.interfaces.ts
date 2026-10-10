@@ -132,6 +132,8 @@ export interface WeekMealPlanViewModel {
   onPlanRetry: () => void;
   /** Quita del estado la entrada de un espacio (después de quitarla en la base). */
   removeEntry: (target: MealSlotTarget) => void;
+  /** Quita del estado todos los espacios de una receta que ya no existe (lo que hizo el cascade en la base). */
+  removeRecipeSlots: (recipeId: string) => void;
   /** Pone en el estado una entrada guardada: reemplaza la del espacio o la agrega. */
   saveEntry: (entry: MealPlanEntry) => void;
 }
@@ -141,6 +143,7 @@ export interface UseMealSlotDialogParams {
   /** "Lunes 12" para un día de la semana; null si ese día no está a la vista. Arma el subtítulo. */
   getDayLongLabel: (dateKey: string) => NullableRef<string>;
   getEntry: WeekMealPlanViewModel["getEntry"];
+  onRecipeGone: WeekMealPlanViewModel["removeRecipeSlots"];
   onRemoved: WeekMealPlanViewModel["removeEntry"];
   onSaved: WeekMealPlanViewModel["saveEntry"];
 }

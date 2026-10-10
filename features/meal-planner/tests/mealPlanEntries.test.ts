@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MEAL_TYPE } from "../constants/meal-planner.constants";
 import { getPlanRange } from "../utils/getPlanRange";
 import { removeMealPlanEntry } from "../utils/removeMealPlanEntry";
+import { removeRecipeEntries } from "../utils/removeRecipeEntries";
 import { createEntry } from "./mealPlan.fixtures";
 import { setTimeZoneForSuite } from "./setTimeZoneForSuite";
 import { upsertMealPlanEntry } from "../utils/upsertMealPlanEntry";
@@ -36,6 +37,24 @@ describe("upsertMealPlanEntry", () => {
     const tuesdayLunch = createEntry("d", "2026-10-13", MEAL_TYPE.LUNCH, "Pasta");
 
     expect(upsertMealPlanEntry([MONDAY_LUNCH], tuesdayLunch)).toHaveLength(2);
+  });
+});
+
+describe("removeRecipeEntries", () => {
+  it("removes every slot of that recipe and leaves the others", () => {
+    const tuesdayLunch = createEntry("d", "2026-10-13", MEAL_TYPE.LUNCH, "Arroz");
+
+    const result = removeRecipeEntries([MONDAY_LUNCH, MONDAY_DINNER, tuesdayLunch], "recipe-Arroz");
+
+    expect(result).toEqual([MONDAY_DINNER]);
+  });
+
+  it("does not change the list it receives", () => {
+    const entries = [MONDAY_LUNCH];
+
+    removeRecipeEntries(entries, "recipe-Arroz");
+
+    expect(entries).toEqual([MONDAY_LUNCH]);
   });
 });
 

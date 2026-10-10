@@ -43,6 +43,18 @@ describe("mealSlotDialogReducer", () => {
       expect(state).toEqual(EDITING);
     });
 
+    it("does not open another slot over an open dialog, an error or a save in progress", () => {
+      const otherSlot = {
+        type: MEAL_SLOT_DIALOG_ACTION.OPENED,
+        target: { dateKey: "2026-10-13", mealType: MEAL_TYPE.DINNER },
+        values: EMPTY_VALUES,
+      } as const;
+
+      expect(reduce(EDITING, otherSlot)).toBe(EDITING);
+      expect(reduce(FAILED, otherSlot)).toBe(FAILED);
+      expect(reduce(SAVING, otherSlot)).toBe(SAVING);
+    });
+
     it("closes from editing", () => {
       expect(reduce(EDITING, { type: MEAL_SLOT_DIALOG_ACTION.CLOSED })).toBe(CLOSED_DIALOG_STATE);
     });

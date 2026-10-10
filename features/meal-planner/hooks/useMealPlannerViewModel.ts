@@ -36,6 +36,7 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
   const dialog = useMealSlotDialog({
     getDayLongLabel: (dateKey) => days.find((day) => day.dateKey === dateKey)?.longLabel ?? null,
     getEntry: plan.getEntry,
+    onRecipeGone: plan.removeRecipeSlots,
     onRemoved: plan.removeEntry,
     onSaved: plan.saveEntry,
   });

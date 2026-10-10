@@ -26,7 +26,10 @@ const updateValues = (
 export const mealSlotDialogReducer = (state: MealSlotDialogState, action: MealSlotDialogAction): MealSlotDialogState => {
   switch (action.type) {
     case MEAL_SLOT_DIALOG_ACTION.OPENED:
-      return { status: MEAL_SLOT_DIALOG_STATUS.EDITING, target: action.target, values: action.values };
+      // Solo se abre estando cerrado: abierto o guardando, otro espacio no lo reemplaza.
+      return state.status === MEAL_SLOT_DIALOG_STATUS.CLOSED
+        ? { status: MEAL_SLOT_DIALOG_STATUS.EDITING, target: action.target, values: action.values }
+        : state;
 
     case MEAL_SLOT_DIALOG_ACTION.RECIPE_CHOSEN:
       return updateValues(state, (values) => ({ ...values, recipeId: action.recipeId }));

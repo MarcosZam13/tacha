@@ -133,6 +133,20 @@ describe("useWeekMealPlan", () => {
       expect(result.current.getEntry("2026-10-12", MEAL_TYPE.DINNER)).toEqual(dinner);
     });
 
+    it("removes every slot of a recipe that no longer exists", async () => {
+      const tuesdayLunch = createEntry("d", "2026-10-13", MEAL_TYPE.LUNCH, "Arroz");
+      const dinner = createEntry("c", "2026-10-12", MEAL_TYPE.DINNER, "Sopa");
+      getMealPlanMock.mockResolvedValue([MONDAY_LUNCH, dinner, tuesdayLunch]);
+      const { result } = renderHook(() => useWeekMealPlan({ range: RANGE }));
+      await waitFor(() => expect(result.current.isPlanReady).toBe(true));
+
+      act(() => result.current.removeRecipeSlots("recipe-Arroz"));
+
+      expect(result.current.getEntry("2026-10-12", MEAL_TYPE.LUNCH)).toBeNull();
+      expect(result.current.getEntry("2026-10-13", MEAL_TYPE.LUNCH)).toBeNull();
+      expect(result.current.getEntry("2026-10-12", MEAL_TYPE.DINNER)).toEqual(dinner);
+    });
+
     it("ignores a change while the plan is not loaded", () => {
       getMealPlanMock.mockReturnValue(new Promise(() => undefined));
       const { result } = renderHook(() => useWeekMealPlan({ range: RANGE }));

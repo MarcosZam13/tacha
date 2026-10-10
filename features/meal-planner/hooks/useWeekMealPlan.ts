@@ -11,6 +11,7 @@ import type { MealPlanState } from "../models/meal-plan.types";
 import type { MealTypeType } from "../models/meal-planner.types";
 import { getMealPlan } from "../services/meal-plan.service";
 import { removeMealPlanEntry } from "../utils/removeMealPlanEntry";
+import { removeRecipeEntries } from "../utils/removeRecipeEntries";
 import { toSlotKey } from "../utils/toSlotKey";
 import { upsertMealPlanEntry } from "../utils/upsertMealPlanEntry";
 
@@ -74,6 +75,14 @@ export const useWeekMealPlan = ({ range }: UseWeekMealPlanParams): WeekMealPlanV
     );
   };
 
+  const removeRecipeSlots = (recipeId: string): void => {
+    setState((currentState) =>
+      currentState.status === MEAL_PLAN_STATUS.READY
+        ? { ...currentState, entries: removeRecipeEntries(currentState.entries, recipeId) }
+        : currentState,
+    );
+  };
+
   const onPlanRetry = (): void => {
     setState({ status: MEAL_PLAN_STATUS.LOADING });
     setReloadKey((currentKey) => currentKey + 1);
@@ -88,6 +97,7 @@ export const useWeekMealPlan = ({ range }: UseWeekMealPlanParams): WeekMealPlanV
     isPlanReady: state.status === MEAL_PLAN_STATUS.READY,
     onPlanRetry,
     removeEntry,
+    removeRecipeSlots,
     saveEntry,
   };
 };

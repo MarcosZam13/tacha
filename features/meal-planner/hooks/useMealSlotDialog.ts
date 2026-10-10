@@ -39,6 +39,7 @@ const LOADING_OPTIONS: RecipeOptionsState = { status: RECIPE_OPTIONS_STATUS.LOAD
 export const useMealSlotDialog = ({
   getDayLongLabel,
   getEntry,
+  onRecipeGone,
   onRemoved,
   onSaved,
 }: UseMealSlotDialogParams): MealSlotDialogViewModel => {
@@ -83,6 +84,9 @@ export const useMealSlotDialog = ({
   };
 
   const onSlotOpen = (target: MealSlotTarget, opener?: HTMLElement): void => {
+    // Ya abierto (o guardando): un Enter sobre el espacio que quedó detrás del
+    // fondo no reabre el diálogo ni pierde el resultado del guardado en curso.
+    if (isOpen) return;
     // El botón tocado, si lo mandan: en Safari un clic no lo enfoca y activeElement sería el body.
     openerRef.current = opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     // Las recetas se piden de nuevo en cada apertura: pueden haber cambiado desde la última vez.
@@ -135,6 +139,8 @@ export const useMealSlotDialog = ({
           // mismo en los dos casos. Se recargan las recetas y deja de estar elegida.
           dispatch({ type: MEAL_SLOT_DIALOG_ACTION.SAVE_FAILED, errorMessage: MEAL_SLOT_TEXT.RECIPE_GONE });
           reloadRecipeOptions();
+          // El cascade ya liberó sus espacios en la base: la grilla deja de mostrarla sin recargar.
+          onRecipeGone(selectedOption.id);
           return;
         }
         onSaved(toSavedMealPlanEntry({ option: selectedOption, slotId: response.slotId, target, values }));
