@@ -40,7 +40,7 @@ Bloqueado / fuera de esta historia:
 - [x] 10. `useWeekMealPlan` (carga con bandera de cancelación, reintento, aplicar guardado y quitado al estado) y su test.
 - [x] 11. `useMealSlotDialog` (abrir, reducer, cargar recetas, guardar, quitar, doble clic, receta borrada, cierre) y su test; composición en `useMealPlannerViewModel`.
 - [x] 12. Presentación: `MealSlot` (botón vacío/asignado), `MealSlotDialog`, `MealSlotRecipeList`, `MealSlotCookField`, `MealSlotServingsField`, `MealPlanLoadError` y la conexión en `MealPlanner`, `WeekGrid` y `MealPlannerDay`.
-- [ ] 13. Aviso al eliminar una receta en `features/recipes/`: `countRecipeMealPlans`, `useRecipeDeletion`, `RecipeDeleteDialog` y sus modelos, textos y tests (cierra el CA-02 de SCRUM-96).
+- [x] 13. Aviso al eliminar una receta en `features/recipes/`: `countRecipeMealPlans`, `useRecipeDeletion`, `RecipeDeleteDialog` y sus modelos, textos y tests (cierra el CA-02 de SCRUM-96).
 - [ ] 14. Tests de la pantalla con Page Object (`MealPlanner.page.ts` y `MealPlanner.test.tsx` se extienden): abrir el diálogo, elegir y guardar, reasignar, quitar, sin recetas, errores, foco al cerrar.
 - [ ] 15. `docs/documento-proyecto.md` §6 (`meal_plans` con `owner_id` y `assigned_cook` → `auth.users`, borrado de recetas) y la línea de `meal_plans` en `types/database.types.ts` (solo lo de esta historia).
 - [ ] 16. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): asignar y que siga tras recargar, reasignar, quitar, y el aviso al eliminar una receta del plan (con limpieza de las filas creadas).
