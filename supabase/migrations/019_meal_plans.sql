@@ -28,7 +28,13 @@ create table public.meal_plans (
   -- Sin FK hasta que exista la integración con households. Hoy siempre es nulo
   -- (lo exigen las políticas).
   household_id uuid,
-  date date not null,
+  -- Rango fijo (un check exige una expresión inmutable, now() no lo es): deja
+  -- fuera 'infinity', '-infinity' y años absurdos, por la RPC y por el insert
+  -- directo. Además es el tope de filas por usuario: con una fila por día y
+  -- comida, 3 × 29.585 días = 88.755 como máximo. La pantalla solo ofrece las
+  -- dos semanas visibles (SPEC regla 20).
+  date date not null
+    constraint meal_plans_date_in_range check (date between date '2020-01-01' and date '2100-12-31'),
   -- Los mismos valores que MEAL_TYPE en features/meal-planner/constants/.
   meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner')),
   -- Borrar la receta libera el espacio (cascade) y el diálogo de eliminar lo

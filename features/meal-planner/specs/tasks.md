@@ -44,6 +44,7 @@ Bloqueado / fuera de esta historia:
 - [x] 14. Tests de la pantalla con Page Object (`MealPlanner.page.ts` y `MealPlanner.test.tsx` se extienden): abrir el diálogo, elegir y guardar, reasignar, quitar, sin recetas, errores, foco al cerrar.
 - [x] 15. `docs/documento-proyecto.md` §6 (`meal_plans` con `owner_id` y `assigned_cook` → `auth.users`, borrado de recetas) y la línea de `meal_plans` en `types/database.types.ts` (solo lo de esta historia).
 - [x] 16. `E2E.md` y escenarios de `e2e/features/meal-planner/` (ver playwright-e2e): asignar y que siga tras recargar, reasignar, quitar, y el aviso al eliminar una receta del plan (con limpieza de las filas creadas).
+- [ ] 16b. Check de rango de fechas `meal_plans_date_in_range` (2020-01-01 a 2100-12-31) dentro de `019_meal_plans.sql`, con sus casos en `supabase/tests/019_meal_plans.test.sql` (hallazgo M1 del `security-reviewer`). Sin trigger de tope: el índice único y el rango ya lo acotan (88.755 filas como máximo). La 019 ya estaba aplicada y la rama no está mergeada, así que en la base compartida se agregó el mismo `alter table` a mano, sin tocar el historial; una base nueva lo trae en la 019.
 - [ ] 17. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y `npx playwright test e2e/features/meal-planner`; validar en el navegador los casos de §13 de HU-68 (desktop y mobile) y la prueba SQL.
 - [ ] 18. Revisión con `code-reviewer` y `security-reviewer` (tabla nueva con RLS y una RPC), correcciones y pasos de prueba manual del PR antes de `waiting qa`.
 

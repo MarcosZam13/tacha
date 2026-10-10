@@ -144,6 +144,51 @@ begin
     'lo rechazado no dejó filas: solo el espacio válido del 14';
 end $$;
 
+-- Rango de fechas (check meal_plans_date_in_range): los extremos entran; un día
+-- antes, un día después y los infinitos de date se rechazan por la RPC y por el
+-- insert directo. Los extremos y lo rechazado se limpian al final del bloque.
+do $$
+declare
+  bad_date date;
+  rows_before integer := (select count(*) from public.meal_plans);
+begin
+  assert exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.meal_plans'::regclass and conname = 'meal_plans_date_in_range' and contype = 'c'
+  ), 'falta el check meal_plans_date_in_range';
+
+  perform public.assign_meal_slot(date '2020-01-01', 'lunch', current_setting('tacha_test.recipe_a1')::uuid, true, 1);
+  perform public.assign_meal_slot(date '2100-12-31', 'lunch', current_setting('tacha_test.recipe_a1')::uuid, true, 1);
+  assert (select count(*) from public.meal_plans) = rows_before + 2, 'los dos extremos del rango se guardan';
+
+  foreach bad_date in array array[
+    date '2019-12-31', date '2101-01-01', date '0001-01-01', date '9999-12-31', 'infinity'::date, '-infinity'::date
+  ]
+  loop
+    begin
+      perform public.assign_meal_slot(bad_date, 'lunch', current_setting('tacha_test.recipe_a1')::uuid, true, 1);
+      assert false, format('la RPC no rechazó la fecha %s', bad_date);
+    exception
+      when check_violation then null; -- 23514
+    end;
+  end loop;
+
+  foreach bad_date in array array[date '2019-12-31', date '2101-01-01', 'infinity'::date, '-infinity'::date]
+  loop
+    begin
+      insert into public.meal_plans (date, meal_type, recipe_id)
+      values (bad_date, 'dinner', current_setting('tacha_test.recipe_a1')::uuid);
+      assert false, format('el insert directo no rechazó la fecha %s', bad_date);
+    exception
+      when check_violation then null;
+    end;
+  end loop;
+
+  assert (select count(*) from public.meal_plans) = rows_before + 2, 'las fechas fuera de rango no dejaron filas';
+
+  delete from public.meal_plans where date in (date '2020-01-01', date '2100-12-31');
+end $$;
+
 -- ----------------------------------------------------------------------------
 -- 3. Usuario A, negativos: receta ajena o inexistente (P0002) y escrituras
 --    directas que los permisos o las políticas rechazan.
