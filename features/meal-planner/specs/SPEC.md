@@ -210,29 +210,29 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
 
 ### HU-68 (SCRUM-100)
 
-- [ ] CA-01: tocar un espacio vacío abre el diálogo; se elige una receta de las propias, el cocinero ("Yo" / "Sin cocinero") y el multiplicador, y al guardar el espacio queda asignado.
-- [ ] CA-02: un espacio asignado muestra en la grilla el nombre de la receta, el cocinero y, si no es ×1, el multiplicador; sigue ahí al recargar.
-- [ ] CA-03: tocar un espacio asignado abre el diálogo con sus valores; "Guardar" lo reasigna y "Quitar" lo deja vacío; ninguno de los dos pide confirmación.
-- [ ] "Guardar" está deshabilitado hasta elegir una receta.
-- [ ] El multiplicador va de ×0,5 a ×4 en pasos de 0,5, y sus botones se deshabilitan en los extremos; el diálogo muestra las porciones resultantes.
-- [ ] Asignar sobre un espacio ocupado lo reemplaza (no quedan dos recetas en el mismo espacio).
-- [ ] Un usuario sin recetas ve "Todavía no tienes recetas." con el link a `/recetas/nueva` y no puede guardar.
-- [ ] Falla de red al guardar: el diálogo muestra el error, sigue abierto con lo elegido, y se puede reintentar.
-- [ ] Falla de red al cargar el plan: mensaje con "Reintentar" y los espacios vacíos deshabilitados, sin decir que no hay nada planeado.
-- [ ] Doble clic en "Guardar" o en "Quitar": una sola petición.
-- [ ] Cambiar de semana con las flechas no hace una consulta nueva y conserva lo asignado de cada semana.
-- [ ] Cambiar el nombre o las porciones base de una receta se refleja en la grilla al recargar.
-- [ ] Eliminar una receta que está en 2 espacios del plan: el diálogo avisa "Está en 2 espacios de tu plan"; al confirmar, esos espacios quedan vacíos al recargar.
-- [ ] Eliminar una receta que no está en el plan: el diálogo no dice nada del plan.
-- [ ] Receta borrada en otra pestaña antes de guardar: "Esa receta ya no existe. Elige otra.", y la lista del diálogo se recarga.
-- [ ] Otra sesión no ve ni cambia el plan de otro usuario, ni puede asignar una receta ajena (SQL con `role authenticated` y dos usuarios: 0 filas visibles y `P0002`).
-- [ ] El cliente no puede fijar `owner_id` ni el cocinero de otro usuario (la RPC ignora cualquier id; el `insert` directo se rechaza por permisos de columna).
-- [ ] Un multiplicador fuera de rango (0, 0,3, 5) se rechaza en la base aunque se llame a la RPC directo.
-- [ ] El foco vuelve al espacio al cerrar el diálogo y los espacios tienen nombre accesible completo.
+- [x] CA-01: tocar un espacio vacío abre el diálogo; se elige una receta de las propias, el cocinero ("Yo" / "Sin cocinero") y el multiplicador, y al guardar el espacio queda asignado.
+- [x] CA-02: un espacio asignado muestra en la grilla el nombre de la receta, el cocinero y, si no es ×1, el multiplicador; sigue ahí al recargar.
+- [x] CA-03: tocar un espacio asignado abre el diálogo con sus valores; "Guardar" lo reasigna y "Quitar" lo deja vacío; ninguno de los dos pide confirmación.
+- [x] "Guardar" está deshabilitado hasta elegir una receta.
+- [x] El multiplicador va de ×0,5 a ×4 en pasos de 0,5, y sus botones se deshabilitan en los extremos; el diálogo muestra las porciones resultantes.
+- [x] Asignar sobre un espacio ocupado lo reemplaza (no quedan dos recetas en el mismo espacio).
+- [x] Un usuario sin recetas ve "Todavía no tienes recetas." con el link a `/recetas/nueva` y no puede guardar.
+- [x] Falla de red al guardar: el diálogo muestra el error, sigue abierto con lo elegido, y se puede reintentar.
+- [x] Falla de red al cargar el plan: mensaje con "Reintentar" y los espacios vacíos deshabilitados, sin decir que no hay nada planeado.
+- [x] Doble clic en "Guardar" o en "Quitar": una sola petición.
+- [x] Cambiar de semana con las flechas no hace una consulta nueva y conserva lo asignado de cada semana.
+- [x] Cambiar el nombre o las porciones base de una receta se refleja en la grilla al recargar.
+- [x] Eliminar una receta que está en 2 espacios del plan: el diálogo avisa "Está en 2 espacios de tu plan"; al confirmar, esos espacios quedan vacíos al recargar.
+- [x] Eliminar una receta que no está en el plan: el diálogo no dice nada del plan.
+- [x] Receta borrada en otra pestaña antes de guardar: "Esa receta ya no existe. Elige otra.", y la lista del diálogo se recarga.
+- [x] Otra sesión no ve ni cambia el plan de otro usuario, ni puede asignar una receta ajena (SQL con `role authenticated` y dos usuarios: 0 filas visibles y `P0002`).
+- [x] El cliente no puede fijar `owner_id` ni el cocinero de otro usuario (la RPC ignora cualquier id; el `insert` directo se rechaza por permisos de columna).
+- [x] Un multiplicador fuera de rango (0, 0,3, 5) se rechaza en la base aunque se llame a la RPC directo.
+- [x] El foco vuelve al espacio al cerrar el diálogo y los espacios tienen nombre accesible completo.
 
 ### Todas
 
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan (se marca al cerrar la tarea 17).
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
 
 ## 14. Casos fuera de alcance
 
