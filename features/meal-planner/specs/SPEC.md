@@ -16,7 +16,7 @@ Esta spec cubre **SCRUM-99** (el calendario, mergeada) y **SCRUM-100** (asignar)
 ## 2. Alcance
 
 - Ruta propia `/recetas/planificador`, dentro del grupo privado de la app. Es el sub-tab **"Planificador semanal"** de la sección Recetas: la barra de sub-tabs pasa a ser de links y "Recetas" sigue yendo a `/recetas`.
-- **Grilla de 7 días** (lunes a domingo) por **3 comidas** (desayuno, almuerzo, cena): siempre los 21 espacios, todos vacíos.
+- **Grilla de 7 días** (lunes a domingo) por **3 comidas** (desayuno, almuerzo, cena): siempre los 21 espacios. En SCRUM-99 todos vacíos; con SCRUM-100 los asignados muestran su receta.
 - **Encabezado con el rango de la semana** ("12 – 18 oct") y dos flechas para pasar entre la **semana actual** y la **próxima**. Con la actual a la vista, la flecha de atrás está deshabilitada; con la próxima, la de adelante.
 - El **día de hoy** se marca en la semana actual.
 - **Mobile:** los mismos días apilados uno debajo de otro, en vez de la grilla.
@@ -47,7 +47,7 @@ SCRUM-99 no leía nada de Supabase; desde SCRUM-100 el plan viene de la base.
 
 ## 4. Salidas
 
-- La grilla de la semana elegida: 7 días con su nombre y número, y 3 espacios vacíos por día.
+- La grilla de la semana elegida: 7 días con su nombre y número, y 3 espacios por día (vacíos o con su receta, SCRUM-100).
 - El rango de la semana en el encabezado y las flechas con su estado.
 - El día de hoy resaltado si la semana a la vista es la actual.
 
@@ -90,7 +90,6 @@ SCRUM-99 no escribía nada en ninguna parte.
 | Pantalla | Estado | Notas |
 |---|---|---|
 | Planificador | `weekOffset`: `current` · `next` | Una unión derivada de constantes, no un booleano. En SCRUM-99 no hay estados de carga ni error porque no hay datos remotos; con SCRUM-100 el plan sí se lee de la base (filas de abajo) |
-
 | Plan (SCRUM-100) | `loading` · `error` · `ready` | Se carga una vez para las dos semanas. `ready` sin asignaciones es el plan vacío, no un estado aparte. Mientras carga o si falla, la grilla se dibuja con los espacios vacíos y deshabilitados: no se afirma que "no hay nada planeado" sin saberlo |
 | Diálogo de asignar (SCRUM-100) | `closed` · `editing` · `saving` · `failed` | `editing`, `saving` y `failed` siempre llevan el espacio elegido y los valores del formulario. Un solo diálogo a la vez |
 
@@ -120,7 +119,7 @@ SCRUM-100:
 - Espacio vacío: caja con borde punteado y el texto "+ Desayuno", "+ Almuerzo" o "+ Cena".
 - El día de hoy con la etiqueta en teal, como en el mockup (`docs/mockup-web-v2.html`).
 - **SCRUM-100:** espacio vacío = botón con borde punteado y "+ Almuerzo". Espacio asignado = botón con borde sólido que muestra la etiqueta de la comida en mayúsculas pequeñas ("ALMUERZO"), el nombre de la receta (una línea, recortada), debajo "Yo" o nada si no hay cocinero, y un chip "×2" si el multiplicador no es ×1.
-- **SCRUM-100:** diálogo (`Modal` compartido) con título "Asignar comida" o "Cambiar comida" y debajo el día y la comida ("Almuerzo · lunes 12 oct"). Contiene: la lista de recetas (una opción por receta, con sus porciones base), el selector de cocinero ("Yo" / "Sin cocinero"), el contador del multiplicador con su resultado ("×2 · 24 porciones"), y las acciones "Guardar", "Quitar" (solo en un espacio asignado) y "Cancelar". "Guardando…" con los botones deshabilitados mientras guarda.
+- **SCRUM-100:** diálogo (`Modal` compartido) con título "Asignar comida" o "Cambiar comida" y debajo el día y la comida ("Almuerzo del lunes 12"). Contiene: la lista de recetas (una opción por receta, con sus porciones base), el selector de cocinero ("Yo" / "Sin cocinero"), el contador del multiplicador con su resultado ("×2 · 24 porciones"), y las acciones "Guardar", "Quitar" (solo en un espacio asignado) y "Cancelar". "Guardando…" con los botones deshabilitados mientras guarda.
 - **SCRUM-100:** el diálogo de eliminar receta suma, si la receta está en el plan, el aviso con el número de espacios.
 - El mismo HTML sirve para desktop y mobile: solo cambia la disposición con CSS (`md:grid` / apilado), igual que el shell, sin medir el ancho en JS.
 
@@ -184,7 +183,7 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
   - `anon` sin permisos de tabla. `authenticated`: `select`, `delete`, `insert` de las columnas del espacio (`date`, `meal_type`, `recipe_id`, `assigned_cook`, `servings_multiplier`) y `update` solo de `recipe_id`, `assigned_cook` y `servings_multiplier`: un espacio no se mueve de fecha ni de comida. `owner_id`, `household_id` y `created_at` no se pueden fijar a mano (mismo criterio que `008`).
 - **RPC nueva `assign_meal_slot(slot_date date, slot_meal_type text, target_recipe_id uuid, cook_is_self boolean, slot_servings_multiplier numeric) returns uuid`:** `security invoker` y `search_path` vacío, como `save_recipe`. Crea o reemplaza el espacio (`insert … on conflict … do update`). El cocinero sale de `cook_is_self ? auth.uid() : null`: el cliente no manda ids de usuario. Sin sesión, `42501`; receta no encontrada (inexistente, ajena o borrada), `P0002`.
 - **Quitar:** `delete` directo de `meal_plans` por fecha y comida (PostgREST), sin RPC. Si RLS oculta la fila no se borra nada y no hay error.
-- **Leer:** una consulta de PostgREST con la receta embebida, `meal_plans?select=…,recipes(name,base_servings)&date=gte.<lunes de la semana actual>&date=lte.<domingo de la próxima>`. Sin filtro por dueño: lo hace RLS.
+- **Leer:** una consulta de PostgREST con la receta embebida, `meal_plans?select=…,recipes(id,name,base_servings)&date=gte.<lunes de la semana actual>&date=lte.<domingo de la próxima>`. Sin filtro por dueño: lo hace RLS.
 - **Recetas para el diálogo:** `recipes?select=id,name,base_servings&order=name`. Sin filtro por dueño (RLS).
 - **Aviso al eliminar una receta:** `meal_plans?select=id&recipe_id=eq.<id>` con conteo exacto (`head`), solo para leer cuántas filas usan la receta.
 - **Navegador:** no guarda nada.
@@ -201,7 +200,7 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
 - [x] Con la semana actual a la vista, la flecha de atrás está deshabilitada; con la próxima, la de adelante.
 - [x] Hoy aparece resaltado en la semana actual y en ningún día de la próxima.
 - [x] Una semana que cruza de mes muestra el mes en las dos puntas del rango ("28 sep – 4 oct"); una que cruza de año, también ("29 dic – 4 ene"). (en `formatWeekRange.test.ts` y `buildWeek.test.ts`: con la fecha real de la prueba ninguna de las dos semanas cruza de mes)
-- [x] Un espacio vacío muestra "+ Almuerzo" y no es botón ni link (no se puede enfocar con Tab). (navegador y E2E-PLANNER-02: no hay ningún enlace ni botón dentro de la grilla)
+- [x] Un espacio vacío muestra "+ Almuerzo". ~~No es botón ni link~~ Reemplazado en SCRUM-100: ahora es un botón que se enfoca con Tab y abre el diálogo (E2E-PLANNER-02 cuenta los 21 botones).
 - [x] El sub-tab "Planificador semanal" está activo y habilitado en la pantalla; "Recetas" lleva a `/recetas`; en `/recetas` el sub-tab del planificador ya no dice "Próximamente" y lleva a `/recetas/planificador`.
 - [x] El ítem "Recetas" del menú lateral sigue activo en `/recetas/planificador`.
 - [x] En mobile los días se apilan y no hay desplazamiento horizontal.

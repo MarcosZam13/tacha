@@ -30,7 +30,7 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
 ### E2E-PLANNER-02: ver la semana actual con sus espacios y hoy
 
 - **Cubre:** HU-67 CA-01 (grilla de días por comidas, 3 espacios por día) y la marca de hoy.
-- **Precondición:** ninguna. Corre en desktop y en Pixel 7.
+- **Precondición:** el usuario E2E es nuevo (sesión anónima) y no tiene plan: por eso los 21 espacios están vacíos. Corre en desktop y en Pixel 7.
 - **Pasos:** abrir `/recetas/planificador`.
 - **Resultado esperado:**
   - se ve "Esta semana" y un rango de fechas con la forma "12 – 18 oct" (o "28 sep – 4 oct" si cruza de mes);
