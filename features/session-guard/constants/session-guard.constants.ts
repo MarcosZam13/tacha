@@ -1,3 +1,5 @@
+import { AUTH_ROUTE } from "@/constants";
+
 // Interruptor del guard. Apagado si la variable falta o no vale "true".
 // Next solo reemplaza la variable si se lee escrita completa, así que no se puede abreviar.
 export const IS_SESSION_GUARD_ENABLED = process.env.NEXT_PUBLIC_SESSION_GUARD_ENABLED === "true";
@@ -5,7 +7,7 @@ export const IS_SESSION_GUARD_ENABLED = process.env.NEXT_PUBLIC_SESSION_GUARD_EN
 export const SESSION_GUARD_ROUTE = {
   ABOUT: "/nosotros",
   HOME: "/",
-  LOGIN: "/login",
+  LOGIN: AUTH_ROUTE.LOGIN,
   REGISTER: "/registro",
   REGISTER_VERIFIED: "/registro/verificado",
   TERMS: "/terminos",
@@ -20,6 +22,7 @@ export const PUBLIC_ROUTES: readonly string[] = [
   SESSION_GUARD_ROUTE.REGISTER,
   SESSION_GUARD_ROUTE.REGISTER_VERIFIED,
   SESSION_GUARD_ROUTE.TERMS,
+  AUTH_ROUTE.FORGOT_PASSWORD,
 ];
 
 export const SESSION_GUARD_LABEL = {
