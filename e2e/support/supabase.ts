@@ -14,14 +14,14 @@ const loadLocalEnv = (): void => {
 
 loadLocalEnv();
 
-const getRequiredEnv = (name: string): string => {
+export const getRequiredEnv = (name: string): string => {
   const value = process.env[name];
   if (!value) throw new Error(`Falta ${name} en .env.local para las pruebas E2E`);
   return value;
 };
 
 // supabase-js guarda la sesión en localStorage con esta clave.
-const getAuthStorageKey = (supabaseUrl: string): string =>
+export const getAuthStorageKey = (supabaseUrl: string): string =>
   `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
 
 /** El token de la sesión que `page` abrió; null si nunca se abrió una. */

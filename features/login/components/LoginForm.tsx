@@ -7,6 +7,7 @@ import {
   LOGIN_LABEL,
   LOGIN_ROUTE,
 } from "../constants/login.constants";
+import { InactivityNotice } from "./InactivityNotice";
 import { PasswordInput } from "./PasswordInput";
 import { RecaptchaWidget } from "./RecaptchaWidget";
 import type { LoginFormProps } from "./models/LoginFormProps.interface";
@@ -24,6 +25,8 @@ export const LoginForm = ({
   values,
 }: LoginFormProps): React.JSX.Element => (
   <>
+    <InactivityNotice />
+
     <h1 className="font-display text-3xl font-bold text-tacha-text">{LOGIN_LABEL.TITLE}</h1>
 
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">

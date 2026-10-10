@@ -219,3 +219,74 @@ Escribo una contraseña débil e inicio sesión → `submitLogin` en `useLoginVi
 | Unión de estados `notice | form | saving | done` | Booleanos `isChanging`, `isSaving`, `isDone` | Tres booleanos admiten combinaciones imposibles (guardando y terminado a la vez); la unión no |
 | "Contraseña vencida" fuera de alcance | Inventar una fecha de vencimiento | Supabase Auth no la lleva; exigiría una tabla de perfil con una fecha y una política de duración, que son decisiones de producto |
 | Reusar `PasswordInput` (HU-23) para los dos campos nuevos | Un campo nuevo sin ojo | Ya existe, y el usuario escribe una contraseña nueva: es cuando más ayuda verla |
+
+## SCRUM-50: cierre de sesión por inactividad
+
+### Archivos
+
+```
+features/login/
+  components/
+    InactivityTimeout.tsx              ("use client") no dibuja nada: monta el ViewModel (solo presentación)
+    InactivityNotice.tsx               aviso "Tu sesión se cerró por inactividad" (role="status")
+    models/InactivityNoticeProps.interface.ts
+  hooks/
+    useInactivityTimeoutViewModel.ts   sesión → listeners + temporizador → cierre y redirección
+  services/
+    activity.service.ts                leer, registrar y borrar la última actividad (localStorage con respaldo en memoria)
+  utils/
+    isInactivityExpired.ts             función pura: (ahora, últimaActividad, límite) → ¿venció?
+    parseInactivityLimit.ts            función pura: texto de la variable → minutos válidos o el default
+  constants/
+    login.constants.ts                 + límite, eventos, claves, bandera del aviso, textos del aviso, LOGIN_ROUTE.LOGIN
+  tests/
+    isInactivityExpired.test.ts · parseInactivityLimit.test.ts
+  services/inactivity-notice.service.ts  markInactivityLogout() y consumeInactivityNotice(): bandera en sessionStorage (respaldo en memoria)
+  hooks/useInactivityNoticeViewModel.ts  al montar, consume la bandera y decide si se muestra el aviso
+  components/LoginForm.tsx             + <InactivityNotice /> sobre el título
+
+services/session.service.ts            + signOutUser()
+app/layout.tsx                         + <InactivityTimeout /> junto al SessionGuard
+.env.example                           + NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES (comentada)
+```
+
+Sin tablas, RLS, RPC ni Edge Functions nuevas.
+
+### Flujo
+
+Abro Tacha con sesión → `app/layout.tsx` monta `InactivityTimeout` → `useInactivityTimeoutViewModel` se suscribe con `subscribeToSessionChanges` y reduce la sesión con `getSessionStatus`. Solo con `authenticated`, un efecto registra los listeners (`pointerdown`, `keydown`, `scroll`, `visibilitychange`) y arma un temporizador. Cada evento llama a `recordActivity()` (`activity.service.ts`, máximo una escritura por segundo). Al dispararse el temporizador, `isInactivityExpired(now, readLastActivity(), limit)` decide: si venció → `markInactivityLogout()` + `signOutUser()` + `router.replace("/login")`; si no, se reprograma por el tiempo restante. En `/login`, `LoginForm` pinta `InactivityNotice`, que usa `useInactivityNoticeViewModel`: al montarse consume la bandera (`consumeInactivityNotice`) y, si había una, muestra el aviso.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Vive en `features/login/` | Una feature `inactivity-timeout/` | Así está la historia en Jira (es parte del ciclo de sesión del login). Costo: se monta desde `app/layout.tsx`, no desde `/login`, porque debe medir en todas las pantallas privadas |
+| Comparar marcas de tiempo (`ahora - últimaActividad`) | Un `setTimeout` que se reinicia en cada evento | Un temporizador en una pestaña oculta se retrasa y no sabe de otras pestañas; la marca compartida da una sola verdad |
+| Marca en `localStorage` con respaldo en memoria | Solo en memoria | Con dos pestañas, una inactiva cerraría la sesión de quien trabaja en la otra (el `signOut` local las cierra todas) |
+| Escritura limitada a 1 por segundo | Escribir en cada evento | `scroll` dispara decenas de eventos por segundo; cada uno sería una escritura síncrona a `localStorage` |
+| Función pura `isInactivityExpired` | Lógica dentro del efecto | Se prueba sin React ni reloj falso, y el caso borde (`>=` vs `>`) queda fijado en una prueba |
+| Límite por variable de entorno con default de 30 min | Constante fija o pantalla de ajustes | El criterio pide "configurable"; una pantalla de ajustes es otra historia. Costo: cambiarlo exige recompilar |
+| `parseInactivityLimit` defensivo, con mínimo y máximo (1 a 1440 min) | Confiar en `Number(...)` | `Number("")` es `0`: un valor vacío cerraría la sesión al instante, y uno enorme (más de ~24,8 días) desborda `setTimeout`, que dispararía al instante en bucle |
+| `signOutUser` con tope de 5 s (`Promise.race`) | Esperar al servidor sin límite | Con la red colgada, la pantalla privada seguiría abierta sin redirigir. Costo: pasado el tope la sesión local puede quedar hasta que la llamada termine (supabase-js no ofrece borrar solo lo local sin esperar) |
+| La marca se borra cuando la sesión termina por cualquier causa (efecto sobre `status`) | Borrarla solo en el login o en `expireSession` | Hay más formas de empezar sesión que el login (verificación de correo, recuperar contraseña) y de terminarla (token que no se renueva, otra pestaña). Una marca vieja haría vencer el siguiente inicio al instante |
+| `readLastActivity` nunca devuelve una marca futura | Confiar en lo guardado | Con el reloj adelantado y corregido, la sesión inactiva no vencería nunca |
+| `signOut({ scope: "local" })` | `scope: "global"` | Global cerraría la sesión en los demás dispositivos de la persona, que quizá sí están en uso |
+| `replace("/login")` | `push` | Con `push`, "atrás" volvería a una pantalla privada sin sesión |
+| El motivo viaja en una bandera de `sessionStorage` | Un parámetro `?motivo=inactividad` en la URL | Con el guard encendido, el guard (al recibir `SIGNED_OUT`) y el cierre por inactividad redirigen a `/login` a la vez y el último `replace` pisa el parámetro: se probó y el aviso no aparecía. La bandera no depende de quién redirija ni del orden. Costo: ya no se puede probar con una URL, y el aviso es por pestaña |
+| `pointerdown` en vez de `click` o `mousemove` | `mousemove` | `pointerdown` cubre mouse y táctil; `mousemove` dispara sin parar y una vibración de la mesa contaría como actividad |
+| Sin aviso previo ni modal | Cuenta regresiva de 60 s | No lo piden los criterios y suma un componente, un estado y un temporizador más que defender |
+| Hook propio para el aviso (`useInactivityNoticeViewModel`) | Leer la bandera en `useLoginViewModel` | `useLoginViewModel` ya maneja envío, reCAPTCHA y errores; sumarle otra responsabilidad lo vuelve un god ViewModel. Lee la bandera en un efecto (no al renderizar) porque `sessionStorage` no existe en el servidor y el HTML prerenderizado de `/login` tiene que coincidir con el del cliente |
+| La bandera se consume al mostrarse | Dejarla hasta el siguiente cierre de sesión | Un aviso que reaparece al recargar, o semanas después en un login normal, confunde. Se muestra una vez y el estado de React lo mantiene visible mientras la persona escribe |
+| Bandera en memoria además de `sessionStorage` | Solo `sessionStorage` | Si `sessionStorage` está bloqueado, la navegación a `/login` es del lado del cliente (no recarga), así que una variable del módulo sobrevive hasta que el login la consuma |
+| Componente aparte, no dentro de `SessionGuard` | Meterlo al guard | El guard está apagado por defecto y el cierre por inactividad debe funcionar igual: son dos responsabilidades |
+| Una sesión anónima no se mide | Medir cualquier sesión | `ensureSession` crea anónimas para cualquiera; cerrarlas sería un `signOut` sin sentido y rompería las demos de `/lista` |
+
+### Conceptos nuevos
+
+- Efecto con limpieza: registra listeners y temporizador y los quita al desmontar o cuando cambia la sesión.
+- Throttle (limitar la frecuencia) a mano, con una marca de tiempo.
+- `visibilitychange` y por qué los temporizadores se retrasan en pestañas ocultas.
+- `localStorage` compartido entre pestañas y su fallo posible (acceso bloqueado).
+- Dos `router.replace` seguidos: gana el último. Por eso el motivo no puede depender de la URL.
+- `sessionStorage` (por pestaña, sobrevive a una recarga) frente a `localStorage` (compartido entre pestañas).
+- Regla de ESLint `react-hooks/set-state-in-effect` y cuándo se justifica desactivarla (leer algo que solo existe en el navegador).

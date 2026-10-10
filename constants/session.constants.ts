@@ -8,3 +8,7 @@ export const SESSION_STATUS = {
 } as const;
 
 export type SessionStatusType = (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
+
+// Cuánto se espera al servidor al cerrar sesión. Pasado el tope, quien cierra sigue con la
+// redirección al login en vez de dejar la pantalla privada abierta con una red colgada.
+export const SIGN_OUT_TIMEOUT_MS = 5_000;

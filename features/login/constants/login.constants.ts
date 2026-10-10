@@ -87,6 +87,7 @@ export const LOGIN_FORM_FIELDS = [
 
 // A dónde lleva el login exitoso: utils/resolvePostLoginRoute.ts.
 export const LOGIN_ROUTE = {
+  LOGIN: "/login",
   REGISTER: "/registro",
 } as const;
 
@@ -209,3 +210,38 @@ export const PASSWORD_ERROR_CODE_RESULT: Partial<Record<string, PasswordUpdateRe
   [SUPABASE_PASSWORD_ERROR_CODE.SAME_PASSWORD]: PASSWORD_UPDATE_RESULT.SAME_PASSWORD,
   [SUPABASE_PASSWORD_ERROR_CODE.WEAK_PASSWORD]: PASSWORD_UPDATE_RESULT.REJECTED,
 };
+
+// --- Cierre de sesión por inactividad (SCRUM-50) ---
+
+export const INACTIVITY = {
+  DEFAULT_MINUTES: 30,
+  // Menos de 1 minuto no tiene sentido y 0 cerraría la sesión al instante.
+  MIN_MINUTES: 1,
+  // Un día. setTimeout desborda con más de ~24,8 días (2^31 ms) y dispararía al instante en bucle.
+  MAX_MINUTES: 1_440,
+  MS_PER_MINUTE: 60_000,
+  // Como máximo una escritura de la última actividad por este intervalo (scroll dispara decenas por segundo).
+  RECORD_THROTTLE_MS: 1_000,
+  STORAGE_KEY: "tacha:last-activity",
+} as const;
+
+// Next solo reemplaza la variable si se lee escrita completa, así que no se puede abreviar.
+// Se guarda cruda: parseInactivityLimit decide si es válida o cae al valor por defecto.
+export const INACTIVITY_TIMEOUT_MINUTES_RAW = process.env.NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES;
+
+// Eventos que cuentan como actividad. La navegación entre rutas se detecta con usePathname,
+// y visibilitychange (volver a la pestaña) tiene su propia comprobación.
+export const INACTIVITY_ACTIVITY_EVENTS = ["keydown", "pointerdown", "scroll"] as const;
+
+export const INACTIVITY_VISIBILITY_EVENT = "visibilitychange";
+
+// El motivo no viaja en la URL: con el guard encendido, el guard y el cierre por inactividad
+// redirigen a /login a la vez y el último pisaría el parámetro. La bandera vive en sessionStorage
+// (por pestaña, sobrevive a una recarga) y el login la consume al mostrar el aviso.
+export const INACTIVITY_NOTICE_STORAGE_KEY = "tacha:inactivity-notice";
+
+export const INACTIVITY_NOTICE_FLAG = "1";
+
+export const INACTIVITY_LABEL = {
+  NOTICE: "Tu sesión se cerró por inactividad. Iniciá sesión de nuevo.",
+} as const;
