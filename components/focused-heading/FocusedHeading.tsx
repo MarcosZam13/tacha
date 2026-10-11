@@ -1,6 +1,6 @@
 "use client";
 
-import { useFocusHeadingOnMount } from "../hooks/useFocusHeadingOnMount";
+import { useFocusHeadingOnMount } from "./hooks/useFocusHeadingOnMount";
 import type { FocusedHeadingProps } from "./models/FocusedHeadingProps.interface";
 
 /** Título que recibe el foco al aparecer; `tabIndex={-1}` lo hace enfocable sin entrar en el orden de Tab. */

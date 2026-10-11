@@ -1,6 +1,6 @@
+import { FocusedHeading } from "@/components/focused-heading/FocusedHeading";
 import { Button } from "@/components/ui";
 import { CHANGE_PASSWORD_LABEL } from "../constants/login.constants";
-import { FocusedHeading } from "./FocusedHeading";
 import type { PasswordChangedNoticeProps } from "./models/PasswordChangedNoticeProps.interface";
 
 export const PasswordChangedNotice = ({

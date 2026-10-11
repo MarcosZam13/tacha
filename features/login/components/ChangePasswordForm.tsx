@@ -1,3 +1,4 @@
+import { FocusedHeading } from "@/components/focused-heading/FocusedHeading";
 import { PasswordInput } from "@/components/password-input/PasswordInput";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter/PasswordStrengthMeter";
 import { Button } from "@/components/ui";
@@ -8,7 +9,6 @@ import {
   NEW_PASSWORD_LABEL,
 } from "@/constants";
 import { CHANGE_PASSWORD_LABEL } from "../constants/login.constants";
-import { FocusedHeading } from "./FocusedHeading";
 import type { ChangePasswordFormProps } from "./models/ChangePasswordFormProps.interface";
 
 /** Formulario de nueva contraseña: nueva + repetir, con el medidor de fortaleza bajo la nueva. */
