@@ -10,6 +10,7 @@ export type LoginFieldType = (typeof LOGIN_FIELD)[keyof typeof LOGIN_FIELD];
 
 export const LOGIN_LABEL = {
   EMAIL: "Correo electrónico",
+  FORGOT_PASSWORD: "¿Olvidaste tu contraseña?",
   NO_ACCOUNT: "¿No tenés cuenta?",
   PASSWORD: "Contraseña",
   REGISTER_LINK: "Registrate",
