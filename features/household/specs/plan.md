@@ -446,11 +446,15 @@ features/household/
     household.service.ts                         + getHouseholdMembers() y leaveHousehold(newAdminUserId)
   constants/
     household.constants.ts                       + RPC, HOUSEHOLD_LEAVE_RESULT (+ tipo), HOUSEHOLD_LEAVE_STATUS,
-                                                   HOUSEHOLD_LEAVE_TEXT, "Miembro sin nombre"
+                                                   HOUSEHOLD_LEAVE_DIALOG_CASE, HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION,
+                                                   HOUSEHOLD_LEAVE_FORM, HOUSEHOLD_LEAVE_TEXT ("Miembro sin nombre")
   tests/
     household.service.test.ts                    + casos de getHouseholdMembers y leaveHousehold
     useHouseholdLeave.test.ts                    nuevo
-    HouseholdLeaveDialog.page.ts + HouseholdLeaveDialog.test.tsx   nuevo (Page Object, jsdom)
+    HouseholdLeave.page.ts                       nuevo: un solo Page Object para la sección, el diálogo y el aviso
+                                                 (el diálogo solo existe dentro de esta pantalla)
+    HouseholdLeave.test.tsx                      nuevo (jsdom): el diálogo solo y la pantalla completa con el
+                                                 servicio mockeado
 
 docs/documento-proyecto.md                       §4.1 y §6 (ver "Documento del proyecto")
 ```
@@ -546,11 +550,12 @@ La concurrencia real (dos sesiones a la vez) no se puede reproducir en una sola 
    - miembro → `confirming`;
    - admin → `loadingMembers` → `getHouseholdMembers()` → `confirming` (sin otros: aviso de que la familia se elimina; con otros: radios) o `membersLoadFailed`.
 2. **Elegir (admin con otros):** el radio guarda el `userId`; "Salir" se habilita al elegir.
-3. **Confirmar:** "Salir" → guarda `useRef` → `leaving` → `leaveHousehold(elegido o null)` → resultado:
+3. **Confirmar:** "Salir" → guarda `useRef` → `leaving` → `leaveHousehold(elegido)` (sin elegido, el parámetro no viaja y la base usa su `null`) → resultado:
    - `left` / `household_deleted` → cierra el diálogo, avisa al Facade, que vuelve a leer la membresía (estado sin familia) y muestra la confirmación;
-   - `transfer_required` / `invalid_new_admin` → vuelve a `confirming` con el error y recarga los miembros;
-   - `not_member` → cierra y vuelve a leer la membresía;
-   - error → `failed` (reintentar o cancelar).
+   - `transfer_required` / `invalid_new_admin` → `loadingMembers` con el error, recarga los miembros y borra la elección. `transfer_required` recarga **aunque la pantalla mostrara un miembro**: llega si alguien se unió mientras el admin estaba solo, o si a un miembro le pasaron el rol con el diálogo abierto;
+   - `not_member` → cierra y vuelve a leer la membresía, sin aviso;
+   - error → `failed` (reintentar con la misma elección o cancelar).
+   - Si la pantalla se cierra mientras sale o carga, la respuesta se ignora (`isMountedRef` y `isCancelled`).
 4. **Cancelar:** cierra el diálogo sin llamar a la base (no se puede mientras `leaving`).
 
 ### Decisiones
@@ -584,7 +589,7 @@ La concurrencia real (dos sesiones a la vez) no se puede reproducir en una sola 
 | RPC | `supabase/tests/023_leave_household.test.sql` | Ver "Cómo se aplica y se prueba" |
 | Servicio | `household.service.test.ts` | Cada resultado de `leave_household`; llamada solo con `new_admin_user_id`; valor desconocido → error; error de Supabase; `getHouseholdMembers` traduce filas y nombre nulo |
 | Hook | `useHouseholdLeave.test.ts` | Miembro: abrir, confirmar → `left`; admin único → `household_deleted`; admin con otros: carga miembros, sin elegir no confirma, elegir y confirmar; `invalid_new_admin` recarga; falla de carga; falla al salir; cancelar no llama; doble clic → una llamada |
-| Diálogo | `HouseholdLeaveDialog.page.ts` + `.test.tsx` (jsdom) | Textos según el caso; radios con label y "Miembro sin nombre"; "Salir" deshabilitado sin elegir y mientras sale; ningún correo |
+| Diálogo y pantalla | `HouseholdLeave.page.ts` + `HouseholdLeave.test.tsx` (jsdom) | Diálogo: textos según el caso; radios con label y "Miembro sin nombre"; "Salir" deshabilitado sin elegir y mientras sale; ningún id de miembro en el HTML (el modelo no trae correo: lo garantiza `get_household_members`, ver la prueba SQL). Pantalla: abrir no llama a la base; miembro, transferencia y admin único con su aviso en `role="status"`; `not_member` sin aviso; falla al salir con el diálogo abierto; cancelar |
 | Manual | Con cuentas de prueba | CA-01 a CA-04 con capturas sin datos sensibles; las sesiones se cargan como en SCRUM-57 si `/login` sigue sin reCAPTCHA en local |
 
 E2E: no se agrega, por el mismo motivo que SCRUM-57 (necesita cuentas registradas en la base compartida).
@@ -607,9 +612,10 @@ El PR (nuevo, independiente del #43) se abre con el commit 1, hacia `develop`, c
 | 2 | `feat(SCRUM-58): add leave household RPCs and SQL tests` | `023_leave_household.sql` y `supabase/tests/023_leave_household.test.sql` |
 | 3 | `feat(SCRUM-58): add leave household functions to database types` | `types/database.types.ts` |
 | 4 | `feat(SCRUM-58): add leave household constants and service` | constantes que usa el servicio, modelo, servicio y su test |
-| 5 | `feat(SCRUM-58): add leave household view model` | `HOUSEHOLD_LEAVE_STATUS`, `useHouseholdLeave.ts` y su test |
-| 6 | `feat(SCRUM-58): add leave household dialog to the household screen` | `HOUSEHOLD_LEAVE_TEXT`, diálogo, props, Page Object, test, `Household.tsx`, `useHouseholdViewModel.ts` |
-| 7 | `docs(SCRUM-58): update project document and record validation` | `documento-proyecto.md`, SPEC §13, `tasks.md` |
+| 5 | `feat(SCRUM-58): add leave household view model` | `household.constants.ts` (todas las constantes del flujo de salir, en un solo bloque), `useHouseholdLeave.ts` y su test |
+| 6 | `feat(SCRUM-58): add leave household dialog to the household screen` | diálogo, props, `Household.tsx`, `useHouseholdViewModel.ts`, `HouseholdLeave.page.ts` y `HouseholdLeave.test.tsx` |
+| 7 | `docs(SCRUM-58): document leaving a household and update plan and tasks` | `documento-proyecto.md`, `plan.md`, `tasks.md` |
+| 8 | `docs(SCRUM-58): record manual validation` (después del QA manual) | SPEC §13, `tasks.md` (7.2 y 7.4) |
 
 La migración y su prueba SQL quedaron en un solo commit (el 2), en vez de los dos que se planearon (`feat` y `test`): se revisaron y se aplicaron juntas.
 
@@ -622,3 +628,9 @@ Lo que salga de las revisiones va en commits `fix(SCRUM-58): …`. Staging expl�
 - **Deuda M1:** borrar la cuenta del único admin sigue dejando la familia sin admin.
 - **Rama atrás de `develop`:** `develop` avanzó (SCRUM-51) sin tocar household; se trae con un merge antes de `waiting qa`.
 - **Número de la migración** sujeto a cambios hasta el merge.
+- **Foco del `Modal`:** el primitivo compartido no atrapa el foco (documentado en su SPEC); con Tab se puede salir del diálogo. No es de esta historia.
+- **Texto de la sección:** SPEC §8 pide "un texto corto" sin fijarlo; se usó "Puedes salir de tu familia cuando quieras. Tus listas personales se quedan contigo." (CA-04), a confirmar en la revisión.
+- **Teclado (SPEC §9):** además del foco, al salir bien el botón "Salir" desaparece y el foco queda en `body`. Sin test automático: se valida a mano (guía de QA, caso de teclado).
+- **Confirmación y resultado en dos carreras** (revisión de seguridad, baja): si un admin elige a alguien y los demás salen antes de confirmar, o a un miembro le pasan el rol y los demás salen, la base elimina la familia aunque el texto confirmado era otro. El aviso final dice lo que pasó. Evitarlo exige cambiar el contrato de la RPC: decisión de producto, fuera de esta historia.
+- **Sesión vencida:** se ve como una falla cualquiera ("No se pudo salir…"), sin pedir volver a iniciar sesión. No escribe nada; mejora de experiencia para otra historia.
+- **Mejoras opcionales anotadas (revisión de código):** pasar el armado de `leave.dialog` a un helper fuera del Facade, unificar las traducciones de resultado en tablas y un "Reintentar" tras `membersLoadFailed` (hoy SPEC §6 pide solo "Cancelar").
