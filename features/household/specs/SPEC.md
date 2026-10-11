@@ -1,9 +1,10 @@
-# Feature: Household — crear familia, enlace de invitación y unirse
+# Feature: Household — crear familia, enlace de invitación, unirse y salir
 
 Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.md); Jira es la fuente de verdad):
 
 - [SCRUM-56 / HU-33](https://tacha.atlassian.net/browse/SCRUM-56): crear link de invitación al household. Sprint 2, mergeada.
-- [SCRUM-57 / HU-34](https://tacha.atlassian.net/browse/SCRUM-57): unirse a un household por link. Sprint 2, en curso.
+- [SCRUM-57 / HU-34](https://tacha.atlassian.net/browse/SCRUM-57): unirse a un household por link. Sprint 2, mergeada.
+- [SCRUM-58 / HU-34c](https://tacha.atlassian.net/browse/SCRUM-58): salir de mi household. En curso.
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md).
 
@@ -20,6 +21,10 @@ Como ninguna otra historia crea households y sin uno no hay administrador, esta 
 ### SCRUM-57
 
 Que una persona con cuenta registrada use el enlace (o el código) que le compartió el administrador para entrar a esa familia como miembro, sin más pasos que confirmar con un botón. Si el enlace venció, ya no existe o la persona ya tiene familia, se le explica qué pasó y no se toca ninguna membresía.
+
+### SCRUM-58
+
+Que cualquier integrante pueda salir de su familia cuando quiera, para volver a usar Tacha por su cuenta o unirse a otra. La familia nunca queda sin administrador: si sale el administrador y hay otros miembros, antes elige a quién le pasa el rol; si es el único, la familia se elimina junto con su enlace de invitación.
 
 ## 2. Alcance
 
@@ -46,6 +51,15 @@ Qué sí incluye:
 
 Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-de-alcance).
 
+### SCRUM-58
+
+- En `/household` ("Mi familia", que cumple el papel de "Perfil/Household" mientras no exista la pantalla de Perfil, HU-30): una sección **"Salir de la familia"** para miembro y administrador, con confirmación explícita en un diálogo (`Modal`).
+- **Miembro:** confirma y sale.
+- **Administrador con otros miembros:** en el mismo diálogo elige al nuevo administrador entre los miembros (radios nativos) y confirma. Pasar el rol y salir ocurren juntos.
+- **Administrador único miembro:** el diálogo avisa que la familia y su enlace se eliminan; al confirmar, se eliminan.
+- Después de salir, `/household` muestra el estado sin familia ("Crea tu familia" y "Unirme con una invitación") y un aviso de confirmación.
+- Backend: una migración nueva (número en [plan.md](plan.md#número-de-la-migración-1)) con dos RPC, `get_household_members()` (solo el administrador, para elegir) y `leave_household(new_admin_user_id)`, y su prueba SQL en `supabase/tests/`.
+
 ## 3. Entradas
 
 ### SCRUM-56
@@ -71,6 +85,18 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 | `onJoinSubmit` | `(event: FormEvent<HTMLFormElement>) => void` | Formulario "Unirme con una invitación" |
 | Resultado de la RPC | `HouseholdJoinResultType` | `accept_household_invite(invite_token)` ([§12](#12-contratos-externos)) |
 
+### SCRUM-58
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Sesión registrada | `boolean` | `hasRegisteredSession()` (reutilizado) |
+| Membresía y rol | `HouseholdMembership` | `getHouseholdMembership()` (reutilizado) |
+| `onLeaveRequest` | `() => void` | Botón "Salir de la familia" |
+| Miembros de la familia | lista de `{ userId, displayName, role, isCurrentUser }` | `get_household_members()`, solo si quien abre el diálogo es administrador |
+| Nuevo administrador elegido | `string` (un `userId` de esa lista) | Radio del diálogo |
+| `onLeaveConfirm` / `onLeaveCancel` | `() => void` | Botones del diálogo |
+| Resultado | `HouseholdLeaveResultType` | `leave_household(new_admin_user_id)` ([§12](#12-contratos-externos)) |
+
 ## 4. Salidas
 
 ### SCRUM-56
@@ -88,6 +114,14 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 - Muestra el mensaje del resultado ([§7](#7-errores) y [§8](#8-ui-esperada)).
 - Desde `/household`, navega a `/invitacion/<token>` con el token extraído del texto pegado.
 - Nunca muestra el token en pantalla ni lo escribe en la consola.
+
+### SCRUM-58
+
+- Llama a `get_household_members()` solo cuando un administrador abre el diálogo de salir.
+- Llama a `leave_household(new_admin_user_id)` solo al confirmar. `new_admin_user_id` va solo cuando el administrador tiene otros miembros; en los demás casos va `null`.
+- Según el resultado, la base borra la membresía de quien sale, pasa el rol de administrador al elegido o elimina la familia (con su enlace por la cascada de la `011`).
+- Vuelve a leer la membresía y muestra el estado que corresponde (normalmente "sin familia") con un aviso de confirmación.
+- Nunca muestra correos: solo el nombre de los miembros, o "Miembro sin nombre".
 
 ## 5. Reglas de negocio
 
@@ -121,6 +155,26 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 10. **Confirmar antes de unirse:** abrir `/invitacion/<token>` no llama a la RPC; solo el botón "Unirme" lo hace.
 11. **Sin vista previa:** la página no muestra el nombre de la familia antes de aceptar (no hay RPC de preview en esta historia).
 12. **Formulario de `/household`:** acepta el enlace completo (`<origen>/invitacion/<token>`, con o sin barra final, query o fragmento) o solo el código. Si el texto está vacío o no contiene un token con formato de UUID, muestra el error en el campo y no navega.
+
+### SCRUM-58
+
+1. **Solo cuentas registradas.** Las dos RPC rechazan sin `auth.uid()` o con `is_anonymous` en el JWT (`42501`). La pantalla sigue usando `getSession()`, nunca `ensureSession()`.
+2. **La base decide quién sale y con qué rol.** El usuario sale de `auth.uid()`; su familia y su rol, de su fila en `household_members`. El único dato que manda el cliente es el `user_id` del nuevo administrador, y la base valida que sea miembro de **la misma** familia y distinto de quien llama. El cliente nunca manda `household_id` ni un rol.
+3. **Miembro:** se borra su fila. Resultado `left`.
+4. **Administrador con otros miembros:**
+   - sin elegir a nadie → `transfer_required`, sin cambios;
+   - elegido que no es miembro de esa familia, o que es él mismo → `invalid_new_admin`, sin cambios;
+   - elegido válido → en la misma transacción el elegido pasa a `admin` y la fila del administrador anterior se borra → `left`. Ninguna otra transacción puede ver la familia sin administrador ni con dos.
+5. **Administrador único miembro:** se borra la fila de `households`; la cascada de la `011` borra su membresía y su enlace de invitación, y `purchase_sessions.household_id` queda en `null` (`016`). Resultado `household_deleted`.
+6. **Sin familia:** `not_member`, sin cambios.
+7. **Atomicidad y concurrencia:** cada salida es una sola llamada a la base, y todo lo que hace (pasar el rol, borrar la fila propia o eliminar la familia) ocurre o no ocurre entero.
+   - Antes de contar o modificar miembros, la función bloquea **siempre en el mismo orden**, sea miembro o administrador: primero la fila del enlace de esa familia (si existe) y después la de `households`. Es el mismo orden que usa `accept_household_invite`, así dos salidas, una transferencia y una unión por enlace sobre la misma familia se ejecutan una después de otra.
+   - Con el bloqueo tomado vuelve a leer la membresía, porque pudo cambiar mientras esperaba. La cantidad de miembros y la validez del elegido se revisan con el bloqueo tomado.
+   - Si la base aborta la llamada (por ejemplo, porque Postgres detecta un interbloqueo), se deshace entera: nunca queda una transferencia sin la salida ni una familia a medio borrar. La pantalla muestra "No se pudo salir de tu familia" y se puede reintentar. El detalle está en [plan.md](plan.md#concurrencia).
+8. **Listas:** salir no modifica `lists`, `recipes` ni `meal_plans`. Hoy todas son personales (`household_id` siempre `null`), así que el usuario conserva su lista general y sus listas privadas. Qué pasa con las listas **compartidas** con la familia es un contrato pendiente de HU-34b ([§15](#15-notas-de-implementación)).
+9. **Ver miembros:** solo el administrador, y solo los de su familia. Por cada miembro devuelve el nombre guardado en los metadatos de Supabase Auth, o `null` si no hay (la interfaz muestra "Miembro sin nombre"). Nunca el correo.
+10. **Confirmación explícita:** abrir la sección o el diálogo no modifica nada; solo el botón "Salir" del diálogo llama a `leave_household`.
+11. **Doble clic:** el botón se deshabilita y una guarda `useRef` ignora el segundo clic. Si igual llega una segunda llamada, la base responde `not_member` sin cambios.
 
 ## 6. Estados
 
@@ -166,6 +220,21 @@ Un token sin formato válido va directo a `invalid`, antes de mirar la sesión: 
 
 Formulario "Unirme con una invitación": solo el error del campo (`NullableUndefined<string>`); al ser válido, navega.
 
+### SCRUM-58
+
+Flujo de salir (`HOUSEHOLD_LEAVE_STATUS`), una unión de estados:
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| `idle` | Diálogo cerrado | La sección "Salir de la familia" con su botón |
+| `loadingMembers` | El administrador abrió el diálogo y se piden los miembros | Spinner dentro del diálogo |
+| `membersLoadFailed` | Falló `get_household_members()` | Error y "Cancelar" |
+| `confirming` | Diálogo abierto y listo | Texto según el caso, radios si corresponde, "Salir" y "Cancelar" |
+| `leaving` | Esperando `leave_household` | "Saliendo…", botones deshabilitados |
+| `failed` | Error de red o de la base al salir | Error en el diálogo; se puede reintentar o cancelar |
+
+Al salir bien (`left` o `household_deleted`), el diálogo se cierra y la pantalla vuelve a leer la membresía: queda en el estado `noHousehold` de SCRUM-56 con el aviso de confirmación.
+
 ## 7. Errores
 
 ### SCRUM-56
@@ -204,6 +273,21 @@ Textos propuestos (se confirman al escribir las constantes; viven en `household.
 - La carga de la sesión no tiene botón de reintento, igual que SCRUM-56: el mensaje indica recargar.
 - "Ya es de esa familia" no es un error: se muestra como aviso informativo ([§8](#8-ui-esperada)).
 
+### SCRUM-58
+
+Textos propuestos (se confirman al escribir las constantes):
+
+| Situación | Mensaje visible |
+|---|---|
+| No se pudieron cargar los miembros | "No se pudieron cargar los miembros de tu familia. Intenta de nuevo." |
+| Administrador con otros miembros sin elegir (o `transfer_required`) | "Elige a quién le pasas la administración antes de salir." |
+| `invalid_new_admin` | "Esa persona ya no es parte de tu familia. Elige a otra." (se vuelven a cargar los miembros) |
+| Falló la salida (red o base) | "No se pudo salir de tu familia. Intenta de nuevo." |
+| `not_member` | Sin error: se vuelve a leer la membresía y se muestra el estado real |
+
+- Los errores de Supabase no se muestran crudos.
+- "Falló la salida" se reintenta con el mismo botón "Salir"; si la primera llamada sí llegó a la base, el reintento responde `not_member` y la pantalla muestra el estado real.
+
 ## 8. UI esperada
 
 ### SCRUM-56
@@ -238,6 +322,25 @@ Página `/invitacion/<token>` (textos propuestos):
 
 Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la navegación con `Link` de `next/link` con las clases del botón (como `RecipeCard`). Tokens `tacha-*`.
 
+### SCRUM-58
+
+En `/household`, para miembro y administrador:
+
+- Sección **"Salir de la familia"** con un texto corto y el botón **"Salir de la familia"** (variante secundaria).
+
+Diálogo (`Modal`), con título **"¿Salir de {nombre de la familia}?"**:
+
+- **Miembro:** "Vas a dejar de ver lo que comparte esta familia." Botones **"Salir"** (variante destructiva; "Saliendo…" mientras procesa) y **"Cancelar"**.
+- **Administrador único:** "Eres la única persona en esta familia. Si sales, la familia y su enlace de invitación se eliminan."
+- **Administrador con otros miembros:** "Antes de salir, elige quién va a administrar la familia." y un grupo de radios con el nombre de cada miembro ("Miembro sin nombre" si no tiene). No aparece el administrador que sale.
+
+Avisos después de salir (en la zona `role="status"` de la pantalla):
+
+- `left`: "Saliste de la familia."
+- `household_deleted`: "Saliste y la familia se eliminó."
+
+Componentes compartidos: `Button`, `Modal` y `Spinner` de `@/components/ui`. Los radios son `<input type="radio">` nativos dentro del diálogo, con estilos `tacha-*`.
+
 ## 9. Accesibilidad
 
 ### SCRUM-56
@@ -256,6 +359,14 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 - El campo "Enlace o código de invitación" tiene `label` visible y muestra el error debajo.
 - "Unirme" se deshabilita mientras procesa y cambia su texto a "Uniéndote…".
 - "Iniciar sesión" e "Ir a mi familia" son enlaces (`Link`), porque navegan; "Unirme" y "Continuar" son botones, porque ejecutan una acción.
+- Todo el flujo se puede hacer solo con teclado.
+
+### SCRUM-58
+
+- Los radios van dentro de un `<fieldset>` con `<legend>` ("¿Quién va a administrar la familia?") y cada uno con su `<label>`.
+- El diálogo usa el `Modal` compartido: se cierra con "Cancelar" o Escape, salvo mientras sale (`leaving`).
+- "Salir" se deshabilita mientras procesa y, con otros miembros, mientras no haya nadie elegido.
+- La confirmación final se anuncia en la zona `role="status"` siempre montada de `Household.tsx`; los errores, en `role="alert"`.
 - Todo el flujo se puede hacer solo con teclado.
 
 ## 10. Restricciones técnicas
@@ -284,6 +395,15 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 - La migración nueva no toca la `011` ni ninguna otra existente.
 - Tests automáticos con Vitest (`npm test`, ya en `develop` desde SCRUM-128), en `features/household/tests/`: como mínimo el camino feliz y un caso negativo o límite (CONTRIBUTING §7), con Page Object para la UI (unit-testing-standards). Detalle en [plan.md](plan.md#pruebas).
 
+### SCRUM-58
+
+- Todo lo de SCRUM-56 y SCRUM-57 aplica igual.
+- La lógica del flujo vive en un hook propio (`useHouseholdLeave`) que compone `useHouseholdViewModel`, como `useHouseholdInvite` y `useHouseholdJoinForm`.
+- Los radios son nativos y locales al diálogo: no se crea un componente compartido mientras no haya un segundo uso.
+- Las RPC son `security definer` con `set search_path = ''`, `revoke execute` de `public` y `anon` y `grant` a `authenticated`. No se agregan políticas ni permisos de tabla.
+- La migración sigue el procedimiento de `supabase/README.md`: número libre revisado antes de crearla y antes del merge, se aplica en una sola transacción **junto con su fila** en `supabase_migrations.schema_migrations`, y no se edita una vez aplicada.
+- Tests automáticos obligatorios (CONTRIBUTING §7) y prueba SQL de la migración en `supabase/tests/`, con el formato de las existentes (transacción con `assert` que termina en `rollback`).
+
 ## 11. Dependencias
 
 ### SCRUM-56
@@ -306,6 +426,13 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 - `next/link` y `useRouter` de `next/navigation`.
 - La migración nueva de la RPC y su entrada en `types/database.types.ts`.
 - El detalle de archivos está en [plan.md](plan.md#scrum-57-unirse-a-una-familia-con-el-enlace).
+
+### SCRUM-58
+
+- Todo lo de SCRUM-56 y SCRUM-57, en especial `household.service.ts`, `useHouseholdViewModel` y `Household.tsx`.
+- Nuevos: `components/HouseholdLeaveDialog.tsx` y sus props, `hooks/useHouseholdLeave.ts`, `models/HouseholdMember.interface.ts`, la migración nueva y su prueba SQL.
+- `Modal` de `@/components/ui`.
+- El detalle de archivos está en [plan.md](plan.md#scrum-58-salir-de-la-familia).
 
 ## 12. Contratos externos
 
@@ -347,6 +474,29 @@ accept_household_invite(invite_token text) returns text
 
 - No se agregan políticas ni permisos de tabla: `household_members` sigue sin `insert` para el cliente y `household_invite_links` sigue cerrada. La única puerta para unirse es la RPC.
 - Tablas usadas: `household_invite_links` (lectura del token, con bloqueo `for share`) y `household_members` (lectura de la membresía propia e inserción).
+
+### SCRUM-58
+
+RPC nuevas, en una migración nueva (número en [plan.md](plan.md#número-de-la-migración-1)):
+
+```
+get_household_members() returns table (user_id uuid, display_name text, role text, is_current_user boolean)
+leave_household(new_admin_user_id uuid default null) returns text
+```
+
+- Las dos: `security definer`, `set search_path = ''`, nombres calificados, `revoke execute … from public, anon`, `grant execute … to authenticated`. Sin cuenta registrada: `42501`.
+- `get_household_members()`: solo si quien llama es `admin`; devuelve los miembros de **su** familia. `display_name` sale de `auth.users.raw_user_meta_data ->> 'name'` (vacío o sin valor → `null`). No devuelve correos. Si quien llama no es administrador: `42501`.
+- `leave_household(new_admin_user_id)` devuelve:
+
+| Valor | Significado | ¿Cambia algo? |
+|---|---|---|
+| `left` | Salió (miembro, o administrador que pasó el rol) | Sí |
+| `household_deleted` | Era el administrador y único miembro: la familia y su enlace se eliminaron | Sí |
+| `transfer_required` | Administrador con otros miembros que no eligió a nadie | No |
+| `invalid_new_admin` | El elegido no es miembro de esa familia, o es él mismo | No |
+| `not_member` | Quien llama no pertenece a ninguna familia | No |
+
+- Tablas usadas: `households` (bloqueo `for update` y borrado), `household_members` (lectura, actualización del rol del elegido y borrado de la fila propia). `household_invite_links` se borra solo por la cascada.
 
 ## 13. Casos de aceptación
 
@@ -401,6 +551,31 @@ Casos de cada flujo:
 
 No probado: entrar a `/invitacion/<token>` pasando por el login real (`/login`), porque en el entorno local falta la clave de reCAPTCHA de SCRUM-45 ([§15](#15-notas-de-implementación)).
 
+### HU-34c (SCRUM-58)
+
+Ninguno validado todavía.
+
+Criterios de la historia:
+
+- [ ] **CA-01:** desde "Mi familia" (`/household`) hay una opción "Salir de la familia" con confirmación explícita antes de ejecutarla.
+- [ ] **CA-02:** si sale el administrador y hay otros miembros, tiene que elegir a quién pasarle el rol antes de salir; el elegido queda como `admin` y el anterior sale, en una sola operación.
+- [ ] **CA-03:** si el administrador es el único miembro, al salir la familia se elimina por completo, junto con su enlace de invitación.
+- [ ] **CA-04:** después de salir, el usuario vuelve al estado "sin familia" y conserva su lista general y sus listas privadas.
+
+Casos de cada flujo:
+
+- [ ] **Resultados de negocio:** `left`, `household_deleted`, `transfer_required`, `invalid_new_admin` y `not_member` en la prueba SQL y en el servicio.
+- [ ] **Permisos:** sin sesión y anónimo → `42501` en las dos RPC; un miembro que no es administrador no puede listar miembros; `delete` y `update` directos sobre `household_members` siguen rechazados.
+- [ ] **Transferencia:** a un miembro válido (queda un único `admin`); a alguien de otra familia o a sí mismo → `invalid_new_admin` sin cambios; sin elegir → `transfer_required` sin cambios.
+- [ ] **Eliminar la última familia:** desaparecen la familia, la membresía y el enlace; una `purchase_session` de esa familia queda con `household_id` en `null`; el enlace viejo ya no sirve para unirse.
+- [ ] **Conservación de listas:** después de salir, las filas de `lists`, `recipes` y `meal_plans` del usuario siguen iguales.
+- [ ] **Concurrencia:** nunca queda una familia sin administrador ni con dos al terminar (dos salidas seguidas, transferir a alguien que ya salió).
+- [ ] **Doble clic en "Salir":** una sola llamada; una segunda llamada a la base responde `not_member` sin cambios.
+- [ ] **Cancelar:** cerrar el diálogo no llama a `leave_household`.
+- [ ] **Nombres:** un miembro sin nombre aparece como "Miembro sin nombre"; ningún correo en la página.
+- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-56
@@ -427,6 +602,15 @@ No probado: entrar a `/invitacion/<token>` pasando por el login real (`/login`),
 - **Rate limit propio de la RPC:** el token tiene 122 bits aleatorios; ver [plan.md](plan.md#seguridad).
 - Cambios en la migración `011`, en las RPC de SCRUM-56 o en el login.
 
+### SCRUM-58
+
+- **Listas compartidas (HU-34b, SCRUM-59):** no se implementa ni se decide qué pasa con listas compartidas al salir.
+- **Ver a todos los miembros (HU-35, SCRUM-60):** `get_household_members()` es solo para el administrador y solo para elegir; la pantalla de miembros es HU-35.
+- **Eliminar a otro miembro (HU-36)**, transferir el rol sin salir, renombrar o eliminar la familia a propósito.
+- **La pantalla de Perfil (HU-30):** la opción vive en `/household`.
+- **Borrar la cuenta:** el caso "el único administrador borra su cuenta" (deuda M1) sigue fuera.
+- Cambios en el login, el `SessionGuard` o las migraciones existentes.
+
 ## 15. Notas de implementación
 
 - **Número de la migración (SCRUM-56):** es la `011` porque la `009` (SCRUM-123, `009_close_store_preferences_writes.sql`) y la `010` (SCRUM-96, `010_delete_recipes.sql`) ya existen en `develop`. Se escribió primero como `010` y se renombró al sincronizar la rama con `develop` el 2026-10-03. En la base compartida ya estaba aplicada: el nombre del archivo no cambia nada ahí.
@@ -438,3 +622,6 @@ No probado: entrar a `/invitacion/<token>` pasando por el login real (`/login`),
 - **Cómo se obtuvo la sesión de prueba (SCRUM-57):** en el entorno local `/login` no permite entrar porque falta `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` en `.env.local` (configuración de SCRUM-45, no de esta historia): sin esa clave el widget de reCAPTCHA no aparece y el botón queda deshabilitado. Las sesiones de las cuentas de prueba se cargaron en el navegador desde la consola, sin cambiar código ni Supabase. Probar el flujo entrando por `/login` queda pendiente.
 - **Riesgo aceptado:** el token viaja en la URL (`/invitacion/<token>`), así que queda en el historial del navegador y en los logs de acceso del hosting. Es propio de un "link de invitación"; lo mitigan el vencimiento de 7 días, la regeneración y `referrer: "no-referrer"`.
 - **Spec reorganizada en SCRUM-57** con una subsección por historia en cada sección, como `features/recipes/specs/SPEC.md`. El contenido de SCRUM-56 no cambió, solo se ubicó bajo su subsección.
+- **Contrato pendiente para HU-34b (SCRUM-59):** HU-34c no modifica ninguna lista al salir. Hoy no hay listas compartidas con una familia (`household_id` siempre `null` en `lists`, `recipes` y `meal_plans`), así que el usuario conserva todo. Cuando HU-34b permita compartir listas, tiene que decidir qué pasa con ellas cuando su dueño sale de la familia (quedan en la familia o vuelven a ser personales) y ajustar `leave_household` en una migración nueva.
+- **Nombres de los miembros (SCRUM-58):** no hay tabla de perfiles; el nombre está en los metadatos de Supabase Auth (`name`, guardado por el registro). Las cuentas creadas desde el panel de Supabase pueden no tenerlo: se muestran como "Miembro sin nombre". Decisión de la dueña de la historia (2026-10-10): nunca mostrar correos, ni enmascarados.
+- **Deuda M1 sigue abierta:** si el único administrador borra su cuenta (no sale con `leave_household`), la familia queda sin administrador. HU-34c cubre la salida voluntaria, no el borrado de cuentas.

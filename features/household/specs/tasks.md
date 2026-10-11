@@ -203,3 +203,70 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 - [ ] Salir de la familia (HU-34c, SCRUM-58).
 - [ ] Decidir qué pasa con la lista personal al unirse (HU-34b, SCRUM-59).
 - [ ] Vista previa del nombre de la familia antes de aceptar.
+
+## SCRUM-58: salir de la familia
+
+Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr-1)) que compila por sí solo, y se revisa y aprueba antes de seguir. El PR (nuevo, no el #43) se abre con el commit de la etapa 1 y queda en `in progress` hasta la etapa 8.
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-58 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md` y `specs/tasks.md`.
+- [ ] 1.2 Revisión y aprobación de la documentación.
+- [ ] 1.3 Commit `docs(SCRUM-58): add leave household spec, plan and tasks`, push y abrir el PR hacia `develop` con label `in progress` (la tarjeta de Jira en In Progress).
+
+### Etapa 2 — Migración (commits `feat` y `test`)
+
+- [ ] 2.1 Revisar otra vez el número libre en `develop` y en los PRs abiertos (al 2026-10-10: `develop` llega a la `019`; `020`–`022` en ramas abiertas; propuesta `023`).
+- [ ] 2.2 Escribir `supabase/migrations/023_leave_household.sql` con encabezado (ticket, qué hace, por qué): `get_household_members()` y `leave_household(new_admin_user_id)` según [plan.md](plan.md#datos-2) (bloqueos, relectura, resultados), `revoke`/`grant`, sin políticas ni permisos de tabla nuevos.
+- [ ] 2.3 Escribir `supabase/tests/023_leave_household.test.sql` con los casos de [plan.md](plan.md#cómo-se-aplica-y-se-prueba-la-migración).
+- [ ] 2.4 Revisión del SQL con el subagente `security-reviewer`; aprobación; commits de la migración y de la prueba.
+
+### Etapa 3 — Aplicar y tipos (commit `feat`)
+
+- [ ] 3.1 La dueña de la historia avisa al grupo y aplica la migración en el SQL Editor **junto con su fila** en `supabase_migrations.schema_migrations` (procedimiento de `supabase/README.md`).
+- [ ] 3.2 Comprobar que el historial coincide con `migrations/`.
+- [ ] 3.3 Correr completo `supabase/tests/023_leave_household.test.sql`.
+- [ ] 3.4 Agregar `get_household_members` y `leave_household` a `types/database.types.ts` a mano y compararlos con la firma real (`pg_proc`).
+- [ ] 3.5 Commit.
+
+### Etapa 4 — Constantes, modelo y servicio (commit `feat`)
+
+- [ ] 4.1 Constantes: nombres de las RPC, `HOUSEHOLD_LEAVE_RESULT` (+ tipo), `HOUSEHOLD_LEAVE_STATUS` (+ tipo), `HOUSEHOLD_LEAVE_TEXT`, "Miembro sin nombre" (claves en orden alfabético, `as const`).
+- [ ] 4.2 `models/HouseholdMember.interface.ts`.
+- [ ] 4.3 `getHouseholdMembers()` y `leaveHousehold(newAdminUserId)` en `household.service.ts`, con type guards para el rol y el resultado, sin correos ni datos sensibles en los errores.
+- [ ] 4.4 Tests del servicio con el cliente de Supabase mockeado.
+- [ ] 4.5 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit.
+
+### Etapa 5 — ViewModel (commit `feat`)
+
+- [ ] 5.1 `hooks/useHouseholdLeave.ts`: unión de estados, carga de miembros solo para el admin, elegido, confirmar con guarda `useRef`, mapa resultado → estado, cancelar.
+- [ ] 5.2 Test de `useHouseholdLeave` con el servicio mockeado ([plan.md](plan.md#pruebas-1)).
+- [ ] 5.3 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit.
+
+### Etapa 6 — Diálogo y pantalla (commit `feat`)
+
+- [ ] 6.1 `components/HouseholdLeaveDialog.tsx` y sus props: solo presentación, `Modal`, radios nativos en `fieldset` con `legend` y `label`.
+- [ ] 6.2 `useHouseholdViewModel` compone `useHouseholdLeave` y vuelve a leer la membresía al salir; `Household.tsx` muestra la sección "Salir de la familia" para miembro y admin.
+- [ ] 6.3 `tests/HouseholdLeaveDialog.page.ts` (Page Object, sin `expect`) y `tests/HouseholdLeaveDialog.test.tsx` (jsdom).
+- [ ] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; revisión y aprobación; commit.
+
+### Etapa 7 — Pruebas y documentación (commit `docs`)
+
+- [ ] 7.1 Comprobar que cada CA de SPEC §13 (HU-34c) tenga al menos un test (camino feliz + un caso negativo o límite, CONTRIBUTING §7).
+- [ ] 7.2 Pruebas manuales de CA-01 a CA-04 con cuentas de prueba; capturas sin correos ni datos sensibles.
+- [ ] 7.3 `docs/documento-proyecto.md` §4.1 y §6 ([plan.md](plan.md#documento-del-proyecto-1)).
+- [ ] 7.4 Marcar en SPEC §13 y en esta lista solo lo que se validó; commit `docs`.
+
+### Etapa 8 — Revisiones y QA
+
+- [ ] 8.1 Traer `develop` con un merge (la rama no se rebasea: ya está publicada) y volver a revisar el número de la migración.
+- [ ] 8.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`.
+- [ ] 8.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; corregir en commits `fix(SCRUM-58): …`.
+- [ ] 8.4 Completar la descripción del PR con la plantilla (en inglés), pasos de prueba y evidencia; pasar a `waiting qa` y mover la tarjeta de Jira en el mismo momento.
+- [ ] 8.5 Merge solo con `qa accepted` puesto por otra persona.
+
+### Fuera de esta historia
+
+- [ ] Qué pasa con las listas compartidas al salir (contrato para HU-34b, SCRUM-59).
+- [ ] Ver a todos los miembros (HU-35, SCRUM-60) y eliminar miembros (HU-36).
+- [ ] Borrado de cuenta del único administrador (deuda M1).
