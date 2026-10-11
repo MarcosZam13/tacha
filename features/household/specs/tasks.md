@@ -203,3 +203,41 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 - [ ] Salir de la familia (HU-34c, SCRUM-58).
 - [ ] Decidir qué pasa con la lista personal al unirse (HU-34b, SCRUM-59).
 - [ ] Vista previa del nombre de la familia antes de aceptar.
+
+## SCRUM-59: decidir qué hacer con la lista personal
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1, con label `on hold` mientras la #63 (SCRUM-58) esté `in progress` ([plan.md](plan.md#dependencias-y-gitflow)).
+
+### Etapa 0 — Decisiones y aprobaciones (antes de implementar)
+
+- [x] 0.1 Decisiones de producto D1 a D9 de la dueña de la historia (2026-10-10), registradas en SPEC §5.
+- [ ] 0.2 T1: reglas para compartir (cantidades, tachados, compras y requisitos de receta).
+- [ ] 0.3 T2: qué se puede hacer con la lista personal después de "Mantener".
+- [ ] 0.4 T3: qué pasa con la lista de la familia cuando la familia se elimina, y si se actualiza la prueba SQL de SCRUM-58.
+- [ ] 0.5 T4: si el modo compra sobre la lista de la familia entra en la parte A.
+- [ ] 0.6 T5 y D7: el equipo aprueba (o no) separar la parte A en otro ticket; se registra en Jira y en `docs/sprints.md`.
+- [ ] 0.7 D5 y D6: diseño de dónde se guarda la decisión y qué conserva quien sale, coordinado con SCRUM-58.
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-59 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md` y `specs/tasks.md`.
+- [ ] 1.2 Revisión y aprobación de la documentación.
+- [ ] 1.3 Commit `docs(SCRUM-59): add personal list decision planning`, push y abrir el PR hacia `develop` con el título `feat(SCRUM-59): manage personal lists when joining a household` y label `on hold`.
+
+### Etapa 2 — Plan detallado (después de la etapa 0)
+
+- [ ] 2.1 Completar en plan.md archivos, datos, contratos de RPC, concurrencia y commits de la parte A y de la parte B.
+- [ ] 2.2 Revisar otra vez el número de la migración (`024` provisional).
+- [ ] 2.3 Traer `develop` con un merge cuando la #63 esté mergeada y resolver los conflictos de los specs conservando las dos historias.
+
+### Etapas siguientes (se detallan en la etapa 2)
+
+- [ ] Parte A: migración, prueba SQL, `security-reviewer`, aplicar y tipos, funciones de lista, servicio de `/lista`, regresión.
+- [ ] Parte B: migración y prueba SQL de compartir y de la decisión, servicio, ViewModel, pregunta, integración en `/household` y `/invitacion/<token>`, sección personal en `/lista`.
+- [ ] Pruebas manuales de CA-01 a CA-05, `docs/documento-proyecto.md`, revisiones (`code-reviewer`, `security-reviewer`, `qa-checker`), descripción del PR y `waiting qa`.
+
+### Fuera de esta historia
+
+- [ ] Conservar la lista de una sesión anónima al registrarse (ticket aparte, SCRUM-49).
+- [ ] Sublistas por fecha y listas privadas.
+- [ ] HU-35, HU-36 y HU-38.

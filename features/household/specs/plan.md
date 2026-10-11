@@ -418,3 +418,97 @@ Los tests de una pieza pueden ir en el mismo commit que la pieza (ej. `extractIn
 - **Sin rate limit propio** en la RPC (ver Seguridad).
 - **Número de la migración** sujeto a cambios hasta el merge.
 - **Sin E2E** si se aprueba la propuesta de [Pruebas](#pruebas): el flujo completo con dos cuentas reales queda cubierto por pruebas manuales hasta que el equipo defina usuarios de prueba registrados.
+
+## SCRUM-59: decidir qué hacer con la lista personal
+
+> **Verificado el 2026-10-10** contra `develop` en `58d7a6a` (SCRUM-56 y SCRUM-57 mergeadas, SCRUM-58 todavía no). Todas las políticas de `lists`, `list_items` y `list_item_recipe_requirements` son de la dueña. `lists.household_id` no tiene FK. La política de inserción de `lists` exige `household_id is null` y `type = 'general'`. Cinco funciones buscan la lista general por `owner_id` y `household_id is null`. `getGeneralList()` usa `ensureSession()`. `household_members` no tiene dónde guardar una decisión. El detalle está en [SPEC §12](SPEC.md#12-contratos-externos).
+
+Este plan es **de planificación**: fija lo decidido (D1 a D9, SPEC §5) y deja como pendiente lo que falta (T1 a T5). Los archivos, migraciones y commits concretos se escriben cuando T1 a T5 estén resueltos y el equipo apruebe el alcance.
+
+### Separación propuesta (pendiente de aprobación del equipo)
+
+| Parte | Qué incluye | Por qué separarla |
+|---|---|---|
+| **A. Lista general de la familia** (habilitador) | Una lista general por familia (índice único parcial por `household_id`, FK `lists.household_id` → `households`), RLS por membresía en `lists`, `list_items` y `list_item_recipe_requirements`, las cinco funciones que agregan a la lista general, `getGeneralList()` y, según T4, el modo compra | Cambia el control de acceso de toda la lista general y toca código de otras features (`shopping-list`, recetas, plan). Es un cambio grande que conviene revisar y mergear solo; como una sola historia superaría con holgura los 18 archivos |
+| **B. HU-34b** | La pregunta después de crear o unirse, guardar la decisión en la membresía, compartir atómicamente y la sección "Mi lista personal" en `/lista` | Es lo que pide la historia; depende de A |
+
+Crear el ticket de la parte A (tamaño, sprint y responsable) lo decide el equipo (T5). Si no se aprueba, las dos partes van en esta historia, en ese orden y en commits separados.
+
+### Datos (dirección, sin nombres definitivos)
+
+- **Lista de la familia:** una sola por familia. La parte A define si se crea al crear la familia, al compartir o al agregar el primer producto siendo miembro.
+- **Acceso:** si la lista tiene `household_id`, deciden solo las políticas de membresía. La dueña original **no** conserva acceso por ser dueña (D6: quien sale pierde el acceso). Si la lista es personal (`household_id` nulo), sigue la regla actual de la dueña.
+- **Decisión (D5):** asociada a la membresía. Como la fila de `household_members` se borra al salir (SCRUM-58), una decisión guardada ahí se limpia sola; al unirse a otra familia se vuelve a preguntar si se cumple D1. Columna o tabla, a decidir.
+- **Compartir:** una sola función atómica, con bloqueos en un orden fijo (lista de la familia, después la personal) para que dos traspasos simultáneos o un traspaso mientras alguien agrega no dupliquen variantes. Las reglas de cantidades, tachados y requisitos de receta son las de T1.
+- **Salir (D6):** con acceso por membresía no hace falta cambiar `leave_household` de SCRUM-58. Si quien sale no tenía lista personal, `add_item_to_general_list` le crea una al agregar su primer producto, como hoy. Falta decidir qué ítems conserva (sin columna de "quién lo agregó", hoy no se puede saber cuáles puso cada quien).
+- **Familia eliminada:** T3.
+
+### Número de la migración
+
+- En `develop` (2026-10-10): `000` a `019` y `022`. La rama de SCRUM-58 usa la `023`.
+- **Propuesta provisional: `024`** para la primera migración de esta historia (o de la parte A). Se vuelve a revisar `develop` y las ramas abiertas antes de crear el archivo y antes del merge, como indica `supabase/README.md`.
+
+### Flujo (propuesto)
+
+1. Crear la familia en `/household`, o "Unirme" en `/invitacion/<token>` con resultado `joined`.
+2. Comprobar: ¿cuenta registrada? (D9) ¿tiene lista general personal con contenido? (D1) ¿ya decidió en esta membresía? (D5)
+3. Si corresponde, la pregunta (D8). "Mantener" guarda la decisión y no cambia listas. "Compartir" guarda la decisión y pasa los ítems en la misma transacción.
+4. Confirmación y la pantalla normal. `/lista` muestra la lista de la familia y, si eligió mantener, la sección personal (D4).
+
+### Seguridad
+
+- Nada de `household_id`, `owner_id` ni ids de listas ajenas desde el cliente: la base los toma de `auth.uid()` y de la membresía.
+- Funciones nuevas con `set search_path = ''`, nombres calificados, `revoke … from public, anon` y rechazo de anónimos (`42501`), como las de household. Si son `security definer` o `security invoker` se decide en el diseño de la parte A.
+- Las listas privadas nunca pueden quedar asociadas a una familia (política y prueba SQL).
+- `security-reviewer` antes de aplicar cada migración y antes de `waiting qa`.
+
+### Pruebas
+
+| Qué | Dónde | Casos |
+|---|---|---|
+| RLS (parte A) | `supabase/tests/<n>_….test.sql` | Un miembro lee y escribe; uno de otra familia, quien ya salió y un anónimo no; nadie asocia una lista a una familia ajena; las listas privadas no se asocian; una sola lista general por familia |
+| Funciones de lista (parte A) | Prueba SQL | Las cinco funciones agregan a la lista de la familia si la persona es miembro y a la personal si no |
+| Compartir (parte B) | Prueba SQL | Reglas de T1; atómico (falla a la mitad: nada cambia); una sola vez por membresía; anónimo rechazado; concurrencia (dos traspasos, traspaso mientras otro agrega) |
+| Salir (D6) | Prueba SQL (con SCRUM-58) | Quien sale pierde el acceso y conserva sus listas personales; resultado según T3 si la familia se elimina |
+| Servicio | `features/household/tests/` y `features/shopping-list/tests/` | Funciones nuevas, valores fuera de contrato, errores sin datos |
+| ViewModel | Hook de la pregunta | Cuándo se muestra (D1, D5, D9), elegir, doble clic, falla y reintento, no volver a preguntar |
+| Componente | Pregunta y sección personal | Dos opciones igual de visibles, textos de D8, teclado, `role="alert"` y `role="status"` |
+| Regresión | Tests existentes y E2E de `/lista` (`features/shopping-list/specs/E2E.md`) | Agregar, tachar, cantidades, eliminar, recetas, plan y modo compra, con y sin familia |
+| Manual | Cuentas registradas de prueba | CA-01 a CA-05 con dos o tres cuentas; capturas sin correos ni tokens |
+
+### Dependencias y Gitflow
+
+- **SCRUM-58 (PR #63):** sigue `in progress` y su QA manual no está completo.
+  - La PR de SCRUM-59 se abre con el commit de estos specs y label **`on hold`**: hay una sola PR `in progress` por persona y esta historia depende de una que no se mergeó.
+  - Pasa a `in progress` cuando la #63 deje de estar en ese estado.
+  - Sin apilar ramas: esta rama sale de `develop`.
+- **La implementación empieza después del merge de la #63,** trayendo `develop` con un merge. Las dos historias tocan `Household.tsx`, `useHouseholdViewModel.ts` y los specs de `features/household/` (ver SPEC §15).
+- **Aprobación del equipo:** la separación A/B (T5) y, si A entra en esta historia, el aumento de alcance.
+
+### Documento del proyecto
+
+Cuando se implemente (no ahora), `docs/documento-proyecto.md`:
+
+- **§4.1:** "Listas personales al unirse (implementado {fecha}, SCRUM-59)", remitiendo a la decisión del 2026-08-19.
+- **§4.2:** cómo funciona la lista general de la familia.
+- **§6:** `lists`, `list_items` y `list_item_recipe_requirements` (acceso por membresía) y la regla de compartir.
+
+`docs/DESIGN.md` §7.15 ya describe la pantalla. `docs/historias-usuario.md` no cambia; los textos aprobados (D8) quedan en la SPEC.
+
+### Commits y PR
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-59): add personal list decision planning` | `SPEC.md`, `plan.md`, `tasks.md` |
+| 2… | A definir cuando se resuelvan T1 a T5 | — |
+
+Título del PR: `feat(SCRUM-59): manage personal lists when joining a household`, hacia `develop`, label `on hold` (ver arriba).
+
+### Riesgos
+
+- **Seguridad:** abrir la lista general a la familia es el cambio de acceso más grande del proyecto hasta ahora; un error de política expondría listas ajenas.
+- **Regresiones** en `/lista`, el modo compra, las recetas y el plan.
+- **Concurrencia** al compartir mientras otros agregan.
+- **Conflictos de documentos** con la rama de SCRUM-58.
+- **Caché de sesión:** `ensureSession` guarda la sesión de la primera vez (lo advierte la SPEC de SCRUM-49); `/lista` podría usar un id viejo después de iniciar sesión sin recargar.
+- **Alcance:** si la parte A no se separa, la historia excede su estimación de 5 puntos.

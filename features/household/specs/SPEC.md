@@ -4,6 +4,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 
 - [SCRUM-56 / HU-33](https://tacha.atlassian.net/browse/SCRUM-56): crear link de invitación al household. Sprint 2, mergeada.
 - [SCRUM-57 / HU-34](https://tacha.atlassian.net/browse/SCRUM-57): unirse a un household por link. Sprint 2, en curso.
+- [SCRUM-59 / HU-34b](https://tacha.atlassian.net/browse/SCRUM-59): decidir qué hacer con la lista personal al unirse o crear un household. Sprint 4, en planificación (ver [§2](#2-alcance), con una parte que necesita aprobación del equipo).
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md).
 
@@ -20,6 +21,10 @@ Como ninguna otra historia crea households y sin uno no hay administrador, esta 
 ### SCRUM-57
 
 Que una persona con cuenta registrada use el enlace (o el código) que le compartió el administrador para entrar a esa familia como miembro, sin más pasos que confirmar con un botón. Si el enlace venció, ya no existe o la persona ya tiene familia, se le explica qué pasó y no se toca ninguna membresía.
+
+### SCRUM-59
+
+Que una persona que ya usaba Tacha por su cuenta y crea una familia o se une a una decida, **una sola vez**, si su lista personal sigue siendo solo suya o pasa a la familia, para no perder lo que ya tenía ni compartir algo que prefiere privado. Las listas que cree después se comparten con la familia sin volver a preguntar.
 
 ## 2. Alcance
 
@@ -46,6 +51,27 @@ Qué sí incluye:
 
 Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-de-alcance).
 
+### SCRUM-59
+
+> **Alcance sujeto a aprobación del equipo.** Hoy no existen listas compartidas: todas las políticas de `lists`, `list_items` y `list_item_recipe_requirements` son de la dueña ([§12](#12-contratos-externos)). Cumplir CA-04 y CA-05 exige construir antes ese modelo. Se propone separarlo en dos partes; **dividir la historia o crear un ticket nuevo en Jira lo decide el equipo**, no esta spec.
+
+**Parte A: habilitador "lista general de la familia"** (propuesta de ticket aparte, pendiente de aprobación):
+
+- Una sola lista general por familia (D2).
+- Acceso a esa lista, sus ítems y sus requisitos de receta **por ser miembro de la familia**, no por ser la dueña. Quien sale de la familia pierde el acceso (D6).
+- Los flujos normales de agregar a la lista general (producto suelto, receta, semana del plan) usan la lista de la familia cuando la persona pertenece a una (D3, CA-05), y `/lista` la muestra.
+- Las listas privadas nunca se asocian a la familia (D3).
+
+**Parte B: HU-34b propiamente** (depende de la parte A):
+
+- La pregunta "¿Qué quieres hacer con tu lista actual?" justo después de crear la familia (`/household`) o de unirse (`/invitacion/<token>`), con dos opciones igual de visibles (CA-01).
+- Solo a cuentas registradas (D9) y solo si la persona tiene una lista general personal con contenido (D1).
+- La decisión se guarda asociada a su membresía y aplica de una vez a todas sus listas personales (CA-02, D5).
+- **Mantenerla:** la lista no cambia (CA-03) y se sigue viendo en una sección personal claramente separada (D4).
+- **Compartirla:** los ítems pasan a la lista de la familia en una sola operación atómica, sin duplicar variantes (CA-04, D2). Las reglas exactas están pendientes ([§5](#5-reglas-de-negocio), T1).
+
+Hoy solo existe la lista **general**: las sublistas por fecha y las listas privadas no están implementadas, así que "todas las listas personales" (CA-02) es, en la práctica, la lista general. Cuando existan las sublistas, la decisión se extiende a ellas.
+
 ## 3. Entradas
 
 ### SCRUM-56
@@ -71,6 +97,16 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 | `onJoinSubmit` | `(event: FormEvent<HTMLFormElement>) => void` | Formulario "Unirme con una invitación" |
 | Resultado de la RPC | `HouseholdJoinResultType` | `accept_household_invite(invite_token)` ([§12](#12-contratos-externos)) |
 
+### SCRUM-59
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Sesión registrada | `boolean` | `hasRegisteredSession()` (reutilizado; nunca `ensureSession()` en este flujo) |
+| Familia recién creada o unida | resultado de `create_household` / `accept_household_invite` (`joined`) | Flujos de SCRUM-56 y SCRUM-57 |
+| ¿Tiene lista general personal con contenido? | `boolean` | A definir en el plan (lectura de su lista general con `household_id` nulo) |
+| ¿Ya decidió en esta membresía? | `boolean` | A definir en el plan (D5; nombre de columna o tabla sin decidir) |
+| Opción elegida | "mantener" o "compartir" | Botones de la pregunta |
+
 ## 4. Salidas
 
 ### SCRUM-56
@@ -88,6 +124,14 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 - Muestra el mensaje del resultado ([§7](#7-errores) y [§8](#8-ui-esperada)).
 - Desde `/household`, navega a `/invitacion/<token>` con el token extraído del texto pegado.
 - Nunca muestra el token en pantalla ni lo escribe en la consola.
+
+### SCRUM-59
+
+- Muestra la pregunta en el momento que fija CA-01, solo si se cumplen D1 y D9.
+- Guarda la decisión en la base, asociada a la membresía (D5).
+- **Mantener:** no cambia ninguna lista; `/lista` muestra la personal en su propia sección (D4).
+- **Compartir:** los ítems de la lista personal quedan en la lista de la familia y el resto de los miembros los ve y edita de inmediato (CA-04).
+- Desde la decisión, agregar productos, recetas o la semana del plan va a la lista de la familia (CA-05, parte A).
 
 ## 5. Reglas de negocio
 
@@ -121,6 +165,42 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 10. **Confirmar antes de unirse:** abrir `/invitacion/<token>` no llama a la RPC; solo el botón "Unirme" lo hace.
 11. **Sin vista previa:** la página no muestra el nombre de la familia antes de aceptar (no hay RPC de preview en esta historia).
 12. **Formulario de `/household`:** acepta el enlace completo (`<origen>/invitacion/<token>`, con o sin barra final, query o fragmento) o solo el código. Si el texto está vacío o no contiene un token con formato de UUID, muestra el error en el campo y no navega.
+
+### SCRUM-59
+
+**Decididas por la dueña de la historia** (2026-10-10):
+
+1. **D1. Cuándo se pregunta:** solo si existe una lista general personal con contenido que requiera decidir. Sin lista o con la lista vacía, no se pregunta.
+2. **D2. Una lista general por familia:** compartir incorpora los ítems personales a esa lista sin duplicar ítems de la misma variante. Antes de implementar se documenta cómo se resuelven cantidades, duplicados y conflictos (T1).
+3. **D3. Flujos normales:** agregar productos usa la lista de la familia cuando corresponde. Las listas privadas nunca se asocian a la familia.
+4. **D4. Mantener:** la persona conserva su lista y la ve en una sección personal claramente separada.
+5. **D5. Guardar la decisión:** explícitamente, asociada a la membresía. Falta analizar cómo se limpia al salir y al unirse a otra familia; nombres de columnas y migraciones se deciden después de revisar el diseño.
+6. **D6. Al salir:** la lista compartida se queda en la familia; quien sale pierde el acceso a ella y conserva sus listas personales. Falta definir cómo obtiene una lista general personal propia y qué ítems conserva, coordinado con SCRUM-58.
+7. **D7. Separación:** se evalúa separar el habilitador (parte A) de HU-34b (parte B). Cambiar el alcance oficial en Jira necesita aprobación del equipo.
+8. **D8. Textos aprobados:** "¿Qué quieres hacer con tu lista actual?", "Mantenerla solo para mí" y "Compartirla con mi familia".
+9. **D9. Anónimos:** la pregunta no se muestra a usuarios anónimos. Conservar la lista de una sesión anónima al registrarse es otro ticket (SCRUM-49 lo dejó como "Migrar o descartar los datos de las sesiones anónimas: ticket aparte").
+
+**Reglas de seguridad (no negociables):**
+
+10. Quién decide, sobre qué listas y en qué familia lo resuelve la base a partir de `auth.uid()` y de su membresía: el cliente nunca manda `household_id`, `owner_id` ni ids de listas ajenas.
+11. Una persona de otra familia, alguien que ya salió o un usuario anónimo no puede leer ni escribir la lista de una familia.
+12. Nadie puede asociar una lista a una familia ajena desde el cliente.
+13. Compartir es atómico: o pasan todos los ítems según las reglas de T1, o no cambia nada.
+14. La pregunta se responde una sola vez por membresía: un doble clic o una segunda pestaña no comparten dos veces.
+
+**Pendientes técnicos que bloquean la implementación** (propuestas, sin decidir):
+
+- **T1. Reglas para compartir.** `list_items` tiene `quantity_requested`, `checked_at`, `checked_by`, `purchase_session_id` y `quantity_bought`, y es único por (`list_id`, variante). `list_item_recipe_requirements` es único por (`list_item_id`, `recipe_id`, `quantity_unit`). Propuesta:
+  - pasan solo los ítems pendientes;
+  - con la misma variante, se suman las cantidades pedidas en una sola fila;
+  - los requisitos de receta se combinan sumando lo necesario y lo que falta;
+  - lo tachado o ligado a una compra personal se queda en la lista personal como historial, para no mezclar gastos personales con los de la familia (HU-38).
+- **T2. Lista personal después de "Mantener":** ¿se le pueden seguir agregando productos, o solo tachar, cambiar cantidades y eliminar? Agregar obliga a elegir lista desde el catálogo, las recetas y el plan.
+- **T3. Lista de la familia cuando la familia se elimina** (sale el admin único, SCRUM-58):
+  - borrarla en cascada exige actualizar la prueba SQL de SCRUM-58, que hoy comprueba que esas listas sobreviven;
+  - dejarla con `household_id` en nulo puede chocar con el índice de una lista general personal por dueña y hacer fallar `leave_household`.
+- **T4. Modo compra sobre la lista de la familia:** hoy una compra solo puede ser personal (`household_id` y `list_id` nulos). ¿Entra en la parte A?
+- **T5. Cómo se propone y registra la separación A/B** (ticket, tamaño, sprint y responsable).
 
 ## 6. Estados
 
@@ -166,6 +246,18 @@ Un token sin formato válido va directo a `invalid`, antes de mirar la sesión: 
 
 Formulario "Unirme con una invitación": solo el error del campo (`NullableUndefined<string>`); al ser válido, navega.
 
+### SCRUM-59
+
+Propuesta, a confirmar en el plan de implementación:
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| sin pregunta | Anónimo, sin lista personal con contenido o ya decidió | La pantalla normal de la familia |
+| comprobando | Después de crear o unirse, mientras se revisa si corresponde preguntar | Spinner |
+| preguntando | Corresponde decidir | La pregunta con sus dos opciones |
+| guardando | Esperando a la base | Opciones deshabilitadas |
+| falló | Error de red o de la base | Mensaje de error; se puede reintentar |
+
 ## 7. Errores
 
 ### SCRUM-56
@@ -204,6 +296,12 @@ Textos propuestos (se confirman al escribir las constantes; viven en `household.
 - La carga de la sesión no tiene botón de reintento, igual que SCRUM-56: el mensaje indica recargar.
 - "Ya es de esa familia" no es un error: se muestra como aviso informativo ([§8](#8-ui-esperada)).
 
+### SCRUM-59
+
+- Si no se puede guardar la decisión, mensaje de error y reintento (texto a confirmar, por ejemplo "No se pudo guardar tu decisión. Intenta de nuevo.").
+- Si la comprobación inicial falla, no se bloquea el uso de la familia: la pregunta se vuelve a ofrecer más tarde (detalle en el plan).
+- Los errores de Supabase no se muestran crudos ni con ids.
+
 ## 8. UI esperada
 
 ### SCRUM-56
@@ -238,6 +336,16 @@ Página `/invitacion/<token>` (textos propuestos):
 
 Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la navegación con `Link` de `next/link` con las clases del botón (como `RecipeCard`). Tokens `tacha-*`.
 
+### SCRUM-59
+
+Según DESIGN.md §7.15, paso agregado el 2026-08-19:
+
+- Una pantalla corta (o un paso dentro del flujo) con la pregunta **"¿Qué quieres hacer con tu lista actual?"** y dos opciones igual de visibles, como tarjetas grandes tocables: **"Mantenerla solo para mí"** y **"Compartirla con mi familia"**.
+- Un texto breve que aclare que la decisión aplica a todas sus listas personales de una vez y no se vuelve a preguntar (texto exacto a confirmar).
+- En `/lista`, si eligió mantenerla: una sección personal claramente separada de la lista de la familia (D4; diseño a definir).
+
+Los textos de la historia usan voseo ("querés") y "household"; se adaptan al tono de la app (tú, "familia"), como aprobó la dueña de la historia (D8).
+
 ## 9. Accesibilidad
 
 ### SCRUM-56
@@ -257,6 +365,12 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 - "Unirme" se deshabilita mientras procesa y cambia su texto a "Uniéndote…".
 - "Iniciar sesión" e "Ir a mi familia" son enlaces (`Link`), porque navegan; "Unirme" y "Continuar" son botones, porque ejecutan una acción.
 - Todo el flujo se puede hacer solo con teclado.
+
+### SCRUM-59
+
+- Las dos opciones son botones o tarjetas con nombre accesible y el mismo peso visual; ninguna está preseleccionada.
+- Se puede elegir solo con teclado. Mientras guarda, las opciones quedan deshabilitadas y el estado se anuncia.
+- El error se anuncia con `role="alert"` y la confirmación final en una zona `role="status"`.
 
 ## 10. Restricciones técnicas
 
@@ -284,6 +398,13 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 - La migración nueva no toca la `011` ni ninguna otra existente.
 - Tests automáticos con Vitest (`npm test`, ya en `develop` desde SCRUM-128), en `features/household/tests/`: como mínimo el camino feliz y un caso negativo o límite (CONTRIBUTING §7), con Page Object para la UI (unit-testing-standards). Detalle en [plan.md](plan.md#pruebas).
 
+### SCRUM-59
+
+- **Supabase:** cualquier cambio de datos va en migraciones nuevas, con su prueba SQL en `supabase/tests/` y el procedimiento de `supabase/README.md`. Nunca se edita una migración aplicada. Número provisional `024`, a verificar ([plan.md](plan.md#scrum-59-decidir-qué-hacer-con-la-lista-personal)).
+- **Funciones de lista que hoy buscan la lista general por `owner_id` y `household_id is null`** (parte A): `add_item_to_general_list` (`004`, reescrita en `015`), `add_recipe_to_general_list` (`013`, `015`), `get_recipe_coverage` (`017`), y `add_week_to_general_list` y `add_week_ingredients_to_list` (`022`). Todas son `security invoker`, así que la RLS decide.
+- **Cliente:** el servicio de `/lista` (`getGeneralList()` en `features/shopping-list/services/shopping-list.service.ts`) usa `ensureSession()` y filtra `household_id` nulo. La pregunta usa `hasRegisteredSession()`.
+- La lista general se sigue creando al agregar el primer producto, no al abrir la pantalla.
+
 ## 11. Dependencias
 
 ### SCRUM-56
@@ -306,6 +427,17 @@ Componentes compartidos: `Button`, `Input` y `Spinner` de `@/components/ui`; la 
 - `next/link` y `useRouter` de `next/navigation`.
 - La migración nueva de la RPC y su entrada en `types/database.types.ts`.
 - El detalle de archivos está en [plan.md](plan.md#scrum-57-unirse-a-una-familia-con-el-enlace).
+
+### SCRUM-59
+
+| Dependencia | Estado (2026-10-10) | Efecto |
+|---|---|---|
+| SCRUM-56 y SCRUM-57 | Mergeadas en `develop` | Los dos flujos donde aparece la pregunta |
+| SCRUM-58 (HU-34c, salir) | PR #63 sin mergear, QA manual sin completar | D6 y T3. Con acceso por membresía, salir quita el acceso sin cambiar `leave_household`. Las dos historias modifican `Household.tsx`, `useHouseholdViewModel.ts` y los specs de `features/household/` |
+| Feature `shopping-list` (SCRUM-62, 66, 67 y otras) | En `develop` | La parte A cambia su servicio, sus RPC y sus políticas; el E2E de `/lista` es regresión obligatoria |
+| Recetas y plan (SCRUM-97, 100, 101) | En `develop` | Sus funciones que agregan a la lista general cambian de destino |
+| SCRUM-49 (anónimos) | En `develop` | D9: migrar los datos anónimos es otro ticket |
+| Aprobación del equipo (D7, T5) | Pendiente | Define si la parte A es un ticket aparte |
 
 ## 12. Contratos externos
 
@@ -347,6 +479,20 @@ accept_household_invite(invite_token text) returns text
 
 - No se agregan políticas ni permisos de tabla: `household_members` sigue sin `insert` para el cliente y `household_invite_links` sigue cerrada. La única puerta para unirse es la RPC.
 - Tablas usadas: `household_invite_links` (lectura del token, con bloqueo `for share`) y `household_members` (lectura de la membresía propia e inserción).
+
+### SCRUM-59
+
+**Lo que existe hoy** (verificado el 2026-10-10 en `develop`, `58d7a6a`):
+
+- **`public.lists`** (`004`): `id`, `owner_id` (por defecto `auth.uid()`), `household_id` sin FK, `type` (`general`, `date` o `private`), `status` y `created_at`.
+  - Índice único `lists_one_general_per_owner (owner_id) where type = 'general' and household_id is null`.
+  - Políticas `"owner reads own lists"` y `"owner creates own lists"`; esta última exige `household_id is null` y `type = 'general'`.
+- **`public.list_items`:** único por (`list_id`, `product_catalog_variant_id`), `quantity_requested`, `checked_at` y `checked_by` (`015`), `purchase_session_id` y `quantity_bought` (`016`). Políticas de lectura, inserción, actualización y borrado solo para la dueña de la lista (`004`, `012`).
+- **`public.list_item_recipe_requirements`** (`013`): único por (`list_item_id`, `recipe_id`, `quantity_unit`); políticas solo de la dueña.
+- **`public.purchase_sessions`** (`016`): `household_id` (FK `on delete set null`) y `list_id`. La política para iniciar exige que los dos sean nulos.
+- **`public.household_members`** (`011`): no tiene dónde guardar la decisión.
+
+**Contratos nuevos:** a definir en el plan, después de resolver T1 a T5. Esta spec no fija nombres de tablas, columnas ni RPC (D5).
 
 ## 13. Casos de aceptación
 
@@ -401,6 +547,30 @@ Casos de cada flujo:
 
 No probado: entrar a `/invitacion/<token>` pasando por el login real (`/login`), porque en el entorno local falta la clave de reCAPTCHA de SCRUM-45 ([§15](#15-notas-de-implementación)).
 
+### HU-34b (SCRUM-59)
+
+Ninguno validado todavía. Evidencia esperada: manual (cuentas registradas de prueba, con capturas), base (pruebas SQL con `rollback`) y test (Vitest).
+
+Criterios de la historia:
+
+- [ ] **CA-01:** justo después de unirse o crear la familia se pregunta "¿Qué quieres hacer con tu lista actual?" con "Mantenerla solo para mí" y "Compartirla con mi familia", igual de visibles (si se cumplen D1 y D9).
+- [ ] **CA-02:** la pregunta aparece una sola vez y aplica a todas las listas personales que tenía en ese momento.
+- [ ] **CA-03:** si elige mantenerla, sigue siendo personal y sin cambios.
+- [ ] **CA-04:** si elige compartirla, el resto de la familia la ve y colabora de inmediato.
+- [ ] **CA-05:** las listas nuevas que crea después siguen las reglas de la familia (se comparten automáticamente) sin volver a preguntar.
+
+Casos de cada flujo:
+
+- [ ] **Sin pregunta:** anónimo, sin lista personal, con la lista vacía, o con la decisión ya tomada en esta membresía.
+- [ ] **Seguridad y RLS:** un miembro de otra familia, alguien que ya salió y un anónimo no leen ni escriben la lista de la familia; nadie asocia una lista a una familia ajena desde el cliente; las listas privadas nunca quedan en la familia.
+- [ ] **Compartir atómico:** todos los ítems pasan según T1 o no cambia nada; sin variantes duplicadas; requisitos de receta combinados.
+- [ ] **Una sola vez:** doble clic y dos pestañas dan un solo traspaso.
+- [ ] **Concurrencia:** dos miembros que comparten a la vez, o compartir mientras otro agrega, terminan con una sola fila por variante.
+- [ ] **Salir (D6, con SCRUM-58):** quien sale ya no ve la lista de la familia y conserva sus listas personales.
+- [ ] **Regresión:** agregar producto, receta y semana, tachar, cantidades, eliminar y modo compra siguen funcionando, con y sin familia. Pasa el E2E de `/lista`.
+- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-56
@@ -427,6 +597,14 @@ No probado: entrar a `/invitacion/<token>` pasando por el login real (`/login`),
 - **Rate limit propio de la RPC:** el token tiene 122 bits aleatorios; ver [plan.md](plan.md#seguridad).
 - Cambios en la migración `011`, en las RPC de SCRUM-56 o en el login.
 
+### SCRUM-59
+
+- Implementar la parte A dentro de esta historia sin aprobación del equipo, o cambiar el alcance en Jira por cuenta propia.
+- Conservar la lista de una sesión anónima al registrarse (D9; ticket aparte según SCRUM-49).
+- Sublistas por fecha y listas privadas: no existen todavía; la decisión se extenderá a ellas cuando existan.
+- Ver a todos los miembros (HU-35), eliminar miembros (HU-36) y gastos por familia (HU-38).
+- El onboarding de DESIGN.md §7.7: la pregunta vive en los flujos de `/household` y `/invitacion/<token>`.
+
 ## 15. Notas de implementación
 
 - **Número de la migración (SCRUM-56):** es la `011` porque la `009` (SCRUM-123, `009_close_store_preferences_writes.sql`) y la `010` (SCRUM-96, `010_delete_recipes.sql`) ya existen en `develop`. Se escribió primero como `010` y se renombró al sincronizar la rama con `develop` el 2026-10-03. En la base compartida ya estaba aplicada: el nombre del archivo no cambia nada ahí.
@@ -438,3 +616,6 @@ No probado: entrar a `/invitacion/<token>` pasando por el login real (`/login`),
 - **Cómo se obtuvo la sesión de prueba (SCRUM-57):** en el entorno local `/login` no permite entrar porque falta `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` en `.env.local` (configuración de SCRUM-45, no de esta historia): sin esa clave el widget de reCAPTCHA no aparece y el botón queda deshabilitado. Las sesiones de las cuentas de prueba se cargaron en el navegador desde la consola, sin cambiar código ni Supabase. Probar el flujo entrando por `/login` queda pendiente.
 - **Riesgo aceptado:** el token viaja en la URL (`/invitacion/<token>`), así que queda en el historial del navegador y en los logs de acceso del hosting. Es propio de un "link de invitación"; lo mitigan el vencimiento de 7 días, la regeneración y `referrer: "no-referrer"`.
 - **Spec reorganizada en SCRUM-57** con una subsección por historia en cada sección, como `features/recipes/specs/SPEC.md`. El contenido de SCRUM-56 no cambió, solo se ubicó bajo su subsección.
+- **SCRUM-59, specs (2026-10-10):** las subsecciones de SCRUM-59 se agregan sobre `develop`, que no tiene las de SCRUM-58. Cuando se mergee la #63 y se traiga `develop` a esta rama, los tres specs de `features/household/` van a tener conflictos en los mismos lugares: se resuelven conservando las subsecciones de las dos historias.
+- **SCRUM-59, textos:** los de la historia usan voseo y "household"; la app usa tú y "familia" (D8).
+- **SCRUM-59, alcance:** la parte A (lista general de la familia) cambia el control de acceso de toda la lista general. Necesita `security-reviewer` antes de aplicarse y la aprobación del equipo antes de empezar.
