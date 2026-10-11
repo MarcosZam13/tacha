@@ -604,13 +604,14 @@ El PR (nuevo, independiente del #43) se abre con el commit 1, hacia `develop`, c
 | # | Commit | Archivos |
 |---|---|---|
 | 1 | `docs(SCRUM-58): add leave household spec, plan and tasks` | `SPEC.md`, `plan.md`, `tasks.md` |
-| 2 | `feat(SCRUM-58): add leave_household and get_household_members migration` | `023_leave_household.sql` |
-| 3 | `test(SCRUM-58): add SQL test for the leave household migration` | `supabase/tests/023_leave_household.test.sql` |
-| 4 | `feat(SCRUM-58): add leave household functions to database types` | `types/database.types.ts` |
-| 5 | `feat(SCRUM-58): add leave household constants and service` | constantes, modelo, servicio y su test |
-| 6 | `feat(SCRUM-58): add leave household view model` | `useHouseholdLeave.ts` y su test |
-| 7 | `feat(SCRUM-58): add leave household dialog to the household screen` | diálogo, props, Page Object, test, `Household.tsx`, `useHouseholdViewModel.ts` |
-| 8 | `docs(SCRUM-58): update project document and record validation` | `documento-proyecto.md`, SPEC §13, `tasks.md` |
+| 2 | `feat(SCRUM-58): add leave household RPCs and SQL tests` | `023_leave_household.sql` y `supabase/tests/023_leave_household.test.sql` |
+| 3 | `feat(SCRUM-58): add leave household functions to database types` | `types/database.types.ts` |
+| 4 | `feat(SCRUM-58): add leave household constants and service` | constantes que usa el servicio, modelo, servicio y su test |
+| 5 | `feat(SCRUM-58): add leave household view model` | `HOUSEHOLD_LEAVE_STATUS`, `useHouseholdLeave.ts` y su test |
+| 6 | `feat(SCRUM-58): add leave household dialog to the household screen` | `HOUSEHOLD_LEAVE_TEXT`, diálogo, props, Page Object, test, `Household.tsx`, `useHouseholdViewModel.ts` |
+| 7 | `docs(SCRUM-58): update project document and record validation` | `documento-proyecto.md`, SPEC §13, `tasks.md` |
+
+La migración y su prueba SQL quedaron en un solo commit (el 2), en vez de los dos que se planearon (`feat` y `test`): se revisaron y se aplicaron juntas.
 
 Lo que salga de las revisiones va en commits `fix(SCRUM-58): …`. Staging explícito, nunca `git add .`.
 

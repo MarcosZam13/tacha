@@ -1,9 +1,9 @@
 import { APP_ROUTE } from "@/constants";
 
 // Constantes de la feature household: crear el household y su link de
-// invitación (SCRUM-56) y unirse con ese link (SCRUM-57). Viven dentro de la
-// feature porque ninguna otra las usa todavía; se promueven a constants/ con
-// el segundo consumidor. No confundir con constants/household.constants.ts
+// invitación (SCRUM-56), unirse con ese link (SCRUM-57) y salir (SCRUM-58).
+// Viven dentro de la feature porque ninguna otra las usa todavía; se promueven
+// a constants/ con el segundo consumidor. No confundir con constants/household.constants.ts
 // (preferencias de tiendas).
 
 // Roles de household_members: el mismo dominio que el check de la migración 011.
@@ -30,6 +30,9 @@ export const HOUSEHOLD_DB = {
     CREATE_HOUSEHOLD: "create_household",
     CREATE_HOUSEHOLD_INVITE: "create_household_invite",
     GET_HOUSEHOLD_INVITE: "get_household_invite",
+    // Migración 023 (contrato en specs/SPEC.md §12).
+    GET_HOUSEHOLD_MEMBERS: "get_household_members",
+    LEAVE_HOUSEHOLD: "leave_household",
   },
   TABLE: {
     HOUSEHOLD_MEMBERS: "household_members",
@@ -219,3 +222,15 @@ export const HOUSEHOLD_JOIN_FORM_ERROR = {
   INVALID: "Ese enlace o código no es válido. Revisa que esté completo.",
   REQUIRED: "Pega el enlace o el código de invitación.",
 } as const;
+
+// Lo que responde leave_household (contrato en specs/SPEC.md §12).
+// Los valores los decide la base; acá solo se nombran.
+export const HOUSEHOLD_LEAVE_RESULT = {
+  HOUSEHOLD_DELETED: "household_deleted",
+  INVALID_NEW_ADMIN: "invalid_new_admin",
+  LEFT: "left",
+  NOT_MEMBER: "not_member",
+  TRANSFER_REQUIRED: "transfer_required",
+} as const;
+
+export type HouseholdLeaveResultType = (typeof HOUSEHOLD_LEAVE_RESULT)[keyof typeof HOUSEHOLD_LEAVE_RESULT];

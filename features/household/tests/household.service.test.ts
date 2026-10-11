@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { HOUSEHOLD_DB, HOUSEHOLD_JOIN_RESULT } from "../constants/household.constants";
-import { acceptHouseholdInvite, hasRegisteredSession } from "../services/household.service";
+import { HOUSEHOLD_DB, HOUSEHOLD_JOIN_RESULT, HOUSEHOLD_LEAVE_RESULT, HOUSEHOLD_ROLE } from "../constants/household.constants";
+import {
+  acceptHouseholdInvite,
+  getHouseholdMembers,
+  hasRegisteredSession,
+  leaveHousehold,
+} from "../services/household.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con un rpc y
 // un getSession de prueba.
@@ -77,5 +82,113 @@ describe("hasRegisteredSession", () => {
     getSessionMock.mockResolvedValue({ data: { session: { user: { is_anonymous: false } } }, error: null });
 
     await expect(hasRegisteredSession()).resolves.toBe(true);
+  });
+});
+
+// Ids y nombres inventados (no son de la base).
+const ADMIN_ID = "a1b2c3d4-0000-4000-8000-000000000001";
+const MEMBER_ID = "a1b2c3d4-0000-4000-8000-000000000002";
+const UNNAMED_MEMBER_ID = "a1b2c3d4-0000-4000-8000-000000000003";
+const MEMBER_NAME = "Beto";
+const UNKNOWN_ROLE_MESSAGE = `${HOUSEHOLD_DB.RPC.GET_HOUSEHOLD_MEMBERS} devolvió un rol desconocido`;
+const UNKNOWN_LEAVE_RESULT_MESSAGE = `${HOUSEHOLD_DB.RPC.LEAVE_HOUSEHOLD} devolvió un resultado desconocido`;
+
+describe("getHouseholdMembers", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+  });
+
+  it("calls get_household_members without arguments", async () => {
+    rpcMock.mockResolvedValue({ data: [], error: null });
+
+    await getHouseholdMembers();
+
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // Nombre literal a propósito: fija el contrato con la base (migración 023).
+    expect(rpcMock).toHaveBeenCalledWith("get_household_members");
+  });
+
+  it("maps every row in the order the database sends, keeping a missing name as null", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        { display_name: "Ana", is_current_user: true, role: HOUSEHOLD_ROLE.ADMIN, user_id: ADMIN_ID },
+        { display_name: MEMBER_NAME, is_current_user: false, role: HOUSEHOLD_ROLE.MEMBER, user_id: MEMBER_ID },
+        { display_name: null, is_current_user: false, role: HOUSEHOLD_ROLE.MEMBER, user_id: UNNAMED_MEMBER_ID },
+      ],
+      error: null,
+    });
+
+    await expect(getHouseholdMembers()).resolves.toEqual([
+      { displayName: "Ana", isCurrentUser: true, role: HOUSEHOLD_ROLE.ADMIN, userId: ADMIN_ID },
+      { displayName: MEMBER_NAME, isCurrentUser: false, role: HOUSEHOLD_ROLE.MEMBER, userId: MEMBER_ID },
+      { displayName: null, isCurrentUser: false, role: HOUSEHOLD_ROLE.MEMBER, userId: UNNAMED_MEMBER_ID },
+    ]);
+  });
+
+  it("throws on a role outside the contract without exposing the member id or name", async () => {
+    rpcMock.mockResolvedValue({
+      data: [{ display_name: MEMBER_NAME, is_current_user: false, role: "owner", user_id: MEMBER_ID }],
+      error: null,
+    });
+
+    const membersRequest = getHouseholdMembers();
+
+    await expect(membersRequest).rejects.toThrow(UNKNOWN_ROLE_MESSAGE);
+    await expect(membersRequest).rejects.not.toThrow(MEMBER_ID);
+    await expect(membersRequest).rejects.not.toThrow(MEMBER_NAME);
+  });
+
+  it("rethrows the Supabase error when the caller is not the admin", async () => {
+    const supabaseError = { code: "42501", message: "Solo el admin del household puede ver los miembros" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(getHouseholdMembers()).rejects.toBe(supabaseError);
+  });
+});
+
+describe("leaveHousehold", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+  });
+
+  it.each(Object.values(HOUSEHOLD_LEAVE_RESULT))("returns %s when the database answers it", async (leaveResult) => {
+    rpcMock.mockResolvedValue({ data: leaveResult, error: null });
+
+    await expect(leaveHousehold(MEMBER_ID)).resolves.toBe(leaveResult);
+  });
+
+  it("calls leave_household with the chosen new admin", async () => {
+    rpcMock.mockResolvedValue({ data: HOUSEHOLD_LEAVE_RESULT.LEFT, error: null });
+
+    await leaveHousehold(MEMBER_ID);
+
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith("leave_household", { new_admin_user_id: MEMBER_ID });
+  });
+
+  it("does not send a new admin when none is chosen, so the database uses its default", async () => {
+    rpcMock.mockResolvedValue({ data: HOUSEHOLD_LEAVE_RESULT.TRANSFER_REQUIRED, error: null });
+
+    await leaveHousehold();
+
+    const [, rpcArgs] = rpcMock.mock.calls[0];
+    // Lo que viaja en el cuerpo del pedido: sin la clave, nunca con null.
+    expect(JSON.stringify(rpcArgs)).toBe("{}");
+  });
+
+  it("throws on a result outside the contract and does not expose the chosen id", async () => {
+    rpcMock.mockResolvedValue({ data: "removed", error: null });
+
+    const leaveAttempt = leaveHousehold(MEMBER_ID);
+
+    await expect(leaveAttempt).rejects.toThrow(UNKNOWN_LEAVE_RESULT_MESSAGE);
+    await expect(leaveAttempt).rejects.not.toThrow(MEMBER_ID);
+  });
+
+  it("rethrows the Supabase error", async () => {
+    const supabaseError = { code: "42501", message: "Se requiere una cuenta registrada para salir de un household" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(leaveHousehold()).rejects.toBe(supabaseError);
   });
 });
