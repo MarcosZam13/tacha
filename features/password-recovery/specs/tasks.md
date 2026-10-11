@@ -37,7 +37,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 9. Presentación: `ResetPassword.tsx`, `ResetPasswordForm.tsx`, `ResetPasswordInvalid.tsx` y `ResetPasswordDone.tsx`, con el foco al título de cada pantalla, y sus pruebas.
 - [x] 10. Ruta: `app/actualizar-contrasena/page.tsx` con `metadata`.
 - [x] 11. `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`.
-- [ ] 12. Validar a mano los casos 11 a 25 del SPEC con el correo de un miembro de la organización de Supabase: abrir el enlace dos veces, con la sesión iniciada y sin ella, y comprobar que otra sesión abierta se cierra.
+- [x] 12. Validar a mano los casos 11 a 25 del SPEC con el correo de un miembro de la organización de Supabase: abrir el enlace dos veces, con la sesión iniciada y sin ella, y comprobar que otra sesión abierta se cierra.
 - [x] 13. `E2E.md` y prueba en `e2e/` (playwright-e2e), con la sesión de recuperación simulada: casos 12, 13, 14, 16, 18, 19 y 22.
 - [x] 14. Pasar los subagentes de revisión (`code-reviewer` y `security-reviewer`) y aplicar lo que corresponda: cerrar las demás sesiones antes de cambiar la contraseña, solo `PASSWORD_RECOVERY` desbloquea el formulario, `FocusedHeading` compartido, vaciar los campos al confirmar, temporizador de cierre cancelado, prueba de StrictMode, E2E de revocación fallida y de recarga, y documentos al día.
 - [ ] 15. Pasar el PR a `waiting qa` y la tarjeta de Jira a Waiting QA.

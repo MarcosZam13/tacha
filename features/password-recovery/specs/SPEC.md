@@ -213,7 +213,14 @@ Casos de HU-29 (SCRUM-52):
 - **HU-29, cerrar las demás sesiones también cierra las de los demás dispositivos de la persona.** Es lo deseado tras recuperar una contraseña. Con la red lenta o el servidor fallando, la contraseña no se cambia hasta poder confirmar el cierre: es a propósito.
 - **HU-29, el token vive en la URL un instante:** hasta que supabase-js lo procesa y borra el fragmento. No sale en el encabezado `Referer` (los fragmentos no se envían) pero sí queda en el historial si el borrado falla; el caso 13 lo comprueba.
 - **HU-29, la sesión de recuperación es una sesión real:** el guard la ve como autenticada y el cierre por inactividad (SCRUM-50) empieza a medirla mientras la persona escribe. Al guardar, se cierra.
-- **HU-29, por probar en el proyecto real:** abrir el enlace dos veces (el segundo debe dar el caso 18) y confirmar que, tras guardar, una sesión abierta en otro navegador se cierra.
+- **Verificado a mano en el proyecto (SCRUM-52), casos 11 a 26:**
+  - El enlace del correo abre el formulario con los dos campos y su ojo, sin el token en la URL (casos 11 a 13).
+  - Contraseña corta o débil, repetición distinta y contraseña igual a la actual: se rechazan con su mensaje (casos 14, 15 y 21).
+  - Con la red caída el guardado falla sin cambiar la contraseña y lo escrito se conserva (casos 22 y 26); el doble clic envía una sola vez (caso 23).
+  - Tras guardar, "Contraseña actualizada" y la ida a `/login`; entra con la contraseña nueva y no con la vieja; con el guard encendido no queda ninguna sesión (casos 16 y 17).
+  - **Una sesión abierta en otro navegador queda cerrada** (caso 25): el cierre de las demás sesiones funciona contra el proyecto real.
+  - El mismo enlace por segunda vez, y recargar tras abrir uno nuevo, dan "no válido" (casos 18 y 20).
+  - Abrir `/actualizar-contrasena` a mano da "no válido", sin sesión y **con una sesión iniciada** (caso 19), y con el guard encendido se abre sin sesión (caso 24).
 - El correo por defecto de Supabase limita los envíos por hora para todo el proyecto (y solo entrega a miembros de la organización): si el equipo prueba mucho, el límite global puede agotarse y la confirmación seguirá apareciendo sin que llegue el correo.
 - **HU-29, el token queda un instante en el historial:** supabase-js borra el fragmento con `window.location.hash = ''`, que agrega una entrada de historial; la anterior conserva la URL con el token. El fragmento no viaja en `Referer` ni a los servidores, y el enlace es de un solo uso. Defensa en profundidad pendiente: una cabecera `Referrer-Policy` en `next.config.ts` (hoy no hay cabeceras de seguridad).
 - **HU-29, la política de contraseñas vinculante es la de Supabase:** la validación del formulario es una ayuda; desde la consola se puede llamar a `updateUser` sin pasar por ella. Confirmar en el dashboard (Authentication → el largo mínimo y los caracteres exigidos) que la política del proyecto es la que se quiere.
