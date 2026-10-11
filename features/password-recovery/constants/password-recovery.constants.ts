@@ -1,8 +1,5 @@
 // --- Pedir el enlace de recuperación (SCRUM-51) ---
 
-// Valor del atributo `type` del campo de correo: el teclado del celular muestra la arroba.
-export const FORGOT_PASSWORD_INPUT_TYPE = "email";
-
 export const FORGOT_PASSWORD_LABEL = {
   BACK_TO_LOGIN: "Volver al inicio de sesión",
   DESCRIPTION:

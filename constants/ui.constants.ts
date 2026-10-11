@@ -28,3 +28,18 @@ export const SPINNER_SIZE = {
 } as const;
 
 export type SpinnerSizeType = (typeof SPINNER_SIZE)[keyof typeof SPINNER_SIZE];
+
+// Valores del atributo `type` de los inputs de un formulario: el tipo decide el teclado del celular y si se oculta el texto.
+export const INPUT_TYPE = {
+  EMAIL: "email",
+  PASSWORD: "password",
+  TEXT: "text",
+} as const;
+
+// Valores del atributo `autocomplete` de los campos de contraseña: ayudan a los gestores de contraseñas.
+export const AUTOCOMPLETE = {
+  CURRENT_PASSWORD: "current-password",
+  NEW_PASSWORD: "new-password",
+} as const;
+
+export type AutocompleteType = (typeof AUTOCOMPLETE)[keyof typeof AUTOCOMPLETE];

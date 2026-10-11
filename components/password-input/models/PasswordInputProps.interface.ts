@@ -1,5 +1,5 @@
+import type { AutocompleteType } from "@/constants";
 import type { NullableUndefined } from "@/types/nullable.types";
-import type { AutocompleteType } from "../constants/login.constants";
 
 export interface PasswordInputProps {
   autoComplete?: AutocompleteType;

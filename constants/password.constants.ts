@@ -61,3 +61,9 @@ export const PASSWORD_STRENGTH_LABEL: Record<PasswordStrengthLevelType, string> 
   [PASSWORD_STRENGTH_LEVEL.STRONG]: "Fuerte",
   [PASSWORD_STRENGTH_LEVEL.WEAK]: "Débil",
 };
+
+// Texto accesible del botón del ojo de un campo de contraseña; dice la acción que ejecutaría el clic.
+export const PASSWORD_TOGGLE_LABEL = {
+  HIDE: "Ocultar contraseña",
+  SHOW: "Mostrar contraseña",
+} as const;

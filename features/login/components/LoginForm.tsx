@@ -1,15 +1,13 @@
 import Link from "next/link";
+import { PasswordInput } from "@/components/password-input/PasswordInput";
 import { Button, Input } from "@/components/ui";
-import { AUTH_ROUTE } from "@/constants";
+import { AUTH_ROUTE, AUTOCOMPLETE, INPUT_TYPE } from "@/constants";
 import {
-  AUTOCOMPLETE,
-  INPUT_TYPE,
   LOGIN_FORM_FIELDS,
   LOGIN_LABEL,
   LOGIN_ROUTE,
 } from "../constants/login.constants";
 import { InactivityNotice } from "./InactivityNotice";
-import { PasswordInput } from "./PasswordInput";
 import { RecaptchaWidget } from "./RecaptchaWidget";
 import type { LoginFormProps } from "./models/LoginFormProps.interface";
 

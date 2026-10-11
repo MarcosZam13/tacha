@@ -1,13 +1,14 @@
+import { PasswordInput } from "@/components/password-input/PasswordInput";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter/PasswordStrengthMeter";
 import { Button } from "@/components/ui";
-import { BUTTON_VARIANT } from "@/constants";
 import {
   AUTOCOMPLETE,
-  CHANGE_PASSWORD_FIELD,
-  CHANGE_PASSWORD_LABEL,
-} from "../constants/login.constants";
+  BUTTON_VARIANT,
+  NEW_PASSWORD_FIELD,
+  NEW_PASSWORD_LABEL,
+} from "@/constants";
+import { CHANGE_PASSWORD_LABEL } from "../constants/login.constants";
 import { FocusedHeading } from "./FocusedHeading";
-import { PasswordInput } from "./PasswordInput";
 import type { ChangePasswordFormProps } from "./models/ChangePasswordFormProps.interface";
 
 /** Formulario de nueva contraseña: nueva + repetir, con el medidor de fortaleza bajo la nueva. */
@@ -30,9 +31,9 @@ export const ChangePasswordForm = ({
         <PasswordInput
           autoComplete={AUTOCOMPLETE.NEW_PASSWORD}
           isRequired
-          label={CHANGE_PASSWORD_LABEL.NEW_PASSWORD}
+          label={NEW_PASSWORD_LABEL.NEW_PASSWORD}
           value={values.newPassword}
-          onChange={handleChange(CHANGE_PASSWORD_FIELD.NEW_PASSWORD)}
+          onChange={handleChange(NEW_PASSWORD_FIELD.NEW_PASSWORD)}
           errorMessage={undefined}
         />
         {passwordStrength ? <PasswordStrengthMeter strength={passwordStrength} /> : null}
@@ -41,9 +42,9 @@ export const ChangePasswordForm = ({
       <PasswordInput
         autoComplete={AUTOCOMPLETE.NEW_PASSWORD}
         isRequired
-        label={CHANGE_PASSWORD_LABEL.CONFIRM_PASSWORD}
+        label={NEW_PASSWORD_LABEL.CONFIRM_PASSWORD}
         value={values.confirmPassword}
-        onChange={handleChange(CHANGE_PASSWORD_FIELD.CONFIRM_PASSWORD)}
+        onChange={handleChange(NEW_PASSWORD_FIELD.CONFIRM_PASSWORD)}
         errorMessage={confirmPasswordError}
       />
 
@@ -54,7 +55,7 @@ export const ChangePasswordForm = ({
       ) : null}
 
       <Button type="submit" isDisabled={isSaveDisabled}>
-        {isSaving ? CHANGE_PASSWORD_LABEL.SAVING : CHANGE_PASSWORD_LABEL.SAVE}
+        {isSaving ? NEW_PASSWORD_LABEL.SAVING : NEW_PASSWORD_LABEL.SAVE}
       </Button>
       <Button variant={BUTTON_VARIANT.SECONDARY} onClick={handleBackToNotice}>
         {CHANGE_PASSWORD_LABEL.BACK}
