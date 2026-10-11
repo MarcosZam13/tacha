@@ -259,9 +259,9 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr-1)) que comp
 
 ### Etapa 8 — Revisiones y QA
 
-- [ ] 8.1 Traer `develop` con un merge (la rama no se rebasea: ya está publicada) y volver a revisar el número de la migración.
-- [ ] 8.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`.
-- [ ] 8.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; corregir en commits `fix(SCRUM-58): …`. Primera pasada hecha antes del commit de las etapas 5 y 6, con los hallazgos confirmados ya corregidos (aviso de salida que no se borraba, "elige a otra" sin nadie a quien elegir, tests de cancelación que no podían fallar, `not_member` y falla al salir en la pantalla, aviso buscado en `role="status"`, un solo act por test, nombres del Page Object, tabla de pruebas del plan). Falta la pasada final.
+- [x] 8.1 Traer `develop` con un merge (la rama no se rebasea: ya está publicada) y volver a revisar el número de la migración. Al 2026-10-11 `develop` no avanzó desde el último merge (no hace falta otro) y ninguna otra rama usa la `023`.
+- [x] 8.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`. Pasan todos (595 tests).
+- [ ] 8.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; corregir en commits `fix(SCRUM-58): …`. Primera pasada hecha antes del commit de las etapas 5 y 6, con los hallazgos confirmados ya corregidos (aviso de salida que no se borraba, "elige a otra" sin nadie a quien elegir, tests de cancelación que no podían fallar, `not_member` y falla al salir en la pantalla, aviso buscado en `role="status"`, un solo act por test, nombres del Page Object, tabla de pruebas del plan). Pasada final de `code-reviewer` hecha: las correcciones están bien y sus dos hallazgos bajos (Escape desde el Page Object, test de radios con dos acciones) se corrigieron en un commit `fix`. La revisión de `security-reviewer` sigue vigente (después no cambió nada de sesión, permisos ni datos). Falta `qa-checker` sobre la evidencia del QA manual.
 - [ ] 8.4 Completar la descripción del PR con la plantilla (en inglés), pasos de prueba y evidencia; pasar a `waiting qa` y mover la tarjeta de Jira en el mismo momento.
 - [ ] 8.5 Merge solo con `qa accepted` puesto por otra persona.
 

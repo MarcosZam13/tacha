@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { HOUSEHOLD_LEAVE_TEXT, HOUSEHOLD_TEXT } from "../constants/household.constants";
 
 // El aviso final vive en la zona role="status" de la pantalla: buscarlo solo
@@ -13,6 +14,8 @@ const STATUS_REGION_SELECTOR = '[role="status"]';
  * Sin aserciones: las hace el test.
  */
 export const createHouseholdLeavePage = () => {
+  const user = userEvent.setup();
+
   // Pantalla.
   const getLeaveHeading = () => screen.getByRole("heading", { name: HOUSEHOLD_LEAVE_TEXT.LEAVE });
   const findLeaveButton = () => screen.findByRole("button", { name: HOUSEHOLD_LEAVE_TEXT.LEAVE });
@@ -40,6 +43,10 @@ export const createHouseholdLeavePage = () => {
   const findDialogError = () => within(getDialog()).findByRole("alert");
   const findDialogText = (text: string) => within(getDialog()).findByText(text);
   const getDialogLoading = () => within(getDialog()).getByRole("status");
+  // Escape lo escucha el Modal en el documento, no un elemento del diálogo.
+  const pressEscape = async () => {
+    await user.keyboard("{Escape}");
+  };
 
   return {
     findCreateTitle,
@@ -58,6 +65,7 @@ export const createHouseholdLeavePage = () => {
     getNewAdminGroup,
     getNewAdminOption,
     getNewAdminOptions,
+    pressEscape,
     queryConfirmButton,
     queryDialog,
     queryLeaveButton,

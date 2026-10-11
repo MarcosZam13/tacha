@@ -105,8 +105,9 @@ describe("HouseholdLeaveDialog", () => {
   it("cancels with Escape", async () => {
     const onLeaveCancel = vi.fn();
     render(<HouseholdLeaveDialog {...createProps({ onLeaveCancel })} />);
+    const page = createHouseholdLeavePage();
 
-    await userEvent.keyboard("{Escape}");
+    await page.pressEscape();
 
     expect(onLeaveCancel).toHaveBeenCalledTimes(1);
   });
@@ -119,8 +120,8 @@ describe("HouseholdLeaveDialog", () => {
     expect(page.getNewAdminOptions()).toHaveLength(0);
   });
 
-  it("lists the members as labelled radios inside the legend group, without ids in the page", async () => {
-    const onSelectBeto = vi.fn();
+  // El admin con otros miembros: las props que arma el ViewModel antes de elegir.
+  const renderTransferDialog = (onSelectBeto = vi.fn()) =>
     render(
       <HouseholdLeaveDialog
         {...createProps({
@@ -130,6 +131,9 @@ describe("HouseholdLeaveDialog", () => {
         })}
       />,
     );
+
+  it("lists the members as labelled radios inside the legend group, without ids in the page", () => {
+    renderTransferDialog();
     const page = createHouseholdLeavePage();
 
     expect(page.getNewAdminGroup()).toBeInTheDocument();
@@ -139,8 +143,15 @@ describe("HouseholdLeaveDialog", () => {
     expect(page.getConfirmButton()).toBeDisabled();
     expect(document.body.innerHTML).not.toContain(BETO_ID);
     expect(document.body.innerHTML).not.toContain(UNNAMED_ID);
+  });
+
+  it("reports the chosen member when a radio is selected", async () => {
+    const onSelectBeto = vi.fn();
+    renderTransferDialog(onSelectBeto);
+    const page = createHouseholdLeavePage();
 
     await userEvent.click(page.getNewAdminOption("Beto"));
+
     expect(onSelectBeto).toHaveBeenCalledTimes(1);
   });
 
