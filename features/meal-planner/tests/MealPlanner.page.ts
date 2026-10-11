@@ -1,7 +1,12 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RECIPES_TAB, RECIPES_TAB_LABEL } from "@/constants";
-import { MEAL_PLANNER_TEXT, MEAL_SLOT_TEXT, MEAL_TYPE_LABEL } from "../constants/meal-planner.constants";
+import {
+  MEAL_PLANNER_TEXT,
+  MEAL_SLOT_TEXT,
+  MEAL_TYPE_LABEL,
+  WEEK_LIST_TEXT,
+} from "../constants/meal-planner.constants";
 
 /**
  * Page Object del planificador semanal: cómo encontrar sus elementos y las
@@ -111,6 +116,33 @@ export const createMealPlannerPage = () => {
     await user.click(getPlanRetryButton());
   };
 
+  // --- Agregar la semana a la lista (SCRUM-101) ---
+
+  const getAddWeekButton = (): HTMLElement => screen.getByRole("button", { name: WEEK_LIST_TEXT.BUTTON });
+  const getAddWeekDialog = (): HTMLElement => screen.getByRole("dialog", { name: WEEK_LIST_TEXT.DIALOG_TITLE });
+  const queryAddWeekDialog = (): HTMLElement | null =>
+    screen.queryByRole("dialog", { name: WEEK_LIST_TEXT.DIALOG_TITLE });
+  const getAddWeekMessage = (message: string): HTMLElement => within(getAddWeekDialog()).getByText(message);
+  const getAddWeekConfirmButton = (): HTMLElement =>
+    within(getAddWeekDialog()).getByRole("button", { name: /^(Agregar|Agregando)/ });
+  const getAddWeekCancelButton = (): HTMLElement =>
+    within(getAddWeekDialog()).getByRole("button", { name: WEEK_LIST_TEXT.CANCEL });
+  const getAddWeekError = (): HTMLElement => within(getAddWeekDialog()).getByRole("alert");
+  const getAddWeekResult = (line: string): HTMLElement => screen.getByText(line);
+  const queryAddWeekResult = (line: string): HTMLElement | null => screen.queryByText(line);
+  const getViewListLink = (): HTMLElement => screen.getByRole("link", { name: WEEK_LIST_TEXT.VIEW_LIST });
+  const queryViewListLink = (): HTMLElement | null => screen.queryByRole("link", { name: WEEK_LIST_TEXT.VIEW_LIST });
+
+  const openAddWeek = async (): Promise<void> => {
+    await user.click(getAddWeekButton());
+  };
+  const confirmAddWeek = async (): Promise<void> => {
+    await user.click(getAddWeekConfirmButton());
+  };
+  const cancelAddWeek = async (): Promise<void> => {
+    await user.click(getAddWeekCancelButton());
+  };
+
   const goToNextWeek = async (): Promise<void> => {
     await user.click(getNextWeekButton());
   };
@@ -121,6 +153,20 @@ export const createMealPlannerPage = () => {
 
   return {
     cancel,
+    cancelAddWeek,
+    confirmAddWeek,
+    getAddWeekButton,
+    getAddWeekCancelButton,
+    getAddWeekConfirmButton,
+    getAddWeekDialog,
+    getAddWeekError,
+    getAddWeekMessage,
+    getAddWeekResult,
+    getViewListLink,
+    openAddWeek,
+    queryAddWeekDialog,
+    queryAddWeekResult,
+    queryViewListLink,
     chooseCook,
     chooseRecipe,
     decreaseServings,

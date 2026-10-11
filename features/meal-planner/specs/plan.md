@@ -246,7 +246,98 @@ Sin `.eq("owner_id", …)`: lo hace RLS. El rango de fechas sale de `getWeekStar
 - **Sin household:** el plan es personal. Los pasos para compartirlo están en SPEC §15.
 - **Solo "Yo" como cocinero** hasta HU-35 (lista de miembros) y los perfiles.
 - **Sin buscador** en la lista de recetas del diálogo: con muchas recetas hay que desplazarse.
-- **La base acepta cualquier fecha:** la pantalla solo ofrece las dos semanas, pero la RPC no lo exige.
+- **La base acepta de 2020 a 2100:** la pantalla solo ofrece las dos semanas, pero la RPC no exige más que ese rango.
 - **Un plan por usuario sin límite de filas por semana:** el índice único limita a 21 por semana. No hay límite de semanas guardadas, que crecen una por semana planificada.
-- **El multiplicador no escala las cantidades de la lista** (SCRUM-101 lo decide cuando agregue la semana).
+- **El multiplicador sí escala las cantidades de la lista al agregar la semana** (SCRUM-101); agregar una receta suelta (SCRUM-97) sigue usando las porciones base.
 - **El `Modal` compartido no atrapa el foco** (deuda ya anotada en recetas): con el teclado se puede salir del diálogo con Tab.
+
+## SCRUM-101: agregar la semana a la lista
+
+> **Verificado el 2026-10-10** contra `develop` (con SCRUM-99 y SCRUM-100 mergeadas): existen `meal_plans` y `assign_meal_slot` (019), el recorrido de ingredientes vive entero dentro de `add_recipe_to_general_list` (013, reemplazada por la 015 con el filtro de lo tachado), y la última migración aplicada es la `019`. La `018` es de la PR #55 y la `020` de otra rama: esta historia usa la **`022`** (la `020` y la `021` son de otras ramas) o la siguiente libre al aplicarla (`supabase/README.md#migraciones`).
+
+### Archivos
+
+```
+supabase/
+  migrations/022_add_week_to_list.sql       función interna add_week_ingredients_to_list (copia de las reglas con multiplicador) y RPC add_week_to_general_list; no modifica nada existente
+  tests/022_add_week_to_list.test.sql       prueba con rollback (escala, mismo ingrediente en dos días, atómico, aislamiento, rango, equivalencia con la receta suelta)
+
+features/meal-planner/
+  MealPlanner.tsx                           + botón, diálogo y aviso
+  components/
+    WeekSelector.tsx                        + recibe el botón junto al rango (o se pone en MealPlanner, ver Decisiones)
+    AddWeekToListButton.tsx                 nuevo: "Agregar semana a la lista", deshabilitado sin comidas
+    AddWeekToListDialog.tsx                 nuevo: Modal de confirmación (cuántas comidas) con Agregar / Cancelar y el error
+    AddWeekToListResult.tsx                 nuevo: aviso final (role="status"/"alert") con "Ver lista"
+    models/…Props.(interface|type).ts       props de cada uno
+  hooks/
+    useWeekListAddition.ts                  nuevo: estado, abrir/confirmar/cancelar, llamada al servicio, una sola petición
+    useMealPlannerViewModel.ts              + compone weekAddition (facade)
+  models/
+    week-list-addition.interfaces.ts        nuevo: payload, respuesta de la RPC, ViewModel, resumen
+    week-list-addition.types.ts             nuevo: WeekListAdditionState / Action / Status
+  services/
+    week-list.service.ts                    nuevo: addWeekToList(): RPC + adapter
+  utils/
+    countWeekMeals.ts                       días a la vista + getEntry → cuántas comidas asignadas
+    getWeekRange.ts                         días a la vista → lunes y domingo como claves
+    toWeekAdditionSummary.ts                respuesta de la RPC → las líneas del aviso
+    week-list-addition.reducer.ts           reducer puro + estado inicial
+  constants/meal-planner.constants.ts       + estados, acciones, textos, nombre de la RPC
+
+types/database.types.ts                     + add_week_to_general_list y add_week_ingredients_to_list (solo esas líneas)
+docs/documento-proyecto.md                  + regla de "agregar la semana" y el multiplicador en la lista
+```
+
+### Datos
+
+**Migración `022_add_week_to_list.sql`** (todas las funciones `security invoker`, `search_path` vacío, objetos con `public.`):
+
+1. `add_week_ingredients_to_list(target_list_id uuid, target_recipe_id uuid, servings_multiplier numeric) returns jsonb`: **copia** del cuerpo del `for ingredient in …` de `add_recipe_to_general_list` (015), sin la sesión, la receta, la lista ni el bloqueo (los hace quien la llama). Cambia una sola cosa: `needed_quantity` es `ri.quantity_value * servings_multiplier`. Reusa sin cambios `pick_recipe_variant` y `add_units_to_list_item`. Devuelve `{ added, missing, skipped, processed }` (`processed`: nombres de todos los productos que entraron en la lista, sin los omitidos, para contar ingredientes distintos). Lleva un comentario que apunta a la función original y a la deuda de juntarlas.
+2. **`add_recipe_to_general_list` no se toca.**
+3. `add_week_to_general_list(week_from date, week_to date) returns jsonb`: sesión (`42501`); rango válido (`week_to >= week_from` y a lo más 7 días, `22023`); crear la lista general y tomar el bloqueo **una vez**; recorrer las filas de `meal_plans` del rango (`order by date, case meal_type when 'breakfast' then 1 when 'lunch' then 2 else 3 end`) llamando a la función interna con el multiplicador de cada fila; juntar los resultados. Devuelve `{ meals, ingredients, added, missing, skipped }`.
+4. `grant execute … to authenticated` y `revoke … from public, anon` en las tres, como las demás del módulo.
+
+La tabla `list_item_recipe_requirements` y `list_items` no cambian. Un espacio cuya receta ya no existe no está en `meal_plans` (cascade), así que no se recorre.
+
+**Llamada desde el cliente:** `rpc("add_week_to_general_list", { week_from, week_to })` → `toWeekAdditionSummary()` → líneas del aviso. Una receta con más de 50 ingredientes dispara `22023` y el servicio lo trata como error general.
+
+### Flujo
+
+1. **Ver:** `useMealPlannerViewModel` ya tiene `days` (la semana a la vista) y `plan.getEntry`. `countWeekMeals(days, getEntry)` cuenta las comidas; el botón se habilita con ≥ 1 y el plan listo (regla 26).
+2. **Abrir la confirmación:** `weekAddition.onOpen()` → `confirming` con el rango (`getWeekRange(days)`) y el número de comidas. Si ya hay un diálogo abierto (el de asignar), no se abre (misma guarda que SCRUM-100).
+3. **Confirmar:** `onConfirm()` → `adding` → `addWeekToList({ fromDateKey, toDateKey })` con el candado de una sola petición. Éxito → cierra el diálogo y deja el resumen (`done`). Error → `failed` dentro del diálogo, que sigue abierto.
+4. **Cancelar:** cierra sin llamar a nada; mientras agrega no se cierra.
+5. **El aviso** queda debajo del encabezado hasta cambiar de semana o volver a agregar; el enlace "Ver lista" va a `APP_ROUTE.LIST`.
+6. El plan **no se vuelve a pedir** (no cambió nada en `meal_plans`).
+
+### Decisiones
+
+| Decisión | Alternativa descartada | Por qué |
+|---|---|---|
+| Una RPC que recibe el rango y recorre `meal_plans` en la base | El cliente llama a `add_recipe_to_general_list` por cada espacio | No sería atómico (si falla la tercera, las dos primeras ya entraron), no podría multiplicar y haría hasta 21 viajes |
+| Copiar las reglas 17 a 26 en una función interna nueva, con multiplicador, y no tocar la original (decidido el 2026-10-10) | Extraer el cuerpo y dejar `add_recipe_to_general_list` como envoltorio | El envoltorio reescribe en esta historia una función de SCRUM-97/66: el último `create or replace` aplicado gana y pisaría cambios de sus dueños. La copia no puede romper nada ajeno; su costo (dos copias que se pueden separar) queda como deuda y lo cubre la prueba de equivalencia |
+| Una función con otro nombre | Agregarle un parámetro `multiplier` a la original | Cambiar la firma crea una sobrecarga que PostgREST no sabe resolver y mueve `database.types.ts` de una función de otras historias |
+| Orden cronológico de los espacios | Sin orden | El resultado de las reglas 19 y 20 depende del orden en que se agregan; con un orden fijo es repetible y se puede probar |
+| Los conteos suman por espacio (como SCRUM-97) | Sumar todo lo que pide un producto en la semana y redondear una vez | Mantiene el registro por receta que SCRUM-98 y el aviso usan; queda anotado como decisión abierta (SPEC §16.12) |
+| Confirmar siempre, sin recordar en el navegador | La confirmación solo si ya se agregó (regla 27 de recetas) | Lo pidió el responsable; agregar la semana mueve muchas filas y no hay "tarjeta" que recuerde nada |
+| El servicio vive en `meal-planner` | Ponerlo en `recipes` | La RPC es del plan: toma el rango de la pantalla del planificador. Las features no se importan entre sí |
+| Reducer para el diálogo (5 estados con datos distintos) | `useState` por campo | Mismo criterio que el diálogo de asignar: reglas entre estados (no cerrar mientras agrega, una sola petición) |
+| El botón va con el encabezado de la semana | Un botón por día | La historia pide un botón para la semana; con las flechas siempre hay una a la vista |
+
+### Seguridad
+
+- Se toca una función con escritura sobre `list_items` y `list_item_recipe_requirements` y se agrega otra: se pasa `security-reviewer` antes de `waiting qa` (RPC con escritura, refactor de una RPC mergeada).
+- Todas son `security invoker`: RLS decide qué recetas, qué plan y qué lista ve el usuario. La RPC no recibe ids de usuario.
+- El rango máximo de 7 días acota el trabajo de una llamada directa (hasta 21 espacios × 50 ingredientes) mientras la lista está bloqueada.
+- La función interna queda con permiso para `authenticated`, como `pick_recipe_variant` y `add_units_to_list_item`: necesario para que otra función `security invoker` la llame y sin efecto extra, porque corre con los permisos del usuario.
+- Nada existente cambia, así que las pruebas SQL de la 015 y la 017 y los tests de recetas no se afectan; se vuelven a correr al aplicar la 022 solo como comprobación. Riesgo a vigilar: las dos copias de las reglas 17 a 26 se separan (la prueba de equivalencia lo detecta si se corre).
+
+### Deuda conocida
+
+- **Sin sublistas de fecha (CA-03):** el destino es solo la lista general hasta HU-44 a HU-46 (Sprint 4).
+- **El efecto del multiplicador y de las repeticiones no se ve en pantalla en ml o g:** el producto que ya está en la lista no suma envases (regla 20 de SCRUM-97), solo crece el faltante registrado, que hoy solo muestra el aviso al agregar (nombres). El aviso bajo cada producto en `/lista` es de SCRUM-114 (Marcos); el panel "Ver qué falta" de SCRUM-98 solo da cantidades al tachar. Decidido el 2026-10-10 dejarlo así (SPEC §16.11).
+- **Los conteos pueden sobrar** con presentaciones de varias unidades (SPEC §16.12).
+- **Dos copias de las reglas 17 a 26** (`add_recipe_to_general_list` y `add_week_ingredients_to_list`): una corrección a una hay que hacerla en la otra. Cuando los dueños lo acuerden, la original puede llamar a la interna con multiplicador 1 y se borra la copia.
+- **La función interna queda expuesta en la API** (mismo caso que las dos auxiliares de la 013).
+- **El aviso no se guarda:** al recargar desaparece, igual que el de recetas.

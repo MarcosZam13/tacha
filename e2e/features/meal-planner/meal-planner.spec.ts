@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createOwnRecipe, deleteOwnRecipes } from "../../support/supabase";
+import { createOwnRecipe, deleteOwnListItems, deleteOwnRecipes } from "../../support/supabase";
 import {
   DAYS_IN_WEEK,
   PLANNER_PATH,
@@ -8,9 +8,12 @@ import {
   expectedWeekDates,
   getAppNavItem,
   assignRecipeToToday,
+  getAddWeekButton,
+  getAddWeekDialog,
   getAssignDialog,
   getDayDates,
   getEmptySlots,
+  getPendingListRows,
   getRecipesSubTab,
   getTodayDate,
   getTodaySlot,
@@ -156,6 +159,8 @@ test.describe("Asignar comidas al plan", () => {
   });
 
   test.afterEach(async ({ page, request }) => {
+    // E2E-PLANNER-09 escribe en la lista general: se limpia junto con las recetas.
+    await deleteOwnListItems(page, request);
     await deleteOwnRecipes(page, request);
   });
 
@@ -220,5 +225,45 @@ test.describe("Asignar comidas al plan", () => {
     await page.goto(PLANNER_PATH);
     await expect(getTodaySlot(page, "Almuerzo")).toHaveAccessibleName(/, vacío, asignar$/);
     await expect(getTodaySlot(page, "Cena")).toHaveAccessibleName(/, vacío, asignar$/);
+  });
+
+  test("E2E-PLANNER-09 — Agregar la semana a la lista", async ({ page }) => {
+    await assignRecipeToToday(page, "Almuerzo", FLAN);
+    await assignRecipeToToday(page, "Cena", FLAN);
+
+    await getAddWeekButton(page).click();
+    const dialog = getAddWeekDialog(page);
+    await expect(dialog.getByText(/ingredientes de 2 comidas/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ver lista" })).toHaveCount(0);
+
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("link", { name: "Ver lista" })).toHaveCount(0);
+
+    await getAddWeekButton(page).click();
+    await dialog.getByRole("button", { name: "Agregar", exact: true }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText(/^Agregaste \d+ ingredientes? de 2 comidas a tu lista\.$/)).toBeVisible();
+    await page.getByRole("link", { name: "Ver lista" }).click();
+    await expect(page).toHaveURL("/lista");
+    // La semana dejó al menos un producto en "Pendientes" y la lista ya no está vacía.
+    await expect(getPendingListRows(page)).not.toHaveCount(0);
+    await expect(page.getByText("Tu lista está vacía. Busca un producto para empezar.")).toBeHidden();
+  });
+
+  test("E2E-PLANNER-10 — El botón de agregar la semana sigue a las comidas de la semana a la vista", async ({
+    page,
+  }) => {
+    await expect(getAddWeekButton(page)).toBeDisabled();
+
+    await assignRecipeToToday(page, "Almuerzo", FLAN);
+    await expect(getAddWeekButton(page)).toBeEnabled();
+
+    await getWeekArrow(page, NEXT_WEEK).click();
+    await expect(getAddWeekButton(page)).toBeDisabled();
+
+    await getWeekArrow(page, PREVIOUS_WEEK).click();
+    await expect(getAddWeekButton(page)).toBeEnabled();
   });
 });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button, Input } from "@/components/ui";
+import { AUTH_ROUTE } from "@/constants";
 import {
   AUTOCOMPLETE,
   INPUT_TYPE,
@@ -53,6 +54,13 @@ export const LoginForm = ({
           />
         ),
       )}
+
+      <Link
+        href={AUTH_ROUTE.FORGOT_PASSWORD}
+        className="self-end font-body text-sm text-tacha-teal underline"
+      >
+        {LOGIN_LABEL.FORGOT_PASSWORD}
+      </Link>
 
       <RecaptchaWidget onTokenChange={handleCaptchaTokenChange} resetCount={captchaResetCount} />
 

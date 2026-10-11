@@ -10,3 +10,13 @@ export const APP_ROUTE = {
 } as const;
 
 export type AppRouteType = (typeof APP_ROUTE)[keyof typeof APP_ROUTE];
+
+// Rutas públicas de la cuenta: el login, pedir el enlace de recuperación y fijar la nueva
+// contraseña. Las usan el enlace del login, el guard de sesión y la feature de recuperación.
+export const AUTH_ROUTE = {
+  FORGOT_PASSWORD: "/recuperar-contrasena",
+  LOGIN: "/login",
+  RESET_PASSWORD: "/actualizar-contrasena",
+} as const;
+
+export type AuthRouteType = (typeof AUTH_ROUTE)[keyof typeof AUTH_ROUTE];
