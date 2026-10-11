@@ -3,6 +3,9 @@
 import { RecipesTabs } from "@/components/recipes-tabs/RecipesTabs";
 import { RECIPES_TAB } from "@/constants";
 import { MEAL_PLANNER_TEXT } from "./constants/meal-planner.constants";
+import { AddWeekToListButton } from "./components/AddWeekToListButton";
+import { AddWeekToListDialog } from "./components/AddWeekToListDialog";
+import { AddWeekToListResult } from "./components/AddWeekToListResult";
 import { MealPlanLoadError } from "./components/MealPlanLoadError";
 import { MealSlotDialog } from "./components/MealSlotDialog";
 import { WeekGrid } from "./components/WeekGrid";
@@ -18,7 +21,7 @@ import { useMealPlannerViewModel } from "./hooks/useMealPlannerViewModel";
  */
 export const MealPlanner = (): React.JSX.Element => {
   const viewModel = useMealPlannerViewModel();
-  const { days, isReady, plan } = viewModel;
+  const { days, isReady, plan, weekAddition } = viewModel;
   const { onSlotOpen, ...dialog } = viewModel.dialog;
 
   return (
@@ -34,11 +37,29 @@ export const MealPlanner = (): React.JSX.Element => {
         weekLabel={viewModel.weekLabel}
       />
       {plan.hasLoadError ? <MealPlanLoadError onRetry={plan.onPlanRetry} /> : null}
+      <div className="flex flex-col items-start gap-3">
+        <AddWeekToListButton canOpen={weekAddition.canOpen} onOpen={weekAddition.onOpen} />
+        <AddWeekToListResult resultLines={weekAddition.resultLines} />
+      </div>
       {isReady ? (
-        // Sin leer el plan no se sabe qué espacios tienen receta: no se puede asignar a ciegas.
-        <WeekGrid days={days} getEntry={plan.getEntry} isDisabled={!plan.isPlanReady} onSlotOpen={onSlotOpen} />
+        // Sin leer el plan no se sabe qué espacios tienen receta: no se puede asignar a ciegas. Con la
+        // confirmación de agregar la semana abierta tampoco: un Enter sobre el espacio de atrás no abre otro diálogo.
+        <WeekGrid
+          days={days}
+          getEntry={plan.getEntry}
+          isDisabled={!plan.isPlanReady || weekAddition.isOpen}
+          onSlotOpen={onSlotOpen}
+        />
       ) : null}
       <MealSlotDialog {...dialog} />
+      <AddWeekToListDialog
+        confirmMessage={weekAddition.confirmMessage}
+        errorMessage={weekAddition.errorMessage}
+        isAdding={weekAddition.isAdding}
+        isOpen={weekAddition.isOpen}
+        onClose={weekAddition.onClose}
+        onConfirm={weekAddition.onConfirm}
+      />
     </div>
   );
 };

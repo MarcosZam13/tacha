@@ -1,6 +1,7 @@
 import type { NullableRef } from "@/types/nullable.types";
 import type { MealSlotDialogViewModel, WeekMealPlanViewModel } from "./meal-plan.interfaces";
 import type { MealTypeType } from "./meal-planner.types";
+import type { WeekListAdditionViewModel } from "./week-list-addition.interfaces";
 
 // Interfaces del planificador semanal (SCRUM-99). Los types (la semana a la
 // vista y el tipo de comida) están en meal-planner.types.ts.
@@ -41,6 +42,8 @@ export interface MealPlannerViewModel {
   plan: Pick<WeekMealPlanViewModel, "getEntry" | "hasLoadError" | "isPlanReady" | "onPlanRetry">;
   /** "12 – 18 oct"; null mientras no se conoce "hoy". */
   rangeLabel: NullableRef<string>;
+  /** Agregar la semana a la lista (SCRUM-101): el botón, la confirmación y el aviso. */
+  weekAddition: WeekListAdditionViewModel;
   /** "Esta semana" o "Próxima semana". */
   weekLabel: string;
 }
