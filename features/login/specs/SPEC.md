@@ -120,7 +120,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 ## 8. UI esperada
 
 - Título "Iniciar sesión".
-- Input de correo (`Input` de `@/components/ui`) e input de contraseña (`PasswordInput`, local de la feature, con la misma apariencia que `Input`).
+- Input de correo (`Input` de `@/components/ui`) e input de contraseña (`PasswordInput`, compartido en `components/password-input/`, con la misma apariencia que `Input`).
 - Botón con ícono de ojo a la derecha del campo de contraseña: ojo abierto cuando está oculta, ojo tachado cuando está visible.
 - Widget reCAPTCHA.
 - Botón "Iniciar sesión" (`Button`), con texto "Ingresando..." mientras envía.
@@ -149,7 +149,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 - ViewModel + `constants/`; sin magic strings (constants-standards); sin `if` como en el registro (ternarios y mapas).
 - Sin librería de formularios ni wrapper de reCAPTCHA: el script de Google se carga con un hook propio.
 - Sin librería de íconos: el ojo es un SVG en línea.
-- No se modifica `Input` ni nada de `components/ui/`: `PasswordInput` es un componente local de la feature. Se promueve a `components/ui/` solo cuando una segunda feature lo necesite.
+- No se modifica `Input` ni nada de `components/ui/`: `PasswordInput` nació como componente local de la feature y se promovió a `components/password-input/` en SCRUM-52, cuando la vista de actualización de contraseña fue su segundo consumidor.
 - El código de fortaleza de contraseña (reglas, constantes, evaluación y medidor) se promueve a la raíz porque login es el segundo consumidor: `constants/`, `types/`, `utils/` y `components/`. `registro-manual` pasa a importarlo de ahí sin cambiar su comportamiento.
 - Sin librerías nuevas y sin Edge Function nueva: el cambio usa `supabase.auth.updateUser`.
 - La secret key de reCAPTCHA vive solo como secret de Supabase, nunca con prefijo `NEXT_PUBLIC_` (security-practices). La site key sí es pública.
@@ -164,7 +164,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 - `constants/email.constants.ts` (`EMAIL_PATTERN`) y `utils/email.utils.ts` (`normalizeEmail`): compartidos con `features/registro-manual/` (promovidos desde ahí al tener un segundo consumidor).
 - `supabase/functions/login-with-recaptcha/` (nueva).
 - Código compartido promovido desde `features/registro-manual/`: `constants/password.constants.ts`, `types/password.types.ts`, `utils/password.utils.ts` (`evaluatePasswordStrength`) y `components/password-strength-meter/`.
-- `PasswordInput` y el servicio de Supabase de la HU-22 y HU-23.
+- `PasswordInput` (hoy en `components/password-input/`) y el servicio de Supabase de la HU-22 y HU-23.
 - Variables: `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (cliente) y secret `RECAPTCHA_SECRET_KEY` (Edge Function).
 - Inactividad (SCRUM-50): `services/session.service.ts` (`subscribeToSessionChanges`) y `utils/getSessionStatus.ts` (de SCRUM-49/135), `next/navigation` (`usePathname`, `useRouter`) y la variable opcional `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES`.
 

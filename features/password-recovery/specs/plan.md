@@ -15,7 +15,6 @@ features/password-recovery/
     models/  ForgotPasswordFormProps.interface.ts · ForgotPasswordSentProps.interface.ts
   hooks/
     useForgotPasswordViewModel.ts          valor, validación derivada, estado del envío
-    useFocusHeadingOnMount.ts              ref de un título que recibe el foco al montarse (copia de la del login)
   models/
     ForgotPasswordViewModel.interface.ts
   services/
@@ -57,7 +56,7 @@ Toco "¿Olvidaste tu contraseña?" en `LoginForm` → `/recuperar-contrasena` �
 | Rutas en `constants/routes.constants.ts` (`AUTH_ROUTE`) | Texto suelto en cada archivo o constantes en la feature | Las usan tres lugares: el enlace del login, el guard y esta feature; importar de la feature desde `login/` los amarraría |
 | Sin reCAPTCHA | Agregarlo como en el login | No está en los criterios y suma una Edge Function. El límite de Supabase cubre el abuso básico |
 | Ruta `/recuperar-contrasena` en español | `/forgot-password` | Coherente con `/registro`, `/terminos`, `/nosotros` |
-| Foco al título de la confirmación (`useFocusHeadingOnMount` propio) | Importar `FocusedHeading` del login, o promoverlo a `components/` | Importar de otra feature está prohibido y promoverlo tocaría SCRUM-45 a 48. Costo: ~10 líneas duplicadas; se unifican al tocar el login |
+| Foco al título: `FocusedHeading` compartido (`components/focused-heading/`) | Una copia en cada feature | Es el segundo consumidor real y este PR ya toca el login (se promueve `PasswordInput`): una sola implementación, sin copias que se separen |
 | Los errores 5xx de Supabase se muestran como confirmación | Mostrarlos como error | Supabase solo intenta mandar el correo si la cuenta existe, así que un fallo del envío solo pasa con cuentas reales y delataría cuáles. Costo: con el servicio caído la persona ve "enviado" y espera un correo que no llega |
 | "Usar otro correo" en la confirmación | Un temporizador de reenvío | Un temporizador es un estado y un efecto más; el límite lo aplica Supabase |
 
@@ -83,7 +82,11 @@ Toco "¿Olvidaste tu contraseña?" en `LoginForm` → `/recuperar-contrasena` �
 
 ```
 components/password-input/            PasswordInput, EyeIcon y su ViewModel (hoy en features/login/components y hooks)
-constants/password.constants.ts       + INPUT_TYPE, PASSWORD_TOGGLE_LABEL, AUTOCOMPLETE y las constantes de campos, mensajes y resultados del cambio de contraseña
+components/focused-heading/           FocusedHeading, su hook y su modelo (antes en el login, y copiados en esta feature)
+constants/ui.constants.ts             + INPUT_TYPE y AUTOCOMPLETE
+constants/password.constants.ts       + PASSWORD_TOGGLE_LABEL
+constants/new-password.constants.ts   campos, etiquetas, mensajes, resultados y errores de Supabase del formulario de nueva contraseña (nuevo)
+types/new-password.types.ts           valores y errores del formulario de nueva contraseña (nuevo)
 utils/validateNewPasswordForm.ts      (antes features/login/utils/validateChangePasswordForm.ts) y sus tipos de valores y errores
 services/password.service.ts          updateUserPassword (antes features/login/services/password.service.ts)
 features/login/                       importa de lo anterior; las pruebas del login siguen pasando sin cambios
@@ -105,6 +108,7 @@ features/password-recovery/
     password-recovery.service.ts        + subscribeToRecoveryEvents(): eventos de sesión (INITIAL_SESSION, PASSWORD_RECOVERY)
   utils/
     getRecoveryLinkStatus.ts            función pura: fragmento de la URL → recovery | error | none
+    resolveLinkVerification.ts          función pura: (URL inicial, evento de Supabase, URL actual) → verifying | ready | invalid
   constants/
     password-recovery.constants.ts      + textos, estados y parámetros de la vista de actualización
   models/                               ResetPasswordViewModel
@@ -112,7 +116,7 @@ features/password-recovery/
   specs/  SPEC.md · plan.md · tasks.md · E2E.md
 
 app/actualizar-contrasena/page.tsx      solo la ruta
-services/session.service.ts             + signOutEverywhere() (alcance global)
+services/session.service.ts             + revokeOtherSessions() (cierra las demás sesiones y dice si lo logró); el tope de 5 s ahora se cancela
 features/session-guard/constants/session-guard.constants.ts   + /actualizar-contrasena en PUBLIC_ROUTES
 ```
 
@@ -122,16 +126,16 @@ Sin tablas, RLS, RPC ni Edge Functions: no hay migración. El plazo del enlace l
 
 ### Flujo
 
-Abro el enlace del correo → Supabase redirige a `/actualizar-contrasena#access_token=...&type=recovery` → `ResetPassword.tsx` con `useResetPasswordViewModel`. Al montar, `getRecoveryLinkStatus(window.location.hash)` lee el fragmento antes de que el cliente de Supabase lo procese (el efecto de la página corre antes que el del guard, que es quien crea el cliente): `none` o `error` → estado `invalid`. Con `recovery` el estado sigue en `verifying` y el hook se suscribe a los eventos de sesión: `PASSWORD_RECOVERY` → `ready`; `INITIAL_SESSION` con el fragmento todavía en la URL → `invalid` (Supabase solo lo borra cuando acepta el enlace). Escribo la contraseña: `validateNewPasswordForm` y `evaluatePasswordStrength` se recalculan en cada render. Guardo: `updateUserPassword` → éxito → `signOutEverywhere()` → estado `done`; un efecto programa `router.replace("/login")` a los 3 segundos y el botón "Iniciar sesión" lo hace de inmediato.
+Abro el enlace del correo → Supabase redirige a `/actualizar-contrasena#access_token=...&type=recovery` → `ResetPassword.tsx` con `useResetPasswordViewModel`. Al montar, `getRecoveryLinkStatus(window.location.hash)` lee el fragmento antes de que el cliente de Supabase lo procese (el efecto de la página corre antes que el del guard, que es quien crea el cliente), y el hook se suscribe a los eventos de sesión. Con cada evento, `resolveLinkVerification(urlInicial, evento, urlActual)` decide: si la URL inicial no traía un enlace de recuperación (`none` o `error`) → `invalid`; solo `PASSWORD_RECOVERY` → `ready`; `INITIAL_SESSION` con el fragmento todavía en la URL → `invalid` (Supabase solo lo borra cuando acepta el enlace), y con el fragmento ya borrado se espera a `PASSWORD_RECOVERY` hasta 3 segundos y, si no llega, `invalid`. Solo se sale de `verifying` una vez. Escribo la contraseña: `validateNewPasswordForm` y `evaluatePasswordStrength` se recalculan en cada render. Guardo: `revokeOtherSessions()` (si no se confirma: error y la contraseña no se cambia) → `updateUserPassword` → éxito → `signOutUser()` → estado `done`; un efecto programa `router.replace("/login")` a los 3 segundos y el botón "Iniciar sesión" lo hace de inmediato.
 
 ### Decisiones
 
 | Decisión | Alternativa | Por qué esta |
 |---|---|---|
 | Leer el fragmento de la URL al montar | Preguntarle a Supabase si hay sesión | Con un enlace vencido supabase-js no emite ningún evento y el error solo está en la URL. Y una sesión ya iniciada no prueba que haya enlace |
-| `ready` solo con `PASSWORD_RECOVERY`, o con `INITIAL_SESSION` si el fragmento ya se borró | `ready` con cualquier sesión | Una persona con sesión iniciada que abre un enlace roto recibe su sesión vieja en `INITIAL_SESSION`: tomarla por la de recuperación dejaría cambiar la contraseña con un enlace inválido |
+| `ready` solo con `PASSWORD_RECOVERY`; con `INITIAL_SESSION` y el fragmento ya borrado se espera 3 s a ese evento y, si no llega, `invalid` | `ready` con cualquier sesión, o con el fragmento borrado | Una persona con sesión iniciada que abre un enlace roto recibe su sesión vieja en `INITIAL_SESSION`, y borrar el fragmento a mano lo haría pasar por válido. Solo el evento que Supabase emite al aceptar el enlace prueba que hubo un enlace. Costo: un temporizador más |
 | Un mensaje único para vencido, usado e inexistente | Mensajes distintos | Supabase da el mismo error en los tres (`otp_expired`) y distinguirlos no cambia lo que la persona puede hacer: pedir otro enlace |
-| Cierre global tras guardar (`signOutEverywhere`) | Solo el local, o no cerrar | Cambiar la contraseña no cierra las sesiones que otra persona tenga abiertas; quien recupera puede haber perdido la cuenta. Costo: cierra también los demás dispositivos |
+| Cerrar las demás sesiones ANTES de cambiar la contraseña (`revokeOtherSessions`, alcance `others`) y la de recuperación después (`signOutUser`) | Cambiar primero y cerrar todas después (alcance global) | El cierre es una llamada de red que puede no completarse (pestaña cerrada, red caída, error del servidor, tope de 5 s). Si falla después de cambiar la contraseña, el atacante sigue dentro y la pantalla dice "actualizada"; si falla antes, la contraseña no cambia y se reintenta. Costo: una red lenta puede impedir cambiar la contraseña hasta confirmar el cierre |
 | Redirección a los 3 s **y** botón inmediato | Solo temporizador, o solo botón | El criterio pide que se redirija; un temporizador sin salida no deja leer a quien necesita más tiempo (WCAG 2.2.1) |
 | Promover `PasswordInput`, la validación y el servicio a carpetas compartidas | Importar de `features/login/`, o copiarlos | Una feature no importa de otra, y copiar ~150 líneas obliga a mantener dos validaciones de contraseña que tienen que coincidir. Es la regla de SCRUM-48 (promover al segundo consumidor) |
 | Promover en una tarea aparte, sin cambiar el login | Aprovechar para refactorizar | Si el login cambia de comportamiento junto con la mudanza, no se sabe si un fallo es de una cosa o de la otra |
@@ -145,5 +149,6 @@ Abro el enlace del correo → Supabase redirige a `/actualizar-contrasena#access
 - **Flujo implícito de Supabase:** el token llega en el fragmento `#` y supabase-js lo procesa y lo borra al cargar la página.
 - **Eventos de sesión** `INITIAL_SESSION` y `PASSWORD_RECOVERY`, y por qué el primero no prueba que hubo enlace.
 - **Orden de los efectos** en React (los hijos corren antes que los padres) y por qué importa para leer la URL antes de crear el cliente de Supabase.
-- **Cierre de sesión global** frente al local.
+- **Fallar cerrado:** ordenar los pasos para que un fallo deje el sistema en el estado seguro (la contraseña sin cambiar) y no en el engañoso ("actualizada" con el atacante adentro).
+- **Alcance del cierre de sesión:** `local`, `others` y `global`, y por qué aquí se usa `others` antes y `local` después.
 - **Temporizador con salida** (WCAG 2.2.1) y su limpieza en un efecto.

@@ -2,6 +2,8 @@
 
 Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente.
 
+> **Nota (SCRUM-52):** varias piezas que este plan describe dentro de `features/login/` se movieron a carpetas compartidas porque la recuperación de contraseña pasó a ser su segundo consumidor (sin cambiar el comportamiento del login): `PasswordInput`, `EyeIcon` y su ViewModel → `components/password-input/`; `FocusedHeading` y `useFocusHeadingOnMount` → `components/focused-heading/`; `validateChangePasswordForm` → `utils/validateNewPasswordForm.ts`; `password.service.ts` (`updateUserPassword`) → `services/password.service.ts`; `ChangePasswordFormValues` → `types/new-password.types.ts`; `INPUT_TYPE` y `AUTOCOMPLETE` → `constants/ui.constants.ts`; `PASSWORD_TOGGLE_LABEL` → `constants/password.constants.ts`; y los campos, etiquetas, mensajes y resultados del formulario de nueva contraseña (`CHANGE_PASSWORD_*` → `NEW_PASSWORD_*`) → `constants/new-password.constants.ts`. Las tareas de abajo conservan los nombres y rutas de cuando se hicieron.
+
 ## SCRUM-45: login con reCAPTCHA
 
 - [x] 1. Constantes de la feature (`constants/login.constants.ts`).

@@ -19,7 +19,7 @@ Incluye:
 - Agregar la ruta a las rutas públicas del guard de sesión.
 - **HU-29:** la ruta pública `/actualizar-contrasena` y su lógica para decidir si el enlace es válido, leyendo el fragmento de la URL y esperando la confirmación de Supabase.
 - **HU-29:** formulario "Nueva contraseña" y "Repetir nueva contraseña" con el ojo de mostrar u ocultar, el medidor de fortaleza y las mismas reglas del cambio de contraseña del login (HU-25).
-- **HU-29:** guardar con `auth.updateUser({ password })`, cerrar todas las sesiones de la cuenta, mostrar la confirmación y redirigir al login (a los 3 segundos o antes con un botón).
+- **HU-29:** guardar con `auth.updateUser({ password })`; antes, cerrar las demás sesiones de la cuenta, y después la de recuperación; mostrar la confirmación y redirigir al login (a los 3 segundos o antes con un botón).
 - **HU-29:** enlace vencido, usado o inexistente: un mensaje y "Pedir un enlace nuevo" hacia `/recuperar-contrasena`.
 - **HU-29:** agregar la ruta a las rutas públicas del guard.
 - **HU-29:** promover a carpetas compartidas lo que el login y esta feature usan a la vez (campo de contraseña con ojo, validación de la nueva contraseña y su servicio), sin cambiar el comportamiento del login.
@@ -41,7 +41,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - **HU-29:** verificando el enlace: un indicador de carga, sin formulario.
 - **HU-29:** enlace válido: el formulario de nueva contraseña.
 - **HU-29:** enlace vencido, usado o inexistente: el mensaje y "Pedir un enlace nuevo".
-- **HU-29:** contraseña actualizada: todas las sesiones de la cuenta cerradas, la confirmación y la redirección a `/login`.
+- **HU-29:** contraseña actualizada: las demás sesiones de la cuenta cerradas antes del cambio, la sesión de recuperación cerrada después, la confirmación y la redirección a `/login`.
 - **HU-29:** error al guardar (red, contraseña igual a la actual o rechazada): el mensaje y el formulario editable, con lo escrito.
 
 ## 5. Reglas de negocio
@@ -60,7 +60,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - **HU-29: solo el enlace de esta visita habilita el formulario.** La pantalla lo muestra únicamente si el fragmento de la URL traía un enlace de recuperación y Supabase confirmó la sesión de recuperación (evento `PASSWORD_RECOVERY`). Una sesión ya iniciada no basta: abrir `/actualizar-contrasena` a mano, sin enlace, muestra "enlace no válido" aunque haya sesión (cambiar la contraseña con sesión iniciada es HU-31). Recargar la página tras abrir el enlace también lo muestra, porque Supabase borra el fragmento de la URL al procesarlo.
 - **HU-29: mismas reglas de contraseña que el cambio del login (HU-25):** obligatoria, con el largo mínimo, de nivel intermedio o fuerte, y que coincida con su repetición. El botón "Guardar contraseña" queda deshabilitado mientras no se cumplan.
 - **HU-29: la nueva contraseña igual a la actual** o rechazada por la política del proyecto de Supabase muestra su propio mensaje, y el formulario sigue editable.
-- **HU-29: al guardar con éxito se cierran todas las sesiones de la cuenta** (`signOut` con alcance global). Quien recupera una contraseña puede haber perdido el control de la cuenta, y cambiar la contraseña no cierra las sesiones que otra persona tenga abiertas. Si ese cierre global falla, se cierra al menos la sesión de este navegador y se sigue: la contraseña ya cambió. Costo: también se cierran las sesiones de los demás dispositivos de la persona.
+- **HU-29: antes de cambiar la contraseña se cierran las demás sesiones de la cuenta, y solo si se confirmó se cambia** (`signOut` con alcance `others`). Quien recupera una contraseña puede haber perdido el control de la cuenta, y cambiarla no cierra las sesiones que otra persona tenga abiertas. Se hace antes y no después porque ese cierre es una llamada de red que puede no completarse (pestaña cerrada, red caída, error del servidor, más de 5 segundos): si fallara después de cambiar la contraseña, el atacante seguiría adentro y la pantalla diría "actualizada"; si falla antes, la contraseña no cambia y se reintenta. Con el cambio hecho se cierra la sesión de recuperación de este navegador (alcance local; no lanza, y si falla se sigue porque la contraseña ya cambió). Costo: si el cambio falla después, las demás sesiones ya quedaron cerradas (inocuo), y una red lenta puede impedir cambiar la contraseña hasta poder confirmar el cierre.
 - **HU-29: la redirección a `/login` se hace a los 3 segundos y también con un botón inmediato.** Una redirección solo con temporizador no deja leer a quien necesita más tiempo; el botón evita esperar.
 - **HU-29:** la contraseña escrita no se guarda ni se muestra fuera de los campos, y se borra de la memoria al guardar con éxito (igual que en el login). El token del enlace nunca se escribe en logs ni en el almacenamiento propio de la app.
 
@@ -87,7 +87,8 @@ Unión derivada de constantes: `idle | submitting | sent | error`. El valor del 
 | **HU-29:** la nueva contraseña es igual a la actual | "La nueva contraseña debe ser distinta de la actual." |
 | **HU-29:** Supabase rechaza la contraseña por su política | "La contraseña no cumple los requisitos de seguridad." |
 | **HU-29:** fallo de red u otro error al actualizar | "No pudimos actualizar tu contraseña. Intentá de nuevo en unos minutos." y el formulario sigue editable |
-| **HU-29:** falla el cierre de todas las sesiones al guardar | No se avisa: se cierra la sesión de este navegador y se confirma, porque la contraseña ya cambió |
+| **HU-29:** no se pueden cerrar las demás sesiones (error del servidor, red caída o más de 5 segundos) | "No pudimos cerrar tus otras sesiones, así que no cambiamos tu contraseña. Intentá de nuevo." La contraseña NO se cambia y el formulario sigue editable con lo escrito |
+| **HU-29:** falla el cierre de la sesión de recuperación tras cambiar la contraseña | No se avisa: se confirma, porque la contraseña ya cambió |
 
 ## 8. UI esperada
 
@@ -117,7 +118,7 @@ Unión derivada de constantes: `idle | submitting | sent | error`. El valor del 
 - Sin librerías nuevas, sin Edge Function y sin reCAPTCHA: `resetPasswordForEmail` lo llama el cliente.
 - Sin magic strings (constants-standards): textos, estados y códigos en `constants/`; las rutas, en `constants/routes.constants.ts`, porque las usan login, guard y esta feature.
 - Fuera de la feature solo cambian `app/recuperar-contrasena/page.tsx` (nuevo), el enlace en `features/login/components/LoginForm.tsx`, `constants/routes.constants.ts` y `PUBLIC_ROUTES` del guard.
-- **HU-29:** sin librerías nuevas ni Edge Function: el cambio usa `supabase.auth.updateUser` y el cierre `supabase.auth.signOut({ scope: "global" })`.
+- **HU-29:** sin librerías nuevas ni Edge Function: el cambio usa `supabase.auth.updateUser` y los cierres `supabase.auth.signOut({ scope: "others" })` (antes) y `signOut({ scope: "local" })` (después).
 - **HU-29: lo compartido con el login se promueve, no se importa de otra feature** (`project-structure`): el campo de contraseña con ojo, la validación de la nueva contraseña y el servicio de cambio de contraseña pasan a `components/`, `utils/`, `services/` y `constants/` compartidos, y el login importa de ahí. Es un movimiento sin cambio de comportamiento, en una tarea aparte y con las pruebas del login como red de seguridad (como en SCRUM-48).
 - Skills: component-architecture, constants-standards, clean-code-practices, project-structure, security-practices.
 
@@ -142,7 +143,7 @@ Unión derivada de constantes: `idle | submitting | sent | error`. El valor del 
 - Al cargar `/actualizar-contrasena` con un enlace válido, supabase-js guarda la sesión de recuperación, **borra el fragmento `#` de la URL** y emite `PASSWORD_RECOVERY` justo después de `INITIAL_SESSION`. Un `INITIAL_SESSION` con sesión **no** prueba que hubo un enlace de recuperación.
 - Con un enlace vencido o ya usado, el fragmento **queda en la URL** con `error=access_denied`, `error_code=otp_expired` y `error_description=...`, y supabase-js **no emite ningún evento**: el error solo se ve leyendo la URL.
 - `auth.updateUser({ password })`: cambia la contraseña de la sesión actual. Errores relevantes: `same_password` (igual a la actual) y `weak_password` (incumple la política del proyecto).
-- `auth.signOut({ scope: "global" })`: revoca todas las sesiones de la cuenta.
+- `auth.signOut({ scope: "others" })`: revoca todas las demás sesiones de la cuenta y deja la actual; devuelve `{ error }` si falla. `auth.signOut({ scope: "local" })` borra la sesión de este navegador.
 
 No hay tablas, RLS ni Edge Functions nuevas.
 
@@ -175,6 +176,7 @@ Casos de HU-29 (SCRUM-52):
 - Caso 23: un doble clic en "Guardar contraseña" envía una sola vez ("Guardando...").
 - Caso 24: con el guard encendido y sin sesión, `/actualizar-contrasena` se abre.
 - Caso 25: tras guardar con éxito, las sesiones abiertas en otros dispositivos o navegadores de la cuenta quedan cerradas.
+- Caso 26: si no se pueden cerrar las demás sesiones (error del servidor, red caída o más de 5 segundos), la contraseña NO se cambia: se ve "No pudimos cerrar tus otras sesiones, así que no cambiamos tu contraseña. Intentá de nuevo." y se puede reintentar sin perder lo escrito.
 
 ## 14. Casos fuera de alcance
 
@@ -206,10 +208,13 @@ Casos de HU-29 (SCRUM-52):
 - **El flujo del cliente usa el enlace implícito:** el token llega en el fragmento `#` de la URL y lo procesa supabase-js al cargar `/actualizar-contrasena` (SCRUM-52). Cambiar a PKCE sería una decisión de todo el cliente de Supabase.
 - **Redirect URLs sin comodines abiertos:** la lista debe tener solo las URLs exactas (`<origen>/actualizar-contrasena`). Con un comodín amplio (`https://*.vercel.app/**` o `**`), un atacante con un despliegue propio recibiría el token de recuperación en el fragmento `#`. No se puede verificar desde el repo: se revisa en el dashboard.
 - **Cada página pública nueva** debe agregarse a `PUBLIC_ROUTES` del guard o quedará protegida. `/actualizar-contrasena` se agrega en SCRUM-52.
-- **HU-29, cómo se decide que el enlace es válido** (apoyado en el código de supabase-js 2.117.2): al montar, antes de que el cliente de Supabase procese la URL, se lee el fragmento. Sin `access_token` con `type=recovery`, o con `error`, la pantalla va directo a "no válido". Con un enlace aparente, espera a que Supabase lo confirme: lo da por válido con `PASSWORD_RECOVERY`, y por no válido si, ya con `INITIAL_SESSION`, el fragmento sigue en la URL (Supabase solo lo borra al aceptar el enlace). Si se actualiza esa librería, hay que volver a comprobar este comportamiento.
+- **HU-29, cómo se decide que el enlace es válido** (apoyado en el código de supabase-js 2.117.2): al montar, antes de que el cliente de Supabase procese la URL, se lee el fragmento. Sin `access_token` con `type=recovery`, o con `error`, la pantalla va directo a "no válido". Con un enlace aparente, el formulario se muestra **solo** cuando Supabase emite `PASSWORD_RECOVERY`, que solo emite al aceptar el enlace. Con `INITIAL_SESSION` y el fragmento todavía en la URL, el enlace se da por no válido (Supabase lo rechazó); con el fragmento ya borrado se espera `PASSWORD_RECOVERY` hasta 3 segundos y, si no llega, se da por no válido (falla cerrado). Un fragmento que ya no está en la URL no basta: quien tenga una sesión vieja podría borrarlo a mano y llegar al formulario sin un enlace real. La regla está en una función pura (`resolveLinkVerification`) con su prueba. Si se actualiza la librería, hay que volver a comprobar este comportamiento.
 - **HU-29, `INITIAL_SESSION` no basta:** una persona con sesión iniciada que abre un enlace inválido recibe su sesión vieja en `INITIAL_SESSION`; tomarla por sesión de recuperación dejaría cambiar la contraseña con un enlace roto.
-- **HU-29, el cierre global tiene costo:** también cierra las sesiones de los demás dispositivos de la persona. Es lo deseado tras recuperar una contraseña; si se quisiera no hacerlo, bastaría pasar a alcance local.
+- **HU-29, cerrar las demás sesiones también cierra las de los demás dispositivos de la persona.** Es lo deseado tras recuperar una contraseña. Con la red lenta o el servidor fallando, la contraseña no se cambia hasta poder confirmar el cierre: es a propósito.
 - **HU-29, el token vive en la URL un instante:** hasta que supabase-js lo procesa y borra el fragmento. No sale en el encabezado `Referer` (los fragmentos no se envían) pero sí queda en el historial si el borrado falla; el caso 13 lo comprueba.
 - **HU-29, la sesión de recuperación es una sesión real:** el guard la ve como autenticada y el cierre por inactividad (SCRUM-50) empieza a medirla mientras la persona escribe. Al guardar, se cierra.
 - **HU-29, por probar en el proyecto real:** abrir el enlace dos veces (el segundo debe dar el caso 18) y confirmar que, tras guardar, una sesión abierta en otro navegador se cierra.
 - El correo por defecto de Supabase limita los envíos por hora para todo el proyecto (y solo entrega a miembros de la organización): si el equipo prueba mucho, el límite global puede agotarse y la confirmación seguirá apareciendo sin que llegue el correo.
+- **HU-29, el token queda un instante en el historial:** supabase-js borra el fragmento con `window.location.hash = ''`, que agrega una entrada de historial; la anterior conserva la URL con el token. El fragmento no viaja en `Referer` ni a los servidores, y el enlace es de un solo uso. Defensa en profundidad pendiente: una cabecera `Referrer-Policy` en `next.config.ts` (hoy no hay cabeceras de seguridad).
+- **HU-29, la política de contraseñas vinculante es la de Supabase:** la validación del formulario es una ayuda; desde la consola se puede llamar a `updateUser` sin pasar por ella. Confirmar en el dashboard (Authentication → el largo mínimo y los caracteres exigidos) que la política del proyecto es la que se quiere.
+- **HU-29, fijación de sesión por enlace ajeno (limitación de Supabase, aceptada):** un enlace de recuperación de otra cuenta con `type=recovery` reemplaza la sesión local de quien lo abre, y esa persona "guardaría" una contraseña en la cuenta de quien mandó el enlace. No da acceso a la cuenta de la víctima.
