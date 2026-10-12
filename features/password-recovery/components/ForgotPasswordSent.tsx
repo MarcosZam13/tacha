@@ -1,8 +1,8 @@
+import { FocusedHeading } from "@/components/focused-heading/FocusedHeading";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { AUTH_ROUTE, BUTTON_VARIANT } from "@/constants";
 import { FORGOT_PASSWORD_LABEL } from "../constants/password-recovery.constants";
-import { useFocusHeadingOnMount } from "../hooks/useFocusHeadingOnMount";
 import type { ForgotPasswordSentProps } from "./models/ForgotPasswordSentProps.interface";
 
 /**
@@ -12,29 +12,19 @@ import type { ForgotPasswordSentProps } from "./models/ForgotPasswordSentProps.i
  */
 export const ForgotPasswordSent = ({
   onUseAnotherEmail,
-}: ForgotPasswordSentProps): React.JSX.Element => {
-  const headingRef = useFocusHeadingOnMount();
+}: ForgotPasswordSentProps): React.JSX.Element => (
+  <section className="flex flex-col gap-4">
+    <FocusedHeading>{FORGOT_PASSWORD_LABEL.TITLE}</FocusedHeading>
+    <p role="status" className="font-body text-sm text-tacha-textsec">
+      {FORGOT_PASSWORD_LABEL.SENT_MESSAGE}
+    </p>
 
-  return (
-    <section className="flex flex-col gap-4">
-      <h1
-        ref={headingRef}
-        tabIndex={-1}
-        className="font-display text-3xl font-bold text-tacha-text outline-none"
-      >
-        {FORGOT_PASSWORD_LABEL.TITLE}
-      </h1>
-      <p role="status" className="font-body text-sm text-tacha-textsec">
-        {FORGOT_PASSWORD_LABEL.SENT_MESSAGE}
-      </p>
+    <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onUseAnotherEmail}>
+      {FORGOT_PASSWORD_LABEL.USE_ANOTHER_EMAIL}
+    </Button>
 
-      <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onUseAnotherEmail}>
-        {FORGOT_PASSWORD_LABEL.USE_ANOTHER_EMAIL}
-      </Button>
-
-      <Link href={AUTH_ROUTE.LOGIN} className="font-body text-sm text-tacha-teal underline">
-        {FORGOT_PASSWORD_LABEL.BACK_TO_LOGIN}
-      </Link>
-    </section>
-  );
-};
+    <Link href={AUTH_ROUTE.LOGIN} className="font-body text-sm text-tacha-teal underline">
+      {FORGOT_PASSWORD_LABEL.BACK_TO_LOGIN}
+    </Link>
+  </section>
+);

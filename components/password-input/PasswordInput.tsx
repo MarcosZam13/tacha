@@ -1,10 +1,9 @@
 "use client";
 
-import { FORM_FIELD_STATE } from "@/constants";
-import { PASSWORD_TOGGLE_LABEL } from "../constants/login.constants";
-import { usePasswordInputViewModel } from "../hooks/usePasswordInputViewModel";
-import type { PasswordInputProps } from "../models/PasswordInputProps.interface";
+import { FORM_FIELD_STATE, PASSWORD_TOGGLE_LABEL } from "@/constants";
 import { EyeIcon } from "./EyeIcon";
+import { usePasswordInputViewModel } from "./hooks/usePasswordInputViewModel";
+import type { PasswordInputProps } from "./models/PasswordInputProps.interface";
 
 /**
  * Campo de contraseña con botón para mostrar u ocultar el texto. Misma apariencia que

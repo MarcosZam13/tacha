@@ -1,6 +1,7 @@
 export * from "./app.constants";
 export * from "./catalog.constants";
 export * from "./email.constants";
+export * from "./new-password.constants";
 export * from "./password.constants";
 export * from "./postgres.constants";
 export * from "./recipes-tabs.constants";

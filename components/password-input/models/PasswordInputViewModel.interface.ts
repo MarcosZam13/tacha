@@ -1,4 +1,4 @@
-import type { INPUT_TYPE } from "../constants/login.constants";
+import type { INPUT_TYPE } from "@/constants";
 
 export interface PasswordInputViewModel {
   errorId: string;

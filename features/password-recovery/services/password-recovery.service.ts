@@ -1,7 +1,8 @@
-import type { AuthError } from "@supabase/supabase-js";
+import type { AuthChangeEvent, AuthError } from "@supabase/supabase-js";
 import { AUTH_ROUTE } from "@/constants";
 import { getSupabaseClient } from "@/services/supabase.client";
 import {
+  RECOVERY_AUTH_EVENT,
   RECOVERY_RATE_LIMIT,
   RECOVERY_REQUEST_RESULT,
   RECOVERY_SERVER_ERROR_MIN_STATUS,
@@ -41,5 +42,25 @@ export const requestPasswordReset = async (email: string): Promise<RecoveryReque
       : RECOVERY_REQUEST_RESULT.ERROR;
   } catch {
     return RECOVERY_REQUEST_RESULT.ERROR;
+  }
+};
+
+/**
+ * Avisa de los eventos de sesión de Supabase mientras se verifica un enlace de recuperación. Solo pasa
+ * el nombre del evento: la vista decide con él (`INITIAL_SESSION` llega primero y con la sesión que
+ * hubiera, también una vieja; `PASSWORD_RECOVERY` solo llega si Supabase aceptó el enlace).
+ * Devuelve cómo cancelar la suscripción. No lanza: sin cliente de Supabase (faltan las variables) avisa
+ * un `INITIAL_SESSION` y la vista, al ver el enlace sin confirmar, lo da por no válido.
+ */
+export const subscribeToRecoveryEvents = (
+  onEvent: (event: AuthChangeEvent) => void,
+): (() => void) => {
+  try {
+    const { data } = getSupabaseClient().auth.onAuthStateChange((event) => onEvent(event));
+
+    return () => data.subscription.unsubscribe();
+  } catch {
+    onEvent(RECOVERY_AUTH_EVENT.INITIAL_SESSION);
+    return () => undefined;
   }
 };

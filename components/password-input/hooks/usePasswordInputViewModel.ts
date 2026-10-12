@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { INPUT_TYPE } from "../constants/login.constants";
+import { INPUT_TYPE } from "@/constants";
 import type { PasswordInputViewModel } from "../models/PasswordInputViewModel.interface";
 
 export const usePasswordInputViewModel = (): PasswordInputViewModel => {

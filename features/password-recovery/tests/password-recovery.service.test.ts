@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RECOVERY_REQUEST_RESULT } from "../constants/password-recovery.constants";
-import { requestPasswordReset } from "../services/password-recovery.service";
+import { RECOVERY_AUTH_EVENT, RECOVERY_REQUEST_RESULT } from "../constants/password-recovery.constants";
+import { requestPasswordReset, subscribeToRecoveryEvents } from "../services/password-recovery.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con el único método que se usa.
 const resetPasswordForEmailMock = vi.fn();
+const onAuthStateChangeMock = vi.fn();
 const getSupabaseClientMock = vi.fn();
 
 vi.mock("@/services/supabase.client", () => ({
@@ -16,7 +17,9 @@ const EMAIL = "ana@correo.com";
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubGlobal("window", { location: { origin: ORIGIN } });
-  getSupabaseClientMock.mockReturnValue({ auth: { resetPasswordForEmail: resetPasswordForEmailMock } });
+  getSupabaseClientMock.mockReturnValue({
+    auth: { onAuthStateChange: onAuthStateChangeMock, resetPasswordForEmail: resetPasswordForEmailMock },
+  });
 });
 
 afterEach(() => {
@@ -85,5 +88,41 @@ describe("requestPasswordReset", () => {
     });
 
     expect(await requestPasswordReset(EMAIL)).toBe(RECOVERY_REQUEST_RESULT.ERROR);
+  });
+});
+
+describe("subscribeToRecoveryEvents", () => {
+  it("passes on each session event by name, and not the session itself", () => {
+    onAuthStateChangeMock.mockImplementation((callback) => {
+      callback("INITIAL_SESSION", { access_token: "secret" });
+      callback("PASSWORD_RECOVERY", { access_token: "secret" });
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+    const onEvent = vi.fn();
+
+    subscribeToRecoveryEvents(onEvent);
+
+    expect(onEvent.mock.calls).toEqual([[RECOVERY_AUTH_EVENT.INITIAL_SESSION], [RECOVERY_AUTH_EVENT.PASSWORD_RECOVERY]]);
+  });
+
+  it("returns a function that cancels the subscription", () => {
+    const unsubscribe = vi.fn();
+    onAuthStateChangeMock.mockReturnValue({ data: { subscription: { unsubscribe } } });
+
+    subscribeToRecoveryEvents(vi.fn())();
+
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not throw when the Supabase client cannot be created: it reports INITIAL_SESSION so the screen can give up", () => {
+    getSupabaseClientMock.mockImplementation(() => {
+      throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local");
+    });
+    const onEvent = vi.fn();
+
+    const unsubscribe = subscribeToRecoveryEvents(onEvent);
+
+    expect(onEvent).toHaveBeenCalledWith(RECOVERY_AUTH_EVENT.INITIAL_SESSION);
+    expect(unsubscribe()).toBeUndefined();
   });
 });
