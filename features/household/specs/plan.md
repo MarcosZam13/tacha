@@ -418,3 +418,219 @@ Los tests de una pieza pueden ir en el mismo commit que la pieza (ej. `extractIn
 - **Sin rate limit propio** en la RPC (ver Seguridad).
 - **Número de la migración** sujeto a cambios hasta el merge.
 - **Sin E2E** si se aprueba la propuesta de [Pruebas](#pruebas): el flujo completo con dos cuentas reales queda cubierto por pruebas manuales hasta que el equipo defina usuarios de prueba registrados.
+
+## SCRUM-58: salir de la familia
+
+> **Verificado el 2026-10-10** contra `develop` (rama sin commits propios todavía): `household_members.user_id` es PK y solo tiene `select` de la fila propia para el cliente (`011`); no existe ninguna RPC para salir, transferir el rol ni listar miembros; `household_invite_links.household_id` → `households` con `on delete cascade`; `purchase_sessions.household_id` → `households` con `on delete set null` (`016`); en `lists`, `recipes` y `meal_plans`, `household_id` existe sin FK y siempre es `null`. No hay tabla de perfiles: el nombre del usuario está en `auth.users.raw_user_meta_data ->> 'name'` (lo guarda el registro). `components/ui` no tiene radio ni select.
+
+### Archivos
+
+```
+supabase/migrations/023_leave_household.sql      nueva: get_household_members() y leave_household(new_admin_user_id)
+supabase/tests/023_leave_household.test.sql      nueva: prueba SQL (transacción con assert y rollback)
+types/database.types.ts                          + Functions.get_household_members y leave_household
+
+features/household/
+  Household.tsx                                  + sección "Salir de la familia" (miembro y admin) y <HouseholdLeaveDialog>
+  components/
+    HouseholdLeaveDialog.tsx                     nuevo: Modal de confirmación; texto según el caso; radios nativos
+                                                 para el nuevo admin. Solo presentación
+    models/HouseholdLeaveDialogProps.interface.ts   nuevo
+  hooks/
+    useHouseholdLeave.ts                         nuevo: estado del flujo (unión), cargar miembros (solo admin),
+                                                 elegido, confirmar con guarda useRef, traducir resultados
+    useHouseholdViewModel.ts                     + compone useHouseholdLeave; al salir bien vuelve a leer la membresía
+  models/
+    HouseholdMember.interface.ts                 nuevo: { userId, displayName, role, isCurrentUser }
+  services/
+    household.service.ts                         + getHouseholdMembers() y leaveHousehold(newAdminUserId)
+  constants/
+    household.constants.ts                       + RPC, HOUSEHOLD_LEAVE_RESULT (+ tipo), HOUSEHOLD_LEAVE_STATUS,
+                                                   HOUSEHOLD_LEAVE_DIALOG_CASE, HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION,
+                                                   HOUSEHOLD_LEAVE_FORM, HOUSEHOLD_LEAVE_TEXT ("Miembro sin nombre")
+  tests/
+    household.service.test.ts                    + casos de getHouseholdMembers y leaveHousehold
+    useHouseholdLeave.test.ts                    nuevo
+    HouseholdLeave.page.ts                       nuevo: un solo Page Object para la sección, el diálogo y el aviso
+                                                 (el diálogo solo existe dentro de esta pantalla)
+    HouseholdLeave.test.tsx                      nuevo (jsdom): el diálogo solo y la pantalla completa con el
+                                                 servicio mockeado
+
+docs/documento-proyecto.md                       §4.1 y §6 (ver "Documento del proyecto")
+```
+
+No cambian: las migraciones `011` y `014`, las RPC existentes, el login, el `SessionGuard` ni `components/ui`.
+
+### Número de la migración
+
+- `develop` (2026-10-10): `000` a `019`.
+- Ramas abiertas: `020` y `021` (SCRUM-131), `022` (SCRUM-101).
+- **Propuesta: `023_leave_household.sql`.** Según `supabase/README.md`, se vuelve a revisar `develop` y los PRs abiertos justo antes de crear el archivo y otra vez antes del merge; si alguien tomó el número, se renombra (todavía no estaría en la base).
+
+### Datos
+
+**`get_household_members()`** (`stable`, `security definer`, `set search_path = ''`):
+
+1. Sin `auth.uid()` o con `is_anonymous` → `42501`.
+2. Busca la familia donde quien llama es `admin`; si no lo es → `42501` (solo el admin elige).
+3. Devuelve `user_id`, `nullif(btrim(raw_user_meta_data ->> 'name'), '')` como `display_name`, `role` y `user_id = auth.uid()` como `is_current_user`, de los miembros de **esa** familia, ordenados por `created_at`. No devuelve el correo.
+
+**`leave_household(new_admin_user_id uuid default null)` → `text`** (`security definer`, `set search_path = ''`), en una sola transacción:
+
+1. Sin `auth.uid()` o con `is_anonymous` → `42501`.
+2. Lee la membresía propia (`household_id`, `role`). Si no hay → `'not_member'`.
+3. **Siempre, sea `member` o `admin`**, bloquea primero la fila del enlace de esa familia si existe (`select … from public.household_invite_links where household_id = … for update`) y después la de `households` (`for update`). El orden no depende del rol leído en el paso 2, porque ese rol puede cambiar mientras espera (por ejemplo, el admin le pasó el rol). Ver [Concurrencia](#concurrencia).
+4. Con el bloqueo tomado, vuelve a leer la membresía propia (pudo cambiar mientras esperaba): si ya no está → `'not_member'`.
+5. `member` → `delete` de su fila → `'left'`.
+6. `admin` → cuenta los otros miembros de la familia:
+   - `0` → `delete from public.households where id = …`; la cascada borra su membresía y su enlace; `purchase_sessions` queda con `household_id` en `null` → `'household_deleted'`;
+   - más de `0` y `new_admin_user_id` nulo → `'transfer_required'`;
+   - `new_admin_user_id` igual a quien llama, o que no es miembro de esa familia → `'invalid_new_admin'`;
+   - válido → `update … set role = 'admin'` para el elegido y `delete` de la fila de quien llama → `'left'`.
+7. `revoke execute … from public, anon`; `grant execute … to authenticated` (para las dos funciones).
+
+No se agregan políticas ni permisos de tabla: el cliente sigue sin poder borrar ni modificar membresías; la única puerta es la función.
+
+**Tipos:** `get_household_members: { Args: never; Returns: { display_name: string | null; is_current_user: boolean; role: string; user_id: string }[] }` y `leave_household: { Args: { new_admin_user_id?: string }; Returns: string }`, escritos a mano como en SCRUM-56 y SCRUM-57 y verificados contra `pg_proc` después de aplicar. El servicio acota `role` y el resultado con type guards, como `acceptHouseholdInvite`.
+
+### Concurrencia
+
+Revisado contra el SQL real de la `011` y la `014` (2026-10-10). Qué toma cada función sobre una misma familia:
+
+| Función | Bloqueos, en orden |
+|---|---|
+| `accept_household_invite` (014) | 1) fila del enlace `for share`; 2) al insertar el miembro, la FK de `household_members.household_id` toma `for key share` sobre la fila de `households` |
+| `create_household_invite` (011) | Enlace nuevo: inserta la fila y la FK toma `for key share` sobre `households`. Enlace existente: `on conflict do update` bloquea la fila del enlace (`household_id` no cambia, así que no vuelve a revisar la FK) |
+| `leave_household` (esta historia) | 1) fila del enlace `for update` (si existe); 2) fila de `households` `for update`; 3) filas de `household_members`, y al eliminar la familia, la cascada sobre el enlace, los miembros y `purchase_sessions` (`set null`) |
+
+- **Los bloqueos duran hasta el final de la transacción** (`commit` o `rollback`); no se sueltan entre pasos.
+- **`for update` sobre `households` choca con `for key share`**: mientras alguien sale, una unión o un enlace nuevo de esa familia esperan, y al revés.
+- **Mismo orden que `accept_household_invite`** (enlace → familia), sin importar el rol. Así:
+  - si la unión toma primero el enlace, la salida espera; cuando sigue, cuenta los miembros con la unión ya confirmada (un admin que creía estar solo recibe `transfer_required`);
+  - si la salida lo toma primero y elimina la familia, la unión espera; al seguir, Postgres vuelve a evaluar el `where token = …` sobre la fila borrada y no la encuentra: responde `invalid`, sin error de FK;
+  - si quien sale es un miembro, la familia no se elimina y la unión sigue normalmente después.
+- **Si el enlace no existe**, el paso 1 no bloquea nada y la salida empieza por `households`. Un enlace que se cree en ese momento necesita `for key share` sobre `households`, así que espera; si la salida elimina la familia, esa creación falla por la FK y el admin ve el error genérico de "generar". No hay ciclo porque nadie tiene el enlace nuevo bloqueado mientras espera la familia.
+- **Dos salidas, o una salida y una transferencia, en la misma familia:** se ordenan por el bloqueo de `households`. Cada una vuelve a leer la membresía con el bloqueo tomado (paso 4): si el elegido ya salió, `invalid_new_admin`; si a quien sale le pasaron el rol, sigue el camino de admin con los bloqueos ya en el orden correcto.
+
+**Lo que este orden no garantiza:**
+
+- Cubre las funciones que existen hoy. Cualquier función nueva que bloquee una familia y su enlace tiene que respetar el mismo orden (enlace → `households` → filas de miembros); si no, puede volver a aparecer un interbloqueo.
+- Operaciones fuera de estas funciones (por ejemplo, borrar una cuenta, que borra su membresía en cascada, o funciones futuras sobre `purchase_sessions` con `household_id`) pueden hacer esperar a una salida. Ninguna de las que existen hoy espera a su vez a la salida, pero no se da por imposible.
+
+**Cómo se gestiona un fallo de concurrencia:** si Postgres detecta un interbloqueo (`40P01`) o la llamada falla por otro motivo, aborta **toda** la transacción de esa llamada: no queda una transferencia sin la salida, ni una salida sin la transferencia, ni una familia a medio borrar. El servicio recibe el error, el hook pasa a `failed` y el usuario puede reintentar. El reintento es seguro porque la función vuelve a leer el estado real: si la primera llamada sí se confirmó (por ejemplo, se perdió la respuesta), responde `not_member` y la pantalla vuelve a leer la membresía.
+
+### Cómo se aplica y se prueba la migración
+
+Procedimiento de `supabase/README.md`, completo (aplicar el archivo **no** alcanza):
+
+1. Revisar el número libre (ver arriba) y avisar al grupo antes de correrla.
+2. En el SQL Editor, una sola transacción que ejecuta el archivo **y** registra su fila en el historial:
+   `begin;` … contenido de `023_leave_household.sql` … `insert into supabase_migrations.schema_migrations (version, name, created_by) values ('023', 'leave_household', 'SCRUM-58'); commit;`
+3. Comprobar que el historial coincide con `migrations/` (`select version, name from supabase_migrations.schema_migrations order by version;`).
+4. Correr **completo** `supabase/tests/023_leave_household.test.sql` (transacción con `assert` que termina en `rollback`, como `019_meal_plans.test.sql`). Si termina sin error, pasó.
+5. Antes de pasar el PR a `waiting qa` (QA prueba contra la base compartida). Si después hace falta cambiarla, migración nueva: la registrada no se edita.
+
+Casos de la prueba SQL:
+
+- sin `sub` y anónimo → `42501` en las dos funciones; un `member` que llama a `get_household_members()` → `42501`;
+- `get_household_members()` como admin: devuelve solo su familia, `display_name` del metadato o `null`, ningún correo;
+- miembro sale → `left`, su fila desaparece, la del admin sigue;
+- admin con otros, sin elegir → `transfer_required` sin cambios; elegido de otra familia y él mismo → `invalid_new_admin` sin cambios;
+- admin con otros, elegido válido → `left`; queda **un solo** `admin` (el elegido) y el anterior no tiene fila;
+- admin único → `household_deleted`; no quedan filas de esa familia en `households`, `household_members` ni `household_invite_links`; una `purchase_session` de esa familia queda con `household_id` en `null`;
+- segunda llamada después de salir → `not_member`;
+- las filas de `lists`, `recipes` y `meal_plans` del usuario que sale no cambian;
+- como `authenticated`: `delete` y `update` directos sobre `household_members` siguen rechazados.
+
+La concurrencia real (dos sesiones a la vez) no se puede reproducir en una sola transacción: se cubre por diseño ([Concurrencia](#concurrencia)) y con la revisión de `security-reviewer`. La prueba SQL sí comprueba los estados finales: después de cada salida, la familia tiene exactamente un `admin` o ya no existe.
+
+### Flujo
+
+1. **Abrir:** "Salir de la familia" → `onLeaveRequest` de `useHouseholdLeave`:
+   - miembro → `confirming`;
+   - admin → `loadingMembers` → `getHouseholdMembers()` → `confirming` (sin otros: aviso de que la familia se elimina; con otros: radios) o `membersLoadFailed`.
+2. **Elegir (admin con otros):** el radio guarda el `userId`; "Salir" se habilita al elegir.
+3. **Confirmar:** "Salir" → guarda `useRef` → `leaving` → `leaveHousehold(elegido)` (sin elegido, el parámetro no viaja y la base usa su `null`) → resultado:
+   - `left` / `household_deleted` → cierra el diálogo, avisa al Facade, que vuelve a leer la membresía (estado sin familia) y muestra la confirmación;
+   - `transfer_required` / `invalid_new_admin` → `loadingMembers` con el error, recarga los miembros y borra la elección. `transfer_required` recarga **aunque la pantalla mostrara un miembro**: llega si alguien se unió mientras el admin estaba solo, o si a un miembro le pasaron el rol con el diálogo abierto;
+   - `not_member` → cierra y vuelve a leer la membresía, sin aviso;
+   - error → `failed` (reintentar con la misma elección o cancelar).
+   - Si la pantalla se cierra mientras sale o carga, la respuesta se ignora (`isMountedRef` y `isCancelled`).
+4. **Cancelar:** cierra el diálogo sin llamar a la base (no se puede mientras `leaving`).
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Una RPC `security definer` que sale, transfiere o elimina | Políticas de `delete`/`update` en `household_members` | Con políticas, el cliente haría dos escrituras (dar el rol, borrar la propia) que pueden quedar a medias y dejar la familia sin admin o con dos; además podría tocar filas ajenas si una política se escribe mal. En una función es una transacción y la base valida identidad, membresía y rol |
+| El cliente solo manda el `user_id` del nuevo admin | Mandar `household_id` o el rol | La familia y el rol de quien llama salen de `auth.uid()`; el elegido se valida contra la misma familia. Nada más es decisión del cliente |
+| Bloquear `households` (`for update`) y volver a leer la membresía | Leer y escribir sin bloqueo | Dos salidas o una transferencia simultáneas podrían dejar la familia sin admin o con dos. Con el bloqueo, se ejecutan una después de otra y cada una ve el estado real |
+| Orden de bloqueo enlace → household para **cualquiera** que salga | Solo para el admin, o bloquear solo `households` | `accept_household_invite` bloquea el enlace y después referencia `households`. Si el orden dependiera del rol leído antes de bloquear, un miembro al que le pasaron el rol mientras esperaba borraría la familia con el orden al revés y podría bloquearse en cruz con una unión. Con el mismo orden para todos, ese caso desaparece. No elimina todo interbloqueo posible ([Concurrencia](#concurrencia)): si Postgres aborta una llamada, la transacción se deshace entera y el usuario reintenta |
+| Resultados de negocio como texto | Excepciones por caso | Mismo contrato que `accept_household_invite` (SCRUM-57): el servicio los traduce con un mapa; las excepciones quedan para permisos (`42501`) |
+| `get_household_members()` solo para el admin | Para cualquier miembro | Decisión de la dueña de la historia: ver a todos es HU-35 |
+| Nombre de los metadatos de Auth o "Miembro sin nombre" | Correo, enmascarado o completo | Decisión de la dueña de la historia: no exponer correos. No hay tabla de perfiles |
+| Radios nativos dentro del diálogo | Primitivo `RadioGroup` compartido | No hay un segundo uso todavía (component-architecture: promover con el segundo consumidor) |
+| Hook `useHouseholdLeave` compuesto por el Facade | Meterlo en `useHouseholdViewModel` | Mismo criterio que `useHouseholdInvite` y `useHouseholdJoinForm`: el Facade no crece |
+| La opción vive en `/household` | Pantalla de Perfil | Perfil (HU-30) no existe; `/household` ya es "Mi familia" en el menú |
+
+### Seguridad
+
+- **Quién llega:** cualquier integrante de una familia. Solo un usuario registrado ejecuta las RPC; `anon` no tiene `execute` y los anónimos se rechazan adentro.
+- **Lo que decide la base:** quién sale (`auth.uid()`), su familia y su rol (su fila), si el elegido es válido (mismo `household_id`, distinto de quien llama) y qué se borra.
+- **Nunca sin admin:** la transferencia y el borrado de la fila del admin anterior van en la misma transacción, con la familia bloqueada.
+- **Privacidad:** `get_household_members()` no devuelve correos; solo el admin la puede llamar y solo ve su familia.
+- **Inyección:** solo parámetros tipados (`uuid`); sin SQL armado con strings. `search_path = ''` y nombres calificados.
+- **Revisión:** el SQL pasa por `security-reviewer` antes de aplicarse, y el cambio completo antes de `waiting qa`.
+
+### Pruebas
+
+| Qué | Dónde | Casos |
+|---|---|---|
+| RPC | `supabase/tests/023_leave_household.test.sql` | Ver "Cómo se aplica y se prueba" |
+| Servicio | `household.service.test.ts` | Cada resultado de `leave_household`; llamada solo con `new_admin_user_id`; valor desconocido → error; error de Supabase; `getHouseholdMembers` traduce filas y nombre nulo |
+| Hook | `useHouseholdLeave.test.ts` | Miembro: abrir, confirmar → `left`; admin único → `household_deleted`; admin con otros: carga miembros, sin elegir no confirma, elegir y confirmar; `invalid_new_admin` recarga; falla de carga; falla al salir; cancelar no llama; doble clic → una llamada |
+| Diálogo y pantalla | `HouseholdLeave.page.ts` + `HouseholdLeave.test.tsx` (jsdom) | Diálogo: textos según el caso; radios con label y "Miembro sin nombre"; "Salir" deshabilitado sin elegir y mientras sale; ningún id de miembro en el HTML (el modelo no trae correo: lo garantiza `get_household_members`, ver la prueba SQL). Pantalla: abrir no llama a la base; miembro, transferencia y admin único con su aviso en `role="status"`; `not_member` sin aviso; falla al salir con el diálogo abierto; cancelar |
+| Manual | Con cuentas de prueba | CA-01 a CA-04 con capturas sin datos sensibles; las sesiones se cargan como en SCRUM-57 si `/login` sigue sin reCAPTCHA en local |
+
+E2E: no se agrega, por el mismo motivo que SCRUM-57 (necesita cuentas registradas en la base compartida).
+
+### Documento del proyecto
+
+En la etapa de documentación, `docs/documento-proyecto.md`:
+
+- **§4.1:** un punto "Salir del household (implementado {fecha}, SCRUM-58 / HU-34c)" que remita a la decisión del 2026-08-19 que ya está escrita ahí, con lo implementado (dónde está la opción, transferencia, eliminación).
+- **§6, tabla de entidades:** en `household_members`, que las filas también se borran o cambian de rol con `leave_household`.
+- **§6, reglas de negocio en la base:** la regla de salir (atómica, nunca sin admin, eliminación con cascada).
+
+### Commits y PR
+
+El PR (nuevo, independiente del #43) se abre con el commit 1, hacia `develop`, con label `in progress`.
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-58): add leave household spec, plan and tasks` | `SPEC.md`, `plan.md`, `tasks.md` |
+| 2 | `feat(SCRUM-58): add leave household RPCs and SQL tests` | `023_leave_household.sql` y `supabase/tests/023_leave_household.test.sql` |
+| 3 | `feat(SCRUM-58): add leave household functions to database types` | `types/database.types.ts` |
+| 4 | `feat(SCRUM-58): add leave household constants and service` | constantes que usa el servicio, modelo, servicio y su test |
+| 5 | `feat(SCRUM-58): add leave household view model` | `household.constants.ts` (todas las constantes del flujo de salir, en un solo bloque), `useHouseholdLeave.ts` y su test |
+| 6 | `feat(SCRUM-58): add leave household dialog to the household screen` | diálogo, props, `Household.tsx`, `useHouseholdViewModel.ts`, `HouseholdLeave.page.ts` y `HouseholdLeave.test.tsx` |
+| 7 | `docs(SCRUM-58): document leaving a household and update plan and tasks` | `documento-proyecto.md`, `plan.md`, `tasks.md` |
+| 8 | `docs(SCRUM-58): record manual validation` (después del QA manual) | SPEC §13, `tasks.md` (7.2 y 7.4) |
+
+La migración y su prueba SQL quedaron en un solo commit (el 2), en vez de los dos que se planearon (`feat` y `test`): se revisaron y se aplicaron juntas.
+
+Lo que salga de las revisiones va en commits `fix(SCRUM-58): …`. Staging explícito, nunca `git add .`.
+
+### Riesgos y deuda conocida
+
+- **Listas compartidas:** contrato pendiente de HU-34b (SPEC §15).
+- **Cuentas sin nombre:** aparecen como "Miembro sin nombre"; con dos o más así, el admin no puede distinguirlas. Se resuelve con perfiles (fuera de alcance).
+- **Deuda M1:** borrar la cuenta del único admin sigue dejando la familia sin admin.
+- **Rama atrás de `develop`:** `develop` avanzó (SCRUM-51) sin tocar household; se trae con un merge antes de `waiting qa`.
+- **Número de la migración** sujeto a cambios hasta el merge.
+- **Foco del `Modal`:** el primitivo compartido no atrapa el foco (documentado en su SPEC); con Tab se puede salir del diálogo. No es de esta historia.
+- **Texto de la sección:** SPEC §8 pide "un texto corto" sin fijarlo; se usó "Puedes salir de tu familia cuando quieras. Tus listas personales se quedan contigo." (CA-04), a confirmar en la revisión.
+- **Teclado (SPEC §9):** además del foco, al salir bien el botón "Salir" desaparece y el foco queda en `body`. Sin test automático: se valida a mano (guía de QA, caso de teclado).
+- **Confirmación y resultado en dos carreras** (revisión de seguridad, baja): si un admin elige a alguien y los demás salen antes de confirmar, o a un miembro le pasan el rol y los demás salen, la base elimina la familia aunque el texto confirmado era otro. El aviso final dice lo que pasó. Evitarlo exige cambiar el contrato de la RPC: decisión de producto, fuera de esta historia.
+- **Sesión vencida:** se ve como una falla cualquiera ("No se pudo salir…"), sin pedir volver a iniciar sesión. No escribe nada; mejora de experiencia para otra historia.
+- **Mejoras opcionales anotadas (revisión de código):** pasar el armado de `leave.dialog` a un helper fuera del Facade, unificar las traducciones de resultado en tablas y un "Reintentar" tras `membersLoadFailed` (hoy SPEC §6 pide solo "Cancelar").
