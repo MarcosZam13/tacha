@@ -7,6 +7,7 @@ import { getRequiredEnv } from "../../support/supabase";
 // acá: se escriben en el spec.
 export const LOGIN_PATH = "/login";
 export const FORGOT_PASSWORD_PATH = "/recuperar-contrasena";
+export const RESET_PASSWORD_PATH = "/actualizar-contrasena";
 
 // Con el servidor de desarrollo en frío, compilar las rutas por primera vez tarda ~40 s con varios
 // tests en paralelo. El límite por defecto (30 s) no alcanza ni para el calentamiento ni para los tests.
@@ -36,7 +37,7 @@ const SERVER_ERROR_BODY = {
  * la primera vez que se pide y, al terminar, puede recargar la página abierta y descartar lo escrito.
  */
 export const warmUpRoutes = async (request: APIRequestContext): Promise<void> => {
-  for (const path of [LOGIN_PATH, FORGOT_PASSWORD_PATH]) {
+  for (const path of [LOGIN_PATH, FORGOT_PASSWORD_PATH, RESET_PASSWORD_PATH]) {
     await request.get(path);
   }
 };

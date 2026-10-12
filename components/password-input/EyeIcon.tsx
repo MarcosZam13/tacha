@@ -1,4 +1,4 @@
-import type { EyeIconProps } from "../models/EyeIconProps.interface";
+import type { EyeIconProps } from "./models/EyeIconProps.interface";
 
 export const EyeIcon = ({ isCrossed }: EyeIconProps): React.JSX.Element => (
   <svg

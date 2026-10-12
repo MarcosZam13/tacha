@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { Button, Input } from "@/components/ui";
-import { AUTH_ROUTE } from "@/constants";
-import {
-  FORGOT_PASSWORD_INPUT_TYPE,
-  FORGOT_PASSWORD_LABEL,
-} from "../constants/password-recovery.constants";
+import { AUTH_ROUTE, INPUT_TYPE } from "@/constants";
+import { FORGOT_PASSWORD_LABEL } from "../constants/password-recovery.constants";
 import type { ForgotPasswordFormProps } from "./models/ForgotPasswordFormProps.interface";
 
 /** Formulario para pedir el enlace: título, explicación, correo, botón y enlace de vuelta al login. */
@@ -27,7 +24,7 @@ export const ForgotPasswordForm = ({
       <Input
         isRequired
         label={FORGOT_PASSWORD_LABEL.EMAIL}
-        type={FORGOT_PASSWORD_INPUT_TYPE}
+        type={INPUT_TYPE.EMAIL}
         value={email}
         onChange={handleChange}
         errorMessage={emailError}

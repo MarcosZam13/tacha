@@ -17,6 +17,18 @@ export const PUBLIC_ORIGIN_PATH = "/terminos";
 const LOGOUT_URL_FRAGMENT = "/auth/v1/logout";
 const NO_CONTENT_STATUS = 204;
 
+/** El usuario "real" (no anónimo) de las pruebas: el de la sesión falsa y lo que Supabase responde por él. */
+export const buildFakeUser = (): Record<string, unknown> => ({
+  id: FAKE_USER_ID,
+  aud: "authenticated",
+  role: "authenticated",
+  email: FAKE_USER_EMAIL,
+  is_anonymous: false,
+  app_metadata: {},
+  user_metadata: {},
+  created_at: new Date().toISOString(),
+});
+
 const buildFakeSession = (): string => {
   const expiresAt = Math.floor(Date.now() / MS_PER_SECOND) + FAKE_TOKEN_LIFETIME_SECONDS;
 
@@ -26,16 +38,7 @@ const buildFakeSession = (): string => {
     expires_in: FAKE_TOKEN_LIFETIME_SECONDS,
     expires_at: expiresAt,
     refresh_token: FAKE_REFRESH_TOKEN,
-    user: {
-      id: FAKE_USER_ID,
-      aud: "authenticated",
-      role: "authenticated",
-      email: FAKE_USER_EMAIL,
-      is_anonymous: false,
-      app_metadata: {},
-      user_metadata: {},
-      created_at: new Date().toISOString(),
-    },
+    user: buildFakeUser(),
   });
 };
 
