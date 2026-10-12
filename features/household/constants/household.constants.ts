@@ -1,9 +1,9 @@
 import { APP_ROUTE } from "@/constants";
 
 // Constantes de la feature household: crear el household y su link de
-// invitación (SCRUM-56) y unirse con ese link (SCRUM-57). Viven dentro de la
-// feature porque ninguna otra las usa todavía; se promueven a constants/ con
-// el segundo consumidor. No confundir con constants/household.constants.ts
+// invitación (SCRUM-56), unirse con ese link (SCRUM-57) y salir (SCRUM-58).
+// Viven dentro de la feature porque ninguna otra las usa todavía; se promueven
+// a constants/ con el segundo consumidor. No confundir con constants/household.constants.ts
 // (preferencias de tiendas).
 
 // Roles de household_members: el mismo dominio que el check de la migración 011.
@@ -30,6 +30,9 @@ export const HOUSEHOLD_DB = {
     CREATE_HOUSEHOLD: "create_household",
     CREATE_HOUSEHOLD_INVITE: "create_household_invite",
     GET_HOUSEHOLD_INVITE: "get_household_invite",
+    // Migración 023 (contrato en specs/SPEC.md §12).
+    GET_HOUSEHOLD_MEMBERS: "get_household_members",
+    LEAVE_HOUSEHOLD: "leave_household",
   },
   TABLE: {
     HOUSEHOLD_MEMBERS: "household_members",
@@ -218,4 +221,79 @@ export const HOUSEHOLD_JOIN_FORM_TEXT = {
 export const HOUSEHOLD_JOIN_FORM_ERROR = {
   INVALID: "Ese enlace o código no es válido. Revisa que esté completo.",
   REQUIRED: "Pega el enlace o el código de invitación.",
+} as const;
+
+// Lo que responde leave_household (contrato en specs/SPEC.md §12).
+// Los valores los decide la base; acá solo se nombran.
+export const HOUSEHOLD_LEAVE_RESULT = {
+  HOUSEHOLD_DELETED: "household_deleted",
+  INVALID_NEW_ADMIN: "invalid_new_admin",
+  LEFT: "left",
+  NOT_MEMBER: "not_member",
+  TRANSFER_REQUIRED: "transfer_required",
+} as const;
+
+export type HouseholdLeaveResultType = (typeof HOUSEHOLD_LEAVE_RESULT)[keyof typeof HOUSEHOLD_LEAVE_RESULT];
+
+// Estados del flujo de salir (unión en hooks/useHouseholdLeave.ts, specs/SPEC.md §6).
+export const HOUSEHOLD_LEAVE_STATUS = {
+  CONFIRMING: "confirming",
+  FAILED: "failed",
+  IDLE: "idle",
+  LEAVING: "leaving",
+  LOADING_MEMBERS: "loadingMembers",
+  MEMBERS_LOAD_FAILED: "membersLoadFailed",
+} as const;
+
+export type HouseholdLeaveStatusType = (typeof HOUSEHOLD_LEAVE_STATUS)[keyof typeof HOUSEHOLD_LEAVE_STATUS];
+
+// Qué explica el diálogo de salir según quién sale (specs/SPEC.md §8).
+export const HOUSEHOLD_LEAVE_DIALOG_CASE = {
+  // Miembro: confirma y sale.
+  MEMBER: "member",
+  // Admin único miembro: la familia y su enlace se eliminan.
+  SOLE_ADMIN: "soleAdmin",
+  // Admin con otros miembros: elige al nuevo admin antes de salir.
+  TRANSFER: "transfer",
+} as const;
+
+export type HouseholdLeaveDialogCaseType =
+  (typeof HOUSEHOLD_LEAVE_DIALOG_CASE)[keyof typeof HOUSEHOLD_LEAVE_DIALOG_CASE];
+
+export const HOUSEHOLD_LEAVE_TEXT = {
+  CANCEL: "Cancelar",
+  CONFIRM: "Salir",
+  // Título "¿Salir de {nombre de la familia}?", armado en useHouseholdViewModel.
+  DIALOG_TITLE_PREFIX: "¿Salir de",
+  DIALOG_TITLE_SUFFIX: "?",
+  // Se reintenta con el mismo botón "Salir" (specs/SPEC.md §7).
+  FAILED: "No se pudo salir de tu familia. Intenta de nuevo.",
+  HOUSEHOLD_DELETED: "Saliste y la familia se eliminó.",
+  INVALID_NEW_ADMIN: "Esa persona ya no es parte de tu familia. Elige a otra.",
+  LEAVE: "Salir de la familia",
+  LEAVING: "Saliendo…",
+  LEFT: "Saliste de la familia.",
+  MEMBER_DESCRIPTION: "Vas a dejar de ver lo que comparte esta familia.",
+  MEMBERS_LOAD_ERROR: "No se pudieron cargar los miembros de tu familia. Intenta de nuevo.",
+  NEW_ADMIN_LEGEND: "¿Quién va a administrar la familia?",
+  // CA-04: al salir se conservan la lista general y las privadas.
+  SECTION_DESCRIPTION: "Puedes salir de tu familia cuando quieras. Tus listas personales se quedan contigo.",
+  SOLE_ADMIN_DESCRIPTION:
+    "Eres la única persona en esta familia. Si sales, la familia y su enlace de invitación se eliminan.",
+  TRANSFER_DESCRIPTION: "Antes de salir, elige quién va a administrar la familia.",
+  TRANSFER_REQUIRED: "Elige a quién le pasas la administración antes de salir.",
+  // Los miembros sin nombre en el registro: nunca se muestra el correo.
+  UNNAMED_MEMBER: "Miembro sin nombre",
+} as const;
+
+// Qué explica el diálogo en cada caso (Strategy: sin if encadenados en la vista).
+export const HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION: Record<HouseholdLeaveDialogCaseType, string> = {
+  [HOUSEHOLD_LEAVE_DIALOG_CASE.MEMBER]: HOUSEHOLD_LEAVE_TEXT.MEMBER_DESCRIPTION,
+  [HOUSEHOLD_LEAVE_DIALOG_CASE.SOLE_ADMIN]: HOUSEHOLD_LEAVE_TEXT.SOLE_ADMIN_DESCRIPTION,
+  [HOUSEHOLD_LEAVE_DIALOG_CASE.TRANSFER]: HOUSEHOLD_LEAVE_TEXT.TRANSFER_DESCRIPTION,
+};
+
+export const HOUSEHOLD_LEAVE_FORM = {
+  // Mismo name para todos los radios: las flechas del teclado se mueven entre ellos.
+  NEW_ADMIN_RADIO_NAME: "household-new-admin",
 } as const;

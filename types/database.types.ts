@@ -966,6 +966,15 @@ export type Database = {
           token: string
         }[]
       }
+      get_household_members: {
+        Args: never
+        Returns: {
+          display_name: string | null
+          is_current_user: boolean
+          role: string
+          user_id: string
+        }[]
+      }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
         Returns: {
@@ -979,6 +988,7 @@ export type Database = {
         }[]
       }
       get_recipe_coverage: { Args: { target_recipe_id: string }; Returns: Json }
+      leave_household: { Args: { new_admin_user_id?: string }; Returns: string }
       normalize_pending_staging: {
         Args: { batch_size?: number }
         Returns: {

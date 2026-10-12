@@ -3,16 +3,22 @@ import type { FormEvent } from "react";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import type { HouseholdInviteLinkCardProps } from "../components/models/HouseholdInviteLinkCardProps.interface";
 import type { HouseholdJoinFormProps } from "../components/models/HouseholdJoinFormProps.interface";
+import type { HouseholdLeaveDialogProps } from "../components/models/HouseholdLeaveDialogProps.interface";
 import {
   HOUSEHOLD_FORM_ERROR,
   HOUSEHOLD_FORM_LIMIT,
+  HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION,
+  HOUSEHOLD_LEAVE_RESULT,
+  HOUSEHOLD_LEAVE_TEXT,
   HOUSEHOLD_ROLE,
   HOUSEHOLD_SCREEN_STATUS,
   HOUSEHOLD_TEXT,
 } from "../constants/household.constants";
+import type { HouseholdLeaveResultType } from "../constants/household.constants";
 import { createHousehold, getHouseholdMembership, hasRegisteredSession } from "../services/household.service";
 import { useHouseholdInvite } from "./useHouseholdInvite";
 import { useHouseholdJoinForm } from "./useHouseholdJoinForm";
+import { useHouseholdLeave } from "./useHouseholdLeave";
 
 /** Unión discriminada por `status`: la pantalla está en uno solo de estos estados. */
 type HouseholdScreenState =
@@ -36,6 +42,12 @@ interface HouseholdInviteSection {
   showInviteButton: boolean;
 }
 
+/** La sección "Salir de la familia" y su diálogo, con solo lo que dibuja la pantalla. */
+interface HouseholdLeaveSection {
+  dialog: HouseholdLeaveDialogProps;
+  onLeaveRequest: () => void;
+}
+
 interface UseHouseholdViewModelReturn {
   /** Único aviso de error visible a la vez (role="alert" en la pantalla). */
   errorMessage: NullableRef<string>;
@@ -47,12 +59,15 @@ interface UseHouseholdViewModelReturn {
   isLoading: boolean;
   /** "Unirme con una invitación": props del formulario, ya armadas. */
   join: HouseholdJoinFormProps;
+  leave: HouseholdLeaveSection;
   name: string;
   nameError: NullableUndefined<string>;
   onCreateSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onNameChange: (name: string) => void;
   showCreateForm: boolean;
   showInvite: boolean;
+  /** Miembro o admin: los dos pueden salir (CA-01). */
+  showLeave: boolean;
   showMemberNotice: boolean;
   showNoAccount: boolean;
 }
@@ -91,12 +106,20 @@ const getScreenErrorMessage = (
   return inviteErrorMessage;
 };
 
+// El aviso después de salir. not_member no lleva aviso: la pantalla solo
+// muestra el estado real que vuelve a leer.
+const getLeaveNotice = (leaveResult: HouseholdLeaveResultType): NullableRef<string> => {
+  if (leaveResult === HOUSEHOLD_LEAVE_RESULT.LEFT) return HOUSEHOLD_LEAVE_TEXT.LEFT;
+  if (leaveResult === HOUSEHOLD_LEAVE_RESULT.HOUSEHOLD_DELETED) return HOUSEHOLD_LEAVE_TEXT.HOUSEHOLD_DELETED;
+  return null;
+};
+
 /**
  * Facade de la pantalla "Mi familia": resuelve qué ve el usuario (sin
  * cuenta, sin household, miembro o admin), maneja el formulario para crear
  * el household, compone useHouseholdJoinForm ("Unirme con una invitación")
- * y le pasa a useHouseholdInvite si es admin. Le entrega a
- * Household.tsx exactamente lo que dibuja.
+ * y useHouseholdLeave ("Salir de la familia"), y le pasa a useHouseholdInvite
+ * si es admin. Le entrega a Household.tsx exactamente lo que dibuja.
  */
 export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   // Arranca en "cargando": el efecto nunca hace un setState síncrono para empezar.
@@ -104,9 +127,35 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   const [name, setName] = useState<string>("");
   const [nameError, setNameError] = useState<NullableUndefined<string>>(undefined);
   const [hasCreateFailed, setHasCreateFailed] = useState<boolean>(false);
+  // "Saliste de la familia." o "Saliste y la familia se eliminó.", en la zona role="status".
+  const [leaveNotice, setLeaveNotice] = useState<NullableRef<string>>(null);
 
-  const householdInvite = useHouseholdInvite(state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN);
+  const isAdmin = state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN;
+  const householdName =
+    state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN || state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER
+      ? state.householdName
+      : null;
+
+  // Vuelve a leer la membresía para mostrar lo que quedó en la base.
+  const reloadHouseholdScreen = async (): Promise<void> => {
+    try {
+      setState(await loadHouseholdScreen());
+    } catch {
+      setState({ status: HOUSEHOLD_SCREEN_STATUS.LOAD_FAILED });
+    }
+  };
+
+  // Ya no es parte de la familia: se vuelve a leer la membresía (normalmente
+  // queda "sin familia") en vez de suponer el estado.
+  const handleLeft = (leaveResult: HouseholdLeaveResultType): void => {
+    setLeaveNotice(getLeaveNotice(leaveResult));
+    setState({ status: HOUSEHOLD_SCREEN_STATUS.LOADING });
+    void reloadHouseholdScreen();
+  };
+
+  const householdInvite = useHouseholdInvite(isAdmin);
   const joinForm = useHouseholdJoinForm();
+  const householdLeave = useHouseholdLeave({ isAdmin, onLeft: handleLeft });
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -127,19 +176,22 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   }, []);
 
   // Al escribir se borran el error de validación y el de un intento anterior
-  // de crear: los dos hablaban del nombre que había antes.
+  // de crear: los dos hablaban del nombre que había antes. También el aviso
+  // de salida: ya empezó otra cosa y no debe verse junto a un error de crear.
   const onNameChange = (nextName: string): void => {
     setName(nextName);
     setNameError(undefined);
     setHasCreateFailed(false);
+    setLeaveNotice(null);
   };
 
   const submitHousehold = async (): Promise<void> => {
     // Doble clic: mientras crea no se manda otra vez.
     if (state.status === HOUSEHOLD_SCREEN_STATUS.CREATING) return;
 
-    // Un intento nuevo empieza sin el error del intento anterior.
+    // Un intento nuevo empieza sin el error del intento anterior ni el aviso de salida.
     setHasCreateFailed(false);
+    setLeaveNotice(null);
     const validationError = validateHouseholdName(name);
     setNameError(validationError);
     if (validationError) return;
@@ -154,14 +206,9 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       return;
     }
 
-    // Ya se creó: se vuelve a leer la membresía para mostrar lo que quedó en
-    // la base (ahora es admin). Si solo falla esta lectura, no se ofrece crear
-    // otra vez: el household ya existe.
-    try {
-      setState(await loadHouseholdScreen());
-    } catch {
-      setState({ status: HOUSEHOLD_SCREEN_STATUS.LOAD_FAILED });
-    }
+    // Ya se creó: se vuelve a leer la membresía (ahora es admin). Si solo
+    // falla esta lectura, no se ofrece crear otra vez: el household ya existe.
+    await reloadHouseholdScreen();
   };
 
   const onCreateSubmit = (event: FormEvent<HTMLFormElement>): void => {
@@ -170,7 +217,6 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
     void submitHousehold();
   };
 
-  const isAdmin = state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN;
   const inviteErrorMessage = isAdmin
     ? (householdInvite.loadErrorMessage ??
       householdInvite.generateErrorMessage ??
@@ -183,11 +229,8 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       hasCreateFailed,
       inviteErrorMessage,
     ),
-    feedbackMessage: isAdmin ? householdInvite.feedbackMessage : null,
-    householdName:
-      state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN || state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER
-        ? state.householdName
-        : null,
+    feedbackMessage: isAdmin ? householdInvite.feedbackMessage : leaveNotice,
+    householdName,
     invite: {
       // La tarjeta recibe solo lo que dibuja: nada del servicio ni del hook.
       card:
@@ -213,6 +256,30 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
     isCreating: state.status === HOUSEHOLD_SCREEN_STATUS.CREATING,
     isLoading: state.status === HOUSEHOLD_SCREEN_STATUS.LOADING,
     join: joinForm,
+    leave: {
+      // El diálogo recibe solo lo que dibuja: nada del servicio ni ids en el HTML.
+      dialog: {
+        description: HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION[householdLeave.dialogCase],
+        errorMessage: householdLeave.errorMessage,
+        isConfirmDisabled: householdLeave.isConfirmDisabled,
+        isDialogOpen: householdLeave.isDialogOpen,
+        isLeaving: householdLeave.isLeaving,
+        isLoadingMembers: householdLeave.isLoadingMembers,
+        newAdminOptions: householdLeave.newAdminCandidates.map((candidate) => ({
+          isSelected: candidate.userId === householdLeave.selectedNewAdminId,
+          label: candidate.displayName ?? HOUSEHOLD_LEAVE_TEXT.UNNAMED_MEMBER,
+          onSelect: () => householdLeave.onNewAdminSelect(candidate.userId),
+          optionKey: candidate.userId,
+        })),
+        onLeaveCancel: householdLeave.onLeaveCancel,
+        onLeaveConfirm: householdLeave.onLeaveConfirm,
+        showConfirm: householdLeave.showConfirm,
+        title: householdName
+          ? `${HOUSEHOLD_LEAVE_TEXT.DIALOG_TITLE_PREFIX} ${householdName}${HOUSEHOLD_LEAVE_TEXT.DIALOG_TITLE_SUFFIX}`
+          : HOUSEHOLD_LEAVE_TEXT.LEAVE,
+      },
+      onLeaveRequest: householdLeave.onLeaveRequest,
+    },
     name,
     nameError,
     onCreateSubmit,
@@ -220,6 +287,7 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
     showCreateForm:
       state.status === HOUSEHOLD_SCREEN_STATUS.NO_HOUSEHOLD || state.status === HOUSEHOLD_SCREEN_STATUS.CREATING,
     showInvite: isAdmin,
+    showLeave: householdName !== null,
     showMemberNotice: state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER,
     showNoAccount: state.status === HOUSEHOLD_SCREEN_STATUS.NO_ACCOUNT,
   };
