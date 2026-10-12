@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
+import type { PersonalListsDecisionProps } from "../components/models/PersonalListsDecisionProps.interface";
 import {
   HOUSEHOLD_JOIN_RESULT_STATUS,
   HOUSEHOLD_JOIN_STATUS,
@@ -8,6 +9,7 @@ import {
 import type { HouseholdJoinStatusType } from "../constants/household.constants";
 import { acceptHouseholdInvite, hasRegisteredSession } from "../services/household.service";
 import { extractInviteToken } from "../utils/extractInviteToken";
+import { usePersonalListsDecision } from "./usePersonalListsDecision";
 
 interface UseHouseholdInvitationViewModelReturn {
   /** Texto de la tarjeta: la invitación, o por qué hace falta iniciar sesión. */
@@ -18,9 +20,13 @@ interface UseHouseholdInvitationViewModelReturn {
   isJoining: boolean;
   /** "Unirme" o "Uniéndote…". */
   joinLabel: string;
+  /** "¿Qué quieres hacer con tu lista actual?" (SCRUM-59), ya armada. */
+  listsDecision: PersonalListsDecisionProps;
   onJoin: () => void;
   showHouseholdLink: boolean;
   showJoinButton: boolean;
+  /** Justo después de unirse, si corresponde preguntar (CA-01). */
+  showListsDecision: boolean;
   showLoginLink: boolean;
   /** Confirmación (role="status", siempre montado en la pantalla). */
   statusMessage: NullableRef<string>;
@@ -126,6 +132,8 @@ export const useHouseholdInvitationViewModel = (token: string): UseHouseholdInvi
   };
 
   const isJoining = status === HOUSEHOLD_JOIN_STATUS.JOINING;
+  // Recién unida a la familia: se pregunta qué hacer con la lista personal.
+  const listsDecision = usePersonalListsDecision(status === HOUSEHOLD_JOIN_STATUS.JOINED);
 
   return {
     description: DESCRIPTION_BY_STATUS[status] ?? null,
@@ -133,10 +141,17 @@ export const useHouseholdInvitationViewModel = (token: string): UseHouseholdInvi
     isChecking: status === HOUSEHOLD_JOIN_STATUS.CHECKING,
     isJoining,
     joinLabel: isJoining ? HOUSEHOLD_JOIN_TEXT.JOINING : HOUSEHOLD_JOIN_TEXT.JOIN,
+    listsDecision: {
+      errorMessage: listsDecision.errorMessage,
+      isSaving: listsDecision.isSaving,
+      onKeep: listsDecision.onKeep,
+      onShare: listsDecision.onShare,
+    },
     onJoin,
     showHouseholdLink: STATUSES_WITH_HOUSEHOLD_LINK.includes(status),
     showJoinButton: STATUSES_WITH_JOIN_BUTTON.includes(status),
+    showListsDecision: listsDecision.isVisible,
     showLoginLink: status === HOUSEHOLD_JOIN_STATUS.NO_ACCOUNT,
-    statusMessage: STATUS_MESSAGE_BY_STATUS[status] ?? null,
+    statusMessage: listsDecision.noticeMessage ?? STATUS_MESSAGE_BY_STATUS[status] ?? null,
   };
 };

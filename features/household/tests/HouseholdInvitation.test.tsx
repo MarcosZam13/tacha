@@ -8,6 +8,9 @@ import { createHouseholdInvitationPage } from "./HouseholdInvitation.page";
 
 vi.mock("../services/household.service", () => ({
   acceptHouseholdInvite: vi.fn(),
+  // SCRUM-59: después de unirse se pregunta por la lista personal. Por defecto
+  // ya decidió (literal: el factory de vi.mock no puede usar las constantes).
+  getPersonalListsDecisionState: vi.fn(() => Promise.resolve("decided")),
   hasRegisteredSession: vi.fn(),
 }));
 

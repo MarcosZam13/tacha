@@ -6,6 +6,7 @@ import { HouseholdCreateForm } from "./components/HouseholdCreateForm";
 import { HouseholdInviteLinkCard } from "./components/HouseholdInviteLinkCard";
 import { HouseholdJoinForm } from "./components/HouseholdJoinForm";
 import { HouseholdLeaveDialog } from "./components/HouseholdLeaveDialog";
+import { PersonalListsDecision } from "./components/PersonalListsDecision";
 import { HOUSEHOLD_INVITE_TEXT, HOUSEHOLD_LEAVE_TEXT, HOUSEHOLD_TEXT } from "./constants/household.constants";
 import { useHouseholdViewModel } from "./hooks/useHouseholdViewModel";
 
@@ -40,6 +41,10 @@ export const Household = (): React.JSX.Element => {
       ) : null}
 
       {viewModel.isLoading ? <Spinner /> : null}
+
+      {/* SCRUM-59: arriba de todo, porque es lo primero que hay que decidir
+          después de crear la familia. */}
+      {viewModel.showListsDecision ? <PersonalListsDecision {...viewModel.listsDecision} /> : null}
 
       {viewModel.showNoAccount ? (
         <p className="rounded-tacha-badge border border-dashed border-tacha-border px-4 py-8 text-center font-body text-sm text-tacha-textsec">
