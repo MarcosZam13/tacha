@@ -1,7 +1,7 @@
 import { useProductSearch } from "@/hooks/useProductSearch";
+import { toCatalogCards } from "@/utils/toCatalogCards";
 import type { CatalogSearchViewModel } from "../models/catalog-search.interfaces";
 import { getCatalogSearchStatus } from "../utils/getCatalogSearchStatus";
-import { toCatalogCards } from "../utils/toCatalogCards";
 
 /**
  * Pantalla "Buscar" del catálogo. La búsqueda en sí (debounce, mínimo de

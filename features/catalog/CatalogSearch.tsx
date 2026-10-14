@@ -1,15 +1,11 @@
 "use client";
 
 import { Input, Spinner } from "@/components/ui";
-import { PRODUCT_SEARCH_TEXT } from "@/constants";
-import { CatalogCard } from "./components/CatalogCard";
+import { CatalogCard } from "@/components/catalog-card/CatalogCard";
+import { CatalogTabs } from "@/components/catalog-tabs/CatalogTabs";
+import { CATALOG_TAB, PRODUCT_SEARCH_TEXT } from "@/constants";
+import { CATALOG_SEARCH_STATUS, CATALOG_TEXT } from "./constants/catalog-search.constants";
 import { CatalogEmptyState } from "./components/CatalogEmptyState";
-import { CatalogTabs } from "./components/CatalogTabs";
-import {
-  CATALOG_SEARCH_STATUS,
-  CATALOG_TAB,
-  CATALOG_TEXT,
-} from "./constants/catalog-search.constants";
 import { useCatalogSearchViewModel } from "./hooks/useCatalogSearchViewModel";
 
 /**

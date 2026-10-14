@@ -9,6 +9,9 @@ import type { CatalogCardProps } from "./models/CatalogCardProps.interface";
  * La foto usa next/image con `unoptimized`, igual que RecipeCard: las URLs
  * vienen del scraping de varias tiendas y configurar cada dominio en
  * next.config.ts sería frágil.
+ *
+ * Vive en components/ porque lo usan dos features: "Buscar" (features/catalog)
+ * y "Mis productos" (features/my-products).
  */
 export const CatalogCard = ({ card }: CatalogCardProps): React.JSX.Element => (
   <li>

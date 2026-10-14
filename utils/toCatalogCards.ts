@@ -1,8 +1,7 @@
-import type { CatalogProduct } from "@/types/catalog.types";
-import { formatPriceRange } from "@/utils/formatPriceRange";
-import { formatSizeLabel } from "@/utils/formatSizeLabel";
-import { CATALOG_CARD, CATALOG_TEXT } from "../constants/catalog-search.constants";
-import type { CatalogCardData } from "../models/catalog-search.interfaces";
+import { CATALOG_CARD, CATALOG_CARD_TEXT } from "@/constants";
+import type { CatalogCardData, CatalogProduct } from "@/types/catalog.types";
+import { formatPriceRange } from "./formatPriceRange";
+import { formatSizeLabel } from "./formatSizeLabel";
 import { getOverallPriceRange } from "./getOverallPriceRange";
 
 /**
@@ -19,7 +18,7 @@ export const toCatalogCards = (products: CatalogProduct[]): CatalogCardData[] =>
         id: variant.variantId,
         imageUrl: variant.imageUrl,
         placeholderInitial: product.productName.trim().charAt(0).toUpperCase(),
-        priceLabel: priceRange ? formatPriceRange(priceRange) : CATALOG_TEXT.NO_PRICE,
+        priceLabel: priceRange ? formatPriceRange(priceRange) : CATALOG_CARD_TEXT.NO_PRICE,
         title: `${product.productName}${CATALOG_CARD.TITLE_SEPARATOR}${sizeLabel}`,
       };
     }),

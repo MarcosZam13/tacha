@@ -42,6 +42,17 @@ export const CATALOG_DB = {
   },
 } as const;
 
+// "Leche — 1L": producto y tamaño, sin marca (documento-proyecto §4.5). Se
+// promovió aquí en SCRUM-86, cuando "Mis productos" se volvió el segundo
+// consumidor de CatalogCard.
+export const CATALOG_CARD = {
+  TITLE_SEPARATOR: " — ",
+} as const;
+
+export const CATALOG_CARD_TEXT = {
+  NO_PRICE: "Sin precio disponible",
+} as const;
+
 export const PRODUCT_SEARCH_TEXT = {
   LABEL: "Buscar producto",
   NO_RESULTS: "No encontramos productos con ese nombre.",
