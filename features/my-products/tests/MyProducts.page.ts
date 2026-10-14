@@ -21,7 +21,9 @@ export const createMyProductsPage = () => {
 
   const queryError = (): HTMLElement | null => screen.queryByRole("alert");
   const queryEmptyState = (): HTMLElement | null => screen.queryByText(MY_PRODUCTS_TEXT.EMPTY_SUGGESTION);
-  const queryCards = (): HTMLElement[] => screen.queryAllByRole("listitem");
+  // Las tarjetas son las únicas que dibujan un <h2>; los tabs de navegación
+  // también son una lista (<ul><li>), así que no sirve contar listitem.
+  const queryCards = (): HTMLElement[] => screen.queryAllByRole("heading", { level: 2 });
 
   return {
     getBadge,
