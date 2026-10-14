@@ -42,6 +42,15 @@ export const CATALOG_DB = {
   },
 } as const;
 
+// Espejo del check de product_catalog.source: "manual" son los productos que
+// cargó un household (SCRUM-86); "scraped" los que trae el scraping.
+export const CATALOG_SOURCE = {
+  MANUAL: "manual",
+  SCRAPED: "scraped",
+} as const;
+
+export type CatalogSourceType = (typeof CATALOG_SOURCE)[keyof typeof CATALOG_SOURCE];
+
 // "Leche — 1L": producto y tamaño, sin marca (documento-proyecto §4.5). Se
 // promovió aquí en SCRUM-86, cuando "Mis productos" se volvió el segundo
 // consumidor de CatalogCard.

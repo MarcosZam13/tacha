@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { CatalogSearch } from "@/features/catalog/CatalogSearch";
-import { CATALOG_TEXT } from "@/features/catalog/constants/catalog-search.constants";
+import { CATALOG_TABS_TEXT } from "@/constants";
 
 export const metadata: Metadata = {
-  title: CATALOG_TEXT.TITLE,
+  title: CATALOG_TABS_TEXT.SECTION_TITLE,
 };
 
 const CatalogoPage = (): React.JSX.Element => <CatalogSearch />;

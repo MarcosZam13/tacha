@@ -51,6 +51,8 @@ export interface PriceRange {
  * textos ya armados. La devuelve toCatalogCards(); la dibuja CatalogCard.
  */
 export interface CatalogCardData {
+  /** Etiqueta opcional sobre la tarjeta (ej. "Agregado por mí" en "Mis productos"). */
+  badgeLabel?: string;
   /** Id de la variante: es lo que identifica la tarjeta aunque cambie el orden de los resultados. */
   id: string;
   imageUrl: NullableRef<string>;

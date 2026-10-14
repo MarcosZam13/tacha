@@ -27,5 +27,4 @@ export const CATALOG_TEXT = {
   EMPTY_SUGGESTION: "Si no existe, puedes crearlo en \"Mis productos\".",
   IDLE_HINT: `Escribe al menos ${PRODUCT_SEARCH.MIN_QUERY_LENGTH} letras para buscar.`,
   SEARCHING: "Buscando…",
-  TITLE: "Catálogo",
 } as const;
