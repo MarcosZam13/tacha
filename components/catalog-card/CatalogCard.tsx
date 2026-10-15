@@ -3,16 +3,26 @@ import type { CatalogCardProps } from "./models/CatalogCardProps.interface";
 
 /**
  * Tarjeta de una variante del catálogo. Solo presentación: el título
- * ("Leche — 1000 ml"), el precio y la inicial ya vienen armados desde
+ * ("Leche — 1000 ml"), el precio, la inicial y la etiqueta opcional
+ * (`badgeLabel`, ej. "Agregado por mí" en SCRUM-86) ya vienen armados desde
  * utils/toCatalogCards.ts.
  *
  * La foto usa next/image con `unoptimized`, igual que RecipeCard: las URLs
  * vienen del scraping de varias tiendas y configurar cada dominio en
  * next.config.ts sería frágil.
+ *
+ * Vive en components/ porque lo usan dos features: "Buscar" (features/catalog)
+ * y "Mis productos" (features/my-products).
  */
 export const CatalogCard = ({ card }: CatalogCardProps): React.JSX.Element => (
   <li>
-    <article className="flex h-full flex-col overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface">
+    <article className="relative flex h-full flex-col overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface">
+      {card.badgeLabel ? (
+        <span className="absolute left-2 top-2 z-10 rounded-tacha-badge bg-tacha-teal px-2 py-1 font-body text-xs font-semibold text-white">
+          {card.badgeLabel}
+        </span>
+      ) : null}
+
       {card.imageUrl ? (
         <div className="relative aspect-[4/3]">
           <Image src={card.imageUrl} alt={card.title} fill unoptimized className="object-cover" />

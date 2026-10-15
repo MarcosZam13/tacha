@@ -45,3 +45,21 @@ export interface PriceRange {
   maxPrice: number;
   minPrice: number;
 }
+
+/**
+ * Una tarjeta lista para dibujar: una variante (producto + tamaño), con los
+ * textos ya armados. La devuelve toCatalogCards(); la dibuja CatalogCard.
+ */
+export interface CatalogCardData {
+  /** Etiqueta opcional sobre la tarjeta (ej. "Agregado por mí" en "Mis productos"). */
+  badgeLabel?: string;
+  /** Id de la variante: es lo que identifica la tarjeta aunque cambie el orden de los resultados. */
+  id: string;
+  imageUrl: NullableRef<string>;
+  /** Letra que se muestra cuando la variante no tiene foto. */
+  placeholderInitial: string;
+  /** "₡800 – ₡1 200", un solo precio si coinciden, o el aviso de que no hay precio. */
+  priceLabel: string;
+  /** "Leche — 1000 ml". Sin marca. */
+  title: string;
+}

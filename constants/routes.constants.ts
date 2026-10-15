@@ -2,6 +2,7 @@
 // navegación, el redirect del login y la navbar pública.
 export const APP_ROUTE = {
   CATALOG: "/catalogo",
+  CATALOG_MY_PRODUCTS: "/catalogo/mis-productos",
   HOUSEHOLD: "/household",
   LIST: "/lista",
   MEAL_PLANNER: "/recetas/planificador",

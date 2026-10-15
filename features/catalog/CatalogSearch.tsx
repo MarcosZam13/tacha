@@ -1,15 +1,11 @@
 "use client";
 
 import { Input, Spinner } from "@/components/ui";
-import { PRODUCT_SEARCH_TEXT } from "@/constants";
-import { CatalogCard } from "./components/CatalogCard";
+import { CatalogCard } from "@/components/catalog-card/CatalogCard";
+import { CatalogTabs } from "@/components/catalog-tabs/CatalogTabs";
+import { CATALOG_TAB, CATALOG_TABS_TEXT, PRODUCT_SEARCH_TEXT } from "@/constants";
+import { CATALOG_SEARCH_STATUS, CATALOG_TEXT } from "./constants/catalog-search.constants";
 import { CatalogEmptyState } from "./components/CatalogEmptyState";
-import { CatalogTabs } from "./components/CatalogTabs";
-import {
-  CATALOG_SEARCH_STATUS,
-  CATALOG_TAB,
-  CATALOG_TEXT,
-} from "./constants/catalog-search.constants";
 import { useCatalogSearchViewModel } from "./hooks/useCatalogSearchViewModel";
 
 /**
@@ -21,7 +17,7 @@ export const CatalogSearch = (): React.JSX.Element => {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
-      <h1 className="font-display text-3xl font-bold text-tacha-text">{CATALOG_TEXT.TITLE}</h1>
+      <h1 className="font-display text-3xl font-bold text-tacha-text">{CATALOG_TABS_TEXT.SECTION_TITLE}</h1>
       <CatalogTabs activeTab={CATALOG_TAB.SEARCH} />
 
       <Input
