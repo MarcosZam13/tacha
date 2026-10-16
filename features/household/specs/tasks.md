@@ -270,3 +270,62 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr-1)) que comp
 - [ ] Qué pasa con las listas compartidas al salir (contrato para HU-34b, SCRUM-59).
 - [ ] Ver a todos los miembros (HU-35, SCRUM-60) y eliminar miembros (HU-36).
 - [ ] Borrado de cuenta del único administrador (deuda M1).
+
+## SCRUM-59: decidir qué hacer con la lista personal
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1, con label `on hold` mientras la #63 (SCRUM-58) esté `in progress` ([plan.md](plan.md#dependencias-y-gitflow)).
+
+### Etapa 0 — Decisiones y aprobaciones (antes de implementar)
+
+- [x] 0.1 Decisiones de producto D1 a D9 de la dueña de la historia (2026-10-10), registradas en SPEC §5.
+- [x] 0.2 T1: reglas para compartir (cantidades, tachados, compras y requisitos de receta). Implementadas con la propuesta (SPEC §5); la dueña de la historia las confirma en la revisión del PR.
+- [x] 0.3 T2: qué se puede hacer con la lista personal después de "Mantener". Implementado: sección de solo lectura en `/lista`; confirmar en la revisión.
+- [x] 0.4 T3: qué pasa con la lista de la familia cuando la familia se elimina, y si se actualiza la prueba SQL de SCRUM-58. Implementado: la lista se va con la familia; las recetas y los planes quedan personales; prueba de la `023` actualizada.
+- [x] 0.5 T4: si el modo compra sobre la lista de la familia entra en la parte A. Funciona sin cambios, con compras personales; el gasto de la familia es HU-38.
+- [ ] 0.6 T5 y D7: el equipo aprueba (o no) separar la parte A en otro ticket; se registra en Jira y en `docs/sprints.md`. **Pendiente:** la parte A quedó implementada en esta rama.
+- [x] 0.7 D5 y D6: diseño de dónde se guarda la decisión y qué conserva quien sale, coordinado con SCRUM-58. `household_members.personal_lists_decision` (se borra al salir); quien sale pierde el acceso por la RLS y conserva su lista personal.
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-59 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md` y `specs/tasks.md`.
+- [x] 1.2 Revisión y aprobación de la documentación.
+- [x] 1.3 Commit `docs(SCRUM-59): add personal list decision planning` (`28bde3a`), push y abrir el PR hacia `develop` con el título `feat(SCRUM-59): manage personal lists when joining a household` y label `on hold`: PR #64.
+
+### Etapa 2 — Plan detallado (después de la etapa 0)
+
+- [x] 2.1 Completar en plan.md archivos, datos, contratos de RPC, concurrencia y commits de la parte A y de la parte B.
+- [x] 2.2 Revisar otra vez el número de la migración: al 2026-10-11 la `024` está libre en `develop` y en las ramas remotas (la `020` y la `021` son de SCRUM-131).
+- [x] 2.3 Traer `develop` con un merge cuando la #63 esté mergeada (`03b3b07`) y resolver los conflictos de los specs conservando las dos historias. El merge dejó separadores `=======` y líneas perdidas; los tres specs se reconstruyeron el 2026-10-11 ([plan.md](plan.md#dependencias-y-gitflow)).
+
+### Etapa 3 — Implementación (2026-10-11)
+
+- [x] 3.1 Migración `024_household_lists.sql` (partes A y B) y su prueba `supabase/tests/024_household_lists.test.sql`; paso 8 de la prueba de la `023` actualizado.
+- [x] 3.2 Tipos en `types/database.types.ts`, escritos a mano a partir de la `024`.
+- [ ] 3.3 Comparar los tipos con la firma real (`pg_proc`) después de aplicar la `024`.
+- [x] 3.4 Servicio, constantes y `usePersonalListsDecision` con sus tests; mocks de los tests existentes de household.
+- [x] 3.5 `PersonalListsDecision` en `/household` (después de crear) y en `/invitacion/<token>` (después de unirse), con Page Object y tests.
+- [x] 3.6 `/lista`: `getGeneralList` usa `find_general_list_id`; sección de solo lectura "Mi lista personal"; test del servicio.
+- [x] 3.7 `npx tsc --noEmit`, `npm run lint`, `npm test` (639 tests) y `npm run build` pasan; `git diff --check` limpio.
+
+### Etapa 4 — Aplicar la migración (la dueña de la historia)
+
+- [x] 4.1 `security-reviewer` sobre la `024` antes de aplicarla (2026-10-11): sin hallazgos críticos ni altos; los de la prueba y los refuerzos menores se corrigieron; las dos medias y tres bajas quedan como decisión o deuda en [plan.md](plan.md#riesgos).
+- [ ] 4.2 Aplicar la `024` con su fila del historial ([plan.md](plan.md#cómo-se-aplica-y-se-prueba-la-024)).
+- [ ] 4.3 Correr `024_household_lists.test.sql` y otra vez `023_leave_household.test.sql`.
+- [ ] 4.4 Verificar de solo lectura las políticas y las firmas.
+
+### Etapa 5 — QA y cierre
+
+- [ ] 5.1 Pruebas manuales de CA-01 a CA-05 con cuentas registradas de prueba (dos o tres), con capturas sin correos ni tokens. Incluye la regresión de `/lista`, el modo compra, las recetas y el plan.
+- [ ] 5.2 E2E de `/lista` (`features/shopping-list/specs/E2E.md`) contra la base con la `024` aplicada.
+- [x] 5.3 `docs/documento-proyecto.md` §4.1, §4.2 y §6.
+- [ ] 5.4 Revisiones `code-reviewer`, `security-reviewer` (final) y `qa-checker`.
+- [ ] 5.5 Marcar en SPEC §13 solo lo validado; descripción del PR #64; `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Conservar la lista de una sesión anónima al registrarse (ticket aparte, SCRUM-49).
+- [ ] Tarea técnica: que borrar la cuenta de quien creó la lista de la familia no la borre para todos ([plan.md](plan.md#riesgos)).
+- [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`).
+- [ ] Sublistas por fecha y listas privadas.
+- [ ] HU-35, HU-36 y HU-38.

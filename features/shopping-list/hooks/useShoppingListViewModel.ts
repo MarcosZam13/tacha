@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
+import type { KeptPersonalListRow } from "../components/models/KeptPersonalListSectionProps.interface";
 import { formatPriceRange } from "@/utils/formatPriceRange";
 import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
@@ -15,6 +16,7 @@ import { toStorePriceRanges } from "../utils/toStorePriceRanges";
 import { useClosePurchase } from "./useClosePurchase";
 import { useItemDetail } from "./useItemDetail";
 import { useItemRemoval } from "./useItemRemoval";
+import { useKeptPersonalList } from "./useKeptPersonalList";
 import { usePurchaseSession } from "./usePurchaseSession";
 import { useShoppingList } from "./useShoppingList";
 import { useStorePicker } from "./useStorePicker";
@@ -41,6 +43,8 @@ interface UseShoppingListViewModelReturn {
   isSearching: boolean;
   /** true mientras se puede deshacer el último eliminado (el toast está visible). */
   isUndoRemoveVisible: boolean;
+  /** "Mi lista personal" (SCRUM-59, D4): sus pendientes, de solo lectura; vacía si no hay. */
+  keptPersonalRows: KeptPersonalListRow[];
   loadErrorMessage: NullableRef<string>;
   onCloseDetail: () => void;
   onDecreaseQuantity: (itemId: string) => void;
@@ -72,6 +76,7 @@ interface UseShoppingListViewModelReturn {
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const { addItem, changeBoughtQuantity, changeQuantity, removeItem, state, toggleChecked } = useShoppingList();
+  const keptPersonalItems = useKeptPersonalList();
   const search = useProductSearch();
   const removal = useItemRemoval({ removeItem });
   const purchase = usePurchaseSession();
@@ -216,6 +221,15 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     isLoading: state.isLoading || purchase.isLoadingSession,
     isSearching: search.isSearching,
     isUndoRemoveVisible: removal.undoItemId !== null,
+    // Solo lo pendiente: lo tachado de la lista personal es historial de compras propias.
+    keptPersonalRows: keptPersonalItems
+      .filter((item) => item.checkedAt === null)
+      .map((item) => ({
+        id: item.id,
+        productName: item.productName,
+        quantity: item.quantity,
+        sizeLabel: item.sizeLabel,
+      })),
     loadErrorMessage: state.loadErrorMessage,
     onCloseDetail,
     onDecreaseQuantity,

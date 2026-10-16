@@ -22,6 +22,12 @@
 --                E tiene una lista, una receta y un plan con ese household_id.
 --   F: usuario registrado sin household.
 --
+-- Desde la 024 (SCRUM-59), lists.household_id tiene FK con cascada y un trigger
+-- deja personales las recetas y los planes de una familia que se elimina: el
+-- paso 8 comprueba ese comportamiento (antes comprobaba que quedaban con el
+-- household_id de una familia que ya no existía, el hallazgo de QA). Contra
+-- una base con la 023 y sin la 024, ese paso falla.
+--
 -- La concurrencia real (dos sesiones a la vez) no se puede reproducir en una
 -- sola transacción: esta prueba comprueba los estados finales (un solo admin
 -- por household, nada a medias). El diseño de bloqueos está en
@@ -91,8 +97,8 @@ begin
   insert into public.meal_plans (owner_id, household_id, date, meal_type, recipe_id)
   values (user_b, null, date '2026-10-20', 'lunch', recipe_b);
 
-  -- Datos de E apuntando al household 3. lists, recipes y meal_plans no tienen
-  -- FK a households: borrar el household no puede ni debe tocarlos.
+  -- Datos de E apuntando al household 3. Al borrarlo (paso 8), su lista se va
+  -- con él y la receta y el plan quedan personales (024).
   insert into public.lists (owner_id, household_id, type) values (user_e, household_3, 'general');
   insert into public.recipes (id, owner_id, household_id, name, base_servings)
   values (recipe_e, user_e, household_3, 'Receta E SCRUM-58', 2);
@@ -481,18 +487,21 @@ begin
          = current_setting('tacha_test.household_2')::uuid,
     'el new_admin_user_id que mandó el admin único no movió a D';
 
+  -- Desde la 024: ningún dato queda con el household_id del household borrado.
   assert (select count(*) from public.lists l
           where l.owner_id = current_setting('tacha_test.user_e')::uuid
-            and l.household_id = current_setting('tacha_test.household_3')::uuid) = 1,
-    'borrar el household no toca la lista de E';
+            and l.household_id = current_setting('tacha_test.household_3')::uuid) = 0,
+    'la lista del household 3 se eliminó con él (024)';
   assert (select count(*) from public.recipes r
           where r.owner_id = current_setting('tacha_test.user_e')::uuid
-            and r.household_id = current_setting('tacha_test.household_3')::uuid) = 1,
-    'borrar el household no toca la receta de E';
+            and r.household_id is null
+            and r.name = 'Receta E SCRUM-58') = 1,
+    'la receta de E sigue existiendo, ahora personal (024)';
   assert (select count(*) from public.meal_plans p
           where p.owner_id = current_setting('tacha_test.user_e')::uuid
-            and p.household_id = current_setting('tacha_test.household_3')::uuid) = 1,
-    'borrar el household no toca el plan de E';
+            and p.household_id is null
+            and p.date = date '2026-10-21') = 1,
+    'el plan de E sigue existiendo, ahora personal (024)';
 end $$;
 
 -- ----------------------------------------------------------------------------

@@ -6,12 +6,17 @@ import {
   HOUSEHOLD_DB,
   HOUSEHOLD_JOIN_RESULT,
   HOUSEHOLD_LEAVE_RESULT,
+  HOUSEHOLD_LISTS_DECISION_RESULT,
+  HOUSEHOLD_LISTS_DECISION_STATE,
   HOUSEHOLD_ROLE,
   HOUSEHOLD_ROUTE,
 } from "../constants/household.constants";
 import type {
   HouseholdJoinResultType,
   HouseholdLeaveResultType,
+  HouseholdListsChoiceType,
+  HouseholdListsDecisionResultType,
+  HouseholdListsDecisionStateType,
   HouseholdRoleType,
 } from "../constants/household.constants";
 import type { HouseholdInvite } from "../models/HouseholdInvite.interface";
@@ -208,4 +213,56 @@ export const leaveHousehold = async (newAdminUserId?: string): Promise<Household
   }
 
   return leaveResult;
+};
+
+// Los únicos valores que puede devolver get_personal_lists_decision_state (migración 024).
+const HOUSEHOLD_LISTS_DECISION_STATE_VALUES: readonly string[] = Object.values(HOUSEHOLD_LISTS_DECISION_STATE);
+
+const isHouseholdListsDecisionState = (decisionState: string): decisionState is HouseholdListsDecisionStateType =>
+  HOUSEHOLD_LISTS_DECISION_STATE_VALUES.includes(decisionState);
+
+/**
+ * Si corresponde preguntarle a quien llama qué hacer con su lista personal
+ * (SCRUM-59): 'pending' solo si es miembro, todavía no decidió en esta
+ * familia y su lista personal tiene pendientes. Lo decide la base; sin cuenta
+ * registrada responde con error (42501).
+ */
+export const getPersonalListsDecisionState = async (): Promise<HouseholdListsDecisionStateType> => {
+  const { data: decisionState, error } = await getSupabaseClient().rpc(
+    HOUSEHOLD_DB.RPC.GET_PERSONAL_LISTS_DECISION_STATE,
+  );
+  if (error) throw error;
+
+  if (!isHouseholdListsDecisionState(decisionState)) {
+    throw new Error(`${HOUSEHOLD_DB.RPC.GET_PERSONAL_LISTS_DECISION_STATE} devolvió un estado desconocido`);
+  }
+
+  return decisionState;
+};
+
+// Los únicos resultados que puede devolver decide_personal_lists (migración 024).
+const HOUSEHOLD_LISTS_DECISION_RESULT_VALUES: readonly string[] = Object.values(HOUSEHOLD_LISTS_DECISION_RESULT);
+
+const isHouseholdListsDecisionResult = (decisionResult: string): decisionResult is HouseholdListsDecisionResultType =>
+  HOUSEHOLD_LISTS_DECISION_RESULT_VALUES.includes(decisionResult);
+
+/**
+ * Guarda la decisión sobre la lista personal. Con "share", la base pasa los
+ * pendientes a la lista de la familia en la misma transacción. Qué familia,
+ * qué lista y si ya había decidido lo resuelve la base: el cliente solo manda
+ * la opción.
+ */
+export const decidePersonalLists = async (
+  listsChoice: HouseholdListsChoiceType,
+): Promise<HouseholdListsDecisionResultType> => {
+  const { data: decisionResult, error } = await getSupabaseClient().rpc(HOUSEHOLD_DB.RPC.DECIDE_PERSONAL_LISTS, {
+    lists_choice: listsChoice,
+  });
+  if (error) throw error;
+
+  if (!isHouseholdListsDecisionResult(decisionResult)) {
+    throw new Error(`${HOUSEHOLD_DB.RPC.DECIDE_PERSONAL_LISTS} devolvió un resultado desconocido`);
+  }
+
+  return decisionResult;
 };

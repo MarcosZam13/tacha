@@ -30,8 +30,12 @@ export const HOUSEHOLD_DB = {
     CREATE_HOUSEHOLD: "create_household",
     CREATE_HOUSEHOLD_INVITE: "create_household_invite",
     GET_HOUSEHOLD_INVITE: "get_household_invite",
+    // Migración 024 (contrato en specs/SPEC.md §12, SCRUM-59).
+    DECIDE_PERSONAL_LISTS: "decide_personal_lists",
     // Migración 023 (contrato en specs/SPEC.md §12).
     GET_HOUSEHOLD_MEMBERS: "get_household_members",
+    // Migración 024.
+    GET_PERSONAL_LISTS_DECISION_STATE: "get_personal_lists_decision_state",
     LEAVE_HOUSEHOLD: "leave_household",
   },
   TABLE: {
@@ -296,4 +300,68 @@ export const HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION: Record<HouseholdLeaveDialogCase
 export const HOUSEHOLD_LEAVE_FORM = {
   // Mismo name para todos los radios: las flechas del teclado se mueven entre ellos.
   NEW_ADMIN_RADIO_NAME: "household-new-admin",
+} as const;
+
+// Lo que la persona elige hacer con su lista personal (SCRUM-59). La base
+// valida los valores (check de household_members.personal_lists_decision).
+export const HOUSEHOLD_LISTS_CHOICE = {
+  KEEP: "keep",
+  SHARE: "share",
+} as const;
+
+export type HouseholdListsChoiceType = (typeof HOUSEHOLD_LISTS_CHOICE)[keyof typeof HOUSEHOLD_LISTS_CHOICE];
+
+// Lo que responde get_personal_lists_decision_state (contrato en specs/SPEC.md §12).
+export const HOUSEHOLD_LISTS_DECISION_STATE = {
+  DECIDED: "decided",
+  NOT_MEMBER: "not_member",
+  NOTHING_TO_DECIDE: "nothing_to_decide",
+  PENDING: "pending",
+} as const;
+
+export type HouseholdListsDecisionStateType =
+  (typeof HOUSEHOLD_LISTS_DECISION_STATE)[keyof typeof HOUSEHOLD_LISTS_DECISION_STATE];
+
+// Lo que responde decide_personal_lists (contrato en specs/SPEC.md §12).
+export const HOUSEHOLD_LISTS_DECISION_RESULT = {
+  ALREADY_DECIDED: "already_decided",
+  KEPT: "kept",
+  NOT_MEMBER: "not_member",
+  // Eligió compartir, pero no pasó nada: la familia ya había comprado todo.
+  NOTHING_SHARED: "nothing_shared",
+  SHARED: "shared",
+  // Pasó al menos uno; lo que la familia ya compró se quedó en la lista personal.
+  SHARED_PARTIALLY: "shared_partially",
+} as const;
+
+export type HouseholdListsDecisionResultType =
+  (typeof HOUSEHOLD_LISTS_DECISION_RESULT)[keyof typeof HOUSEHOLD_LISTS_DECISION_RESULT];
+
+// Estados de la pregunta (unión en hooks/usePersonalListsDecision.ts, specs/SPEC.md §6).
+export const HOUSEHOLD_LISTS_DECISION_STATUS = {
+  ASKING: "asking",
+  FAILED: "failed",
+  HIDDEN: "hidden",
+  SAVING: "saving",
+} as const;
+
+export type HouseholdListsDecisionStatusType =
+  (typeof HOUSEHOLD_LISTS_DECISION_STATUS)[keyof typeof HOUSEHOLD_LISTS_DECISION_STATUS];
+
+export const HOUSEHOLD_LISTS_DECISION_TEXT = {
+  // Propuesto: DESIGN.md §7.15 pide aclarar que aplica a todo y una sola vez.
+  DESCRIPTION: "Tu decisión aplica a todo lo pendiente de tu lista personal y no se vuelve a preguntar.",
+  // Textos aprobados por la dueña de la historia (D8).
+  KEEP: "Mantenerla solo para mí",
+  // Propuestos: el aviso después de decidir.
+  KEPT: "Tu lista personal sigue siendo solo tuya.",
+  // Propuesto: no pasó ningún producto.
+  NOTHING_SHARED: "No se compartió nada: tu familia ya había comprado todo lo que tenías pendiente.",
+  QUESTION: "¿Qué quieres hacer con tu lista actual?",
+  SAVE_ERROR: "No se pudo guardar tu decisión. Intenta de nuevo.",
+  SHARE: "Compartirla con mi familia",
+  SHARED: "Lo pendiente de tu lista ahora está en la lista de tu familia.",
+  // Propuesto: pasó al menos uno y alguno se quedó.
+  SHARED_PARTIALLY:
+    "Compartiste tu lista. Lo que tu familia ya había comprado se quedó en tu lista personal.",
 } as const;

@@ -93,18 +93,21 @@ export type Database = {
         Row: {
           created_at: string
           household_id: string
+          personal_lists_decision: string | null
           role: string
           user_id: string
         }
         Insert: {
           created_at?: string
           household_id: string
+          personal_lists_decision?: string | null
           role: string
           user_id: string
         }
         Update: {
           created_at?: string
           household_id?: string
+          personal_lists_decision?: string | null
           role?: string
           user_id?: string
         }
@@ -290,7 +293,15 @@ export type Database = {
           status?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lists_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meal_plans: {
         Row: {
@@ -959,6 +970,9 @@ export type Database = {
           token: string
         }[]
       }
+      decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
+      ensure_general_list_id: { Args: never; Returns: string }
+      find_general_list_id: { Args: never; Returns: string }
       get_household_invite: {
         Args: never
         Returns: {
@@ -975,6 +989,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_personal_lists_decision_state: { Args: never; Returns: string }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
         Returns: {
