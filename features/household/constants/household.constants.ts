@@ -378,3 +378,19 @@ export const HOUSEHOLD_MEMBERS_PAGE = {
   SIZE: 20,
 } as const;
 
+// Estado de "Cargar más" (hooks/useHouseholdMembers.ts). La primera página
+// no lleva constante: su estado se deriva de la respuesta guardada.
+export const HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS = {
+  FAILED: "failed",
+  LOADING: "loading",
+} as const;
+
+export type HouseholdMembersLoadMoreStatusType =
+  (typeof HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS)[keyof typeof HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS];
+
+// Textos de la sección "Integrantes de la familia" (SPEC §7 y §8, SCRUM-60).
+// Los dos errores los devuelve useHouseholdMembers; el resto, la pantalla.
+export const HOUSEHOLD_MEMBERS_TEXT = {
+  LOAD_ERROR: "No se pudieron cargar los integrantes de tu familia.",
+  LOAD_MORE_ERROR: "No se pudieron cargar más integrantes. Intenta de nuevo.",
+} as const;
