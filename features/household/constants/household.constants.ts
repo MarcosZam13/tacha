@@ -391,6 +391,18 @@ export type HouseholdMembersLoadMoreStatusType =
 // Textos de la sección "Integrantes de la familia" (SPEC §7 y §8, SCRUM-60).
 // Los dos errores los devuelve useHouseholdMembers; el resto, la pantalla.
 export const HOUSEHOLD_MEMBERS_TEXT = {
+  ADMIN: "Administrador",
+  // Cantidad cargada, anunciada en role="status": "1 integrante", "5 integrantes".
+  COUNT_PLURAL: "integrantes",
+  COUNT_SINGULAR: "integrante",
+  CURRENT_USER: "Tú",
   LOAD_ERROR: "No se pudieron cargar los integrantes de tu familia.",
+  LOAD_MORE: "Cargar más",
   LOAD_MORE_ERROR: "No se pudieron cargar más integrantes. Intenta de nuevo.",
+  LOADING_MORE: "Cargando…",
+  NO_RESULTS: "Nadie de tu familia coincide con esa búsqueda.",
+  RETRY: "Reintentar",
+  SEARCH_LABEL: "Buscar por nombre",
+  SEARCH_PLACEHOLDER: "Ej. Ana",
+  TITLE: "Integrantes de la familia",
 } as const;

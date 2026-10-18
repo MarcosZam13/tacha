@@ -6,13 +6,14 @@ import { HouseholdCreateForm } from "./components/HouseholdCreateForm";
 import { HouseholdInviteLinkCard } from "./components/HouseholdInviteLinkCard";
 import { HouseholdJoinForm } from "./components/HouseholdJoinForm";
 import { HouseholdLeaveDialog } from "./components/HouseholdLeaveDialog";
+import { HouseholdMembersSection } from "./components/HouseholdMembersSection";
 import { PersonalListsDecision } from "./components/PersonalListsDecision";
 import { HOUSEHOLD_INVITE_TEXT, HOUSEHOLD_LEAVE_TEXT, HOUSEHOLD_TEXT } from "./constants/household.constants";
 import { useHouseholdViewModel } from "./hooks/useHouseholdViewModel";
 
 /**
  * Pantalla "Mi familia": sin cuenta, crear la familia o unirse con una invitación, miembro, o admin
- * con su enlace de invitación; miembro y admin pueden salir de la familia. "use client" porque usa hooks y habla con
+ * con su enlace de invitación; miembro y admin ven a los integrantes y pueden salir de la familia. "use client" porque usa hooks y habla con
  * Supabase desde el navegador (la sesión vive en el navegador).
  */
 export const Household = (): React.JSX.Element => {
@@ -70,6 +71,9 @@ export const Household = (): React.JSX.Element => {
       {viewModel.showMemberNotice ? (
         <p className="font-body text-sm text-tacha-textsec">{HOUSEHOLD_TEXT.MEMBER_NOTICE}</p>
       ) : null}
+
+      {/* SCRUM-60: miembro y admin ven quién es parte de su familia. */}
+      {viewModel.showMembers ? <HouseholdMembersSection {...viewModel.members} /> : null}
 
       {viewModel.showInvite ? (
         <section className="flex flex-col gap-4 rounded-tacha-card border border-tacha-border bg-tacha-surface p-6">
