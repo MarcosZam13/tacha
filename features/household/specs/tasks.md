@@ -329,3 +329,57 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`).
 - [ ] Sublistas por fecha y listas privadas.
 - [ ] HU-35, HU-36 y HU-38.
+
+## SCRUM-61: eliminar a un integrante de la familia
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1, en `on hold` mientras SCRUM-60 (#68) no esté en `develop`.
+
+### Etapa 0 — Decisiones
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-10-18): D1 (el enlace no se invalida porque es uno por familia; limitación documentada), D2 (sin notificaciones) y textos de D3 (SPEC §5, §7 y §8).
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-61 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md`, `specs/tasks.md` y `docs/documento-proyecto.md` §4.1.
+- [ ] 1.2 Revisión y aprobación de la documentación.
+- [ ] 1.3 Commit `docs(SCRUM-61): add household member removal planning`, push y abrir el PR hacia `develop` con label `on hold`.
+
+### Etapa 2 — Después del merge de SCRUM-60
+
+- [ ] 2.1 Traer `develop` a esta rama; resolver los conflictos de los specs conservando las subsecciones de las dos historias.
+- [ ] 2.2 Pasar el PR a `in progress` (y Jira).
+
+### Etapa 3 — Migración (commit `feat`)
+
+- [ ] 3.1 Revisar otra vez el número libre (`026`).
+- [ ] 3.2 Escribir `026_remove_household_member.sql` con lo de [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia) y su prueba SQL.
+- [ ] 3.3 Revisión con `security-reviewer`; aprobación; commit.
+- [ ] 3.4 La dueña de la historia la aplica con su fila del historial y corre la prueba SQL.
+
+### Etapa 4 — Tipos y servicio (commit `feat`)
+
+- [ ] 4.1 `remove_household_member` en `types/database.types.ts`, comparado con `pg_proc`.
+- [ ] 4.2 Constantes del servicio, `removeHouseholdMember` y sus tests.
+
+### Etapa 5 — Hook (commit `feat`)
+
+- [ ] 5.1 Constantes del flujo y `useHouseholdMemberRemoval` con sus tests.
+
+### Etapa 6 — Pantalla (commit `feat`)
+
+- [ ] 6.1 `HouseholdRemoveMemberDialog` y sus props; "Eliminar integrante" en las filas de `HouseholdMembersSection`.
+- [ ] 6.2 Integración en `useHouseholdViewModel` y `Household.tsx`.
+- [ ] 6.3 Page Object y tests (jsdom).
+- [ ] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`.
+
+### Etapa 7 — QA y cierre
+
+- [ ] 7.1 Pruebas manuales de CA-01 a CA-04 con tres cuentas registradas de prueba, con capturas sin correos.
+- [ ] 7.2 `docs/documento-proyecto.md` §4.1 y §6, y marcar SPEC §13 solo con lo validado.
+- [ ] 7.3 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [ ] 7.4 Descripción del PR, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Notificar a la persona eliminada.
+- [ ] Impedir que vuelva a unirse (lista de bloqueados).

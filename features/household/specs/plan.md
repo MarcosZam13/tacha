@@ -804,3 +804,143 @@ Título del PR: `feat(SCRUM-59): manage personal lists when joining a household`
 - **Arrastrado de `015`/`018`, a verificar:** al borrar un usuario, `checked_by` podría quedar apuntando a un usuario inexistente, porque el trigger de tachado le devuelve el valor viejo.
 
 Corregido antes de aplicar: índice `lists (household_id)`, el filtro de familia en los dos `update` de la decisión, y más casos en la prueba SQL. Se agregaron escrituras de un ex-miembro, requisitos de otra familia, un requisito con receta ajena, el conjunto exacto de políticas, y en el paso 9 se cuentan filas en vez de leer un subselect.
+
+## SCRUM-61: eliminar a un integrante de la familia
+
+> **Verificado el 2026-10-18** contra `develop` en `449b5a4` (SCRUM-56 a SCRUM-59 mergeadas; SCRUM-60 en el PR #68, sin mergear). `household_members` sigue sin `insert`, `update` ni `delete` para el cliente y solo deja leer la fila propia (`011`); la única forma de borrar una membresía hoy es `leave_household` (`023`), y solo la propia. El acceso a la lista de la familia y a sus ítems se decide por membresía en la RLS de la `024`. `recipes` y `meal_plans` solo admiten `household_id` nulo para su dueño (`007`, `019`) y `purchase_sessions` se crea siempre con `household_id` nulo (`016`). `product_catalog` tiene `household_id` sin dueño y lectura pública (los productos de "Mis productos" son de la familia).
+
+### Archivos
+
+Propuestos. La lista de integrantes (`HouseholdMembersSection`, `useHouseholdMembers`) llega con SCRUM-60:
+
+```
+supabase/migrations/026_remove_household_member.sql   nueva: remove_household_member(member_user_id)
+supabase/tests/026_remove_household_member.test.sql   nueva: prueba SQL (transacción con assert y rollback)
+types/database.types.ts                               + Functions.remove_household_member
+
+features/household/
+  Household.tsx                                       + <HouseholdRemoveMemberDialog>
+  components/
+    HouseholdMembersSection.tsx                       + botón "Eliminar integrante" por fila (solo si la fila lo trae)
+    models/HouseholdMembersSectionProps.interface.ts  + en cada fila: onRemoveRequest (o null) y removeLabel
+    HouseholdRemoveMemberDialog.tsx                   nuevo: Modal de confirmación. Solo presentación
+    models/HouseholdRemoveMemberDialogProps.interface.ts   nuevo
+  hooks/
+    useHouseholdMemberRemoval.ts                      nuevo: estado del flujo (unión), persona elegida,
+                                                      confirmar con guarda useRef, traducir resultados
+    useHouseholdViewModel.ts                          + compone useHouseholdMemberRemoval; arma onRemoveRequest
+                                                        solo para el admin y nunca en la fila propia; al eliminar,
+                                                        aviso y recarga de la lista
+  services/
+    household.service.ts                              + removeHouseholdMember(memberUserId)
+  constants/
+    household.constants.ts                            + RPC, HOUSEHOLD_REMOVE_MEMBER_RESULT (+ tipo),
+                                                        HOUSEHOLD_REMOVE_MEMBER_STATUS, HOUSEHOLD_REMOVE_MEMBER_TEXT
+  tests/
+    household.service.test.ts                         + casos de removeHouseholdMember
+    useHouseholdMemberRemoval.test.ts                 nuevo
+    HouseholdRemoveMember.page.ts                     nuevo: botones de las filas, el diálogo y el aviso
+    HouseholdRemoveMember.test.tsx                    nuevo (jsdom): el diálogo solo y la pantalla completa con
+                                                      el servicio mockeado
+
+docs/documento-proyecto.md                            §4.1 (y §6 al cerrar, ver "Documento del proyecto")
+```
+
+No cambian: las migraciones `011` a `025`, `leave_household`, `get_household_members_page`, el login ni `components/ui`.
+
+### Número de la migración
+
+- `develop` (2026-10-18): `000` a `024`.
+- Ramas abiertas: `025` (SCRUM-60, PR #68).
+- **Propuesta: `026_remove_household_member.sql`.** Según `supabase/README.md`, se vuelve a revisar `develop` y los PRs abiertos justo antes de crear el archivo y otra vez antes del merge.
+
+### Datos
+
+Una RPC nueva, sin tablas, políticas ni permisos de tabla nuevos. `remove_household_member(member_user_id uuid) returns text`, `security definer`, `set search_path = ''`:
+
+1. `member_user_id` nulo → `22023`. Sin `auth.uid()` o anónimo → `42501`.
+2. `member_user_id = auth.uid()` → `cannot_remove_self`.
+3. Lee (sin bloqueo) la familia de quien llama donde su rol es `admin`. Si no hay → `not_admin`.
+4. Bloquea, en este orden: la fila del enlace de esa familia `for update` (si existe) y la fila de `households` `for update`.
+5. Con los bloqueos tomados vuelve a leer el rol de quien llama en esa familia. Si ya no es `admin` (salió o pasó el rol) → `not_admin`.
+6. `delete from household_members where user_id = member_user_id and household_id = <la familia> and role = 'member'`. Si no borra ninguna fila → `member_not_found`.
+7. `removed`. El enlace de invitación no se modifica (D1): el bloqueo del paso 4 solo ordena esta llamada respecto de las uniones y las salidas.
+
+`revoke execute … from public, anon` y `grant execute … to authenticated`.
+
+### Concurrencia
+
+Mismo orden que `leave_household` y `accept_household_invite`: enlace → `households` → filas de `household_members`.
+
+| Se cruza con | Qué pasa |
+|---|---|
+| La persona sale al mismo tiempo (`leave_household`) | Las dos toman el bloqueo de `households`: la que llega segunda vuelve a leer y responde `member_not_found` (eliminar) o `not_member` (salir). Nunca se borra dos veces |
+| El admin le pasa el rol a esa persona y sale | Si la transferencia va primero, quien llama ya no es admin: `not_admin`. Si la eliminación va primero, la transferencia responde `invalid_new_admin`. La familia nunca queda sin admin ni con dos |
+| Alguien se une con el enlace (`accept_household_invite`) | La unión toma el enlace `for share`: una de las dos espera, y después la otra sigue normalmente (el enlace no cambia) |
+| La persona decide sus listas (`decide_personal_lists`, `024`) | Esa función toma `households` `for share` y después la fila del miembro: si va primero, la eliminación espera; si va segunda, vuelve a leer y responde `not_member`. No toma el enlace, así que no hay ciclo |
+| Dos eliminaciones de la misma persona (doble clic, dos pestañas) | La segunda espera el bloqueo de `households` y responde `member_not_found` |
+
+Si Postgres aborta la llamada (por ejemplo, un interbloqueo con una operación fuera de estas funciones), se deshace entera. El hook pasa a `failed` y el reintento es seguro: la función vuelve a leer el estado real.
+
+### Seguridad
+
+- **La puerta es una sola:** la RPC. `household_members` no gana `delete`; la prueba SQL lo comprueba.
+- **El cliente no elige la familia ni el rol:** solo manda el `user_id` de la persona; la base lo acota a la familia de quien llama y a `role = 'member'`.
+- **Sin enumeración:** `member_not_found` es la misma respuesta para un `user_id` de otra familia, sin familia o inexistente.
+- **Sin escalar:** un miembro común que llama recibe `not_admin`; un admin no puede borrar a otro admin (solo hay uno, y es él).
+- **Acceso que se pierde:** depende de la RLS por membresía de la `011` y la `024`; la prueba SQL lo verifica leyendo como la persona eliminada.
+- **Reingreso con el enlace vigente (D1, limitación aceptada):** hay un solo enlace por familia y unirse no registra quién usó cuál, así que no se puede invalidar "el enlace de la persona" sin cortárselo también a otras personas invitadas. Mientras el enlace siga vigente, la persona eliminada puede volver a unirse si lo conserva. El administrador lo corta con "Generar enlace nuevo" (SCRUM-56). Cerrarlo del todo necesita enlaces por persona o una lista de bloqueados: otra historia.
+- **Ids en el cliente:** el `userId` vive en el closure de `onRemoveRequest`; no se dibuja (mismo criterio que SCRUM-60).
+- Revisión con `security-reviewer` antes de aplicar la migración.
+
+### Flujo
+
+1. El admin abre `/household`; la lista de SCRUM-60 muestra "Eliminar integrante" en cada fila ajena.
+2. "Eliminar integrante" → `confirming`: "¿Eliminar a este integrante?", el nombre de la persona y el mensaje de D3. "Cancelar" o Escape vuelven a `idle` sin llamar a la base.
+3. "Eliminar" en el diálogo → `removing` (guarda `useRef`) → `removeHouseholdMember(userId)`.
+4. Resultado:
+   - `removed` → cierra el diálogo, aviso "Integrante eliminado correctamente" y recarga la lista;
+   - `member_not_found` → cierra y recarga la lista, sin mensaje (SPEC §7);
+   - `not_admin` → cierra y vuelve a leer la membresía;
+   - `cannot_remove_self` o un error → `failed` con "No se pudo eliminar al integrante. Inténtalo de nuevo".
+
+### Pruebas
+
+- **SQL** (`supabase/tests/026_remove_household_member.test.sql`, con el formato de la `023` y la `025`): permisos (`public`, `anon`, sin sesión, anónimo); `not_admin` para un miembro común y para alguien sin familia; `cannot_remove_self`; `member_not_found` para alguien de otra familia, sin familia y ya eliminado; `removed` con su efecto (la fila desaparece, el admin sigue siendo único); acceso perdido (como la persona eliminada no ve `households`, la lista de la familia ni sus ítems; los demás sí); conservación (su lista personal, recetas, planes y compras siguen iguales; los ítems que agregó a la lista de la familia siguen ahí); el enlace de la familia sigue igual (D1); `delete` directo sobre `household_members` sigue rechazado.
+- **Vitest:** servicio (nombre y argumentos de la RPC, resultados válidos, uno desconocido, error); hook (estados, doble clic, cancelar, cada resultado); pantalla (el admin ve "Eliminar integrante" en filas ajenas y no en la suya; un miembro no lo ve; los textos de D3 desde las constantes; confirmar, aviso y recarga; error y reintento; ningún id en el HTML).
+- **Manual** con tres cuentas registradas: CA-01 a CA-04, la persona eliminada abre `/household` y `/lista` y ve su estado sin familia con su lista personal, y la regresión de salir, unirse e invitar.
+
+### Dependencias y Gitflow
+
+- La rama `ticket/SCRUM-61-eliminar-familiar-household` sale de `develop` (`449b5a4`), como pide Gitflow: no se apila sobre la de SCRUM-60.
+- La implementación necesita la lista de SCRUM-60. Mientras la #68 no se mergee, el PR de SCRUM-61 queda en `on hold` (Gitflow §3). Con la #68 en `develop`: se trae `develop` a esta rama (conflictos esperables en los tres specs, SPEC §15), el PR pasa a `in progress` y se sigue con la etapa 2.
+
+### Documento del proyecto
+
+- §4.1: una línea con la decisión planificada (este PR).
+- Al cerrar: §4.1 con lo implementado y §6 (`household_members`: borrado por el admin solo con la RPC).
+
+### Commits y PR
+
+El PR se abre con el commit 1, hacia `develop`, con label `on hold`.
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-61): add household member removal planning` | `SPEC.md`, `plan.md`, `tasks.md`, `documento-proyecto.md` |
+| 2 | `feat(SCRUM-61): add remove household member migration` | `026_remove_household_member.sql` y su prueba SQL |
+| 3 | `feat(SCRUM-61): add remove household member service` | tipos, constantes del servicio, servicio y su test |
+| 4 | `feat(SCRUM-61): add household member removal hook` | constantes del flujo, hook y su test |
+| 5 | `feat(SCRUM-61): remove members from the family screen` | diálogo, props, sección, ViewModel, pantalla, Page Object y tests |
+| 6 | `docs(SCRUM-61): …` | `tasks.md`, `documento-proyecto.md` §4.1 y §6, SPEC §13 con lo validado |
+
+Lo que salga de las revisiones va en commits `fix(SCRUM-61): …`. Staging explícito, nunca `git add .`.
+
+### Riesgos
+
+- **Depende de un PR sin mergear (#68):** si su QA pide cambios en la lista, puede cambiar dónde va el botón.
+- **Conflictos en los specs** al traer `develop` (SPEC §15).
+- **D1, limitación aceptada:** la persona eliminada puede volver a unirse con el enlace vigente de la familia si lo conserva, hasta que venza o el administrador genere uno nuevo.
+- **`member_not_found` sin mensaje:** D3 no define un texto para ese caso; si en QA resulta confuso, se agrega uno con aprobación de la dueña de la historia.
+- **Cuentas sin nombre:** varias filas "Miembro sin nombre" con su "Eliminar integrante" son difíciles de distinguir (ya anotado en SCRUM-58).
+- **Foco del `Modal`:** el primitivo no atrapa el foco (anotado en SCRUM-58) y la fila eliminada desaparece: el foco se valida a mano.
+- **Lo que la persona agregó a la lista de la familia se queda en la familia:** es lo mismo que al salir (D6 de SCRUM-59). El mensaje aprobado ("Sus datos personales no se eliminarán") es coherente: lo que agregó a la lista de la familia no es un dato personal.
