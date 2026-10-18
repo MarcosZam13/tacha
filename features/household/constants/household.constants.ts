@@ -34,6 +34,8 @@ export const HOUSEHOLD_DB = {
     DECIDE_PERSONAL_LISTS: "decide_personal_lists",
     // Migración 023 (contrato en specs/SPEC.md §12).
     GET_HOUSEHOLD_MEMBERS: "get_household_members",
+    // Migración 025 (contrato en specs/SPEC.md §12, SCRUM-60).
+    GET_HOUSEHOLD_MEMBERS_PAGE: "get_household_members_page",
     // Migración 024.
     GET_PERSONAL_LISTS_DECISION_STATE: "get_personal_lists_decision_state",
     LEAVE_HOUSEHOLD: "leave_household",
@@ -365,3 +367,14 @@ export const HOUSEHOLD_LISTS_DECISION_TEXT = {
   SHARED_PARTIALLY:
     "Compartiste tu lista. Lo que tu familia ya había comprado se quedó en tu lista personal.",
 } as const;
+
+// Integrantes de la familia de a una página (SCRUM-60, decisión del
+// 2026-10-17). La base acepta hasta 50 por página (migración 025).
+export const HOUSEHOLD_MEMBERS_PAGE = {
+  // Misma espera que la búsqueda de productos (PRODUCT_SEARCH.DEBOUNCE_MS).
+  SEARCH_DEBOUNCE_MS: 300,
+  // El mismo tope que valida la base (migración 025).
+  SEARCH_MAX_LENGTH: 60,
+  SIZE: 20,
+} as const;
+
