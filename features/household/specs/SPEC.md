@@ -5,6 +5,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-56 / HU-33](https://tacha.atlassian.net/browse/SCRUM-56): crear link de invitación al household. Sprint 2, mergeada.
 - [SCRUM-57 / HU-34](https://tacha.atlassian.net/browse/SCRUM-57): unirse a un household por link. Sprint 2, mergeada.
 - [SCRUM-58 / HU-34c](https://tacha.atlassian.net/browse/SCRUM-58): salir de mi household. En curso.
+- [SCRUM-59 / HU-34b](https://tacha.atlassian.net/browse/SCRUM-59): decidir qué hacer con la lista personal al unirse o crear un household. Sprint 4, implementada en la rama; falta aplicar la migración `024`, correr su prueba SQL y el QA manual (ver [§2](#2-alcance): la separación de una parte en otro ticket sigue pendiente del equipo).
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md).
 
@@ -25,6 +26,10 @@ Que una persona con cuenta registrada use el enlace (o el código) que le compar
 ### SCRUM-58
 
 Que cualquier integrante pueda salir de su familia cuando quiera, para volver a usar Tacha por su cuenta o unirse a otra. La familia nunca queda sin administrador: si sale el administrador y hay otros miembros, antes elige a quién le pasa el rol; si es el único, la familia se elimina junto con su enlace de invitación.
+
+### SCRUM-59
+
+Que una persona que ya usaba Tacha por su cuenta y crea una familia o se une a una decida, **una sola vez**, si su lista personal sigue siendo solo suya o pasa a la familia, para no perder lo que ya tenía ni compartir algo que prefiere privado. Las listas que cree después se comparten con la familia sin volver a preguntar.
 
 ## 2. Alcance
 
@@ -59,6 +64,27 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 - **Administrador único miembro:** el diálogo avisa que la familia y su enlace se eliminan; al confirmar, se eliminan.
 - Después de salir, `/household` muestra el estado sin familia ("Crea tu familia" y "Unirme con una invitación") y un aviso de confirmación.
 - Backend: una migración nueva (número en [plan.md](plan.md#número-de-la-migración-1)) con dos RPC, `get_household_members()` (solo el administrador, para elegir) y `leave_household(new_admin_user_id)`, y su prueba SQL en `supabase/tests/`.
+
+### SCRUM-59
+
+> **Alcance sujeto a aprobación del equipo.** Hoy no existen listas compartidas: todas las políticas de `lists`, `list_items` y `list_item_recipe_requirements` son de la dueña ([§12](#12-contratos-externos)). Cumplir CA-04 y CA-05 exige construir antes ese modelo. Se propone separarlo en dos partes; **dividir la historia o crear un ticket nuevo en Jira lo decide el equipo**, no esta spec.
+
+**Parte A: habilitador "lista general de la familia"** (propuesta de ticket aparte, pendiente de aprobación):
+
+- Una sola lista general por familia (D2).
+- Acceso a esa lista, sus ítems y sus requisitos de receta **por ser miembro de la familia**, no por ser la dueña. Quien sale de la familia pierde el acceso (D6).
+- Los flujos normales de agregar a la lista general (producto suelto, receta, semana del plan) usan la lista de la familia cuando la persona pertenece a una (D3, CA-05), y `/lista` la muestra.
+- Las listas privadas nunca se asocian a la familia (D3).
+
+**Parte B: HU-34b propiamente** (depende de la parte A):
+
+- La pregunta "¿Qué quieres hacer con tu lista actual?" justo después de crear la familia (`/household`) o de unirse (`/invitacion/<token>`), con dos opciones igual de visibles (CA-01).
+- Solo a cuentas registradas (D9) y solo si la persona tiene una lista general personal con contenido (D1).
+- La decisión se guarda asociada a su membresía y aplica de una vez a todas sus listas personales (CA-02, D5).
+- **Mantenerla:** la lista no cambia (CA-03) y se sigue viendo en una sección personal claramente separada (D4).
+- **Compartirla:** los ítems pasan a la lista de la familia en una sola operación atómica, sin duplicar variantes (CA-04, D2). Las reglas exactas están pendientes ([§5](#5-reglas-de-negocio), T1).
+
+Hoy solo existe la lista **general**: las sublistas por fecha y las listas privadas no están implementadas, así que "todas las listas personales" (CA-02) es, en la práctica, la lista general. Cuando existan las sublistas, la decisión se extiende a ellas.
 
 ## 3. Entradas
 
@@ -97,6 +123,16 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 | `onLeaveConfirm` / `onLeaveCancel` | `() => void` | Botones del diálogo |
 | Resultado | `HouseholdLeaveResultType` | `leave_household(new_admin_user_id)` ([§12](#12-contratos-externos)) |
 
+### SCRUM-59
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Sesión registrada | `boolean` | `hasRegisteredSession()` (reutilizado; nunca `ensureSession()` en este flujo) |
+| Familia recién creada o unida | resultado de `create_household` / `accept_household_invite` (`joined`) | Flujos de SCRUM-56 y SCRUM-57 |
+| ¿Tiene lista general personal con contenido? | `boolean` | A definir en el plan (lectura de su lista general con `household_id` nulo) |
+| ¿Ya decidió en esta membresía? | `boolean` | A definir en el plan (D5; nombre de columna o tabla sin decidir) |
+| Opción elegida | "mantener" o "compartir" | Botones de la pregunta |
+
 ## 4. Salidas
 
 ### SCRUM-56
@@ -122,6 +158,14 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 - Según el resultado, la base borra la membresía de quien sale, pasa el rol de administrador al elegido o elimina la familia (con su enlace por la cascada de la `011`).
 - Vuelve a leer la membresía y muestra el estado que corresponde (normalmente "sin familia") con un aviso de confirmación.
 - Nunca muestra correos: solo el nombre de los miembros, o "Miembro sin nombre".
+
+### SCRUM-59
+
+- Muestra la pregunta en el momento que fija CA-01, solo si se cumplen D1 y D9.
+- Guarda la decisión en la base, asociada a la membresía (D5).
+- **Mantener:** no cambia ninguna lista; `/lista` muestra la personal en su propia sección (D4).
+- **Compartir:** los ítems de la lista personal quedan en la lista de la familia y el resto de los miembros los ve y edita de inmediato (CA-04).
+- Desde la decisión, agregar productos, recetas o la semana del plan va a la lista de la familia (CA-05, parte A).
 
 ## 5. Reglas de negocio
 
@@ -175,6 +219,46 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 9. **Ver miembros:** solo el administrador, y solo los de su familia. Por cada miembro devuelve el nombre guardado en los metadatos de Supabase Auth, o `null` si no hay (la interfaz muestra "Miembro sin nombre"). Nunca el correo.
 10. **Confirmación explícita:** abrir la sección o el diálogo no modifica nada; solo el botón "Salir" del diálogo llama a `leave_household`.
 11. **Doble clic:** el botón se deshabilita y una guarda `useRef` ignora el segundo clic. Si igual llega una segunda llamada, la base responde `not_member` sin cambios.
+
+### SCRUM-59
+
+**Decididas por la dueña de la historia** (2026-10-10):
+
+1. **D1. Cuándo se pregunta:** solo si existe una lista general personal con contenido que requiera decidir. Sin lista o con la lista vacía, no se pregunta.
+2. **D2. Una lista general por familia:** compartir incorpora los ítems personales a esa lista sin duplicar ítems de la misma variante. Antes de implementar se documenta cómo se resuelven cantidades, duplicados y conflictos (T1).
+3. **D3. Flujos normales:** agregar productos usa la lista de la familia cuando corresponde. Las listas privadas nunca se asocian a la familia.
+4. **D4. Mantener:** la persona conserva su lista y la ve en una sección personal claramente separada.
+5. **D5. Guardar la decisión:** explícitamente, asociada a la membresía. Falta analizar cómo se limpia al salir y al unirse a otra familia; nombres de columnas y migraciones se deciden después de revisar el diseño.
+6. **D6. Al salir:** la lista compartida se queda en la familia; quien sale pierde el acceso a ella y conserva sus listas personales. Falta definir cómo obtiene una lista general personal propia y qué ítems conserva, coordinado con SCRUM-58.
+7. **D7. Separación:** se evalúa separar el habilitador (parte A) de HU-34b (parte B). Cambiar el alcance oficial en Jira necesita aprobación del equipo.
+8. **D8. Textos aprobados:** "¿Qué quieres hacer con tu lista actual?", "Mantenerla solo para mí" y "Compartirla con mi familia".
+9. **D9. Anónimos:** la pregunta no se muestra a usuarios anónimos. Conservar la lista de una sesión anónima al registrarse es otro ticket (SCRUM-49 lo dejó como "Migrar o descartar los datos de las sesiones anónimas: ticket aparte").
+
+**Requisitos de recetas de otros miembros (decidido 2026-10-11):** siguen visibles para los miembros de la misma familia (`recipe_id` y cantidades, nunca el nombre de la receta). Hacen falta para que agregar una receta a la lista de la familia descuente lo que ya pidieron las recetas de los demás (regla 20 de recetas).
+
+**Reglas de seguridad (no negociables):**
+
+10. Quién decide, sobre qué listas y en qué familia lo resuelve la base a partir de `auth.uid()` y de su membresía: el cliente nunca manda `household_id`, `owner_id` ni ids de listas ajenas.
+11. Una persona de otra familia, alguien que ya salió o un usuario anónimo no puede leer ni escribir la lista de una familia.
+12. Nadie puede asociar una lista a una familia ajena desde el cliente.
+13. Compartir es atómico: o pasan todos los ítems según las reglas de T1, o no cambia nada.
+14. La pregunta se responde una sola vez por membresía: un doble clic o una segunda pestaña no comparten dos veces.
+
+**Cómo se resolvieron T1 a T4 en la implementación** (2026-10-11). Son decisiones de implementación tomadas con las propuestas de la planificación; la dueña de la historia las confirma o corrige al revisar el PR:
+
+- **T1. Reglas para compartir** (`decide_personal_lists`, migración `024`):
+  - pasan solo los ítems **pendientes** de la lista general personal;
+  - si la lista de la familia ya tiene esa variante, se suman en esa fila con la misma regla que agregar un producto (`add_units_to_list_item`, `015`): una fila pendiente suma la cantidad (en `bigint`, con tope en el máximo de `integer`: compartir nunca falla por desborde; no hay un tope de producto acordado); una tachada **sin** compra se reabre con la cantidad nueva;
+  - si la fila de destino está tachada **dentro de una compra** (`purchase_session_id`), no se toca: reabrirla borraría lo que compró otra persona. Ese pendiente se queda en la lista personal (opción A, aprobada el 2026-10-11). El resultado es `shared_partially` si pasó al menos otro pendiente, y `nothing_shared` si no pasó ninguno (aprobado el 2026-10-12);
+  - los requisitos de receta de cada pendiente pasan a la fila de destino; si ya había uno de la misma receta y unidad, se suman, con el tope de la tabla;
+  - lo tachado se queda en la lista personal (son compras personales, HU-38).
+- **T2. Lista personal después de "Mantener":** en `/lista` se muestra como sección **de solo lectura** "Mi lista personal" (sus pendientes). Lo que se agrega va a la lista de la familia (CA-05). La base sigue dejando a la dueña editarla (sus políticas no cambiaron); poder hacerlo desde la interfaz queda para otra historia.
+- **T3. Familia eliminada:**
+  - su lista general se borra con ella (FK `lists.household_id` con `on delete cascade`), **con lo tachado: se pierde el detalle de compras de esa lista** (las compras quedan con su total). Está anotado como deuda en el plan. Antes de crear la FK, la migración comprueba que no haya listas con un `household_id` inválido y se detiene si las hay, sin borrar ni corregir nada;
+  - las recetas y los planes que la nombraban quedan personales (`household_id` en nulo) por un trigger. Un plan de la familia que choca con un espacio personal del mismo dueño, día y comida se borra (gana el personal), y de varios planes de la familia en el mismo espacio queda el más antiguo; así ninguno queda con el `household_id` de la familia borrada (aprobado el 2026-10-11). No llevan FK porque la prueba SQL de la `019` inserta planes con un `household_id` inventado para probar sus políticas;
+  - así se resuelve el hallazgo de QA de SCRUM-58: ningún dato queda con el `household_id` de una familia que ya no existe. La prueba SQL de la `023` se actualizó a este comportamiento.
+- **T4. Modo compra:** funciona sobre la lista de la familia sin cambios. Cada miembro tacha dentro de **su** compra personal (las políticas de `purchase_sessions` no cambian) y la RLS de `list_items` ya le deja tocar los productos de la familia. Atribuir el gasto a la familia es HU-38.
+- **T5. Separación A/B:** **sigue pendiente.** Por indicación de la dueña de la historia, las partes A y B se implementaron en esta rama. Si se separa la parte A en otro ticket, o se registra el aumento de alcance en Jira, lo decide el equipo; esta rama no cambia Jira.
 
 ## 6. Estados
 
@@ -235,6 +319,19 @@ Flujo de salir (`HOUSEHOLD_LEAVE_STATUS`), una unión de estados:
 
 Al salir bien (`left` o `household_deleted`), el diálogo se cierra y la pantalla vuelve a leer la membresía: queda en el estado `noHousehold` de SCRUM-56 con el aviso de confirmación.
 
+### SCRUM-59
+
+Implementado con `HOUSEHOLD_LISTS_DECISION_STATUS` (`hooks/usePersonalListsDecision.ts`):
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| `hidden` | Sin familia, sin pendientes en la lista personal, ya decidió, la consulta falló o todavía no respondió | La pantalla normal |
+| `asking` | La base responde `pending` | La pregunta con sus dos opciones |
+| `saving` | Esperando a `decide_personal_lists` | Opciones deshabilitadas (`aria-busy`) |
+| `failed` | Error de red o de la base al guardar | La pregunta con el error; cualquiera de las dos opciones reintenta |
+
+La consulta de si corresponde preguntar corre en segundo plano, sin spinner: la pregunta aparece cuando responde.
+
 ## 7. Errores
 
 ### SCRUM-56
@@ -287,6 +384,13 @@ Textos propuestos (se confirman al escribir las constantes):
 
 - Los errores de Supabase no se muestran crudos.
 - "Falló la salida" se reintenta con el mismo botón "Salir"; si la primera llamada sí llegó a la base, el reintento responde `not_member` y la pantalla muestra el estado real.
+
+### SCRUM-59
+
+- Si no se puede guardar la decisión: "No se pudo guardar tu decisión. Intenta de nuevo." (texto propuesto) y la pregunta sigue. Si el primer intento sí llegó a la base, el reintento responde `already_decided` y la pregunta desaparece sin aviso.
+- Si la consulta inicial falla, no se muestra nada ni se bloquea la pantalla: se vuelve a consultar la próxima vez que se abre.
+- Si "Mi lista personal" no se puede cargar en `/lista`, la sección no aparece; la lista principal no depende de ella.
+- Los errores de Supabase no se muestran crudos ni con ids.
 
 ## 8. UI esperada
 
@@ -341,6 +445,18 @@ Avisos después de salir (en la zona `role="status"` de la pantalla):
 
 Componentes compartidos: `Button`, `Modal` y `Spinner` de `@/components/ui`. Los radios son `<input type="radio">` nativos dentro del diálogo, con estilos `tacha-*`.
 
+### SCRUM-59
+
+Según DESIGN.md §7.15, paso agregado el 2026-08-19:
+
+- Una pantalla corta (o un paso dentro del flujo) con la pregunta **"¿Qué quieres hacer con tu lista actual?"** y dos opciones igual de visibles, como tarjetas grandes tocables: **"Mantenerla solo para mí"** y **"Compartirla con mi familia"**.
+- El texto breve (propuesto): "Tu decisión aplica a todo lo pendiente de tu lista personal y no se vuelve a preguntar."
+- Las dos opciones son botones con la misma variante, uno al lado del otro. La pregunta aparece arriba en `/household` (después de crear la familia, o al volver sin haber decidido) y en `/invitacion/<token>` justo después de "Unirme".
+- Avisos al decidir (propuestos, en la zona `role="status"`): "Tu lista personal sigue siendo solo tuya.", "Lo pendiente de tu lista ahora está en la lista de tu familia."; si se compartió una parte porque la familia ya había comprado el resto (`shared_partially`), "Compartiste tu lista. Lo que tu familia ya había comprado se quedó en tu lista personal."; y si no se compartió nada porque la familia ya había comprado todo (`nothing_shared`), "No se compartió nada: tu familia ya había comprado todo lo que tenías pendiente."
+- En `/lista`, si eligió mantenerla: la sección de solo lectura **"Mi lista personal"** debajo de la lista de la familia, con "Solo tú la ves. Lo que agregues ahora va a la lista de tu familia." (texto propuesto).
+
+Los textos de la historia usan voseo ("querés") y "household"; se adaptan al tono de la app (tú, "familia"), como aprobó la dueña de la historia (D8).
+
 ## 9. Accesibilidad
 
 ### SCRUM-56
@@ -368,6 +484,12 @@ Componentes compartidos: `Button`, `Modal` y `Spinner` de `@/components/ui`. Los
 - "Salir" se deshabilita mientras procesa y, con otros miembros, mientras no haya nadie elegido.
 - La confirmación final se anuncia en la zona `role="status"` siempre montada de `Household.tsx`; los errores, en `role="alert"`.
 - Todo el flujo se puede hacer solo con teclado.
+
+### SCRUM-59
+
+- Las dos opciones son botones o tarjetas con nombre accesible y el mismo peso visual; ninguna está preseleccionada.
+- Se puede elegir solo con teclado. Mientras guarda, las opciones quedan deshabilitadas y el estado se anuncia.
+- El error se anuncia con `role="alert"` y la confirmación final en una zona `role="status"`.
 
 ## 10. Restricciones técnicas
 
@@ -404,6 +526,13 @@ Componentes compartidos: `Button`, `Modal` y `Spinner` de `@/components/ui`. Los
 - La migración sigue el procedimiento de `supabase/README.md`: número libre revisado antes de crearla y antes del merge, se aplica en una sola transacción **junto con su fila** en `supabase_migrations.schema_migrations`, y no se edita una vez aplicada.
 - Tests automáticos obligatorios (CONTRIBUTING §7) y prueba SQL de la migración en `supabase/tests/`, con el formato de las existentes (transacción con `assert` que termina en `rollback`).
 
+### SCRUM-59
+
+- **Supabase:** cualquier cambio de datos va en migraciones nuevas, con su prueba SQL en `supabase/tests/` y el procedimiento de `supabase/README.md`. Nunca se edita una migración aplicada. Número provisional `024`, a verificar ([plan.md](plan.md#scrum-59-decidir-qué-hacer-con-la-lista-personal)).
+- **Funciones de lista que hoy buscan la lista general por `owner_id` y `household_id is null`** (parte A): `add_item_to_general_list` (`004`, reescrita en `015`), `add_recipe_to_general_list` (`013`, `015`), `get_recipe_coverage` (`017`), y `add_week_to_general_list` y `add_week_ingredients_to_list` (`022`). Todas son `security invoker`, así que la RLS decide.
+- **Cliente:** el servicio de `/lista` (`getGeneralList()` en `features/shopping-list/services/shopping-list.service.ts`) usa `ensureSession()` y filtra `household_id` nulo. La pregunta usa `hasRegisteredSession()`.
+- La lista general se sigue creando al agregar el primer producto, no al abrir la pantalla.
+
 ## 11. Dependencias
 
 ### SCRUM-56
@@ -433,6 +562,17 @@ Componentes compartidos: `Button`, `Modal` y `Spinner` de `@/components/ui`. Los
 - Nuevos: `components/HouseholdLeaveDialog.tsx` y sus props, `hooks/useHouseholdLeave.ts`, `models/HouseholdMember.interface.ts`, la migración nueva y su prueba SQL.
 - `Modal` de `@/components/ui`.
 - El detalle de archivos está en [plan.md](plan.md#scrum-58-salir-de-la-familia).
+
+### SCRUM-59
+
+| Dependencia | Estado (2026-10-10) | Efecto |
+|---|---|---|
+| SCRUM-56 y SCRUM-57 | Mergeadas en `develop` | Los dos flujos donde aparece la pregunta |
+| SCRUM-58 (HU-34c, salir) | PR #63 sin mergear, QA manual sin completar | D6 y T3. Con acceso por membresía, salir quita el acceso sin cambiar `leave_household`. Las dos historias modifican `Household.tsx`, `useHouseholdViewModel.ts` y los specs de `features/household/` |
+| Feature `shopping-list` (SCRUM-62, 66, 67 y otras) | En `develop` | La parte A cambia su servicio, sus RPC y sus políticas; el E2E de `/lista` es regresión obligatoria |
+| Recetas y plan (SCRUM-97, 100, 101) | En `develop` | Sus funciones que agregan a la lista general cambian de destino |
+| SCRUM-49 (anónimos) | En `develop` | D9: migrar los datos anónimos es otro ticket |
+| Aprobación del equipo (D7, T5) | Pendiente | Define si la parte A es un ticket aparte |
 
 ## 12. Contratos externos
 
@@ -497,6 +637,33 @@ leave_household(new_admin_user_id uuid default null) returns text
 | `not_member` | Quien llama no pertenece a ninguna familia | No |
 
 - Tablas usadas: `households` (bloqueo `for update` y borrado), `household_members` (lectura, actualización del rol del elegido y borrado de la fila propia). `household_invite_links` se borra solo por la cascada.
+
+### SCRUM-59
+
+**Lo que existe hoy** (verificado el 2026-10-10 en `develop`, `58d7a6a`):
+
+- **`public.lists`** (`004`): `id`, `owner_id` (por defecto `auth.uid()`), `household_id` sin FK, `type` (`general`, `date` o `private`), `status` y `created_at`.
+  - Índice único `lists_one_general_per_owner (owner_id) where type = 'general' and household_id is null`.
+  - Políticas `"owner reads own lists"` y `"owner creates own lists"`; esta última exige `household_id is null` y `type = 'general'`.
+- **`public.list_items`:** único por (`list_id`, `product_catalog_variant_id`), `quantity_requested`, `checked_at` y `checked_by` (`015`), `purchase_session_id` y `quantity_bought` (`016`). Políticas de lectura, inserción, actualización y borrado solo para la dueña de la lista (`004`, `012`).
+- **`public.list_item_recipe_requirements`** (`013`): único por (`list_item_id`, `recipe_id`, `quantity_unit`); políticas solo de la dueña.
+- **`public.purchase_sessions`** (`016`): `household_id` (FK `on delete set null`) y `list_id`. La política para iniciar exige que los dos sean nulos.
+- **`public.household_members`** (`011`): no tiene dónde guardar la decisión.
+
+**Contratos nuevos** (migración `supabase/migrations/024_household_lists.sql`, sin aplicar todavía):
+
+- `lists.household_id` → `households` (`on delete cascade`); check `type <> 'private' or household_id is null`; índice único `lists_one_general_per_household (household_id) where type = 'general' and household_id is not null`.
+- Trigger `households_release_personal_data` (`after delete on households`): deja `recipes.household_id` y `meal_plans.household_id` en nulo. Antes borra los planes de la familia que chocarían: los que tienen un espacio personal del mismo dueño, día y comida, y los duplicados de la familia en el mismo espacio (queda el más antiguo).
+- **RLS:**
+  - `lists`: la ve su dueña si `household_id` es nulo, o un miembro de esa familia si no lo es (`"owner or household member reads lists"`). `"owner creates own lists"` (`004`) no cambia.
+  - `list_items`: se lee, agrega, cambia y borra si su lista se ve (cuatro políticas nuevas).
+  - `list_item_recipe_requirements`: se lee si su ítem se ve; se escribe si su ítem se ve y la receta es propia.
+- `find_general_list_id() returns uuid` (`security invoker`) y `ensure_general_list_id() returns uuid` (`security definer`, la crea si falta): la lista general de la familia si quien llama es miembro, si no la personal.
+- `add_item_to_general_list`, `add_recipe_to_general_list`, `add_week_to_general_list` y `get_recipe_coverage`: su última versión, con la búsqueda de la lista reemplazada por esas dos funciones.
+- `household_members.personal_lists_decision text` (`'keep'`, `'share'` o nulo).
+- `get_personal_lists_decision_state() returns text`: `pending`, `nothing_to_decide`, `decided` o `not_member`. Sin cuenta registrada: `42501`.
+- `decide_personal_lists(lists_choice text) returns text`: `kept`, `shared` (pasaron todos los pendientes, o no había ninguno), `shared_partially` (pasó al menos uno y alguno se quedó en la lista personal porque la familia ya lo compró), `nothing_shared` (no pasó ninguno: la familia ya había comprado todos; la decisión se guarda igual), `already_decided` o `not_member`. Una opción inválida: `22023`. Sin cuenta registrada: `42501`.
+- Todas las funciones nuevas: `set search_path = ''`, nombres calificados, `revoke … from public, anon` y `grant … to authenticated`.
 
 ## 13. Casos de aceptación
 
@@ -576,6 +743,30 @@ Casos de cada flujo:
 - [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
 - [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
 
+### HU-34b (SCRUM-59)
+
+Ninguno validado todavía: la implementación está en la rama, pero falta aplicar la `024`, correr `supabase/tests/024_household_lists.test.sql` y el QA manual. Los tests automáticos (Vitest) pasan; por sí solos no validan ningún CA, porque reemplazan la base por un mock. Evidencia esperada: manual (cuentas registradas de prueba, con capturas), base (prueba SQL) y test.
+
+Criterios de la historia:
+
+- [ ] **CA-01:** justo después de unirse o crear la familia se pregunta "¿Qué quieres hacer con tu lista actual?" con "Mantenerla solo para mí" y "Compartirla con mi familia", igual de visibles (si se cumplen D1 y D9).
+- [ ] **CA-02:** la pregunta aparece una sola vez y aplica a todas las listas personales que tenía en ese momento.
+- [ ] **CA-03:** si elige mantenerla, sigue siendo personal y sin cambios.
+- [ ] **CA-04:** si elige compartirla, el resto de la familia la ve y colabora de inmediato.
+- [ ] **CA-05:** las listas nuevas que crea después siguen las reglas de la familia (se comparten automáticamente) sin volver a preguntar.
+
+Casos de cada flujo:
+
+- [ ] **Sin pregunta:** anónimo, sin lista personal, con la lista vacía, o con la decisión ya tomada en esta membresía.
+- [ ] **Seguridad y RLS:** un miembro de otra familia, alguien que ya salió y un anónimo no leen ni escriben la lista de la familia; nadie asocia una lista a una familia ajena desde el cliente; las listas privadas nunca quedan en la familia.
+- [ ] **Compartir atómico:** todos los ítems pasan según T1 o no cambia nada; sin variantes duplicadas; requisitos de receta combinados.
+- [ ] **Una sola vez:** doble clic y dos pestañas dan un solo traspaso.
+- [ ] **Concurrencia:** dos miembros que comparten a la vez, o compartir mientras otro agrega, terminan con una sola fila por variante.
+- [ ] **Salir (D6, con SCRUM-58):** quien sale ya no ve la lista de la familia y conserva sus listas personales.
+- [ ] **Regresión:** agregar producto, receta y semana, tachar, cantidades, eliminar y modo compra siguen funcionando, con y sin familia. Pasa el E2E de `/lista`.
+- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-56
@@ -611,6 +802,14 @@ Casos de cada flujo:
 - **Borrar la cuenta:** el caso "el único administrador borra su cuenta" (deuda M1) sigue fuera.
 - Cambios en el login, el `SessionGuard` o las migraciones existentes.
 
+### SCRUM-59
+
+- Implementar la parte A dentro de esta historia sin aprobación del equipo, o cambiar el alcance en Jira por cuenta propia.
+- Conservar la lista de una sesión anónima al registrarse (D9; ticket aparte según SCRUM-49).
+- Sublistas por fecha y listas privadas: no existen todavía; la decisión se extenderá a ellas cuando existan.
+- Ver a todos los miembros (HU-35), eliminar miembros (HU-36) y gastos por familia (HU-38).
+- El onboarding de DESIGN.md §7.7: la pregunta vive en los flujos de `/household` y `/invitacion/<token>`.
+
 ## 15. Notas de implementación
 
 - **Número de la migración (SCRUM-56):** es la `011` porque la `009` (SCRUM-123, `009_close_store_preferences_writes.sql`) y la `010` (SCRUM-96, `010_delete_recipes.sql`) ya existen en `develop`. Se escribió primero como `010` y se renombró al sincronizar la rama con `develop` el 2026-10-03. En la base compartida ya estaba aplicada: el nombre del archivo no cambia nada ahí.
@@ -625,3 +824,6 @@ Casos de cada flujo:
 - **Contrato pendiente para HU-34b (SCRUM-59):** HU-34c no modifica ninguna lista al salir. Hoy no hay listas compartidas con una familia (`household_id` siempre `null` en `lists`, `recipes` y `meal_plans`), así que el usuario conserva todo. Cuando HU-34b permita compartir listas, tiene que decidir qué pasa con ellas cuando su dueño sale de la familia (quedan en la familia o vuelven a ser personales) y ajustar `leave_household` en una migración nueva.
 - **Nombres de los miembros (SCRUM-58):** no hay tabla de perfiles; el nombre está en los metadatos de Supabase Auth (`name`, guardado por el registro). Las cuentas creadas desde el panel de Supabase pueden no tenerlo: se muestran como "Miembro sin nombre". Decisión de la dueña de la historia (2026-10-10): nunca mostrar correos, ni enmascarados.
 - **Deuda M1 sigue abierta:** si el único administrador borra su cuenta (no sale con `leave_household`), la familia queda sin administrador. HU-34c cubre la salida voluntaria, no el borrado de cuentas.
+- **SCRUM-59, specs (2026-10-10):** las subsecciones de SCRUM-59 se agregan sobre `develop`, que no tiene las de SCRUM-58. Cuando se mergee la #63 y se traiga `develop` a esta rama, los tres specs de `features/household/` van a tener conflictos en los mismos lugares: se resuelven conservando las subsecciones de las dos historias.
+- **SCRUM-59, textos:** los de la historia usan voseo y "household"; la app usa tú y "familia" (D8).
+- **SCRUM-59, alcance:** la parte A (lista general de la familia) cambia el control de acceso de toda la lista general. Necesita `security-reviewer` antes de aplicarse y la aprobación del equipo antes de empezar.

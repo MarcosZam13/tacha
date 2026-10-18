@@ -6,6 +6,7 @@ import { BUTTON_VARIANT } from "@/constants";
 import { PURCHASE_SESSION_TEXT } from "./constants/purchase-session.constants";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ClosePurchasePanel } from "./components/ClosePurchasePanel";
+import { KeptPersonalListSection } from "./components/KeptPersonalListSection";
 import { ShoppingListAllChecked } from "./components/ShoppingListAllChecked";
 import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
@@ -114,6 +115,9 @@ export const ShoppingListInner = (): React.JSX.Element => {
           {viewModel.checkedRows.map(renderRow)}
         </ShoppingListSection>
       ) : null}
+
+      {/* SCRUM-59 (D4): la lista personal que se eligió mantener, aparte de la de la familia. */}
+      {viewModel.keptPersonalRows.length > 0 ? <KeptPersonalListSection rows={viewModel.keptPersonalRows} /> : null}
 
       {viewModel.isUndoRemoveVisible ? <UndoToast onUndo={viewModel.onUndoRemove} /> : null}
 

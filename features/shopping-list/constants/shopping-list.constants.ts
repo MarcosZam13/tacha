@@ -35,8 +35,9 @@ export const SHOPPING_LIST_DB = {
   // Los nombres de columnas (aquí y en los .eq() del servicio) no llevan
   // constante propia: el genérico Database de types/database.types.ts los
   // valida al compilar, que es lo mismo que buscaría la constante.
+  // id: para distinguir la lista personal de la de la familia (SCRUM-59).
   GENERAL_LIST_SELECT:
-    "list_items(id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+    "id, list_items(id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   // Detalle de una variante: sus marcas y el último precio de cada marca en
   // cada tienda (la vista latest_prices ya se queda con el más reciente).
   ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
@@ -45,6 +46,8 @@ export const SHOPPING_LIST_DB = {
     CHANGE_BOUGHT_QUANTITY: "change_bought_quantity",
     CHANGE_ITEM_QUANTITY: "change_item_quantity",
     CHECK_LIST_ITEM_IN_SESSION: "check_list_item_in_session",
+    // La lista general de quien llama: la de su familia o la personal (024, SCRUM-59).
+    FIND_GENERAL_LIST_ID: "find_general_list_id",
     SET_LIST_ITEM_CHECKED: "set_list_item_checked",
   },
   TABLE: {
@@ -86,6 +89,11 @@ export const SHOPPING_LIST_TEXT = {
   DETAIL_PRICES: "Precio de referencia por supermercado",
   EMPTY_LIST: "Tu lista está vacía. Busca un producto para empezar.",
   INCREASE_QUANTITY: "Añadir uno",
+  // SCRUM-59 (D4): la lista personal que se eligió mantener al unirse a una familia.
+  KEPT_PERSONAL_NOTE: "Solo tú la ves. Lo que agregues ahora va a la lista de tu familia.",
+  // Antes de la cantidad en la sección de solo lectura ("×2"): sin stepper.
+  KEPT_PERSONAL_QUANTITY_PREFIX: "×",
+  KEPT_PERSONAL_SECTION: "Mi lista personal",
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
   OPEN_DETAIL: "Ver detalle",
   OPEN_DETAIL_ICON: "i",

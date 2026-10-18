@@ -4,6 +4,7 @@ import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import type { HouseholdInviteLinkCardProps } from "../components/models/HouseholdInviteLinkCardProps.interface";
 import type { HouseholdJoinFormProps } from "../components/models/HouseholdJoinFormProps.interface";
 import type { HouseholdLeaveDialogProps } from "../components/models/HouseholdLeaveDialogProps.interface";
+import type { PersonalListsDecisionProps } from "../components/models/PersonalListsDecisionProps.interface";
 import {
   HOUSEHOLD_FORM_ERROR,
   HOUSEHOLD_FORM_LIMIT,
@@ -19,6 +20,7 @@ import { createHousehold, getHouseholdMembership, hasRegisteredSession } from ".
 import { useHouseholdInvite } from "./useHouseholdInvite";
 import { useHouseholdJoinForm } from "./useHouseholdJoinForm";
 import { useHouseholdLeave } from "./useHouseholdLeave";
+import { usePersonalListsDecision } from "./usePersonalListsDecision";
 
 /** Unión discriminada por `status`: la pantalla está en uno solo de estos estados. */
 type HouseholdScreenState =
@@ -60,6 +62,8 @@ interface UseHouseholdViewModelReturn {
   /** "Unirme con una invitación": props del formulario, ya armadas. */
   join: HouseholdJoinFormProps;
   leave: HouseholdLeaveSection;
+  /** "¿Qué quieres hacer con tu lista actual?" (SCRUM-59), ya armada. */
+  listsDecision: PersonalListsDecisionProps;
   name: string;
   nameError: NullableUndefined<string>;
   onCreateSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -68,6 +72,8 @@ interface UseHouseholdViewModelReturn {
   showInvite: boolean;
   /** Miembro o admin: los dos pueden salir (CA-01). */
   showLeave: boolean;
+  /** La pregunta de la lista personal se muestra (CA-01). */
+  showListsDecision: boolean;
   showMemberNotice: boolean;
   showNoAccount: boolean;
 }
@@ -156,6 +162,9 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   const householdInvite = useHouseholdInvite(isAdmin);
   const joinForm = useHouseholdJoinForm();
   const householdLeave = useHouseholdLeave({ isAdmin, onLeft: handleLeft });
+  // Miembro o admin: después de crear la familia (o al volver a /household
+  // sin haber decidido) se pregunta qué hacer con la lista personal.
+  const listsDecision = usePersonalListsDecision(householdName !== null);
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -229,7 +238,8 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       hasCreateFailed,
       inviteErrorMessage,
     ),
-    feedbackMessage: isAdmin ? householdInvite.feedbackMessage : leaveNotice,
+    feedbackMessage:
+      listsDecision.noticeMessage ?? (isAdmin ? householdInvite.feedbackMessage : leaveNotice),
     householdName,
     invite: {
       // La tarjeta recibe solo lo que dibuja: nada del servicio ni del hook.
@@ -280,6 +290,12 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       },
       onLeaveRequest: householdLeave.onLeaveRequest,
     },
+    listsDecision: {
+      errorMessage: listsDecision.errorMessage,
+      isSaving: listsDecision.isSaving,
+      onKeep: listsDecision.onKeep,
+      onShare: listsDecision.onShare,
+    },
     name,
     nameError,
     onCreateSubmit,
@@ -288,6 +304,7 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       state.status === HOUSEHOLD_SCREEN_STATUS.NO_HOUSEHOLD || state.status === HOUSEHOLD_SCREEN_STATUS.CREATING,
     showInvite: isAdmin,
     showLeave: householdName !== null,
+    showListsDecision: listsDecision.isVisible,
     showMemberNotice: state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER,
     showNoAccount: state.status === HOUSEHOLD_SCREEN_STATUS.NO_ACCOUNT,
   };

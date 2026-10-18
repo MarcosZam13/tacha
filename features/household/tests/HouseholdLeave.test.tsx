@@ -24,6 +24,9 @@ vi.mock("../services/household.service", () => ({
   getHouseholdInvite: vi.fn(),
   getHouseholdMembers: vi.fn(),
   getHouseholdMembership: vi.fn(),
+  // SCRUM-59: la pantalla pregunta por la lista personal. Por defecto ya
+  // decidió (literal: el factory de vi.mock no puede usar las constantes).
+  getPersonalListsDecisionState: vi.fn(() => Promise.resolve("decided")),
   hasRegisteredSession: vi.fn(),
   leaveHousehold: vi.fn(),
 }));

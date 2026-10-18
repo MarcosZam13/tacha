@@ -1,8 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { HOUSEHOLD_DB, HOUSEHOLD_JOIN_RESULT, HOUSEHOLD_LEAVE_RESULT, HOUSEHOLD_ROLE } from "../constants/household.constants";
+import {
+  HOUSEHOLD_DB,
+  HOUSEHOLD_JOIN_RESULT,
+  HOUSEHOLD_LEAVE_RESULT,
+  HOUSEHOLD_LISTS_CHOICE,
+  HOUSEHOLD_LISTS_DECISION_RESULT,
+  HOUSEHOLD_LISTS_DECISION_STATE,
+  HOUSEHOLD_ROLE,
+} from "../constants/household.constants";
 import {
   acceptHouseholdInvite,
+  decidePersonalLists,
   getHouseholdMembers,
+  getPersonalListsDecisionState,
   hasRegisteredSession,
   leaveHousehold,
 } from "../services/household.service";
@@ -190,5 +200,76 @@ describe("leaveHousehold", () => {
     rpcMock.mockResolvedValue({ data: null, error: supabaseError });
 
     await expect(leaveHousehold()).rejects.toBe(supabaseError);
+  });
+});
+
+// SCRUM-59: la pregunta por la lista personal.
+const UNKNOWN_DECISION_STATE_MESSAGE = `${HOUSEHOLD_DB.RPC.GET_PERSONAL_LISTS_DECISION_STATE} devolvió un estado desconocido`;
+const UNKNOWN_DECISION_RESULT_MESSAGE = `${HOUSEHOLD_DB.RPC.DECIDE_PERSONAL_LISTS} devolvió un resultado desconocido`;
+
+describe("getPersonalListsDecisionState", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+  });
+
+  it.each(Object.values(HOUSEHOLD_LISTS_DECISION_STATE))("returns %s when the database answers it", async (state) => {
+    rpcMock.mockResolvedValue({ data: state, error: null });
+
+    await expect(getPersonalListsDecisionState()).resolves.toBe(state);
+  });
+
+  it("calls get_personal_lists_decision_state without arguments", async () => {
+    rpcMock.mockResolvedValue({ data: HOUSEHOLD_LISTS_DECISION_STATE.PENDING, error: null });
+
+    await getPersonalListsDecisionState();
+
+    // Nombre literal a propósito: fija el contrato con la base (migración 024).
+    expect(rpcMock).toHaveBeenCalledWith("get_personal_lists_decision_state");
+  });
+
+  it("throws on a state outside the contract", async () => {
+    rpcMock.mockResolvedValue({ data: "maybe", error: null });
+
+    await expect(getPersonalListsDecisionState()).rejects.toThrow(UNKNOWN_DECISION_STATE_MESSAGE);
+  });
+
+  it("rethrows the Supabase error", async () => {
+    const supabaseError = { code: "42501", message: "Se requiere una cuenta registrada para decidir sobre tus listas" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(getPersonalListsDecisionState()).rejects.toBe(supabaseError);
+  });
+});
+
+describe("decidePersonalLists", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+  });
+
+  it.each(Object.values(HOUSEHOLD_LISTS_DECISION_RESULT))("returns %s when the database answers it", async (result) => {
+    rpcMock.mockResolvedValue({ data: result, error: null });
+
+    await expect(decidePersonalLists(HOUSEHOLD_LISTS_CHOICE.SHARE)).resolves.toBe(result);
+  });
+
+  it.each(Object.values(HOUSEHOLD_LISTS_CHOICE))("sends only the choice %s", async (choice) => {
+    rpcMock.mockResolvedValue({ data: HOUSEHOLD_LISTS_DECISION_RESULT.KEPT, error: null });
+
+    await decidePersonalLists(choice);
+
+    expect(rpcMock).toHaveBeenCalledWith("decide_personal_lists", { lists_choice: choice });
+  });
+
+  it("throws on a result outside the contract", async () => {
+    rpcMock.mockResolvedValue({ data: "deleted", error: null });
+
+    await expect(decidePersonalLists(HOUSEHOLD_LISTS_CHOICE.KEEP)).rejects.toThrow(UNKNOWN_DECISION_RESULT_MESSAGE);
+  });
+
+  it("rethrows the Supabase error", async () => {
+    const supabaseError = { code: "22023", message: "La opción tiene que ser keep o share" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(decidePersonalLists(HOUSEHOLD_LISTS_CHOICE.SHARE)).rejects.toBe(supabaseError);
   });
 });

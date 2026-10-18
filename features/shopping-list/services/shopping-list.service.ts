@@ -1,3 +1,4 @@
+import type { QueryData } from "@supabase/supabase-js";
 import type { CatalogBaseUnitType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
@@ -22,34 +23,25 @@ const toItemCheck = (listItem: {
 });
 
 /**
- * Trae la lista general del usuario con sus items. Si todavía no tiene lista
- * (nunca añadió nada) devuelve [] — la lista se crea en la base al añadir el
- * primer producto, no al abrir la pantalla.
- *
- * Solo trae los pendientes y lo tachado desde la medianoche local: lo tachado
- * otro día va a vivir en Historial de compras (HU-36e CA-05). El filtro aplica
- * a los items embebidos, no a la lista.
+ * Una lista con sus items de hoy: los pendientes y lo tachado desde la
+ * medianoche local. Lo tachado otro día va a vivir en Historial de compras
+ * (HU-36e CA-05). El filtro aplica a los items embebidos, no a la lista.
  */
-export const getGeneralList = async (): Promise<ShoppingListItem[]> => {
-  const session = await ensureSession();
-
-  const { data: generalList, error } = await getSupabaseClient()
+const selectListWithTodayItems = () =>
+  getSupabaseClient()
     .from(SHOPPING_LIST_DB.TABLE.LISTS)
     .select(SHOPPING_LIST_DB.GENERAL_LIST_SELECT)
-    .eq("owner_id", session.user.id)
-    .eq("type", LIST_TYPE.GENERAL)
-    .is("household_id", null)
     // A diferencia de .eq() y .select(), este texto no lo valida el genérico
     // Database: un typo en "checked_at" solo falla en runtime (lo cubre E2E-LISTA-04).
     .or(`checked_at.is.null,checked_at.gte.${startOfLocalDay(new Date())}`, {
       referencedTable: SHOPPING_LIST_DB.TABLE.LIST_ITEMS,
     })
-    .order("created_at", { referencedTable: SHOPPING_LIST_DB.TABLE.LIST_ITEMS })
-    .maybeSingle();
-  if (error) throw error;
-  if (!generalList) return [];
+    .order("created_at", { referencedTable: SHOPPING_LIST_DB.TABLE.LIST_ITEMS });
 
-  return generalList.list_items.map((listItem) => {
+type ListWithTodayItemsRow = QueryData<ReturnType<typeof selectListWithTodayItems>>[number];
+
+const toShoppingListItems = (list: ListWithTodayItemsRow): ShoppingListItem[] =>
+  list.list_items.map((listItem) => {
     const variant = listItem.product_catalog_variants;
     return {
       ...toItemCheck(listItem),
@@ -61,6 +53,55 @@ export const getGeneralList = async (): Promise<ShoppingListItem[]> => {
       variantId: variant.id,
     };
   });
+
+// El id de la lista general que le toca a quien llama: la de su familia si es
+// miembro, si no la personal (SCRUM-59, CA-05). Lo decide la base; null si
+// todavía no existe.
+const findGeneralListId = async (): Promise<NullableRef<string>> => {
+  const { data: generalListId, error } = await getSupabaseClient().rpc(SHOPPING_LIST_DB.RPC.FIND_GENERAL_LIST_ID);
+  if (error) throw error;
+
+  return generalListId;
+};
+
+/**
+ * Trae la lista general con sus items de hoy: la de la familia si el usuario
+ * es miembro de una, si no la personal. Si todavía no existe (nadie añadió
+ * nada) devuelve [] — la lista se crea en la base al añadir el primer
+ * producto, no al abrir la pantalla.
+ */
+export const getGeneralList = async (): Promise<ShoppingListItem[]> => {
+  await ensureSession();
+
+  const generalListId = await findGeneralListId();
+  if (!generalListId) return [];
+
+  const { data: generalList, error } = await selectListWithTodayItems().eq("id", generalListId).maybeSingle();
+  if (error) throw error;
+  if (!generalList) return [];
+
+  return toShoppingListItems(generalList);
+};
+
+/**
+ * La lista personal que el usuario eligió mantener al unirse a una familia
+ * (SCRUM-59, D4): solo si existe y no es la lista que ya muestra la pantalla.
+ * Sin familia, la lista general es la personal, así que devuelve [].
+ */
+export const getKeptPersonalList = async (): Promise<ShoppingListItem[]> => {
+  const session = await ensureSession();
+
+  const generalListId = await findGeneralListId();
+
+  const { data: personalList, error } = await selectListWithTodayItems()
+    .eq("owner_id", session.user.id)
+    .eq("type", LIST_TYPE.GENERAL)
+    .is("household_id", null)
+    .maybeSingle();
+  if (error) throw error;
+  if (!personalList || personalList.id === generalListId) return [];
+
+  return toShoppingListItems(personalList);
 };
 
 /**

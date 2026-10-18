@@ -634,3 +634,173 @@ Lo que salga de las revisiones va en commits `fix(SCRUM-58): …`. Staging expl�
 - **Confirmación y resultado en dos carreras** (revisión de seguridad, baja): si un admin elige a alguien y los demás salen antes de confirmar, o a un miembro le pasan el rol y los demás salen, la base elimina la familia aunque el texto confirmado era otro. El aviso final dice lo que pasó. Evitarlo exige cambiar el contrato de la RPC: decisión de producto, fuera de esta historia.
 - **Sesión vencida:** se ve como una falla cualquiera ("No se pudo salir…"), sin pedir volver a iniciar sesión. No escribe nada; mejora de experiencia para otra historia.
 - **Mejoras opcionales anotadas (revisión de código):** pasar el armado de `leave.dialog` a un helper fuera del Facade, unificar las traducciones de resultado en tablas y un "Reintentar" tras `membersLoadFailed` (hoy SPEC §6 pide solo "Cancelar").
+
+## SCRUM-59: decidir qué hacer con la lista personal
+
+> **Verificado el 2026-10-10** contra `develop` en `58d7a6a` (SCRUM-56 y SCRUM-57 mergeadas, SCRUM-58 todavía no). Todas las políticas de `lists`, `list_items` y `list_item_recipe_requirements` son de la dueña. `lists.household_id` no tiene FK. La política de inserción de `lists` exige `household_id is null` y `type = 'general'`. Cinco funciones buscan la lista general por `owner_id` y `household_id is null`. `getGeneralList()` usa `ensureSession()`. `household_members` no tiene dónde guardar una decisión. El detalle está en [SPEC §12](SPEC.md#12-contratos-externos).
+
+> **Implementado el 2026-10-11** sobre `develop` con SCRUM-58 mergeada (merge `03b3b07`). Las partes A y B se hicieron en esta rama por indicación de la dueña de la historia; T1 a T4 se resolvieron con las propuestas de la planificación (SPEC §5) y la separación en otro ticket (T5) sigue pendiente del equipo. La migración `024` **no está aplicada**: ver [Cómo se aplica y se prueba la 024](#cómo-se-aplica-y-se-prueba-la-024).
+
+### Separación propuesta (pendiente de aprobación del equipo)
+
+| Parte | Qué incluye | Por qué separarla |
+|---|---|---|
+| **A. Lista general de la familia** (habilitador) | Una lista general por familia (índice único parcial por `household_id`, FK `lists.household_id` → `households`), RLS por membresía en `lists`, `list_items` y `list_item_recipe_requirements`, las cinco funciones que agregan a la lista general, `getGeneralList()` y, según T4, el modo compra | Cambia el control de acceso de toda la lista general y toca código de otras features (`shopping-list`, recetas, plan). Es un cambio grande que conviene revisar y mergear solo; como una sola historia superaría con holgura los 18 archivos |
+| **B. HU-34b** | La pregunta después de crear o unirse, guardar la decisión en la membresía, compartir atómicamente y la sección "Mi lista personal" en `/lista` | Es lo que pide la historia; depende de A |
+
+Crear el ticket de la parte A (tamaño, sprint y responsable) lo decide el equipo (T5). Si no se aprueba, las dos partes van en esta historia, en ese orden y en commits separados.
+
+### Datos (dirección, sin nombres definitivos)
+
+- **Lista de la familia:** una sola por familia. La parte A define si se crea al crear la familia, al compartir o al agregar el primer producto siendo miembro.
+- **Acceso:** si la lista tiene `household_id`, deciden solo las políticas de membresía. La dueña original **no** conserva acceso por ser dueña (D6: quien sale pierde el acceso). Si la lista es personal (`household_id` nulo), sigue la regla actual de la dueña.
+- **Decisión (D5):** asociada a la membresía. Como la fila de `household_members` se borra al salir (SCRUM-58), una decisión guardada ahí se limpia sola; al unirse a otra familia se vuelve a preguntar si se cumple D1. Columna o tabla, a decidir.
+- **Compartir:** una sola función atómica, con bloqueos en un orden fijo (lista de la familia, después la personal) para que dos traspasos simultáneos o un traspaso mientras alguien agrega no dupliquen variantes. Las reglas de cantidades, tachados y requisitos de receta son las de T1.
+- **Salir (D6):** con acceso por membresía no hace falta cambiar `leave_household` de SCRUM-58. Si quien sale no tenía lista personal, `add_item_to_general_list` le crea una al agregar su primer producto, como hoy. Falta decidir qué ítems conserva (sin columna de "quién lo agregó", hoy no se puede saber cuáles puso cada quien).
+- **Familia eliminada:** T3.
+
+### Número de la migración
+
+- En `develop` (2026-10-10): `000` a `019` y `022`. La rama de SCRUM-58 usa la `023`.
+- **Propuesta provisional: `024`** para la primera migración de esta historia (o de la parte A). Se vuelve a revisar `develop` y las ramas abiertas antes de crear el archivo y antes del merge, como indica `supabase/README.md`.
+
+### Flujo (propuesto)
+
+1. Crear la familia en `/household`, o "Unirme" en `/invitacion/<token>` con resultado `joined`.
+2. Comprobar: ¿cuenta registrada? (D9) ¿tiene lista general personal con contenido? (D1) ¿ya decidió en esta membresía? (D5)
+3. Si corresponde, la pregunta (D8). "Mantener" guarda la decisión y no cambia listas. "Compartir" guarda la decisión y pasa los ítems en la misma transacción.
+4. Confirmación y la pantalla normal. `/lista` muestra la lista de la familia y, si eligió mantener, la sección personal (D4).
+
+### Seguridad
+
+- Nada de `household_id`, `owner_id` ni ids de listas ajenas desde el cliente: la base los toma de `auth.uid()` y de la membresía.
+- Funciones nuevas con `set search_path = ''`, nombres calificados, `revoke … from public, anon` y rechazo de anónimos (`42501`), como las de household. Si son `security definer` o `security invoker` se decide en el diseño de la parte A.
+- Las listas privadas nunca pueden quedar asociadas a una familia (política y prueba SQL).
+- `security-reviewer` antes de aplicar cada migración y antes de `waiting qa`.
+
+### Pruebas
+
+| Qué | Dónde | Casos |
+|---|---|---|
+| RLS (parte A) | `supabase/tests/<n>_….test.sql` | Un miembro lee y escribe; uno de otra familia, quien ya salió y un anónimo no; nadie asocia una lista a una familia ajena; las listas privadas no se asocian; una sola lista general por familia |
+| Funciones de lista (parte A) | Prueba SQL | Las cinco funciones agregan a la lista de la familia si la persona es miembro y a la personal si no |
+| Compartir (parte B) | Prueba SQL | Reglas de T1; atómico (falla a la mitad: nada cambia); una sola vez por membresía; anónimo rechazado; concurrencia (dos traspasos, traspaso mientras otro agrega) |
+| Salir (D6) | Prueba SQL (con SCRUM-58) | Quien sale pierde el acceso y conserva sus listas personales; resultado según T3 si la familia se elimina |
+| Servicio | `features/household/tests/` y `features/shopping-list/tests/` | Funciones nuevas, valores fuera de contrato, errores sin datos |
+| ViewModel | Hook de la pregunta | Cuándo se muestra (D1, D5, D9), elegir, doble clic, falla y reintento, no volver a preguntar |
+| Componente | Pregunta y sección personal | Dos opciones igual de visibles, textos de D8, teclado, `role="alert"` y `role="status"` |
+| Regresión | Tests existentes y E2E de `/lista` (`features/shopping-list/specs/E2E.md`) | Agregar, tachar, cantidades, eliminar, recetas, plan y modo compra, con y sin familia |
+| Manual | Cuentas registradas de prueba | CA-01 a CA-05 con dos o tres cuentas; capturas sin correos ni tokens |
+
+### Archivos (implementación)
+
+```
+supabase/migrations/024_household_lists.sql        nueva: FK, check, índice, trigger, RLS, funciones (SPEC §12)
+supabase/tests/024_household_lists.test.sql        nueva: prueba SQL (transacción con assert y rollback)
+supabase/tests/023_leave_household.test.sql        paso 8: lo que pasa al borrar una familia desde la 024
+types/database.types.ts                            + personal_lists_decision, FK de lists y 4 funciones
+
+features/household/
+  constants/household.constants.ts                 + RPC, HOUSEHOLD_LISTS_* (opciones, estados, resultados, textos)
+  services/household.service.ts                    + getPersonalListsDecisionState() y decidePersonalLists()
+  hooks/usePersonalListsDecision.ts                nuevo: cuándo preguntar, elegir, doble clic, error y reintento
+  components/PersonalListsDecision.tsx (+ props)   nuevo: la pregunta, solo presentación
+  hooks/useHouseholdViewModel.ts + Household.tsx   + la pregunta en /household
+  hooks/useHouseholdInvitationViewModel.ts
+    + HouseholdInvitation.tsx                      + la pregunta justo después de unirse
+  tests/                                           + service, hook, PersonalListsDecision.page.ts + .test.tsx;
+                                                     mocks de 3 tests existentes
+
+features/shopping-list/
+  constants/shopping-list.constants.ts             + RPC find_general_list_id, id en el select, textos de la sección
+  services/shopping-list.service.ts                getGeneralList usa find_general_list_id; + getKeptPersonalList
+  hooks/useKeptPersonalList.ts                     nuevo
+  components/KeptPersonalListSection.tsx (+ props) nuevo: "Mi lista personal", solo lectura
+  hooks/useShoppingListViewModel.ts + ShoppingListInner.tsx   + la sección
+  tests/shopping-list.service.test.ts              nuevo
+```
+
+### Concurrencia (implementación)
+
+- `ensure_general_list_id`: dos miembros que agregan a la vez crean una sola lista (`on conflict` sobre `lists_one_general_per_household`).
+- `decide_personal_lists`, en este orden:
+  1. `households` `for share`. `leave_household` (023) toma esa fila `for update` antes de borrar membresías, así que una salida y una decisión de la misma familia van una detrás de otra.
+  2. La fila propia de `household_members` `for update`: doble clic y dos pestañas.
+  3. El candado de transacción de la lista de la familia, el mismo que toman `add_recipe_to_general_list` y `add_week_to_general_list`, así que compartir y agregar una receta no se mezclan.
+
+  No toma el link de invitación, así que no se cruza con el orden link → household de 014 y 023.
+- Agregar un producto suelto (`add_item_to_general_list`) mientras otro comparte: los dos hacen `insert … on conflict` sobre la misma fila única (lista, variante). La base los serializa por fila y el resultado es una sola fila con la suma.
+
+### Cómo se aplica y se prueba la 024
+
+La dueña de la historia la aplica (procedimiento de `supabase/README.md`):
+
+1. Revisar otra vez que `024` siga libre en `develop` y en las ramas abiertas.
+2. Avisar al grupo: cambia la RLS de toda la lista general.
+3. En el SQL Editor, en una sola transacción: el contenido de `024_household_lists.sql` y la fila de `supabase_migrations.schema_migrations` (versión `024`, nombre `household_lists`).
+   - Si la guarda del paso 1 de la migración se detiene ("Hay listas con household_id…"), no se aplica nada: avisar antes de seguir.
+4. Correr completo `supabase/tests/024_household_lists.test.sql`. Termina sin error y con `rollback`.
+5. Correr de nuevo `supabase/tests/023_leave_household.test.sql`: su paso 8 comprueba ahora el comportamiento de la 024.
+6. Verificar de solo lectura:
+   - que las políticas viejas ya no existen: `select policyname, tablename from pg_policies where tablename in ('lists','list_items','list_item_recipe_requirements');`
+   - las firmas: `select proname, pg_get_function_arguments(oid), pg_get_function_result(oid) from pg_proc where proname in ('find_general_list_id','ensure_general_list_id','get_personal_lists_decision_state','decide_personal_lists');`
+
+### Dependencias y Gitflow
+
+- **SCRUM-58 (PR #63):** mergeada en `develop` y traída a esta rama con el merge `03b3b07`.
+  - Ese merge dejó separadores de conflicto (`=======`) y secciones mezcladas en los tres specs, y perdió líneas (los `>` de las citas, dos títulos `### Pruebas`, encabezados de tabla).
+  - Se reconstruyeron desde la versión de `develop` más las subsecciones de SCRUM-59. Se comprobó línea por línea que solo cambian los separadores y lo que se había perdido.
+- **PR #64:** abierta.
+- **Aprobación del equipo, pendiente:** la parte A quedó implementada en esta historia (T5). Separarla en otro ticket, o registrar el aumento de alcance en Jira, lo decide el equipo.
+
+### Documento del proyecto
+
+Cuando se implemente (no ahora), `docs/documento-proyecto.md`:
+
+- **§4.1:** "Listas personales al unirse (implementado {fecha}, SCRUM-59)", remitiendo a la decisión del 2026-08-19.
+- **§4.2:** cómo funciona la lista general de la familia.
+- **§6:** `lists`, `list_items` y `list_item_recipe_requirements` (acceso por membresía) y la regla de compartir.
+
+`docs/DESIGN.md` §7.15 ya describe la pantalla. `docs/historias-usuario.md` no cambia; los textos aprobados (D8) quedan en la SPEC.
+
+### Commits y PR
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-59): add personal list decision planning` | `SPEC.md`, `plan.md`, `tasks.md` (hecho: `28bde3a`) |
+| 2 | `fix(SCRUM-59): restore household specs after merging develop` | Los tres specs reconstruidos (sin separadores de conflicto ni líneas perdidas). Junto con el commit 8 si se prefiere |
+| 3 | `feat(SCRUM-59): add household general list and personal lists decision migration` | `024_household_lists.sql`, `024_household_lists.test.sql`, `023_leave_household.test.sql` |
+| 4 | `feat(SCRUM-59): add personal lists decision functions to database types` | `types/database.types.ts` |
+| 5 | `feat(SCRUM-59): add personal lists decision service and view model` | constantes, servicio, `usePersonalListsDecision` y sus tests, mocks de los tests existentes |
+| 6 | `feat(SCRUM-59): ask about personal lists after creating or joining a household` | componente, props, Page Object, test, `Household.tsx`, `HouseholdInvitation.tsx` y sus ViewModels |
+| 7 | `feat(SCRUM-59): show the household list and the kept personal list` | `features/shopping-list/` (constantes, servicio, hook, componente, ViewModel, pantalla, test) |
+| 8 | `docs(SCRUM-59): document the household list and the personal lists decision` | `SPEC.md`, `plan.md`, `tasks.md`, `docs/documento-proyecto.md` |
+| 9 | `docs(SCRUM-59): record manual validation` | Después del QA manual: SPEC §13 y `tasks.md` |
+
+Los commits 3 a 7 compilan en ese orden: los tipos (4) van antes que el código que usa las funciones nuevas.
+
+Título del PR: `feat(SCRUM-59): manage personal lists when joining a household`, hacia `develop`, label `on hold` (ver arriba).
+
+### Riesgos
+
+- **Seguridad:** abrir la lista general a la familia es el cambio de acceso más grande del proyecto hasta ahora; un error de política expondría listas ajenas.
+- **Regresiones** en `/lista`, el modo compra, las recetas y el plan.
+- **Concurrencia** al compartir mientras otros agregan.
+- **Conflictos de documentos** con la rama de SCRUM-58.
+- **Caché de sesión:** `ensureSession` guarda la sesión de la primera vez (lo advierte la SPEC de SCRUM-49); `/lista` podría usar un id viejo después de iniciar sesión sin recargar.
+- **Alcance:** si la parte A no se separa, la historia excede su estimación de 5 puntos.
+- **Deuda: la dueña de la lista de la familia.** `lists.owner_id` apunta a `auth.users` con `on delete cascade` (004). Si se borra la **cuenta** de quien creó la lista de la familia, la lista se borra para todos. Salir de la familia no la borra (la lista no depende de su membresía). Pasarla a otro miembro (por ejemplo, con un trigger `before delete on auth.users`) queda **fuera de SCRUM-59** como tarea técnica (decidido el 2026-10-11): hoy solo se llega borrando el usuario desde Supabase Auth.
+- **Deuda: modo compra.** Cada miembro tacha en su compra personal y el gasto no se atribuye a la familia (HU-38). Un miembro puede cambiar `quantity_bought` de una fila que otro tachó en su compra abierta (el trigger de 018 solo revisa al cambiar de compra).
+- **Requisitos de recetas (se quedan visibles, decidido el 2026-10-11):** cada miembro lee los de todos los ítems de la familia, para que `add_recipe` descuente bien lo ya pedido.
+  - Ve el `recipe_id` y las cantidades, incluso de alguien que ya salió, pero no el nombre de una receta ajena (`recipes` sigue siendo de su dueña).
+  - Un miembro puede inflar un requisito con una receta propia y distorsionar el "disponible" de los demás. Es una molestia dentro de la familia, no un acceso ajeno.
+
+**Hallazgos de `security-reviewer` (2026-10-11) que quedan como decisión o deuda.** Ninguno es crítico ni alto, y ninguno da acceso a una familia ajena:
+
+- **Media: lo comprado por otro miembro se puede deshacer.** **Al compartir ya no** (corregido el 2026-10-11, opción A: el pendiente se queda en la lista personal y la compra no se toca). Sigue pasando al destachar por PATCH o al volver a agregar la variante (`add_item`, `add_units`): se borran `purchase_session_id` y `quantity_bought`, aunque la compra ya esté cerrada (trigger de `018`). Queda para HU-38 / `shopping-list`, fuera de SCRUM-59.
+- **Media: al eliminar una familia se pierde el historial de compras de su lista.** La cascada borra también las filas tachadas; las `purchase_sessions` quedan con su total, pero sin ítems. Lo dispara solo la última persona que sale. Es la consecuencia de T3; si se quiere conservar, hay que mover lo tachado a una lista personal antes de borrar.
+- **Corregido (2026-10-11): planes con un `household_id` inválido.** El trigger borra primero los planes de la familia que chocarían (gana el espacio personal; de duplicados de la familia queda el más antiguo) y pasa a personales los demás.
+- **Corregido en "compartir" (2026-10-11): desborde de cantidades.** La suma se hace en `bigint` y se limita al máximo de `integer`. **Sigue pendiente**, fuera de SCRUM-59: agregar (`add_item`, `add_units`) sobre una fila al máximo todavía falla con desborde, y no existe un tope de producto (tarea técnica: un check en `list_items` y en las funciones de otras historias).
+- **Arrastrado de `015`/`018`, a verificar:** al borrar un usuario, `checked_by` podría quedar apuntando a un usuario inexistente, porque el trigger de tachado le devuelve el valor viejo.
+
+Corregido antes de aplicar: índice `lists (household_id)`, el filtro de familia en los dos `update` de la decisión, y más casos en la prueba SQL. Se agregaron escrituras de un ex-miembro, requisitos de otra familia, un requisito con receta ajena, el conjunto exacto de políticas, y en el paso 9 se cuentan filas en vez de leer un subselect.
