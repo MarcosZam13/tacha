@@ -13,12 +13,10 @@ import {
   SPENDING_STATUS,
   SPENT_LABEL,
 } from "../constants/finance.constants";
-import type {
-  BudgetStatusType,
-  FinanceAccessStatusType,
-  SpendingPeriodType,
-  SpendingStatusType,
-} from "../constants/finance.constants";
+import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
+import type { SpendingPeriodOption } from "../components/models/SpendingPeriodSelectorProps.interface";
+import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
+import type { FinanceAccessStatusType, SpendingPeriodType } from "../constants/finance.constants";
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
 import { hasRegisteredSession } from "../services/finance.service";
 import { formatColones } from "../utils/formatColones";
@@ -26,60 +24,11 @@ import { formatPeriodRange } from "../utils/formatPeriodRange";
 import { usePeriodSpending } from "./usePeriodSpending";
 import { useSpendingBudgets } from "./useSpendingBudgets";
 
-/** Una opción del selector Día / Semana / Mes. */
-interface FinancePeriodOption {
-  isSelected: boolean;
-  label: string;
-  onSelect: () => void;
-  period: SpendingPeriodType;
-}
-
-/** El bloque del gasto, con solo lo que dibuja la pantalla. */
-interface FinanceSpendingSection {
-  closedCount: number;
-  errorMessage: NullableRef<string>;
-  /** "Gastado esta semana". */
-  label: string;
-  onRetry: () => void;
-  /** "Lunes 12 a domingo 18 de octubre"; null mientras carga o con error. */
-  rangeText: NullableRef<string>;
-  status: SpendingStatusType;
-  /** "₡15 000"; null mientras carga o con error. */
-  totalText: NullableRef<string>;
-  withoutTotalCount: number;
-}
-
-/** El bloque del presupuesto, con solo lo que dibuja la pantalla. */
-interface FinanceBudgetSection {
-  /** "Editar presupuesto" o "Definir presupuesto". */
-  actionLabel: string;
-  /** "₡50 000"; null si no hay presupuesto para este periodo. */
-  amountText: NullableRef<string>;
-  /** "Te quedan ₡35 000" / "Te pasaste por ₡3 000"; null sin presupuesto o sin gasto cargado. */
-  differenceText: NullableRef<string>;
-  /** Error de carga o del campo abierto. */
-  errorMessage: NullableRef<string>;
-  inputLabel: string;
-  /** "Presupuesto semanal". */
-  label: string;
-  /** "Sin presupuesto semanal". */
-  noBudgetText: string;
-  /** "No incluye 2 compras sin total"; null si no hay. */
-  notIncludedText: NullableRef<string>;
-  onCancel: () => void;
-  onEdit: () => void;
-  onRetry: () => void;
-  onSave: () => void;
-  onTextChange: (text: string) => void;
-  status: BudgetStatusType;
-  text: string;
-}
-
 interface UseFinanceDashboardViewModelReturn {
   accessStatus: FinanceAccessStatusType;
-  budget: FinanceBudgetSection;
-  periodOptions: FinancePeriodOption[];
-  spending: FinanceSpendingSection;
+  budget: SpendingBudgetProps;
+  periodOptions: SpendingPeriodOption[];
+  spending: SpendingTotalProps;
   /** Lo que anuncia la zona role="status" (SPEC §9): el total nuevo o "Presupuesto guardado". */
   statusMessage: NullableRef<string>;
 }

@@ -75,7 +75,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 7 — Pantalla (commit `feat`)
 
-- [ ] 7.1 `FinanceNoAccount`, `SpendingPeriodSelector`, `SpendingTotal`, `SpendingBudget` y sus props.
+- [x] 7.1 `FinanceNoAccount`, `SpendingPeriodSelector`, `SpendingTotal`, `SpendingBudget` y sus props, con sus tests de componente (`tests/FinanceComponents.test.tsx` y el Page Object `tests/FinanceDashboard.page.ts`).
 - [ ] 7.2 `FinanceDashboard`, `app/(app)/finanzas/page.tsx`, `APP_ROUTE.FINANCE` y el ítem "Finanzas" en la navegación.
 - [ ] 7.3 Page Object y tests (jsdom).
 - [ ] 7.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`.
