@@ -4,6 +4,7 @@ import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import type { HouseholdInviteLinkCardProps } from "../components/models/HouseholdInviteLinkCardProps.interface";
 import type { HouseholdJoinFormProps } from "../components/models/HouseholdJoinFormProps.interface";
 import type { HouseholdLeaveDialogProps } from "../components/models/HouseholdLeaveDialogProps.interface";
+import type { HouseholdMembersSectionProps } from "../components/models/HouseholdMembersSectionProps.interface";
 import type { PersonalListsDecisionProps } from "../components/models/PersonalListsDecisionProps.interface";
 import {
   HOUSEHOLD_FORM_ERROR,
@@ -11,15 +12,19 @@ import {
   HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION,
   HOUSEHOLD_LEAVE_RESULT,
   HOUSEHOLD_LEAVE_TEXT,
+  HOUSEHOLD_MEMBERS_TEXT,
   HOUSEHOLD_ROLE,
   HOUSEHOLD_SCREEN_STATUS,
   HOUSEHOLD_TEXT,
 } from "../constants/household.constants";
 import type { HouseholdLeaveResultType } from "../constants/household.constants";
+import type { HouseholdMember } from "../models/HouseholdMember.interface";
 import { createHousehold, getHouseholdMembership, hasRegisteredSession } from "../services/household.service";
 import { useHouseholdInvite } from "./useHouseholdInvite";
 import { useHouseholdJoinForm } from "./useHouseholdJoinForm";
+import { toMemberInitials } from "../utils/toMemberInitials";
 import { useHouseholdLeave } from "./useHouseholdLeave";
+import { useHouseholdMembers } from "./useHouseholdMembers";
 import { usePersonalListsDecision } from "./usePersonalListsDecision";
 
 /** Unión discriminada por `status`: la pantalla está en uno solo de estos estados. */
@@ -64,6 +69,8 @@ interface UseHouseholdViewModelReturn {
   leave: HouseholdLeaveSection;
   /** "¿Qué quieres hacer con tu lista actual?" (SCRUM-59), ya armada. */
   listsDecision: PersonalListsDecisionProps;
+  /** "Integrantes de la familia" (SCRUM-60), ya armada. */
+  members: HouseholdMembersSectionProps;
   name: string;
   nameError: NullableUndefined<string>;
   onCreateSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -75,8 +82,24 @@ interface UseHouseholdViewModelReturn {
   /** La pregunta de la lista personal se muestra (CA-01). */
   showListsDecision: boolean;
   showMemberNotice: boolean;
+  /** Miembro o admin: los dos ven a su familia (SCRUM-60). */
+  showMembers: boolean;
   showNoAccount: boolean;
 }
+
+// "1 integrante", "5 integrantes": cuántos hay cargados en la lista.
+const toMembersCountText = (count: number): string =>
+  `${count} ${count === 1 ? HOUSEHOLD_MEMBERS_TEXT.COUNT_SINGULAR : HOUSEHOLD_MEMBERS_TEXT.COUNT_PLURAL}`;
+
+// Lo que dibuja cada fila. Ser admin sale del rol, nunca del nombre; el id
+// solo es la key de React.
+const toMemberRow = (member: HouseholdMember): HouseholdMembersSectionProps["rows"][number] => ({
+  initials: toMemberInitials(member.displayName),
+  isAdmin: member.role === HOUSEHOLD_ROLE.ADMIN,
+  isCurrentUser: member.isCurrentUser,
+  label: member.displayName?.trim() || HOUSEHOLD_LEAVE_TEXT.UNNAMED_MEMBER,
+  rowKey: member.userId,
+});
 
 // Qué pantalla le toca al usuario actual según su sesión y su membresía.
 const loadHouseholdScreen = async (): Promise<HouseholdScreenState> => {
@@ -165,6 +188,8 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   // Miembro o admin: después de crear la familia (o al volver a /household
   // sin haber decidido) se pregunta qué hacer con la lista personal.
   const listsDecision = usePersonalListsDecision(householdName !== null);
+  // Solo con familia: la base deriva cuál es desde la sesión (025).
+  const householdMembers = useHouseholdMembers(householdName !== null);
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -296,6 +321,23 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       onKeep: listsDecision.onKeep,
       onShare: listsDecision.onShare,
     },
+    members: {
+      countText:
+        householdMembers.isLoading || householdMembers.errorMessage || householdMembers.members.length === 0
+          ? null
+          : toMembersCountText(householdMembers.members.length),
+      errorMessage: householdMembers.errorMessage,
+      hasMore: householdMembers.hasMore,
+      hasNoResults: householdMembers.hasNoResults,
+      isLoading: householdMembers.isLoading,
+      isLoadingMore: householdMembers.isLoadingMore,
+      loadMoreErrorMessage: householdMembers.loadMoreErrorMessage,
+      onLoadMore: householdMembers.onLoadMore,
+      onQueryChange: householdMembers.onQueryChange,
+      onRetry: householdMembers.onRetry,
+      query: householdMembers.query,
+      rows: householdMembers.members.map(toMemberRow),
+    },
     name,
     nameError,
     onCreateSubmit,
@@ -306,6 +348,7 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
     showLeave: householdName !== null,
     showListsDecision: listsDecision.isVisible,
     showMemberNotice: state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER,
+    showMembers: householdName !== null,
     showNoAccount: state.status === HOUSEHOLD_SCREEN_STATUS.NO_ACCOUNT,
   };
 };

@@ -8,6 +8,7 @@ import {
   HOUSEHOLD_LEAVE_RESULT,
   HOUSEHOLD_LISTS_DECISION_RESULT,
   HOUSEHOLD_LISTS_DECISION_STATE,
+  HOUSEHOLD_MEMBERS_PAGE,
   HOUSEHOLD_ROLE,
   HOUSEHOLD_ROUTE,
 } from "../constants/household.constants";
@@ -21,6 +22,7 @@ import type {
 } from "../constants/household.constants";
 import type { HouseholdInvite } from "../models/HouseholdInvite.interface";
 import type { HouseholdMember } from "../models/HouseholdMember.interface";
+import type { HouseholdMembersPage } from "../models/HouseholdMembersPage.interface";
 import type { HouseholdMembership } from "../models/HouseholdMembership.interface";
 
 // Lo que devuelven create_household_invite y get_household_invite por cada fila.
@@ -157,6 +159,25 @@ const HOUSEHOLD_ROLE_VALUES: readonly string[] = Object.values(HOUSEHOLD_ROLE);
 
 const isHouseholdRole = (role: string): role is HouseholdRoleType => HOUSEHOLD_ROLE_VALUES.includes(role);
 
+// Una fila de get_household_members o de get_household_members_page (misma forma).
+type HouseholdMemberRow = Database["public"]["Functions"]["get_household_members_page"]["Returns"][number];
+
+// La fila de la base → el modelo. rpcName solo va en el mensaje de error, que
+// no lleva el id ni el nombre del miembro.
+const toHouseholdMember = (memberRow: HouseholdMemberRow, rpcName: string): HouseholdMember => {
+  // role es text en la base: se acota en vez de confiar en un `as`.
+  if (!isHouseholdRole(memberRow.role)) {
+    throw new Error(`${rpcName} devolvió un rol desconocido`);
+  }
+
+  return {
+    displayName: memberRow.display_name,
+    isCurrentUser: memberRow.is_current_user,
+    role: memberRow.role,
+    userId: memberRow.user_id,
+  };
+};
+
 /**
  * Los miembros del household del admin que llama, en el orden en que se
  * unieron, para elegir a quién pasarle el rol antes de salir. Si quien llama
@@ -169,19 +190,37 @@ export const getHouseholdMembers = async (): Promise<HouseholdMember[]> => {
   const { data: memberRows, error } = await getSupabaseClient().rpc(HOUSEHOLD_DB.RPC.GET_HOUSEHOLD_MEMBERS);
   if (error) throw error;
 
-  return memberRows.map((memberRow): HouseholdMember => {
-    // role es text en la base: se acota en vez de confiar en un `as`.
-    if (!isHouseholdRole(memberRow.role)) {
-      throw new Error(`${HOUSEHOLD_DB.RPC.GET_HOUSEHOLD_MEMBERS} devolvió un rol desconocido`);
-    }
+  return memberRows.map((memberRow) => toHouseholdMember(memberRow, HOUSEHOLD_DB.RPC.GET_HOUSEHOLD_MEMBERS));
+};
 
-    return {
-      displayName: memberRow.display_name,
-      isCurrentUser: memberRow.is_current_user,
-      role: memberRow.role,
-      userId: memberRow.user_id,
-    };
+/**
+ * Una página de los integrantes de la familia de quien llama (SCRUM-60). La
+ * puede pedir cualquier miembro; la familia la decide la base a partir de la
+ * sesión. Sin cuenta registrada, la base responde con error (42501); sin
+ * familia, una página vacía.
+ *
+ * Pide una fila de más para saber si hay otra página sin contar el total. La
+ * búsqueda va tal como la escribió el usuario: la base la recorta, no
+ * distingue mayúsculas, busca %, _ y \ como texto y rechaza más de 60
+ * caracteres (22023).
+ */
+export const getHouseholdMembersPage = async (
+  searchQuery: string,
+  pageOffset: number,
+): Promise<HouseholdMembersPage> => {
+  const { data: memberRows, error } = await getSupabaseClient().rpc(HOUSEHOLD_DB.RPC.GET_HOUSEHOLD_MEMBERS_PAGE, {
+    page_offset: pageOffset,
+    page_size: HOUSEHOLD_MEMBERS_PAGE.SIZE + 1,
+    search_query: searchQuery,
   });
+  if (error) throw error;
+
+  return {
+    hasMore: memberRows.length > HOUSEHOLD_MEMBERS_PAGE.SIZE,
+    members: memberRows
+      .slice(0, HOUSEHOLD_MEMBERS_PAGE.SIZE)
+      .map((memberRow) => toHouseholdMember(memberRow, HOUSEHOLD_DB.RPC.GET_HOUSEHOLD_MEMBERS_PAGE)),
+  };
 };
 
 // Los únicos resultados que puede devolver leave_household (migración 023).

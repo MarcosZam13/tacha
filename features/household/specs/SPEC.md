@@ -6,6 +6,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-57 / HU-34](https://tacha.atlassian.net/browse/SCRUM-57): unirse a un household por link. Sprint 2, mergeada.
 - [SCRUM-58 / HU-34c](https://tacha.atlassian.net/browse/SCRUM-58): salir de mi household. En curso.
 - [SCRUM-59 / HU-34b](https://tacha.atlassian.net/browse/SCRUM-59): decidir qué hacer con la lista personal al unirse o crear un household. Sprint 4, implementada en la rama; falta aplicar la migración `024`, correr su prueba SQL y el QA manual (ver [§2](#2-alcance): la separación de una parte en otro ticket sigue pendiente del equipo).
+- [SCRUM-60 / HU-35](https://tacha.atlassian.net/browse/SCRUM-60): consultar familiares del household. Sprint 4, en planificación.
 - [SCRUM-61 / HU-36](https://tacha.atlassian.net/browse/SCRUM-61): eliminar a un familiar del household. Sprint 4, en planificación; la implementación espera el merge de SCRUM-60 (PR #68).
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md).
@@ -32,9 +33,14 @@ Que cualquier integrante pueda salir de su familia cuando quiera, para volver a 
 
 Que una persona que ya usaba Tacha por su cuenta y crea una familia o se une a una decida, **una sola vez**, si su lista personal sigue siendo solo suya o pasa a la familia, para no perder lo que ya tenía ni compartir algo que prefiere privado. Las listas que cree después se comparten con la familia sin volver a preguntar.
 
+### SCRUM-60
+
+Que cualquier integrante de una familia vea quiénes la forman: el nombre de cada persona, quién administra la familia y cuál es su propia fila. Cuando la familia es grande, encontrar a alguien por su nombre sin cargar a todos de una vez.
+
 ### SCRUM-61
 
 Que el administrador pueda quitar a alguien de su familia, para decidir quién tiene acceso a la lista y a lo que comparte la familia. La persona eliminada deja de ver los datos de la familia en ese momento, pero no pierde nada propio: conserva su lista personal, sus recetas, sus planes y sus compras.
+
 
 ## 2. Alcance
 
@@ -91,6 +97,15 @@ Lo que no incluye ninguna de las dos está en la [sección 14](#14-casos-fuera-d
 
 Hoy solo existe la lista **general**: las sublistas por fecha y las listas privadas no están implementadas, así que "todas las listas personales" (CA-02) es, en la práctica, la lista general. Cuando existan las sublistas, la decisión se extiende a ellas.
 
+### SCRUM-60
+
+- En `/household`, para miembro y administrador: una sección **"Integrantes de la familia"** con la lista de los miembros de **su** familia.
+- Cada fila: un avatar con las **iniciales** del nombre (o un ícono genérico si no hay nombre), el nombre o "Miembro sin nombre", la etiqueta **"Administrador"** en la fila del admin y **"Tú"** en la fila de quien consulta (CA-01, CA-03).
+- **Búsqueda por nombre** automática mientras se escribe, con debounce, sin distinguir mayúsculas (CA-02).
+- **Paginación:** 20 miembros por página y la acción **"Cargar más"** mientras haya más (CA-02).
+- Estados de carga, sin resultados, error y reintento.
+- Backend: una migración nueva, `025_household_members_page.sql`, con una RPC paginada para cualquier miembro, y su prueba SQL en `supabase/tests/`. `get_household_members()` (`023`) no cambia: la sigue usando el diálogo de salir (SCRUM-58).
+
 ### SCRUM-61
 
 - En la sección "Integrantes de la familia" de `/household` (SCRUM-60), el administrador ve un botón **"Eliminar integrante"** en cada fila, salvo en la suya (CA-01). Un miembro no lo ve.
@@ -99,6 +114,7 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 - Después aparece un aviso de confirmación y la lista de integrantes se vuelve a cargar (CA-04).
 - No se envían notificaciones a la persona eliminada (D2) y el enlace de invitación de la familia no cambia (D1).
 - Backend: una migración nueva (número en [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia)) con la RPC `remove_household_member(member_user_id)` y su prueba SQL en `supabase/tests/`.
+
 
 ## 3. Entradas
 
@@ -147,6 +163,16 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 | ¿Ya decidió en esta membresía? | `boolean` | A definir en el plan (D5; nombre de columna o tabla sin decidir) |
 | Opción elegida | "mantener" o "compartir" | Botones de la pregunta |
 
+### SCRUM-60
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Sesión registrada | `boolean` | `hasRegisteredSession()` (reutilizado; nunca `ensureSession()`) |
+| Membresía | `HouseholdMembership` | `getHouseholdMembership()` (reutilizado): la sección solo existe si pertenece a una familia |
+| Texto de búsqueda | `string` | Campo "Buscar por nombre" |
+| Página | número de miembros ya cargados | "Cargar más" |
+| Miembros de la página | lista de `{ userId, displayName, role, isCurrentUser }` (modelo `HouseholdMember` existente) y si hay más | La RPC nueva ([§12](#12-contratos-externos)) |
+
 ### SCRUM-61
 
 | Entrada | Tipo | De dónde |
@@ -156,6 +182,7 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 | `onRemoveRequest` | `() => void`, uno por fila | Botón "Eliminar integrante" de la fila |
 | `onRemoveConfirm` / `onRemoveCancel` | `() => void` | Botones del diálogo |
 | Resultado | `HouseholdRemoveMemberResultType` | `remove_household_member(member_user_id)` ([§12](#12-contratos-externos)) |
+
 
 ## 4. Salidas
 
@@ -191,12 +218,19 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 - **Compartir:** los ítems de la lista personal quedan en la lista de la familia y el resto de los miembros los ve y edita de inmediato (CA-04).
 - Desde la decisión, agregar productos, recetas o la semana del plan va a la lista de la familia (CA-05, parte A).
 
+### SCRUM-60
+
+- Llama a la RPC nueva al mostrar la sección, al cambiar la búsqueda (después del debounce) y al pulsar "Cargar más".
+- No modifica nada: es solo lectura.
+- Nunca muestra correos ni otros datos de Auth: solo el nombre del registro, el rol y si es quien consulta.
+
 ### SCRUM-61
 
 - Llama a `remove_household_member(member_user_id)` solo al confirmar en el diálogo. El `userId` de la persona viaja solo en esa llamada; nunca se dibuja en el HTML (mismo criterio que SCRUM-60).
 - Según el resultado, la base borra la fila de esa persona en `household_members`. No toca nada más: tampoco el enlace de invitación (D1).
 - Muestra el aviso en la zona `role="status"` de la pantalla y vuelve a cargar la lista de integrantes.
 - Nunca muestra correos ni ids.
+
 
 ## 5. Reglas de negocio
 
@@ -291,6 +325,25 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 - **T4. Modo compra:** funciona sobre la lista de la familia sin cambios. Cada miembro tacha dentro de **su** compra personal (las políticas de `purchase_sessions` no cambian) y la RLS de `list_items` ya le deja tocar los productos de la familia. Atribuir el gasto a la familia es HU-38.
 - **T5. Separación A/B:** **sigue pendiente.** Por indicación de la dueña de la historia, las partes A y B se implementaron en esta rama. Si se separa la parte A en otro ticket, o se registra el aumento de alcance en Jira, lo decide el equipo; esta rama no cambia Jira.
 
+### SCRUM-60
+
+**Decididas por la dueña de la historia (2026-10-17):**
+
+1. **Foto:** se muestran las iniciales del nombre; si no hay nombre, un ícono genérico. La foto real queda para cuando exista el perfil de usuario (HU-30).
+2. **Visibilidad:** cualquier miembro autenticado de una familia consulta a los integrantes de **su propia** familia, y solo a ellos. Esto amplía la regla 9 de SCRUM-58 solo para la función nueva: `get_household_members()` sigue siendo solo del administrador (la usa el diálogo de salir).
+3. **Paginación:** 20 miembros por página, con "Cargar más".
+4. **Búsqueda:** automática mientras se escribe, con debounce.
+5. **Usuario actual:** etiqueta "Tú" en su fila.
+
+**Reglas:**
+
+6. **Solo cuentas registradas:** sin sesión o con sesión anónima, la base rechaza (`42501`).
+7. **La familia la decide la base**, a partir de `auth.uid()` y de la membresía de quien llama. El cliente nunca manda `household_id`.
+8. **Orden estable:** primero el administrador, después por antigüedad en la familia (`created_at`) y, a igual antigüedad, por `user_id`. Así ninguna página repite ni salta a nadie.
+9. **Búsqueda:** sin distinguir mayúsculas, sobre el nombre sin espacios al inicio ni al final. `%` y `_` se buscan como texto. Con la búsqueda vacía se listan todos. Un miembro sin nombre no coincide con ninguna búsqueda.
+10. **Límites:** texto de búsqueda de hasta 60 caracteres; tamaño de página entre 1 y 50 (la interfaz usa 20); el desplazamiento no puede ser negativo. Valores fuera de rango: error `22023`.
+11. **Respuestas viejas:** si la búsqueda cambia mientras llega una página, esa respuesta se descarta; una búsqueda nueva empieza desde la primera página.
+
 ### SCRUM-61
 
 **Decididas por la dueña de la historia** (2026-10-18):
@@ -318,6 +371,7 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
     - **Se borra:** solo su fila de `household_members`, con su decisión de listas (`personal_lists_decision`). Si se une a una familia otra vez, se le vuelve a preguntar.
 11. **Atomicidad y concurrencia:** una sola llamada y una sola transacción. Bloquea en el mismo orden que `leave_household` y `accept_household_invite` (enlace → familia) y, con el bloqueo tomado, vuelve a leer el rol de quien llama y la membresía de la persona. Así una eliminación no se cruza con una salida, una transferencia del rol o una unión por enlace en la misma familia (detalle en [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia)).
 12. **Doble clic:** el botón se deshabilita y una guarda `useRef` ignora el segundo clic. Si igual llega una segunda llamada, la base responde `member_not_found` sin cambios.
+
 
 ## 6. Estados
 
@@ -391,6 +445,19 @@ Implementado con `HOUSEHOLD_LISTS_DECISION_STATUS` (`hooks/usePersonalListsDecis
 
 La consulta de si corresponde preguntar corre en segundo plano, sin spinner: la pregunta aparece cuando responde.
 
+### SCRUM-60
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| `loading` | Primera carga o búsqueda nueva | Spinner en la sección |
+| `ready` | Hay miembros | La lista y, si hay más, "Cargar más" |
+| `noResults` | La búsqueda no coincide con nadie | "Nadie de tu familia coincide con esa búsqueda." (texto propuesto) |
+| `loadingMore` | Esperando la página siguiente | La lista actual y "Cargar más" deshabilitado |
+| `failed` | Falló la primera carga o la búsqueda | Error y "Reintentar" |
+| `loadMoreFailed` | Falló "Cargar más" | La lista actual, el error y "Cargar más" disponible para reintentar |
+
+La lista sin búsqueda nunca está vacía: quien consulta siempre aparece.
+
 ### SCRUM-61
 
 Flujo de eliminar (`HOUSEHOLD_REMOVE_MEMBER_STATUS`, propuesto):
@@ -403,6 +470,7 @@ Flujo de eliminar (`HOUSEHOLD_REMOVE_MEMBER_STATUS`, propuesto):
 | `failed` | Error de red o de la base | El error en el diálogo; se reintenta o se cancela |
 
 Con `removed`, el diálogo se cierra, aparece el aviso y la lista se recarga. Con `member_not_found` o `not_admin` también se cierra y se recarga lo que corresponda ([§7](#7-errores)).
+
 
 ## 7. Errores
 
@@ -464,6 +532,18 @@ Textos propuestos (se confirman al escribir las constantes):
 - Si "Mi lista personal" no se puede cargar en `/lista`, la sección no aparece; la lista principal no depende de ella.
 - Los errores de Supabase no se muestran crudos ni con ids.
 
+### SCRUM-60
+
+Textos propuestos, se confirman al escribir las constantes:
+
+| Situación | Mensaje visible |
+|---|---|
+| Falló la carga o la búsqueda | "No se pudieron cargar los integrantes de tu familia." y el botón "Reintentar" |
+| Falló "Cargar más" | "No se pudieron cargar más integrantes. Intenta de nuevo." |
+| Búsqueda sin resultados | "Nadie de tu familia coincide con esa búsqueda." (no es un error) |
+
+Los errores de Supabase no se muestran crudos ni con ids.
+
 ### SCRUM-61
 
 Textos aprobados (D3):
@@ -476,6 +556,7 @@ Textos aprobados (D3):
 | `not_admin` | Sin mensaje: se vuelve a leer la membresía y se muestra el estado real |
 
 - Los errores de Supabase no se muestran crudos ni con ids.
+
 
 ## 8. UI esperada
 
@@ -542,6 +623,16 @@ Según DESIGN.md §7.15, paso agregado el 2026-08-19:
 
 Los textos de la historia usan voseo ("querés") y "household"; se adaptan al tono de la app (tú, "familia"), como aprobó la dueña de la historia (D8).
 
+### SCRUM-60
+
+En `/household`, para miembro y administrador, una sección **"Integrantes de la familia"** con:
+
+- un campo **"Buscar por nombre"**;
+- la lista de filas: avatar circular con las iniciales (hasta dos letras, de las dos primeras palabras del nombre) o un ícono genérico, el nombre o "Miembro sin nombre", y las etiquetas **"Administrador"** (con `Chip`) y **"Tú"**;
+- el botón **"Cargar más"** (variante secundaria) debajo de la lista, mientras haya más.
+
+Componentes compartidos: `Input`, `Chip`, `Button` y `Spinner` de `@/components/ui`. El debounce reutiliza el criterio de la búsqueda de productos (`PRODUCT_SEARCH.DEBOUNCE_MS`, 300 ms) o una constante propia con el mismo valor (se decide en el plan).
+
 ### SCRUM-61
 
 En la sección "Integrantes de la familia" (SCRUM-60), solo para el administrador:
@@ -552,6 +643,7 @@ En la sección "Integrantes de la familia" (SCRUM-60), solo para el administrado
 - Error, dentro del diálogo: **"No se pudo eliminar al integrante. Inténtalo de nuevo"**.
 
 Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son los aprobados (D3).
+
 
 ## 9. Accesibilidad
 
@@ -586,6 +678,14 @@ Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son
 - Las dos opciones son botones o tarjetas con nombre accesible y el mismo peso visual; ninguna está preseleccionada.
 - Se puede elegir solo con teclado. Mientras guarda, las opciones quedan deshabilitadas y el estado se anuncia.
 - El error se anuncia con `role="alert"` y la confirmación final en una zona `role="status"`.
+
+### SCRUM-60
+
+- La lista es un `<ul>` con una fila por miembro; el avatar es decorativo (`aria-hidden`) porque el nombre ya está en texto.
+- El campo de búsqueda tiene su `label`.
+- La cantidad de resultados y "sin resultados" se anuncian en una zona `role="status"`; los errores, con `role="alert"`.
+- "Cargar más" no mueve el foco: los miembros nuevos se agregan al final de la lista.
+- Todo se puede hacer con teclado.
 
 ### SCRUM-61
 
@@ -637,6 +737,14 @@ Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son
 - **Cliente:** el servicio de `/lista` (`getGeneralList()` en `features/shopping-list/services/shopping-list.service.ts`) usa `ensureSession()` y filtra `household_id` nulo. La pregunta usa `hasRegisteredSession()`.
 - La lista general se sigue creando al agregar el primer producto, no al abrir la pantalla.
 
+### SCRUM-60
+
+- **Supabase:** una migración nueva, `supabase/migrations/025_household_members_page.sql`, con su prueba SQL y el procedimiento de `supabase/README.md`. Al 2026-10-17 `develop` llega a la `024` y ninguna rama usa la `025`; se vuelve a revisar antes de crearla y antes del merge.
+- **La RPC es `security definer`** (`household_members` solo deja leer la fila propia), con `set search_path = ''`, nombres calificados, `revoke … from public, anon` y `grant … to authenticated`.
+- El nombre sale de `auth.users.raw_user_meta_data ->> 'name'`, como en `get_household_members()`. No hay tabla de perfiles.
+- La pantalla usa `getSession()`, nunca `ensureSession()`.
+- Los textos, el tamaño de página y el debounce van en constantes.
+
 ### SCRUM-61
 
 - Todo lo de SCRUM-58 y SCRUM-60 aplica igual.
@@ -644,6 +752,7 @@ Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son
 - La RPC es `security definer` con `set search_path = ''`, nombres calificados, `revoke execute` de `public` y `anon` y `grant` a `authenticated`. No se agregan políticas ni permisos de tabla: `household_members` sigue sin `delete` para el cliente.
 - Migración nueva con el procedimiento de `supabase/README.md`. No se modifican la `023`, la `024` ni la `025`.
 - Tests automáticos obligatorios (CONTRIBUTING §7) y prueba SQL de la migración en `supabase/tests/`.
+
 
 ## 11. Dependencias
 
@@ -686,6 +795,15 @@ Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son
 | SCRUM-49 (anónimos) | En `develop` | D9: migrar los datos anónimos es otro ticket |
 | Aprobación del equipo (D7, T5) | Pendiente | Define si la parte A es un ticket aparte |
 
+### SCRUM-60
+
+| Dependencia | Estado (2026-10-17) | Efecto |
+|---|---|---|
+| SCRUM-56, 57, 58 y 59 | Mergeadas en `develop` | La pantalla `/household`, la membresía y el modelo `HouseholdMember` |
+| `get_household_members()` (`023`) | En `develop` | No se modifica: la usa el diálogo de salir |
+| HU-30 (perfil) | No existe | La foto real queda para esa historia |
+| HU-36 (eliminar miembros) | No empezada | Fuera de esta historia |
+
 ### SCRUM-61
 
 | Dependencia | Estado (2026-10-18) | Efecto |
@@ -694,6 +812,7 @@ Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son
 | SCRUM-58 (salir) | En `develop` | Mismo orden de bloqueos y mismo criterio de datos. `leave_household` no cambia |
 | SCRUM-59 (lista de la familia) | En `develop` | Su acceso por membresía (`024`) es lo que hace que perder la fila quite el acceso |
 | SCRUM-56 (enlace) | En `develop` | D1: un solo enlace por familia; eliminar no lo toca. "Generar enlace nuevo" es la forma de cortarlo |
+
 
 ## 12. Contratos externos
 
@@ -785,6 +904,24 @@ leave_household(new_admin_user_id uuid default null) returns text
 - `get_personal_lists_decision_state() returns text`: `pending`, `nothing_to_decide`, `decided` o `not_member`. Sin cuenta registrada: `42501`.
 - `decide_personal_lists(lists_choice text) returns text`: `kept`, `shared` (pasaron todos los pendientes, o no había ninguno), `shared_partially` (pasó al menos uno y alguno se quedó en la lista personal porque la familia ya lo compró), `nothing_shared` (no pasó ninguno: la familia ya había comprado todos; la decisión se guarda igual), `already_decided` o `not_member`. Una opción inválida: `22023`. Sin cuenta registrada: `42501`.
 - Todas las funciones nuevas: `set search_path = ''`, nombres calificados, `revoke … from public, anon` y `grant … to authenticated`.
+
+### SCRUM-60
+
+RPC nueva, en la migración `025_household_members_page.sql` (se escribe en la etapa de la migración; la firma puede ajustarse en la revisión):
+
+```
+get_household_members_page(search_query text default null,
+                           page_size integer default 20,
+                           page_offset integer default 0)
+returns table (user_id uuid, display_name text, role text, is_current_user boolean)
+```
+
+- `security definer`, `set search_path = ''`, nombres calificados.
+- Sin sesión o con sesión anónima: `42501`. Quien no pertenece a ninguna familia: ninguna fila.
+- Solo filas de la familia de quien llama. Sin correo ni otros datos de `auth.users` además del nombre.
+- Parámetros fuera de los límites de la regla 10: `22023`.
+- `revoke execute … from public, anon`; `grant execute … to authenticated`.
+- El cliente pide `page_size + 1` filas para saber si hay más, sin contar el total.
 
 ### SCRUM-61
 
@@ -908,6 +1045,27 @@ Casos de cada flujo:
 - [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
 - [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
 
+### HU-35 (SCRUM-60)
+
+Ninguno validado todavía. Evidencia esperada: manual (cuentas registradas de prueba, con capturas), base (prueba SQL con `rollback`) y test (Vitest).
+
+Criterios de la historia:
+
+- [ ] **CA-01:** la vista de la familia muestra a los miembros con su nombre, su foto (por ahora, las iniciales o un ícono genérico) y si son administradores.
+- [ ] **CA-02:** la lista se puede buscar por nombre y se carga por partes (20 por página, "Cargar más") en vez de traer a todos de una vez.
+- [ ] **CA-03:** se identifica claramente quién es el administrador.
+
+Casos de cada flujo:
+
+- [ ] **Visibilidad:** un miembro y el administrador ven solo a su familia; alguien de otra familia o sin familia no ve a nadie; sin sesión y con sesión anónima: `42501`; `anon` no ejecuta la función.
+- [ ] **Datos:** ninguna fila trae el correo; "Miembro sin nombre" e ícono genérico cuando no hay nombre; "Tú" en la fila propia.
+- [ ] **Orden y páginas:** el administrador primero; la primera página más la segunda dan todos los miembros, sin repetidos.
+- [ ] **Búsqueda:** sin distinguir mayúsculas; `%` y `_` como texto; sin resultados muestra el aviso; una búsqueda nueva vuelve a la primera página y descarta respuestas viejas.
+- [ ] **Errores:** falla de carga con "Reintentar"; falla de "Cargar más" sin perder la lista.
+- [ ] **Límites:** búsqueda de más de 60 caracteres, tamaño de página fuera de 1 a 50 y desplazamiento negativo se rechazan.
+- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+
 ### HU-36 (SCRUM-61)
 
 Ninguno validado todavía.
@@ -930,8 +1088,7 @@ Casos de cada flujo:
 - [ ] **Concurrencia:** eliminar a alguien que está saliendo, o a quien el administrador le pasa el rol al mismo tiempo, nunca deja la familia sin administrador ni con dos.
 - [ ] **Doble clic y cancelar:** una sola llamada; cerrar el diálogo no llama a la base.
 - [ ] **Nombres:** "Miembro sin nombre" si no tiene; ningún correo ni id en la página.
-- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+
 
 ## 14. Casos fuera de alcance
 
@@ -976,6 +1133,14 @@ Casos de cada flujo:
 - Ver a todos los miembros (HU-35), eliminar miembros (HU-36) y gastos por familia (HU-38).
 - El onboarding de DESIGN.md §7.7: la pregunta vive en los flujos de `/household` y `/invitacion/<token>`.
 
+### SCRUM-60
+
+- La foto real del perfil y editarla (HU-30).
+- Eliminar a un miembro (HU-36) o cambiar su rol.
+- Mostrar correos, fecha de unión u otros datos de la cuenta.
+- Ordenar o filtrar por otro criterio que no sea el nombre.
+- Cambiar `get_household_members()` o el diálogo de salir (SCRUM-58).
+
 ### SCRUM-61
 
 - Notificar a la persona eliminada (D2).
@@ -1003,5 +1168,7 @@ Casos de cada flujo:
 - **SCRUM-59, specs (2026-10-10):** las subsecciones de SCRUM-59 se agregan sobre `develop`, que no tiene las de SCRUM-58. Cuando se mergee la #63 y se traiga `develop` a esta rama, los tres specs de `features/household/` van a tener conflictos en los mismos lugares: se resuelven conservando las subsecciones de las dos historias.
 - **SCRUM-59, textos:** los de la historia usan voseo y "household"; la app usa tú y "familia" (D8).
 - **SCRUM-59, alcance:** la parte A (lista general de la familia) cambia el control de acceso de toda la lista general. Necesita `security-reviewer` antes de aplicarse y la aprobación del equipo antes de empezar.
+- **SCRUM-60, decisiones (2026-10-17):** iniciales o ícono genérico en vez de foto (HU-30), cualquier miembro consulta solo su familia, 20 por página con "Cargar más", búsqueda automática con debounce y la etiqueta "Tú". Se agrega una función nueva en vez de cambiar `get_household_members()`, porque esa la usa el diálogo de salir (SCRUM-58) y es solo del administrador.
 - **SCRUM-61, specs (2026-10-18):** las subsecciones de SCRUM-61 se escriben sobre `develop`, que todavía no tiene las de SCRUM-60 (#68). Cuando se mergee la #68 y se traiga `develop` a esta rama, los tres specs de `features/household/` van a tener conflictos en los mismos lugares: se resuelven conservando las subsecciones de las dos historias.
 - **SCRUM-61, número de la migración:** `026` es provisional, porque la `025` es de SCRUM-60. Se revisa antes de crear el archivo y antes del merge.
+

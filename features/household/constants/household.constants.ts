@@ -34,6 +34,8 @@ export const HOUSEHOLD_DB = {
     DECIDE_PERSONAL_LISTS: "decide_personal_lists",
     // Migración 023 (contrato en specs/SPEC.md §12).
     GET_HOUSEHOLD_MEMBERS: "get_household_members",
+    // Migración 025 (contrato en specs/SPEC.md §12, SCRUM-60).
+    GET_HOUSEHOLD_MEMBERS_PAGE: "get_household_members_page",
     // Migración 024.
     GET_PERSONAL_LISTS_DECISION_STATE: "get_personal_lists_decision_state",
     LEAVE_HOUSEHOLD: "leave_household",
@@ -364,4 +366,43 @@ export const HOUSEHOLD_LISTS_DECISION_TEXT = {
   // Propuesto: pasó al menos uno y alguno se quedó.
   SHARED_PARTIALLY:
     "Compartiste tu lista. Lo que tu familia ya había comprado se quedó en tu lista personal.",
+} as const;
+
+// Integrantes de la familia de a una página (SCRUM-60, decisión del
+// 2026-10-17). La base acepta hasta 50 por página (migración 025).
+export const HOUSEHOLD_MEMBERS_PAGE = {
+  // Misma espera que la búsqueda de productos (PRODUCT_SEARCH.DEBOUNCE_MS).
+  SEARCH_DEBOUNCE_MS: 300,
+  // El mismo tope que valida la base (migración 025).
+  SEARCH_MAX_LENGTH: 60,
+  SIZE: 20,
+} as const;
+
+// Estado de "Cargar más" (hooks/useHouseholdMembers.ts). La primera página
+// no lleva constante: su estado se deriva de la respuesta guardada.
+export const HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS = {
+  FAILED: "failed",
+  LOADING: "loading",
+} as const;
+
+export type HouseholdMembersLoadMoreStatusType =
+  (typeof HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS)[keyof typeof HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS];
+
+// Textos de la sección "Integrantes de la familia" (SPEC §7 y §8, SCRUM-60).
+// Los dos errores los devuelve useHouseholdMembers; el resto, la pantalla.
+export const HOUSEHOLD_MEMBERS_TEXT = {
+  ADMIN: "Administrador",
+  // Cantidad cargada, anunciada en role="status": "1 integrante", "5 integrantes".
+  COUNT_PLURAL: "integrantes",
+  COUNT_SINGULAR: "integrante",
+  CURRENT_USER: "Tú",
+  LOAD_ERROR: "No se pudieron cargar los integrantes de tu familia.",
+  LOAD_MORE: "Cargar más",
+  LOAD_MORE_ERROR: "No se pudieron cargar más integrantes. Intenta de nuevo.",
+  LOADING_MORE: "Cargando…",
+  NO_RESULTS: "Nadie de tu familia coincide con esa búsqueda.",
+  RETRY: "Reintentar",
+  SEARCH_LABEL: "Buscar por nombre",
+  SEARCH_PLACEHOLDER: "Ej. Ana",
+  TITLE: "Integrantes de la familia",
 } as const;

@@ -1,9 +1,10 @@
 "use client";
 
-import { LOGIN_ERROR_MESSAGE } from "../constants/login.constants";
-import { useRecaptchaWidgetViewModel } from "../hooks/useRecaptchaWidgetViewModel";
-import type { RecaptchaWidgetProps } from "../models/RecaptchaWidgetProps.interface";
+import { RECAPTCHA_ERROR_MESSAGE } from "@/constants";
+import { useRecaptchaWidgetViewModel } from "./hooks/useRecaptchaWidgetViewModel";
+import type { RecaptchaWidgetProps } from "./models/RecaptchaWidgetProps.interface";
 
+/** Casilla de reCAPTCHA v2. Entrega el token por `onTokenChange`; subir `resetCount` la reinicia. */
 export const RecaptchaWidget = ({
   onTokenChange,
   resetCount,
@@ -15,7 +16,7 @@ export const RecaptchaWidget = ({
       <div ref={containerRef} />
       {hasLoadError ? (
         <p role="alert" className="font-body text-sm text-red-600">
-          {LOGIN_ERROR_MESSAGE.RECAPTCHA_LOAD_FAILED}
+          {RECAPTCHA_ERROR_MESSAGE.LOAD_FAILED}
         </p>
       ) : null}
     </div>

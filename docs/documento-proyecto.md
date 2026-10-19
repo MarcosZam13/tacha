@@ -89,6 +89,7 @@ Tacha es una aplicación web para que un grupo de usuarios (familias, o grupos d
   - **Compartir:** pasa los pendientes a la lista general de la familia en una sola operación. La misma variante se suma en una fila; lo tachado se queda en la lista personal, y también lo que la familia ya compró (no se borra esa compra).
   - **Mantener:** no cambia nada, y `/lista` la muestra aparte como "Mi lista personal", de solo lectura.
   - Hoy solo existe la lista general: las sublistas por fecha y las privadas no están implementadas. Detalle en `features/household/specs/`.
+- **Ver a los integrantes de la familia (decidido 2026-10-17, SCRUM-60 / HU-35, en implementación):** cualquier miembro registrado de un household ve a los integrantes de **su** household, y solo a ellos: nombre del registro (o "Miembro sin nombre"), quién es el admin y una etiqueta "Tú" en su propia fila. Nunca el correo. En lugar de foto se muestran las iniciales del nombre, o un ícono genérico si no hay nombre, hasta que exista el perfil con foto (HU-30). La lista se busca por nombre mientras se escribe y se carga de a 20 con "Cargar más". Detalle en `features/household/specs/`.
 - **Rol "Administrador" (confirmado 2026-08-19):** no existe un rol de administración global de la plataforma — "Administrador" se refiere únicamente al rol `admin` dentro de un household (`household_members.role`), con las capacidades ya descritas arriba (invitar, consultar y eliminar miembros). No hay alcance adicional pendiente de definir.
 
 ### 4.2 Lista general y dashboard financiero
@@ -279,7 +280,7 @@ Esto convierte un problema de cálculo que "no siempre puede salir bien" en una 
 
 **Recuperación de contraseña:** solicitud por correo, envío de link/código con expiración, vista de nueva contraseña con el mismo feedback de fortaleza que el registro, mensaje de confirmación genérico (no revela si el correo existe, por seguridad).
 
-**Implicación de modelo de datos:** reCAPTCHA, OAuth, JWT y expiración de sesión los resuelve Supabase Auth de forma nativa — no requieren tablas propias. Sí hace falta una tabla para las invitaciones de household por link (ver [4.1](#41-gestión-de-usuarios-familias-y-perfiles)) — ver [6. Modelo de datos (resumen conceptual)](#6-modelo-de-datos-resumen-conceptual).
+**Implicación de modelo de datos:** reCAPTCHA, OAuth, JWT y expiración de sesión los resuelve Supabase Auth de forma nativa — no requieren tablas propias. Sí hace falta una tabla para las invitaciones de household por link (ver [4.1](#41-gestión-de-usuarios-familias-y-perfiles)) — ver [6. Modelo de datos (resumen conceptual)](#6-modelo-de-datos-resumen-conceptual). Los formularios de contacto guardan sus mensajes en `contact_messages` (SCRUM-28).
 
 ### 4.13 Configuración (agregado 2026-08-19)
 
@@ -328,6 +329,7 @@ Requerimiento que ya existía implícito en otras secciones (el "encargado" de l
 | `product_group_items` | Producto dentro de un grupo, referenciando una `product_catalog_variants` con su cantidad por defecto — mismo rol que `recipe_ingredients` pero sin porciones ni multiplicador, y sí ligado a una variante concreta (a diferencia de `recipe_ingredients`) porque un producto de grupo ya es una unidad de compra, no una medida cruda |
 | `household_inventory_items` | **Nueva (2026-08-19, amplía el inventario doméstico):** producto que la app cree que el usuario tiene en casa. Mismo patrón de dueño que `lists`/`product_groups`: `owner_id` siempre presente, `household_id` nullable. Columnas: `product_catalog_id`, `source` (`purchase` — vino de un tachado — o `manual`), `expires_at` nullable (si el usuario dio una fecha/rango con los chips rápidos) o `estimated_expires_at` (calculada por categoría si no la dio), `status` (`active`/`consumed`/`discarded`). Ver [4.10](#410-inventario-doméstico) |
 | `list_settings` | **Nueva (2026-08-19):** ajustes por lista de la pantalla de Configuración — hoy solo `list_id` + `assignee_enabled` (boolean, si el "encargado" está activo para esa lista). Ver [4.13](#413-configuración-agregado-2026-08-19) |
+| `contact_messages` | **Nueva (2026-10-19, SCRUM-28, migración 028):** mensajes del formulario de contacto (HU-06, HU-14): `name`, `email` (en minúsculas), `message`, `source` (`landing` o `about`, la página desde donde se envió) y `created_at`. Los `check` repiten los límites del formulario. RLS activado sin políticas y sin permisos para `anon` ni `authenticated`: solo la escribe la Edge Function `submit-contact-message`, con la service role, después de verificar el reCAPTCHA con Google y de limitar a 5 mensajes por correo por hora. El equipo lee los mensajes desde el Table Editor de Supabase. Ver [4.12](#412-acceso-público-y-autenticación-extendida-landing-about-auth) |
 
 Reglas de negocio que deben vivir en la base de datos (funciones/triggers), no en el cliente:
 

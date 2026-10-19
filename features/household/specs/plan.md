@@ -944,3 +944,106 @@ Lo que salga de las revisiones va en commits `fix(SCRUM-61): …`. Staging expl�
 - **Cuentas sin nombre:** varias filas "Miembro sin nombre" con su "Eliminar integrante" son difíciles de distinguir (ya anotado en SCRUM-58).
 - **Foco del `Modal`:** el primitivo no atrapa el foco (anotado en SCRUM-58) y la fila eliminada desaparece: el foco se valida a mano.
 - **Lo que la persona agregó a la lista de la familia se queda en la familia:** es lo mismo que al salir (D6 de SCRUM-59). El mensaje aprobado ("Sus datos personales no se eliminarán") es coherente: lo que agregó a la lista de la familia no es un dato personal.
+## SCRUM-60: consultar a los integrantes de la familia
+
+> **Verificado el 2026-10-17** contra `develop` en `449b5a4` (SCRUM-56 a SCRUM-59 mergeadas, rama sin commits propios). `household_members` solo deja leer la fila propia (`011`). `get_household_members()` (`023`) es solo del administrador, devuelve todos los miembros sin buscar ni paginar y la usa el diálogo de salir. El registro guarda solo `{ name }` en los metadatos de Auth (`features/registro-manual/services/registro.service.ts`); no hay foto, login social ni tabla de perfiles. La búsqueda de productos usa un debounce de 300 ms (`PRODUCT_SEARCH.DEBOUNCE_MS`, `hooks/useProductSearch.ts`). Migraciones en `develop`: `000` a `024`.
+
+Decisiones de producto de la dueña de la historia (2026-10-17): SPEC §5, decisiones 1 a 5.
+
+### Archivos
+
+```
+supabase/migrations/025_household_members_page.sql   nueva: get_household_members_page(...)
+supabase/tests/025_household_members_page.test.sql    nueva: prueba SQL (transacción con assert y rollback)
+types/database.types.ts                               + Functions.get_household_members_page
+
+features/household/
+  constants/household.constants.ts                    + RPC, tamaño de página (20), debounce, estados y textos
+  services/household.service.ts                       + getHouseholdMembersPage({ searchQuery, pageOffset }),
+                                                        reutiliza HouseholdMember y la validación del rol
+  hooks/useHouseholdMembers.ts                        nuevo: primera página, búsqueda con debounce, cargar más,
+                                                        respuestas viejas descartadas, error y reintento
+  components/HouseholdMembersSection.tsx (+ props)    nuevo: búsqueda, filas con iniciales o ícono, nombre o
+                                                        "Miembro sin nombre", "Administrador", "Tú", "Cargar más"
+  hooks/useHouseholdViewModel.ts + Household.tsx      + la sección para miembro y administrador
+  tests/                                              + servicio, useHouseholdMembers.test.ts,
+                                                        HouseholdMembersSection.page.ts + .test.tsx
+
+docs/documento-proyecto.md                            §4.1 y §6 (al implementar)
+```
+
+No cambian: `get_household_members()` (`023`), el diálogo de salir, las demás RPC de household ni el login.
+
+### Número de la migración
+
+- `develop` (2026-10-17): `000` a `024`. Ninguna rama remota usa la `025`.
+- **Propuesta: `025_household_members_page.sql`.** Se revisa otra vez antes de crearla y antes del merge (`supabase/README.md`).
+
+### Datos
+
+**`get_household_members_page(search_query text default null, page_size integer default 20, page_offset integer default 0)`** → `table (user_id uuid, display_name text, role text, is_current_user boolean)`.
+
+Requisitos de seguridad, que la migración tiene que cumplir:
+
+1. **Familia derivada de la identidad:** el `household_id` sale de la fila de `household_members` de `auth.uid()`. Ningún parámetro elige familia, usuario ni rol.
+2. **Sesiones:** sin `auth.uid()` o con `is_anonymous` en el JWT → `42501`, como las demás de household.
+3. **Ejecución:** `revoke execute … from public, anon`; `grant execute … to authenticated`.
+4. **Datos mínimos:** solo `user_id`, el nombre (`nullif(btrim(raw_user_meta_data ->> 'name'), '')`), el rol y si es quien llama. Nunca el correo, el teléfono ni otros datos de `auth.users`.
+5. **Parámetros validados:**
+   - `search_query` de hasta 60 caracteres, recortado; vacío o nulo = sin filtro;
+   - `page_size` entre 1 y 50;
+   - `page_offset` ≥ 0.
+
+   Fuera de rango: `22023`. La búsqueda escapa `%`, `_` y `\` antes de usar `ilike`.
+6. **Orden estable:** `order by (role = 'admin') desc, created_at, user_id`, para que las páginas no salten ni repitan filas.
+7. **`security definer` con controles:**
+   - `set search_path = ''`;
+   - todos los nombres calificados (`public.`, `auth.`);
+   - `stable`;
+   - sin SQL armado con texto;
+   - `#variable_conflict use_column`, como en `023`, porque las columnas de salida se llaman igual que las de la tabla.
+
+**Por qué una función nueva y no cambiar `get_household_members()`:** esa función es solo del administrador y la usa el diálogo de salir (SCRUM-58). Abrirla a todos los miembros o cambiar su firma afectaría ese flujo y su prueba SQL. Si algún día se unifican, se documenta en ese momento.
+
+**Tipos:** `get_household_members_page: { Args: { page_offset?: number; page_size?: number; search_query?: string }; Returns: { display_name: string | null; is_current_user: boolean; role: string; user_id: string }[] }`, escritos a mano como en las historias anteriores y verificados contra `pg_proc` después de aplicar.
+
+### Flujo
+
+1. `/household` con membresía → la sección pide la primera página (`page_offset = 0`, `page_size = 21` para saber si hay más; se muestran 20).
+2. Escribir en "Buscar por nombre" → después del debounce, primera página con ese filtro. Una respuesta de una búsqueda anterior se descarta.
+3. "Cargar más" → la página siguiente (`page_offset` = cantidad ya cargada) se agrega al final.
+4. Falla → error y "Reintentar" (primera página) o "Cargar más" de nuevo (página siguiente), sin perder lo ya cargado.
+
+### Seguridad
+
+- `security-reviewer` sobre la migración antes de aplicarla y sobre el cambio completo antes de `waiting qa`.
+- Riesgo a revisar: un miembro ve el `user_id` de los demás (lo necesita la interfaz como clave). No se dibuja en el HTML, igual que en el diálogo de salir.
+
+### Pruebas
+
+| Qué | Dónde | Casos |
+|---|---|---|
+| RPC | `supabase/tests/025_household_members_page.test.sql` | Miembro y admin ven solo su familia; otra familia y sin familia, nada; sin sesión y anónimo, `42501`; `anon` sin `execute`; sin columna de correo (`pg_get_function_result`); admin primero; página 1 + página 2 = todos sin repetidos; búsqueda sin distinguir mayúsculas; `%` y `_` literales; sin nombre no coincide al buscar; límites fuera de rango, `22023` |
+| Servicio | `household.service.test.ts` | Parámetros enviados, `hasMore` con `page_size + 1`, rol desconocido, error de Supabase |
+| Hook | `useHouseholdMembers.test.ts` | Primera carga, búsqueda con debounce, respuesta vieja descartada, cargar más, error y reintento, desmontar |
+| Componente | `HouseholdMembersSection.page.ts` + `.test.tsx` (jsdom) | Iniciales e ícono genérico, "Miembro sin nombre", "Administrador", "Tú", sin resultados, "Cargar más" y su error, accesibilidad |
+| Manual | Cuentas registradas de prueba | CA-01 a CA-03 con una familia de 3 o más miembros; capturas sin correos |
+
+### Commits y PR
+
+El PR se abre con el commit 1, hacia `develop`, con label `in progress` (Gitflow: una PR por historia, abierta desde el primer commit), y sigue con la implementación.
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-60): add household members list planning` | `SPEC.md`, `plan.md`, `tasks.md`, `docs/documento-proyecto.md` |
+| 2 | `feat(SCRUM-60): add paginated household members migration` | `025_household_members_page.sql` y su prueba |
+| 3 | `feat(SCRUM-60): add household members page to database types` | `types/database.types.ts` |
+| 4 | `feat(SCRUM-60): add household members page service and view model` | constantes, servicio, hook y sus tests |
+| 5 | `feat(SCRUM-60): show household members on the household screen` | componente, props, Page Object, test, `Household.tsx`, `useHouseholdViewModel.ts` |
+| 6 | `docs(SCRUM-60): update project document and record validation` | `documento-proyecto.md`, SPEC §13, `tasks.md` |
+
+### Riesgos
+
+- **Sin foto:** las iniciales dependen del nombre del registro; las cuentas sin nombre muestran el ícono genérico y "Miembro sin nombre".
+- **`offset` y concurrencia:** si alguien se une o sale entre una página y la siguiente, el desplazamiento puede saltar o repetir una fila. Con familias chicas es aceptable; si hiciera falta, se cambia a paginación por cursor (`created_at`, `user_id`).
+- **Número de la migración** sujeto a cambios hasta el merge.

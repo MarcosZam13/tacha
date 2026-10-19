@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
-import { RECAPTCHA, RECAPTCHA_SITE_KEY } from "../constants/login.constants";
+import { RECAPTCHA, RECAPTCHA_SITE_KEY } from "@/constants";
 import type { RecaptchaWidgetProps } from "../models/RecaptchaWidgetProps.interface";
 import type { RecaptchaWidgetViewModel } from "../models/RecaptchaWidgetViewModel.interface";
 import type { RecaptchaWindow } from "../models/RecaptchaWindow.interface";

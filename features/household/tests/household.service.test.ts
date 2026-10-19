@@ -6,12 +6,14 @@ import {
   HOUSEHOLD_LISTS_CHOICE,
   HOUSEHOLD_LISTS_DECISION_RESULT,
   HOUSEHOLD_LISTS_DECISION_STATE,
+  HOUSEHOLD_MEMBERS_PAGE,
   HOUSEHOLD_ROLE,
 } from "../constants/household.constants";
 import {
   acceptHouseholdInvite,
   decidePersonalLists,
   getHouseholdMembers,
+  getHouseholdMembersPage,
   getPersonalListsDecisionState,
   hasRegisteredSession,
   leaveHousehold,
@@ -271,5 +273,102 @@ describe("decidePersonalLists", () => {
     rpcMock.mockResolvedValue({ data: null, error: supabaseError });
 
     await expect(decidePersonalLists(HOUSEHOLD_LISTS_CHOICE.SHARE)).rejects.toBe(supabaseError);
+  });
+});
+
+// SCRUM-60: los integrantes de la familia de a una página.
+const UNKNOWN_PAGE_ROLE_MESSAGE = `${HOUSEHOLD_DB.RPC.GET_HOUSEHOLD_MEMBERS_PAGE} devolvió un rol desconocido`;
+
+// Filas de miembro inventadas, en el orden de la base.
+const createMemberRows = (count: number) =>
+  Array.from({ length: count }, (_, index) => ({
+    display_name: `Miembro ${index + 1}`,
+    is_current_user: index === 1,
+    role: index === 0 ? HOUSEHOLD_ROLE.ADMIN : HOUSEHOLD_ROLE.MEMBER,
+    user_id: `user-${index + 1}`,
+  }));
+
+describe("getHouseholdMembersPage", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+  });
+
+  it("asks for one row more than a page, with the search and the offset as given", async () => {
+    rpcMock.mockResolvedValue({ data: [], error: null });
+
+    await getHouseholdMembersPage("  Bet ", 40);
+
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // Nombre y parámetros literales a propósito: fijan el contrato con la base (migración 025).
+    expect(rpcMock).toHaveBeenCalledWith("get_household_members_page", {
+      page_offset: 40,
+      page_size: 21,
+      search_query: "  Bet ",
+    });
+  });
+
+  it("returns the first 20 members and says there are more when the database sends 21", async () => {
+    rpcMock.mockResolvedValue({ data: createMemberRows(HOUSEHOLD_MEMBERS_PAGE.SIZE + 1), error: null });
+
+    const membersPage = await getHouseholdMembersPage("", 0);
+
+    expect(membersPage.hasMore).toBe(true);
+    expect(membersPage.members).toHaveLength(HOUSEHOLD_MEMBERS_PAGE.SIZE);
+    expect(membersPage.members.at(-1)?.userId).toBe(`user-${HOUSEHOLD_MEMBERS_PAGE.SIZE}`);
+  });
+
+  it("says there are no more members on the last page", async () => {
+    rpcMock.mockResolvedValue({ data: createMemberRows(HOUSEHOLD_MEMBERS_PAGE.SIZE), error: null });
+
+    const membersPage = await getHouseholdMembersPage("", 0);
+
+    expect(membersPage.hasMore).toBe(false);
+    expect(membersPage.members).toHaveLength(HOUSEHOLD_MEMBERS_PAGE.SIZE);
+  });
+
+  it("maps every row in the order the database sends, keeping a missing name as null", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        { display_name: "Ana", is_current_user: false, role: HOUSEHOLD_ROLE.ADMIN, user_id: ADMIN_ID },
+        { display_name: MEMBER_NAME, is_current_user: true, role: HOUSEHOLD_ROLE.MEMBER, user_id: MEMBER_ID },
+        { display_name: null, is_current_user: false, role: HOUSEHOLD_ROLE.MEMBER, user_id: UNNAMED_MEMBER_ID },
+      ],
+      error: null,
+    });
+
+    await expect(getHouseholdMembersPage("", 0)).resolves.toEqual({
+      hasMore: false,
+      members: [
+        { displayName: "Ana", isCurrentUser: false, role: HOUSEHOLD_ROLE.ADMIN, userId: ADMIN_ID },
+        { displayName: MEMBER_NAME, isCurrentUser: true, role: HOUSEHOLD_ROLE.MEMBER, userId: MEMBER_ID },
+        { displayName: null, isCurrentUser: false, role: HOUSEHOLD_ROLE.MEMBER, userId: UNNAMED_MEMBER_ID },
+      ],
+    });
+  });
+
+  it("returns an empty page without a household", async () => {
+    rpcMock.mockResolvedValue({ data: [], error: null });
+
+    await expect(getHouseholdMembersPage("", 0)).resolves.toEqual({ hasMore: false, members: [] });
+  });
+
+  it("throws on a role outside the contract without exposing the member id or name", async () => {
+    rpcMock.mockResolvedValue({
+      data: [{ display_name: MEMBER_NAME, is_current_user: false, role: "owner", user_id: MEMBER_ID }],
+      error: null,
+    });
+
+    const pageRequest = getHouseholdMembersPage("", 0);
+
+    await expect(pageRequest).rejects.toThrow(UNKNOWN_PAGE_ROLE_MESSAGE);
+    await expect(pageRequest).rejects.not.toThrow(MEMBER_ID);
+    await expect(pageRequest).rejects.not.toThrow(MEMBER_NAME);
+  });
+
+  it("rethrows the Supabase error", async () => {
+    const supabaseError = { code: "22023", message: "La búsqueda puede tener hasta 60 caracteres" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(getHouseholdMembersPage("x".repeat(61), 0)).rejects.toBe(supabaseError);
   });
 });
