@@ -69,7 +69,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 6 — Plan E2E (commit `docs`)
 
-- [ ] 6.1 `features/finance/specs/E2E.md` (skill `playwright-e2e`):
+- [x] 6.1 `features/finance/specs/E2E.md` (skill `playwright-e2e`):
   - E2E-FIN-01 a E2E-FIN-04, con sus precondiciones y las respuestas simuladas de cada uno;
   - la aclaración de que validan la interfaz y no la autenticación real ni la base.
 
