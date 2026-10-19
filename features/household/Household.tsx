@@ -7,13 +7,15 @@ import { HouseholdInviteLinkCard } from "./components/HouseholdInviteLinkCard";
 import { HouseholdJoinForm } from "./components/HouseholdJoinForm";
 import { HouseholdLeaveDialog } from "./components/HouseholdLeaveDialog";
 import { HouseholdMembersSection } from "./components/HouseholdMembersSection";
+import { HouseholdRemoveMemberDialog } from "./components/HouseholdRemoveMemberDialog";
 import { PersonalListsDecision } from "./components/PersonalListsDecision";
 import { HOUSEHOLD_INVITE_TEXT, HOUSEHOLD_LEAVE_TEXT, HOUSEHOLD_TEXT } from "./constants/household.constants";
 import { useHouseholdViewModel } from "./hooks/useHouseholdViewModel";
 
 /**
  * Pantalla "Mi familia": sin cuenta, crear la familia o unirse con una invitación, miembro, o admin
- * con su enlace de invitación; miembro y admin ven a los integrantes y pueden salir de la familia. "use client" porque usa hooks y habla con
+ * con su enlace de invitación; miembro y admin ven a los integrantes y pueden salir de la familia, y el admin
+ * puede eliminar a un integrante. "use client" porque usa hooks y habla con
  * Supabase desde el navegador (la sesión vive en el navegador).
  */
 export const Household = (): React.JSX.Element => {
@@ -113,6 +115,9 @@ export const Household = (): React.JSX.Element => {
       {/* Siempre montado: el Modal decide si se ve. Se queda abierto mientras
           sale aunque la sección de arriba ya no esté. */}
       <HouseholdLeaveDialog {...leave.dialog} />
+
+      {/* SCRUM-61: siempre montado, como el de salir: el Modal decide si se ve. */}
+      <HouseholdRemoveMemberDialog {...viewModel.removeDialog} />
     </div>
   );
 };

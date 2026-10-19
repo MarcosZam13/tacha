@@ -12,6 +12,12 @@ export interface HouseholdMemberRow {
   isCurrentUser: boolean;
   /** El nombre, o "Miembro sin nombre". Nunca el correo. */
   label: string;
+  /**
+   * Abre la confirmación para eliminar a esta persona (SCRUM-61), o null si no
+   * corresponde: solo el admin lo tiene, y nunca en su propia fila ni en la de
+   * un admin. El id de la persona queda en el closure, no en el HTML.
+   */
+  onRemoveRequest: NullableRef<() => void>;
   /** Solo para la key de React; no se dibuja. */
   rowKey: string;
 }
@@ -33,4 +39,10 @@ export interface HouseholdMembersSectionProps {
   onRetry: () => void;
   query: string;
   rows: HouseholdMemberRow[];
+  /**
+   * Sube cuando la persona deja la lista después de confirmar (removed o
+   * member_not_found): la fila ya no existe y el foco va al título de la
+   * sección (SPEC §9, SCRUM-61). Cancelar no lo cambia.
+   */
+  titleFocusKey: number;
 }
