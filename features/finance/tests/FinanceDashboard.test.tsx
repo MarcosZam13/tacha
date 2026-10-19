@@ -149,6 +149,25 @@ describe("FinanceDashboard: budget (CA-03)", () => {
     expect(saveMock).not.toHaveBeenCalled();
   });
 
+  it("edits an existing budget and says how much it was exceeded", async () => {
+    budgetsMock.mockResolvedValue({ day: null, month: null, week: 50000 });
+    saveMock.mockResolvedValue(12000);
+    render(<FinanceDashboard />);
+    const page = createFinanceDashboardPage();
+    await page.findText(/^Te quedan ₡35\s000$/u);
+
+    await page.openBudget(FINANCE_TEXT.EDIT_BUDGET);
+    expect(page.getBudgetInput("Presupuesto semanal (₡)")).toHaveValue("50000");
+    await page.cancel();
+    await page.openBudget(FINANCE_TEXT.EDIT_BUDGET);
+    const input = page.getBudgetInput("Presupuesto semanal (₡)");
+    await page.clearAndTypeBudget(input, "12000");
+    await page.save();
+
+    expect(saveMock).toHaveBeenCalledWith(SPENDING_PERIOD.WEEK, 12000);
+    expect(await page.findText(/^Te pasaste por ₡3\s000$/u)).toBeInTheDocument();
+  });
+
   it("keeps the other periods without a budget", async () => {
     budgetsMock.mockResolvedValue({ day: null, month: null, week: 50000 });
     render(<FinanceDashboard />);
@@ -158,6 +177,38 @@ describe("FinanceDashboard: budget (CA-03)", () => {
     await page.choosePeriod("Mes");
 
     expect(await page.findText("Sin presupuesto mensual")).toBeInTheDocument();
+  });
+});
+
+describe("FinanceDashboard: separate errors (SPEC §7)", () => {
+  it("keeps the budget visible when the spending fails", async () => {
+    spendingMock.mockRejectedValue(new Error("network"));
+    budgetsMock.mockResolvedValue({ day: null, month: null, week: 50000 });
+    render(<FinanceDashboard />);
+    const page = createFinanceDashboardPage();
+
+    expect(await page.findText(FINANCE_TEXT.SPENDING_LOAD_ERROR)).toBeInTheDocument();
+    expect(await page.findText(amount("₡50 000"))).toBeInTheDocument();
+    expect(page.getBudgetActionButton(FINANCE_TEXT.EDIT_BUDGET)).toBeEnabled();
+  });
+
+  it("keeps the spending visible when the budgets fail, without allowing to edit", async () => {
+    budgetsMock.mockRejectedValue(new Error("network"));
+    render(<FinanceDashboard />);
+    const page = createFinanceDashboardPage();
+
+    expect(await page.findText(FINANCE_TEXT.BUDGET_LOAD_ERROR)).toBeInTheDocument();
+    expect(await page.findText(amount("₡15 000"))).toBeInTheDocument();
+    expect(page.queryBudgetActionButton(FINANCE_TEXT.DEFINE_BUDGET)).not.toBeInTheDocument();
+  });
+
+  it("shows ₡0 and the empty message when the period has no closed purchases", async () => {
+    spendingMock.mockResolvedValue({ closedCount: 0, total: 0, withoutTotalCount: 0 });
+    render(<FinanceDashboard />);
+    const page = createFinanceDashboardPage();
+
+    expect(await page.findText(FINANCE_TEXT.SPENDING_EMPTY)).toBeInTheDocument();
+    expect(page.queryText("₡0")).toBeInTheDocument();
   });
 });
 

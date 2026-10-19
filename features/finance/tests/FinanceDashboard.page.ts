@@ -54,6 +54,10 @@ export const createFinanceDashboardPage = () => {
   const typeBudget = async (inputLabel: string, text: string) => {
     await user.type(getBudgetInput(inputLabel), text);
   };
+  const clearAndTypeBudget = async (input: HTMLElement, text: string) => {
+    await user.clear(input);
+    await user.type(input, text);
+  };
   const save = async () => {
     await user.click(getSaveButton());
   };
@@ -67,6 +71,7 @@ export const createFinanceDashboardPage = () => {
   return {
     cancel,
     choosePeriod,
+    clearAndTypeBudget,
     findNoAccountNotice,
     findPeriodGroup,
     findText,

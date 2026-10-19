@@ -77,8 +77,8 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 - [x] 7.1 `FinanceNoAccount`, `SpendingPeriodSelector`, `SpendingTotal`, `SpendingBudget` y sus props, con sus tests de componente (`tests/FinanceComponents.test.tsx` y el Page Object `tests/FinanceDashboard.page.ts`).
 - [x] 7.2 `FinanceDashboard`, `app/(app)/finanzas/page.tsx`, `APP_ROUTE.FINANCE` y el ítem "Finanzas" en la navegación, con los tests de la pantalla completa (`tests/FinanceDashboard.test.tsx`).
-- [ ] 7.3 Page Object y tests (jsdom).
-- [ ] 7.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`.
+- [x] 7.3 Page Object y tests (jsdom): `tests/FinanceDashboard.page.ts`, `tests/FinanceComponents.test.tsx` y `tests/FinanceDashboard.test.tsx`. Cubren la fila «Pantalla» de plan, «Pruebas»: sin cuenta, CA-01, CA-02, CA-03 (definir, editar y la diferencia en palabras), vacío, errores separados, foco y `aria-*`.
+- [x] 7.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-19): los cuatro sin errores; Vitest completo, 883 tests en 94 archivos; el build genera `/finanzas`.
 
 ### Etapa 8 — E2E (commit `test`)
 
