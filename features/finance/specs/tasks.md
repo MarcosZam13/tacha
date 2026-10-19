@@ -32,15 +32,24 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 2 — Presupuestos en la base (commits `feat`)
 
-- [ ] 2.1 Verificar que `027` siga libre en `develop` y en los PRs abiertos; si no, usar el siguiente libre.
-- [ ] 2.2 Escribir la migración de presupuestos (tabla, RLS de dueño registrado, permisos por columna y `set_spending_budget`) y su prueba SQL, con los casos de anónimos y de otro usuario.
+- [x] 2.1 Verificar que `027` siga libre en `develop` y en los PRs abiertos; si no, usar el siguiente libre. Verificado el 2026-10-19 en `develop`, en todas las ramas remotas y en los PRs abiertos (#65, #66, #68, #69).
+- [x] 2.2 Escribir la migración de presupuestos (tabla, RLS de dueño registrado, permisos por columna y `set_spending_budget`) y su prueba SQL, con los casos de anónimos y de otro usuario: `supabase/migrations/027_spending_budgets.sql` y `supabase/tests/027_spending_budgets.test.sql`.
 - [ ] 2.3 Revisión con `security-reviewer`; aprobación; commit.
-- [ ] 2.4 La dueña de la historia:
+  - Hecho: `security-reviewer` (2026-10-19), sin hallazgos críticos, altos ni medios. El bajo 1 se corrigió: `amount` es `numeric` sin precisión, para no redondear en silencio. Los casos que señaló se agregaron a la prueba.
+  - Falta: el commit.
+- [x] 2.4 La dueña de la historia:
   - la aplica en una transacción con su fila del historial;
   - corre la prueba SQL;
   - comprueba los permisos efectivos;
   - comprueba que una sesión anónima real lleva `is_anonymous: true` en el JWT.
-- [ ] 2.5 `spending_budgets` y `set_spending_budget` en `types/database.types.ts`, comparados con la base; `documento-proyecto.md` §6.
+
+  Hecho (2026-10-19):
+  - aplicada en Supabase con su fila del historial;
+  - la prueba SQL completa terminó en `ok` (su paso 1 comprueba los permisos efectivos de la tabla, de las columnas y de la RPC);
+  - el JWT de una sesión anónima real trae `role: "authenticated"` e `is_anonymous: true`, y el usuario de la sesión `is_anonymous: true`.
+- [x] 2.5 `spending_budgets` y `set_spending_budget` en `types/database.types.ts`, comparados con la base; `documento-proyecto.md` §6. Comparados el 2026-10-19 con la base real, y coinciden:
+  - tabla: `amount numeric not null`, `owner_id uuid not null default auth.uid()`, `period text not null`;
+  - función: `set_spending_budget(budget_period text, budget_amount numeric)`, que devuelve `spending_budgets`.
 
 ### Etapa 3 — Funciones puras (commit `feat`)
 
