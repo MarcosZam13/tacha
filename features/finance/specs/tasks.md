@@ -57,7 +57,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 4 — Servicio (commit `feat`)
 
-- [ ] 4.1 Constantes del servicio, modelos y `finance.service.ts`, con sus tests:
+- [x] 4.1 Constantes del servicio (`FINANCE_DB`), el modelo `SpendingBudgets` y `finance.service.ts`, con sus tests (`tests/finance.service.test.ts`):
   - `hasRegisteredSession`, sin crear sesiones;
   - `getPeriodSpending`;
   - `getSpendingBudgets`;

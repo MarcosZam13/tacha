@@ -30,6 +30,26 @@ export const BUDGET_AMOUNT = {
   THOUSANDS_SEPARATOR: /[ .,]/g,
 } as const;
 
+// Tablas, columnas y RPC que usa services/finance.service.ts (SPEC §12).
+// purchase_sessions es de SCRUM-67 (016, 018) y no se modifica; spending_budgets
+// y set_spending_budget son de la migración 027.
+export const FINANCE_DB = {
+  COLUMN: {
+    CLOSED_AT: "closed_at",
+  },
+  RPC: {
+    SET_SPENDING_BUDGET: "set_spending_budget",
+  },
+  SELECT: {
+    BUDGETS: "period, amount",
+    SPENDING: "total_amount",
+  },
+  TABLE: {
+    PURCHASE_SESSIONS: "purchase_sessions",
+    SPENDING_BUDGETS: "spending_budgets",
+  },
+} as const;
+
 // Los montos de purchase_sessions.total_amount tienen centavos (numeric(12, 2)):
 // se suman en centavos enteros para no arrastrar errores de punto flotante.
 export const CENTS_PER_COLON = 100;
