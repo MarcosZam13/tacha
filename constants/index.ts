@@ -5,6 +5,7 @@ export * from "./email.constants";
 export * from "./new-password.constants";
 export * from "./password.constants";
 export * from "./postgres.constants";
+export * from "./recaptcha.constants";
 export * from "./recipes-tabs.constants";
 export * from "./routes.constants";
 export * from "./scraping.constants";

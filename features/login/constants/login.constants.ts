@@ -29,7 +29,6 @@ export const LOGIN_ERROR_MESSAGE = {
   INVALID_CREDENTIALS: "Correo o contraseña incorrectos.",
   PASSWORD_REQUIRED: "La contraseña es obligatoria.",
   RATE_LIMITED: "Demasiados intentos. Esperá un momento e intentá de nuevo.",
-  RECAPTCHA_LOAD_FAILED: "No pudimos cargar el reCAPTCHA. Recargá la página.",
   UNEXPECTED: "No pudimos iniciar sesión. Intentá de nuevo en unos minutos.",
 } as const;
 
@@ -99,14 +98,6 @@ export const LOGIN_API_CODE_RESULT: Partial<Record<string, LoginResultType>> = {
   [LOGIN_API_CODE.INVALID_CREDENTIALS]: LOGIN_RESULT.INVALID_CREDENTIALS,
   [LOGIN_API_CODE.RATE_LIMITED]: LOGIN_RESULT.RATE_LIMITED,
 };
-
-// Es pública por diseño (va al navegador). Next solo la inyecta si se lee escrita así, completa.
-export const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "";
-
-export const RECAPTCHA = {
-  SCRIPT_ID: "google-recaptcha-script",
-  SCRIPT_URL: "https://www.google.com/recaptcha/api.js?render=explicit",
-} as const;
 
 // --- Cambio de contraseña tras un login con contraseña débil ---
 
