@@ -34,9 +34,9 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 - [x] 2.1 Verificar que `027` siga libre en `develop` y en los PRs abiertos; si no, usar el siguiente libre. Verificado el 2026-10-19 en `develop`, en todas las ramas remotas y en los PRs abiertos (#65, #66, #68, #69).
 - [x] 2.2 Escribir la migración de presupuestos (tabla, RLS de dueño registrado, permisos por columna y `set_spending_budget`) y su prueba SQL, con los casos de anónimos y de otro usuario: `supabase/migrations/027_spending_budgets.sql` y `supabase/tests/027_spending_budgets.test.sql`.
-- [ ] 2.3 Revisión con `security-reviewer`; aprobación; commit.
-  - Hecho: `security-reviewer` (2026-10-19), sin hallazgos críticos, altos ni medios. El bajo 1 se corrigió: `amount` es `numeric` sin precisión, para no redondear en silencio. Los casos que señaló se agregaron a la prueba.
-  - Falta: el commit.
+- [x] 2.3 Revisión con `security-reviewer`; aprobación; commit.
+  - `security-reviewer` (2026-10-19): sin hallazgos críticos, altos ni medios. El bajo 1 se corrigió: `amount` es `numeric` sin precisión, para no redondear en silencio. Los casos que señaló se agregaron a la prueba.
+  - Commits `fd74fdf` (migración y prueba) y `572ab1b` (tipos y §6).
 - [x] 2.4 La dueña de la historia:
   - la aplica en una transacción con su fila del historial;
   - corre la prueba SQL;
@@ -53,7 +53,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 3 — Funciones puras (commit `feat`)
 
-- [ ] 3.1 `getPeriodBounds`, `summarizeSpending`, `parseBudgetAmount`, `formatPeriodRange` y `formatColones` en `features/finance/utils/`, con sus tests (casos de plan, "Pruebas").
+- [x] 3.1 `getPeriodBounds`, `summarizeSpending`, `parseBudgetAmount`, `formatPeriodRange` y `formatColones` en `features/finance/utils/`, con sus tests (casos de plan, "Pruebas"). Con ellos: `constants/finance.constants.ts` (periodos, semana, monto y formato de fechas) y los modelos `PeriodBounds` y `PeriodSpending`.
 
 ### Etapa 4 — Servicio (commit `feat`)
 
