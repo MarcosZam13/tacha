@@ -8,7 +8,7 @@ import {
   LOGIN_ROUTE,
 } from "../constants/login.constants";
 import { InactivityNotice } from "./InactivityNotice";
-import { RecaptchaWidget } from "./RecaptchaWidget";
+import { RecaptchaWidget } from "@/components/recaptcha-widget/RecaptchaWidget";
 import type { LoginFormProps } from "./models/LoginFormProps.interface";
 
 /** Formulario de inicio de sesión: correo, contraseña, reCAPTCHA y enlace al registro. */

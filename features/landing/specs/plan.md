@@ -74,3 +74,57 @@ app/terminos/page.tsx, app/nosotros/page.tsx
 | Tarjeta y flechas del carrusel dentro de TestimonialsCarousel | Componentes TestimonialCard y CarouselArrowButton | Tienen un solo uso; extraerlos sumaba 5 archivos sin un segundo consumidor |
 | PublicLayout recién en SCRUM-34 | Crearlo en SCRUM-32 | Con dos páginas era adelantarse; con tres (Landing, Terms, About) la estructura repetida ya es duplicación real |
 | About y Términos dentro de features/landing | Features nuevas | Comparten layout y constantes; precedente en recipes/ |
+
+## Sprint 3: formulario de contacto (SCRUM-28; SCRUM-36 lo reutiliza en /nosotros)
+
+### Archivos
+
+    components/recaptcha-widget/            MOVIDO desde features/login (segundo consumidor)
+      RecaptchaWidget.tsx                   casilla de reCAPTCHA v2 ("use client")
+      hooks/useRecaptchaWidgetViewModel.ts  carga el script de Google y dibuja la casilla
+      models/                               props, view model y forma de window.grecaptcha
+    constants/recaptcha.constants.ts        site key, URL del script, error de carga (compartidos)
+    features/landing/
+      Landing.tsx                           monta ContactSection al final
+      components/ContactSection.tsx         "use client": h2 + formulario o confirmación
+      components/ContactForm.tsx            presentación: campos, reCAPTCHA, errores, botón
+      components/ContactMessageField.tsx    textarea con label, contador y error
+      components/ContactSuccess.tsx         confirmación + "Enviar otro mensaje"
+      constants/contact.constants.ts        textos, límites, estados, códigos de la API
+      hooks/useContactFormViewModel.ts      estado, validación al enviar, llamada al servicio
+      models/                               valores/errores, payload/response, view model
+      services/contact.service.ts           invoca la Edge Function y traduce el resultado
+      utils/validateContactForm.ts          reglas de los campos (pura)
+    supabase/migrations/028_create_contact_messages.sql
+    supabase/tests/028_create_contact_messages.test.sql
+    supabase/functions/_shared/recaptcha.ts            verifyCaptcha (hoy la usa solo el contacto)
+    supabase/functions/submit-contact-message/index.ts
+
+### Datos
+- contact_messages(id, name, email, message, source, created_at), con checks que usan los mismos límites que el cliente.
+- RLS activado sin políticas y `revoke all` a anon/authenticated. Solo escribe la service role, desde la Edge Function.
+- Índice (email, created_at desc) para el límite de envíos por correo.
+
+### Flujo
+Enviar → handleSubmit (useContactFormViewModel) → validateContactForm → si hay token: submitContactMessage
+→ functions.invoke → Edge Function (Zod → Google siteverify → límite por correo → insert) → 201
+→ status "success" → ContactSection muestra ContactSuccess.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| El formulario vive en features/landing | Feature nueva features/contact-form | Sus dos consumidores (Landing ahora, About en SCRUM-36) están en landing. Una feature aparte haría que una feature importe de otra, cosa que el repo no hace hoy |
+| Mover RecaptchaWidget a components/ | Importarlo desde features/login | El contacto es su segundo consumidor real (component-architecture §1). Importar desde otra feature acopla landing a login |
+| Edge Function con service role + tabla sin permisos | Insert desde el cliente con una política RLS | Con una política de insert, cualquiera con la anon key (que es pública) inserta sin pasar por el reCAPTCHA. Así, la única puerta verifica el token |
+| Verificar el token en el servidor | Confiar en que el widget entregó un token | El cliente puede mandar cualquier string. Solo Google, con la clave secreta, sabe si es válido (security-practices §2) |
+| Zod en la Edge Function | Solo validación del cliente | El cliente se puede saltar con curl. El servidor es el control real y la tabla tiene checks como última línea |
+| verifyCaptcha en _shared/recaptcha.ts, usado solo por el contacto | Migrar también login-with-recaptcha | Migrar el login obliga a redeployar una función en producción dentro de un PR de contacto. El login conserva su copia; unificarlas queda para otro ticket |
+| No tocar la Edge Function del login | Redeployarla en este PR | Si el deploy falla, nadie puede iniciar sesión. El riesgo no corresponde a una historia de contacto |
+| No extraer readErrorCode del servicio | Helper compartido con login | Son 5 líneas de transporte. Extraerlo obliga a tocar login.service en un PR de contacto (AGENTS.md: sin refactors no pedidos) |
+| Botón habilitado; errores al enviar | Botón deshabilitado hasta completar (como login) | Un botón deshabilitado no dice qué falta. Al enviar, cada campo muestra su error (CA-03, CA-06 visibles) |
+| Límite de 5 mensajes por correo por hora | Sin límite | El reCAPTCHA frena bots, pero no a una persona que reenvía en bucle. Las Edge Functions propias no traen límite (security-practices §6) |
+| La migración 028 ya acepta source "about" | Migración nueva en SCRUM-36 | Es la misma épica. Agregar el valor después obliga a otra migración solo para cambiar un check |
+| "Contacto" de la navbar va al formulario | Dejarlo en el footer | CA-01 pide un formulario accesible; el footer conserva su id "contacto" (HU-08) |
+| Textarea local (ContactMessageField) | Primitivo nuevo en components/ui | Hoy un solo formulario usa textarea. Se promueve cuando aparezca un segundo |
+| Limpiar los datos (trim, correo en minúsculas) dentro del ViewModel | Util aparte toSubmitContactMessagePayload | Son 5 líneas que se leen mejor donde se envían; el test del ViewModel ya verifica lo que viaja |

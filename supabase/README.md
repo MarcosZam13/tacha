@@ -22,6 +22,8 @@ El catálogo real (`product_catalog`, `product_catalog_variants`, `product_brand
 | `ingest-walmart/index.ts` | Puerta HTTP de Walmart CR. |
 | `ingest-masxmenos/index.ts` | Puerta HTTP de MasXMenos. |
 | `login-with-recaptcha/index.ts` | Login: verifica el reCAPTCHA con Google y luego autentica con Supabase. |
+| `_shared/recaptcha.ts` | Verifica un token de reCAPTCHA con Google (hoy lo usa el contacto; el login tiene su propia copia). |
+| `submit-contact-message/index.ts` | Contacto: valida el body, verifica el reCAPTCHA, limita por correo y guarda en `contact_messages`. |
 
 ## Migraciones
 
@@ -84,9 +86,12 @@ supabase functions deploy ingest-maxipali
 supabase functions deploy ingest-walmart
 supabase functions deploy ingest-masxmenos
 supabase functions deploy login-with-recaptcha
+supabase functions deploy submit-contact-message
 ```
 
 `login-with-recaptcha` necesita además el secret `RECAPTCHA_SECRET_KEY` (Dashboard → Edge Functions → Secrets o `supabase secrets set RECAPTCHA_SECRET_KEY=...`) y se despliega con la CLI para que el slug sea el nombre de la carpeta y se resuelva `_shared/`.
+
+`submit-contact-message` usa el mismo secret `RECAPTCHA_SECRET_KEY` y también se despliega con la CLI (resuelve `_shared/`).
 
 ## Probar en Postman
 
