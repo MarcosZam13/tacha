@@ -65,7 +65,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 5 — ViewModel (commit `feat`)
 
-- [ ] 5.1 Constantes del flujo, `usePeriodSpending`, `useSpendingBudgets` y `useFinanceDashboardViewModel` (con `noAccount` sin llamadas de datos), con sus tests.
+- [x] 5.1 Constantes del flujo, `usePeriodSpending`, `useSpendingBudgets` y `useFinanceDashboardViewModel` (con `noAccount` sin llamadas de datos), con sus tests. Constantes: `FINANCE_ACCESS_STATUS`, `SPENDING_STATUS`, `BUDGET_STATUS`, `FINANCE_TEXT` y los textos por periodo.
 
 ### Etapa 6 — Plan E2E (commit `docs`)
 
