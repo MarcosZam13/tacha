@@ -850,17 +850,17 @@ No cambian: las migraciones `011` a `025`, `leave_household`, `get_household_mem
 
 ### Número de la migración
 
-- `develop` (2026-10-18): `000` a `024`.
-- Ramas abiertas: `025` (SCRUM-60, PR #68).
-- **Propuesta: `026_remove_household_member.sql`.** Según `supabase/README.md`, se vuelve a revisar `develop` y los PRs abiertos justo antes de crear el archivo y otra vez antes del merge.
+- `develop` (2026-10-19): `000` a `025` y `028` (SCRUM-28).
+- Ramas abiertas: `027` (SCRUM-69, PR #70).
+- **`026_remove_household_member.sql`**, libre el 2026-10-19. Según `supabase/README.md`, se vuelve a revisar `develop` y los PRs abiertos justo antes de crear el archivo y otra vez antes del merge.
 
 ### Datos
 
 Una RPC nueva, sin tablas, políticas ni permisos de tabla nuevos. `remove_household_member(member_user_id uuid) returns text`, `security definer`, `set search_path = ''`:
 
 1. `member_user_id` nulo → `22023`. Sin `auth.uid()` o anónimo → `42501`.
-2. `member_user_id = auth.uid()` → `cannot_remove_self`.
-3. Lee (sin bloqueo) la familia de quien llama donde su rol es `admin`. Si no hay → `not_admin`.
+2. Lee (sin bloqueo) la familia de quien llama donde su rol es `admin`. Si no hay → `not_admin`. Va antes del paso 3 para que quien no es admin reciba siempre `not_admin`, aunque pase su propio id (revisión de seguridad, 2026-10-19).
+3. `member_user_id = auth.uid()` → `cannot_remove_self`.
 4. Bloquea, en este orden: la fila del enlace de esa familia `for update` (si existe) y la fila de `households` `for update`.
 5. Con los bloqueos tomados vuelve a leer el rol de quien llama en esa familia. Si ya no es `admin` (salió o pasó el rol) → `not_admin`.
 6. `delete from household_members where user_id = member_user_id and household_id = <la familia> and role = 'member'`. Si no borra ninguna fila → `member_not_found`.
@@ -913,7 +913,7 @@ Si Postgres aborta la llamada (por ejemplo, un interbloqueo con una operación f
 ### Dependencias y Gitflow
 
 - La rama `ticket/SCRUM-61-eliminar-familiar-household` sale de `develop` (`449b5a4`), como pide Gitflow: no se apila sobre la de SCRUM-60.
-- La implementación necesita la lista de SCRUM-60. Mientras la #68 no se mergee, el PR de SCRUM-61 queda en `on hold` (Gitflow §3). Con la #68 en `develop`: se trae `develop` a esta rama (conflictos esperables en los tres specs, SPEC §15), el PR pasa a `in progress` y se sigue con la etapa 2.
+- La implementación necesita la lista de SCRUM-60. **La #68 se mergeó el 2026-10-19**, `develop` ya está en esta rama (`e5dd9c4`) y el PR #69 pasó a `in progress`. Antes, mientras la #68 no se mergeaba, el PR quedó en `on hold` (Gitflow §3). Con la #68 en `develop`: se trae `develop` a esta rama (conflictos esperables en los tres specs, SPEC §15), el PR pasa a `in progress` y se sigue con la etapa 2.
 
 ### Documento del proyecto
 

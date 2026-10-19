@@ -6,8 +6,8 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-57 / HU-34](https://tacha.atlassian.net/browse/SCRUM-57): unirse a un household por link. Sprint 2, mergeada.
 - [SCRUM-58 / HU-34c](https://tacha.atlassian.net/browse/SCRUM-58): salir de mi household. En curso.
 - [SCRUM-59 / HU-34b](https://tacha.atlassian.net/browse/SCRUM-59): decidir qué hacer con la lista personal al unirse o crear un household. Sprint 4, implementada en la rama; falta aplicar la migración `024`, correr su prueba SQL y el QA manual (ver [§2](#2-alcance): la separación de una parte en otro ticket sigue pendiente del equipo).
-- [SCRUM-60 / HU-35](https://tacha.atlassian.net/browse/SCRUM-60): consultar familiares del household. Sprint 4, en planificación.
-- [SCRUM-61 / HU-36](https://tacha.atlassian.net/browse/SCRUM-61): eliminar a un familiar del household. Sprint 4, en planificación; la implementación espera el merge de SCRUM-60 (PR #68).
+- [SCRUM-60 / HU-35](https://tacha.atlassian.net/browse/SCRUM-60): consultar familiares del household. Sprint 4, mergeada (#68, 2026-10-19).
+- [SCRUM-61 / HU-36](https://tacha.atlassian.net/browse/SCRUM-61): eliminar a un familiar del household. Sprint 4, en implementación (PR #69).
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md).
 
@@ -808,7 +808,7 @@ Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son
 
 | Dependencia | Estado (2026-10-18) | Efecto |
 |---|---|---|
-| SCRUM-60 (HU-35, ver integrantes) | PR #68 en `waiting qa`, sin mergear | La acción vive en su lista (`HouseholdMembersSection`, `useHouseholdMembers`, migración `025`). La implementación espera a que se mergee (Gitflow: `on hold`) |
+| SCRUM-60 (HU-35, ver integrantes) | Mergeada en `develop` (#68, 2026-10-19) y traída a esta rama | La acción vive en su lista (`HouseholdMembersSection`, `useHouseholdMembers`, migración `025`) |
 | SCRUM-58 (salir) | En `develop` | Mismo orden de bloqueos y mismo criterio de datos. `leave_household` no cambia |
 | SCRUM-59 (lista de la familia) | En `develop` | Su acceso por membresía (`024`) es lo que hace que perder la fila quite el acceso |
 | SCRUM-56 (enlace) | En `develop` | D1: un solo enlace por familia; eliminar no lo toca. "Generar enlace nuevo" es la forma de cortarlo |
@@ -1068,26 +1068,32 @@ Casos de cada flujo:
 
 ### HU-36 (SCRUM-61)
 
-Ninguno validado todavía.
+Validado el 2026-10-19 con la prueba SQL de la `026` (corrida completa en la base con `plpgsql.check_asserts` en `on`, terminó en `ok`) y con los tests automáticos (Vitest: 865 tests en 93 archivos). Prueba manual de la dueña de la historia con cuentas registradas (2026-10-19): CA-01, CA-02 y CA-04 con captura; CA-03 comprobado sin captura.
 
 Criterios de la historia:
 
-- [ ] **CA-01:** solo el administrador de la familia ve la acción "Eliminar integrante" junto a cada miembro, excepto sobre sí mismo.
-- [ ] **CA-02:** al eliminar, se pide confirmación explícita antes de ejecutar la acción.
-- [ ] **CA-03:** al confirmar, el miembro pierde el acceso inmediato a las listas y los datos de la familia; sus listas y productos personales no se eliminan.
-- [ ] **CA-04:** se muestra un mensaje de confirmación después de eliminar.
+- [x] **CA-01:** solo el administrador de la familia ve la acción "Eliminar integrante" junto a cada miembro, excepto sobre sí mismo.
+  - Manual, con captura: el admin ve el botón en las filas de B y C, y no en la suya.
+  - Que un miembro no lo ve lo cubren los tests de pantalla; no se probó a mano.
+- [x] **CA-02:** al eliminar, se pide confirmación explícita antes de ejecutar la acción.
+  - Manual, con captura: «Cancelar» cierra el diálogo sin eliminar al integrante.
+  - Escape y el clic afuera los cubren los tests; no se probaron a mano.
+- [x] **CA-03:** al confirmar, el miembro pierde el acceso inmediato a las listas y los datos de la familia; sus listas y productos personales no se eliminan.
+  - Manual, **sin captura**: B desaparece de la familia, pierde el acceso y conserva sus datos personales.
+  - En la base lo comprueba la prueba SQL de la `026`.
+- [x] **CA-04:** se muestra un mensaje de confirmación después de eliminar. Manual, con captura: aparece «Integrante eliminado correctamente».
 
 Casos de cada flujo:
 
-- [ ] **Resultados:** `removed`, `member_not_found`, `cannot_remove_self` y `not_admin` en la prueba SQL y en el servicio.
-- [ ] **Permisos:** sin sesión y anónimo → `42501`; un miembro que no es administrador recibe `not_admin` sin cambios; un administrador no puede eliminar a alguien de otra familia; `delete` directo sobre `household_members` sigue rechazado.
-- [ ] **Acceso:** después de eliminarla, la persona no ve la familia, ni su lista general ni sus ítems; los demás miembros siguen viéndolos.
-- [ ] **Conservación:** la lista personal, las recetas, los planes y las compras de la persona siguen iguales; la lista de la familia conserva lo que agregó.
-- [ ] **Enlace (D1):** eliminar a alguien no cambia el enlace de la familia (mismo token y vencimiento); "Generar enlace nuevo" sigue funcionando.
-- [ ] **Sin notificaciones (D2)** y **textos de D3** exactamente como se aprobaron.
+- [x] **Resultados:** `removed`, `member_not_found`, `cannot_remove_self` y `not_admin` en la prueba SQL y en el servicio.
+- [x] **Permisos:** sin sesión y anónimo → `42501`; un miembro que no es administrador recibe `not_admin` sin cambios; un administrador no puede eliminar a alguien de otra familia; `delete` directo sobre `household_members` sigue rechazado (prueba SQL).
+- [x] **Acceso:** después de eliminarla, la persona no ve la familia, ni su lista general ni sus ítems; los demás miembros siguen viéndolos (prueba SQL).
+- [x] **Conservación:** la lista personal, las recetas, los planes y las compras de la persona siguen iguales; la lista de la familia conserva lo que agregó (prueba SQL).
+- [ ] **Enlace (D1):** eliminar a alguien no cambia el enlace de la familia (mismo token y vencimiento); "Generar enlace nuevo" sigue funcionando. Comprobado por la prueba SQL que el token y el vencimiento no cambian; falta comprobar «Generar enlace nuevo» a mano.
+- [x] **Sin notificaciones (D2)** y **textos de D3** exactamente como se aprobaron (no hay ningún envío; los textos están en `HOUSEHOLD_REMOVE_MEMBER_TEXT` y los usan los tests de pantalla).
 - [ ] **Concurrencia:** eliminar a alguien que está saliendo, o a quien el administrador le pasa el rol al mismo tiempo, nunca deja la familia sin administrador ni con dos.
-- [ ] **Doble clic y cancelar:** una sola llamada; cerrar el diálogo no llama a la base.
-- [ ] **Nombres:** "Miembro sin nombre" si no tiene; ningún correo ni id en la página.
+- [x] **Doble clic y cancelar:** una sola llamada; cerrar el diálogo no llama a la base (tests del hook y de la pantalla; en la base, la segunda llamada responde `member_not_found`).
+- [x] **Nombres:** "Miembro sin nombre" si no tiene; ningún correo ni id en la página (tests del hook y de la pantalla).
 
 
 ## 14. Casos fuera de alcance
@@ -1170,5 +1176,8 @@ Casos de cada flujo:
 - **SCRUM-59, alcance:** la parte A (lista general de la familia) cambia el control de acceso de toda la lista general. Necesita `security-reviewer` antes de aplicarse y la aprobación del equipo antes de empezar.
 - **SCRUM-60, decisiones (2026-10-17):** iniciales o ícono genérico en vez de foto (HU-30), cualquier miembro consulta solo su familia, 20 por página con "Cargar más", búsqueda automática con debounce y la etiqueta "Tú". Se agrega una función nueva en vez de cambiar `get_household_members()`, porque esa la usa el diálogo de salir (SCRUM-58) y es solo del administrador.
 - **SCRUM-61, specs (2026-10-18):** las subsecciones de SCRUM-61 se escriben sobre `develop`, que todavía no tiene las de SCRUM-60 (#68). Cuando se mergee la #68 y se traiga `develop` a esta rama, los tres specs de `features/household/` van a tener conflictos en los mismos lugares: se resuelven conservando las subsecciones de las dos historias.
-- **SCRUM-61, número de la migración:** `026` es provisional, porque la `025` es de SCRUM-60. Se revisa antes de crear el archivo y antes del merge.
+- **SCRUM-61, número de la migración:** `026`, verificada libre el 2026-10-19: `develop` tiene la `025` (SCRUM-60) y la `028` (SCRUM-28), y la `027` es de SCRUM-69 (#70). Se revisa otra vez antes del merge.
+- **SCRUM-61, sin E2E:** por la misma razón que SCRUM-57: el soporte de `e2e/` usa usuarios anónimos y este flujo necesita tres cuentas registradas reales. Queda cubierto por la prueba SQL de la `026` (en la base), los tests automáticos y las pruebas manuales.
+- **SCRUM-61, concurrencia:** eliminar a alguien mientras sale, o mientras el admin le pasa el rol, no se puede reproducir en una sola transacción. Queda cubierto por el diseño (mismo orden de bloqueos que salir y unirse, y relectura del rol con el bloqueo tomado) y por la revisión de seguridad; el caso de §13 sigue sin marcar.
+- **SCRUM-61, merge de `develop` (2026-10-19):** se trajo `develop` con SCRUM-60 a esta rama (`e5dd9c4`). Los tres specs conservan las subsecciones de las dos historias y no quedaron marcas de conflicto.
 
