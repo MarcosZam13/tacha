@@ -224,7 +224,7 @@ purchase_sessions  select total_amount  where closed_at >= <inicio> and closed_a
   |---|---|---|
   | `owner_id` | `uuid` | `not null default auth.uid()`, FK a `auth.users` con `on delete cascade` |
   | `period` | `text` | `not null`, `check (period in ('day', 'week', 'month'))` |
-  | `amount` | `numeric(12, 2)` | `not null`, `check (amount <> 'NaN' and amount >= 0 and amount = trunc(amount))`: colones enteros, hasta 9 999 999 999 por el tipo |
+  | `amount` | `numeric` (sin precisión, para no redondear en silencio) | `not null`, `check (amount <> 'NaN' and amount >= 0 and amount <= 9999999999 and amount = trunc(amount))`: colones enteros, hasta 9 999 999 999 |
   | | | `primary key (owner_id, period)` |
 
 - **Permisos:** RLS activada y deny por defecto. `revoke all` de `public`, `anon` y `authenticated`. Después `grant select, delete`, `insert (period, amount)` y `update (amount)` a `authenticated`.

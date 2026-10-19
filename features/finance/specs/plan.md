@@ -113,12 +113,16 @@ getSupabaseClient()
 create table public.spending_budgets (
   owner_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   period text not null check (period in ('day', 'week', 'month')),
-  amount numeric(12, 2) not null check (amount <> 'NaN' and amount >= 0 and amount = trunc(amount)),
+  amount numeric not null
+    check (amount <> 'NaN' and amount >= 0 and amount <= 9999999999 and amount = trunc(amount)),
   primary key (owner_id, period)
 );
 ```
 
-- `amount = trunc(amount)` deja solo colones enteros. `NaN` necesita su propia condición: en Postgres `NaN` es igual a sí mismo y mayor que cualquier número, así que ni `>= 0` ni `= trunc(amount)` lo rechazan (mismo motivo que el check de la `018`). El tope (9 999 999 999) sale de `numeric(12, 2)` con colones enteros.
+- `amount = trunc(amount)` deja solo colones enteros.
+- `NaN` necesita su propia condición: en Postgres `NaN` es igual a sí mismo y mayor que cualquier número, así que ni `>= 0` ni `= trunc(amount)` lo rechazan (mismo motivo que el check de la `018`).
+- El tope (9 999 999 999) es explícito y deja fuera `±Infinity`.
+- **`numeric` sin precisión**, a propósito (revisión de seguridad, 2026-10-19): con `numeric(12, 2)`, un insert directo de `12.004` se redondearía a 12 en silencio antes del check; así se rechaza, igual que en la RPC.
 - Permisos (mismo esquema que `019`):
   - `alter table … enable row level security`;
   - `revoke all on public.spending_budgets from public, anon, authenticated`;
