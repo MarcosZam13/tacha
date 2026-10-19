@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  ABOUT_PATH,
   FAKE_CAPTCHA_LABEL,
   FAKE_CAPTCHA_TOKEN,
   HOME_PATH,
@@ -8,6 +9,7 @@ import {
   stubContactFunction,
   stubRecaptcha,
 } from "./contact-form.helpers";
+
 
 // Escenarios: features/landing/specs/E2E.md. Los textos se escriben acá a propósito
 // (oráculo independiente del código, playwright-e2e).
@@ -73,5 +75,27 @@ test.describe("Contacto desde la página de inicio", () => {
       "No pudimos enviar tu mensaje. Intentá de nuevo en unos minutos.",
     );
     await expect(region.getByLabel("Nombre")).toHaveValue("Ana");
+  });
+});
+
+test.describe("Contacto desde Nosotros", () => {
+  test.beforeEach(async ({ page }) => {
+    await stubRecaptcha(page);
+  });
+
+  test("E2E-CONTACTO-04 — Nosotros muestra el formulario y el mensaje sale con origen about", async ({ page }) => {
+    const requests = await stubContactFunction(page, { body: { received: true }, status: 201 });
+    await page.goto(ABOUT_PATH);
+    const region = getContactRegion(page);
+
+    await fillContactForm(page, VALID_FORM);
+    await region.getByRole("button", { name: FAKE_CAPTCHA_LABEL }).click();
+    await region.getByRole("button", { name: "Enviar mensaje" }).click();
+
+    await expect(region.getByRole("status")).toHaveText(
+      "¡Gracias! Recibimos tu mensaje y te vamos a responder al correo que nos dejaste.",
+    );
+    expect(requests).toHaveLength(1);
+    expect(requests[0].postDataJSON()).toMatchObject({ source: "about" });
   });
 });

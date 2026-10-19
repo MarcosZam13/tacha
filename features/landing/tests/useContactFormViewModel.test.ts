@@ -99,4 +99,19 @@ describe("useContactFormViewModel", () => {
     expect(result.current.isSuccess).toBe(false);
     expect(result.current.captchaError).toBeUndefined();
   });
+
+    it("sends 'about' as the origin when the section is on the About page", async () => {
+    submitContactMessageMock.mockResolvedValue(CONTACT_RESULT.SUCCESS);
+    const { result } = renderHook(() => useContactFormViewModel(CONTACT_SOURCE.ABOUT));
+    act(() => {
+      result.current.handleChange(CONTACT_FIELD.NAME)("Ana");
+      result.current.handleChange(CONTACT_FIELD.EMAIL)("ana@correo.com");
+      result.current.handleChange(CONTACT_FIELD.MESSAGE)("Hola, quiero saber más de Tacha.");
+      result.current.handleCaptchaTokenChange("captcha-token");
+    });
+
+    await act(async () => result.current.handleSubmit(submitEvent));
+
+    expect(submitContactMessageMock).toHaveBeenCalledWith(expect.objectContaining({ source: "about" }));
+  });
 });

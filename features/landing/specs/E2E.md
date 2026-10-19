@@ -1,6 +1,6 @@
 # Plan E2E: landing — formulario de contacto
 
-Deriva de [SPEC.md](SPEC.md) (casos 10 a 16). Formato y reglas: `.agents/skills/playwright-e2e`. Los tests están en `e2e/features/landing/contact-form.spec.ts` y cada `test(...)` lleva el ID del escenario en el nombre.
+Deriva de [SPEC.md](SPEC.md) (casos 10 a 17). Formato y reglas: `.agents/skills/playwright-e2e`. Los tests están en `e2e/features/landing/contact-form.spec.ts` y cada `test(...)` lleva el ID del escenario en el nombre.
 
 Nivel más bajo que alcanza: las reglas de los campos (`validateContactForm`), la traducción de códigos (`contact.service`) y los estados del ViewModel, incluida la limpieza de lo que se envía, tienen tests unitarios. Acá va lo que solo prueba un navegador real: la sección montada en la página, el enlace de la navbar, el widget conectado al formulario y la petición que sale hacia la Edge Function.
 
@@ -31,3 +31,8 @@ Nivel más bajo que alcanza: las reglas de los campos (`validateContactForm`), l
 - **Cubre:** caso 15.
 - **Pasos:** con la función respondiendo 500, completar, marcar el reCAPTCHA y enviar.
 - **Resultado esperado:** aparece "No pudimos enviar tu mensaje. Intentá de nuevo en unos minutos." y el nombre escrito sigue en el campo.
+
+### E2E-CONTACTO-04: contacto desde Nosotros
+- **Cubre:** caso 17 (SCRUM-36).
+- **Pasos:** abrir `/nosotros`; completar Nombre, Correo y Mensaje; marcar el reCAPTCHA; tocar "Enviar mensaje".
+- **Resultado esperado:** se ve la confirmación y la petición lleva `source: "about"`.
