@@ -96,6 +96,16 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
   - D6: con una sesión anónima real, `/finanzas` muestra el aviso y no hay llamadas a `purchase_sessions` ni a `spending_budgets` en la pestaña de red;
   - D4 con dos cuentas registradas de la misma familia;
   - capturas sin correos.
+
+  Revisado por la dueña de la historia, con cinco capturas de `/finanzas` con una cuenta registrada (2026-10-19):
+
+  | Captura | Periodo | Gasto | Compras | Sin total | Presupuesto | Diferencia |
+  |---|---|---|---|---|---|---|
+  | 1 | Día, sin gasto | ₡0 | 0 | 0 | — | — |
+  | 2 | Semana, sin gasto | ₡0 | 0 | 0 | — | — |
+  | 3 | Mes, sin gasto | ₡0 | 0 | 0 | — | — |
+  | 4 | Semana | — | — | — | Semanal ₡10 000 | Te quedan ₡10 000 |
+  | 5 | Día, con gasto | ₡2 210 | — | — | Diario ₡5 000 | Te quedan ₡2 790 |
 - [ ] 9.2 `docs/documento-proyecto.md` §4.2 y marcar SPEC §13 solo con lo validado.
 - [ ] 9.3 `code-reviewer`, `security-reviewer` y `qa-checker`.
 - [ ] 9.4 Descripción del PR con la evidencia (Vitest, SQL, E2E y manual), `waiting qa` y Jira.
