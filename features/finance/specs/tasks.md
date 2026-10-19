@@ -83,7 +83,14 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 ### Etapa 8 — E2E (commit `test`)
 
 - [ ] 8.1 Preparar el entorno local: `.env.local` con las dos variables de Supabase y Chromium (`npx playwright install chromium`).
+  - Hecho (2026-10-19): `.env.local` tiene las dos variables de Supabase.
+  - Falta: Chromium de Playwright (`npx playwright install chromium`; no está en `%LOCALAPPDATA%\ms-playwright`). Para grabar video en un fallo también hace falta `npx playwright install ffmpeg`.
 - [ ] 8.2 `e2e/features/finance/finance.spec.ts` y sus helpers, con `signInAsFakeUser` y respuestas simuladas por ruta; `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+  - Hecho (2026-10-19): E2E-FIN-01 a 04 escritos.
+    - Pasan 12 de 12 (los 6 tests en los proyectos `chromium` y `mobile-chrome`), en dos corridas seguidas.
+    - Corrieron con el canal `msedge` y sin video, con una configuración temporal que se borró: el Chromium de Playwright no está instalado.
+    - Se confirmó que supabase-js manda `select=period,amount` (borra los espacios del `select`).
+  - Falta: repetir la corrida con el Chromium de Playwright (tarea 8.1) y pegar la salida en el PR.
 
 ### Etapa 9 — QA y cierre
 
