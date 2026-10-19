@@ -9,12 +9,23 @@ import { FINANCE_TEXT } from "../constants/finance.constants";
 export const createFinanceDashboardPage = () => {
   const user = userEvent.setup();
 
+  // Pantalla.
+  const getTitle = () => screen.getByRole("heading", { level: 1, name: FINANCE_TEXT.TITLE });
+  // La zona que anuncia el total y "Presupuesto guardado" (la del Spinner no tiene aria-live).
+  const getStatusRegion = () =>
+    screen.getAllByRole("status").find((region) => region.getAttribute("aria-live") === "polite");
+  const findText = (text: string | RegExp) => screen.findByText(text);
+  const queryText = (text: string | RegExp) => screen.queryByText(text);
+
   // Sin cuenta.
+  const findNoAccountNotice = () => screen.findByText(FINANCE_TEXT.NO_ACCOUNT);
   const queryNoAccountNotice = () => screen.queryByText(FINANCE_TEXT.NO_ACCOUNT);
   const getLoginLink = () => screen.getByRole("link", { name: FINANCE_TEXT.LOGIN });
 
   // Selector de periodo.
   const getPeriodGroup = () => screen.getByRole("group", { name: FINANCE_TEXT.PERIOD_GROUP_LABEL });
+  const queryPeriodGroup = () => screen.queryByRole("group", { name: FINANCE_TEXT.PERIOD_GROUP_LABEL });
+  const findPeriodGroup = () => screen.findByRole("group", { name: FINANCE_TEXT.PERIOD_GROUP_LABEL });
   const getPeriodButton = (label: string) => within(getPeriodGroup()).getByRole("button", { name: label });
   const choosePeriod = async (label: string) => {
     await user.click(getPeriodButton(label));
@@ -56,7 +67,14 @@ export const createFinanceDashboardPage = () => {
   return {
     cancel,
     choosePeriod,
+    findNoAccountNotice,
+    findPeriodGroup,
+    findText,
     getAlert,
+    getStatusRegion,
+    getTitle,
+    queryPeriodGroup,
+    queryText,
     getBudgetActionButton,
     getBudgetInput,
     getCancelButton,
