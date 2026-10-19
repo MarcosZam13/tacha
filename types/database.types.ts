@@ -1049,6 +1049,7 @@ export type Database = {
           variant_id: string
         }[]
       }
+      remove_household_member: { Args: { member_user_id: string }; Returns: string }
       save_recipe: {
         Args: {
           ingredient_list: Json

@@ -7,6 +7,7 @@ import {
   HOUSEHOLD_LISTS_DECISION_RESULT,
   HOUSEHOLD_LISTS_DECISION_STATE,
   HOUSEHOLD_MEMBERS_PAGE,
+  HOUSEHOLD_REMOVE_MEMBER_RESULT,
   HOUSEHOLD_ROLE,
 } from "../constants/household.constants";
 import {
@@ -17,6 +18,7 @@ import {
   getPersonalListsDecisionState,
   hasRegisteredSession,
   leaveHousehold,
+  removeHouseholdMember,
 } from "../services/household.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con un rpc y
@@ -370,5 +372,48 @@ describe("getHouseholdMembersPage", () => {
     rpcMock.mockResolvedValue({ data: null, error: supabaseError });
 
     await expect(getHouseholdMembersPage("x".repeat(61), 0)).rejects.toBe(supabaseError);
+  });
+});
+
+// SCRUM-61: el admin elimina a un integrante (migración 026).
+const UNKNOWN_REMOVE_RESULT_MESSAGE = `${HOUSEHOLD_DB.RPC.REMOVE_HOUSEHOLD_MEMBER} devolvió un resultado desconocido`;
+
+describe("removeHouseholdMember", () => {
+  beforeEach(() => {
+    rpcMock.mockReset();
+  });
+
+  it.each(Object.values(HOUSEHOLD_REMOVE_MEMBER_RESULT))("returns %s when the database answers it", async (removeResult) => {
+    rpcMock.mockResolvedValue({ data: removeResult, error: null });
+
+    await expect(removeHouseholdMember(MEMBER_ID)).resolves.toBe(removeResult);
+  });
+
+  it("calls remove_household_member with only the member to remove", async () => {
+    rpcMock.mockResolvedValue({ data: HOUSEHOLD_REMOVE_MEMBER_RESULT.REMOVED, error: null });
+
+    await removeHouseholdMember(MEMBER_ID);
+
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // Nombre literal a propósito: fija el contrato con la base (migración 026)
+    // aunque alguien cambie la constante por error. Sin household_id ni rol.
+    expect(rpcMock).toHaveBeenCalledWith("remove_household_member", { member_user_id: MEMBER_ID });
+  });
+
+  it("throws on a result outside the contract and does not expose the member id", async () => {
+    // "left" es de leave_household: no vale para eliminar.
+    rpcMock.mockResolvedValue({ data: "left", error: null });
+
+    const removeAttempt = removeHouseholdMember(MEMBER_ID);
+
+    await expect(removeAttempt).rejects.toThrow(UNKNOWN_REMOVE_RESULT_MESSAGE);
+    await expect(removeAttempt).rejects.not.toThrow(MEMBER_ID);
+  });
+
+  it("rethrows the Supabase error, for example 42501 without a registered account", async () => {
+    const supabaseError = { code: "42501", message: "Se requiere una cuenta registrada para eliminar a un integrante" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(removeHouseholdMember(MEMBER_ID)).rejects.toBe(supabaseError);
   });
 });
