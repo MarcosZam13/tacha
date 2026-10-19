@@ -329,3 +329,53 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`).
 - [ ] Sublistas por fecha y listas privadas.
 - [ ] HU-35, HU-36 y HU-38.
+
+## SCRUM-60: consultar a los integrantes de la familia
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1 y queda en `in progress` hasta el final.
+
+### Etapa 0 — Decisiones
+
+- [x] 0.1 Decisiones de producto de la dueña de la historia (2026-10-17): iniciales o ícono genérico, cualquier miembro consulta su familia, 20 por página con "Cargar más", búsqueda automática con debounce, etiqueta "Tú" (SPEC §5).
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-60 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md`, `specs/tasks.md` y `docs/documento-proyecto.md` §4.1.
+- [ ] 1.2 Revisión y aprobación de la documentación.
+- [x] 1.3 Commit `docs(SCRUM-60): add household members list planning`, push y abrir el PR hacia `develop` con label `in progress` (PR #68).
+
+### Etapa 2 — Migración (commit `feat`)
+
+- [x] 2.1 Revisar otra vez el número libre (`025`).
+- [x] 2.2 Escribir `025_household_members_page.sql` con los requisitos de seguridad de [plan.md](plan.md#datos-3) y su prueba SQL.
+- [x] 2.3 Revisión con `security-reviewer`; aprobación; commit (`0bc8f8c`).
+- [x] 2.4 La dueña de la historia la aplica con su fila del historial y corre la prueba SQL: aplicada y registrada; la prueba terminó en `ok`.
+
+### Etapa 3 — Tipos (commit `feat`)
+
+- [x] 3.1 `get_household_members_page` en `types/database.types.ts`, comparado con `pg_proc` (la firma coincidió).
+
+### Etapa 4 — Servicio y ViewModel (commit `feat`)
+
+- [x] 4.1 Constantes: RPC, tamaño de página, debounce, estados y textos. `GET_HOUSEHOLD_MEMBERS_PAGE`, `HOUSEHOLD_MEMBERS_PAGE` (20 por página, debounce de 300 ms, tope de 60 caracteres), `HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS` y `HOUSEHOLD_MEMBERS_TEXT` (título, búsqueda, etiquetas, cantidad, sin resultados, errores, reintento y "Cargar más").
+- [x] 4.2 `getHouseholdMembersPage` y sus tests (con el modelo `HouseholdMembersPage`).
+- [x] 4.3 `useHouseholdMembers` y sus tests. Incluye que, al cambiar de familia, nunca se ve a nadie de la anterior mientras carga la nueva.
+
+### Etapa 5 — Pantalla (commit `feat`)
+
+- [x] 5.1 `HouseholdMembersSection` y sus props, con `toMemberInitials` para el avatar.
+- [x] 5.2 Integración en `useHouseholdViewModel` y `Household.tsx`.
+- [x] 5.3 Page Object y tests (jsdom): `HouseholdMembers.page.ts`, `HouseholdMembers.test.tsx` y `toMemberInitials.test.ts`.
+- [x] 5.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-17): los cuatro sin errores; Vitest completo, 796 tests en 86 archivos.
+
+### Etapa 6 — QA y cierre
+
+- [ ] 6.1 Pruebas manuales de CA-01 a CA-03 con cuentas registradas de prueba, con capturas sin correos.
+- [ ] 6.2 `docs/documento-proyecto.md` §6 y marcar SPEC §13 solo con lo validado.
+- [ ] 6.3 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [ ] 6.4 Descripción del PR, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] La foto real del perfil (HU-30).
+- [ ] Eliminar miembros (HU-36).

@@ -88,6 +88,7 @@ Tacha es una aplicación web para que un grupo de usuarios (familias, o grupos d
   - **Compartir:** pasa los pendientes a la lista general de la familia en una sola operación. La misma variante se suma en una fila; lo tachado se queda en la lista personal, y también lo que la familia ya compró (no se borra esa compra).
   - **Mantener:** no cambia nada, y `/lista` la muestra aparte como "Mi lista personal", de solo lectura.
   - Hoy solo existe la lista general: las sublistas por fecha y las privadas no están implementadas. Detalle en `features/household/specs/`.
+- **Ver a los integrantes de la familia (decidido 2026-10-17, SCRUM-60 / HU-35, en implementación):** cualquier miembro registrado de un household ve a los integrantes de **su** household, y solo a ellos: nombre del registro (o "Miembro sin nombre"), quién es el admin y una etiqueta "Tú" en su propia fila. Nunca el correo. En lugar de foto se muestran las iniciales del nombre, o un ícono genérico si no hay nombre, hasta que exista el perfil con foto (HU-30). La lista se busca por nombre mientras se escribe y se carga de a 20 con "Cargar más". Detalle en `features/household/specs/`.
 - **Rol "Administrador" (confirmado 2026-08-19):** no existe un rol de administración global de la plataforma — "Administrador" se refiere únicamente al rol `admin` dentro de un household (`household_members.role`), con las capacidades ya descritas arriba (invitar, consultar y eliminar miembros). No hay alcance adicional pendiente de definir.
 
 ### 4.2 Lista general y dashboard financiero

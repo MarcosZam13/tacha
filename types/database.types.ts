@@ -989,6 +989,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_household_members_page: {
+        Args: { page_offset?: number; page_size?: number; search_query?: string }
+        Returns: {
+          display_name: string | null
+          is_current_user: boolean
+          role: string
+          user_id: string
+        }[]
+      }
       get_personal_lists_decision_state: { Args: never; Returns: string }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }

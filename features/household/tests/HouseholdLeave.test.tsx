@@ -23,6 +23,8 @@ vi.mock("../services/household.service", () => ({
   createHouseholdInvite: vi.fn(),
   getHouseholdInvite: vi.fn(),
   getHouseholdMembers: vi.fn(),
+  // SCRUM-60: la pantalla lista a los integrantes. Por defecto, ninguno.
+  getHouseholdMembersPage: vi.fn(() => Promise.resolve({ hasMore: false, members: [] })),
   getHouseholdMembership: vi.fn(),
   // SCRUM-59: la pantalla pregunta por la lista personal. Por defecto ya
   // decidió (literal: el factory de vi.mock no puede usar las constantes).

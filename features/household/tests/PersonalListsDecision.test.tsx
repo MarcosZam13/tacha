@@ -31,6 +31,8 @@ vi.mock("../services/household.service", () => ({
   decidePersonalLists: vi.fn(),
   getHouseholdInvite: vi.fn(),
   getHouseholdMembers: vi.fn(),
+  // SCRUM-60: la pantalla lista a los integrantes. Por defecto, ninguno.
+  getHouseholdMembersPage: vi.fn(() => Promise.resolve({ hasMore: false, members: [] })),
   getHouseholdMembership: vi.fn(),
   getPersonalListsDecisionState: vi.fn(),
   hasRegisteredSession: vi.fn(),
