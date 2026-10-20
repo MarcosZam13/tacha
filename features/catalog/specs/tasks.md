@@ -37,3 +37,37 @@ Pendiente de otros:
 El runner está en la rama `ticket/SCRUM-128-runner-de-tests`, sin mergear a `develop` al 2026-10-03.
 
 - [ ] Tests unitarios de `utils/getOverallPriceRange.ts` y `utils/toCatalogCards.ts`, y de `utils/formatPriceRange.ts` ya promovido, según unit-testing-standards (camino feliz + sin precios, sin foto, mínimo = máximo).
+
+## SCRUM-84: filtrar catálogo por categoría
+
+Deriva de [plan.md](plan.md#hu-52-scrum-84-filtrar-catálogo-por-categoría). No modifica las tareas de SCRUM-83 arriba.
+
+- [x] 0. Contextualizar: ticket en Jira, comentarios de SCRUM-84/85/87/131, `AGENTS.md` y skills aplicables, estado real del repo tras el rebase con `develop`. Confirmado: SCRUM-131 ya mergeado (`categories` con 7 filas, 12 madres con `category_id`), SCRUM-86 ya mergeado (sin imports a rutas viejas).
+- [x] 1. SPEC.md actualizada de forma aditiva (HU-51 intacta, HU-52 agregada aparte); decisión de arquitectura (RPC nueva vs. extender `search_catalog`) resuelta con la decisión ya registrada en `supabase/specs/SCRUM-131/SPEC.md` §6, sin necesidad de volver a decidirla.
+- [x] 2. Decisión de SPEC.md §6 (qué pasa al entrar a `/catalogo` sin texto y sin chip) resuelta: se mantiene `idle`.
+- [x] 3. Aviso en Jira a SCRUM-85 y SCRUM-87 sobre la RPC nueva y la lectura directa de `categories`.
+- [x] 4. plan.md actualizado de forma aditiva (archivos, datos, flujo, tabla de decisión por caso, decisiones, orden de commits, skills).
+- [x] 5. Número de migración confirmado: `029` (2026-10-20). **`supabase/migrations/029_list_catalog_by_category.sql`:**
+  - [ ] 5a. Función auxiliar `_catalog_visible_store_ids(household_id uuid)` extraída del bloque que hoy está duplicado en el plan dentro de `search_catalog`, para que la reusen las dos RPC.
+  - [ ] 5b. Función `list_catalog_by_category(category_id uuid default null, household_id uuid default null)`: mismo shape de salida y misma agregación de marcas/precio que `search_catalog` (ver plan.md, Datos); `security invoker`, `search_path` fijo (mismo patrón que SCRUM-131 dejó en `search_catalog`).
+  - [ ] 5c. `supabase/tests/029_list_catalog_by_category.test.sql`, mismo patrón que `020_curated_mothers.test.sql`: sin categoría devuelve todo, con categoría solo esa, categoría sin productos devuelve 0 filas (no error), `household_id` filtra tiendas igual que `search_catalog`.
+  - [ ] 5d. Aplicar la migración en el SQL Editor (transacción con el insert del historial), con aviso al grupo antes (`supabase/README.md#migraciones`).
+- [ ] 6. `types/catalog.types.ts`: agregar `category: string` a `CatalogProduct`; agregar `Category { id: string; name: string }`. Aditivo, verificar que lista y recetas sigan compilando sin tocarlas.
+- [ ] 7. `services/catalog.service.ts`: `searchCatalog()` deja de descartar `product.category`; nuevas `listCatalogByCategory(categoryId)` y `getCategories()`. *Validación: `tsc`, `lint`, `build`.*
+- [ ] 8. `constants/catalog.constants.ts`: `CATALOG_DB.RPC.LIST_CATALOG_BY_CATEGORY`. `features/catalog/constants/catalog-search.constants.ts`: textos nuevos (aria-label de los chips, mensaje de categoría vacía).
+- [ ] 9. Primitivo `Chip` en `components/ui/` (solo si no existe ya uno) — compartido, no local a catálogo.
+- [ ] 10. `features/catalog/components/CatalogCategoryChips.tsx` + su interface de props: presentación pura (chip "Todas" + uno por `Category`, `aria-pressed` en el activo).
+- [ ] 11. `hooks/useCatalogSearchViewModel.ts`: agregar `activeCategoryId`, `categories`, `onCategoryChange`; implementar la tabla de decisión de RPC del plan.md (idle / `listCatalogByCategory` / `searchCatalog` / `searchCatalog` + filtro en cliente).
+- [ ] 12. `features/catalog/CatalogSearch.tsx`: renderizar `<CatalogCategoryChips />` conectado al ViewModel.
+- [ ] 13a. Validación manual en el navegador: CA-01, CA-02, CA-03 de HU-52, los casos adicionales de SPEC.md §13, y que HU-51 (búsqueda sin categoría) sigue igual que antes.
+- [ ] 13b. `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+- [ ] 14. Tests unitarios de lo nuevo (si ya hay runner en `develop` — revisar `ticket/SCRUM-128-runner-de-tests`): `CatalogCategoryChips` (chip activo/aria-pressed), la lógica de decisión de RPC del ViewModel, `listCatalogByCategory`/`getCategories` del servicio.
+- [ ] 15. Subagentes `code-reviewer`, `security-reviewer` (por la migración/RPC nueva) y `qa-checker`; completar la descripción del PR #66 (pasos de prueba manual, el aviso ya hecho a SCRUM-85/87, nota de Developer Notes sobre la RPC nueva).
+- [ ] 16. Cambiar label del PR #66 cuando corresponda (hoy sigue en `on hold`, desactualizado — el bloqueo real con SCRUM-131 ya no existe).
+
+## Pendiente de otros (sin cambios desde SCRUM-83)
+
+- [ ] Enganchar `/catalogo` al sidebar cuando exista.
+- [ ] SCRUM-85: detalle del producto — recibe el mismo `CatalogProduct`/`productId` sin importar de qué RPC vino (avisado en su Jira).
+- [ ] SCRUM-87: selector de categoría del formulario — puede reusar `getCategories()` (avisado en su Jira).
+- [ ] Revisar nombres en la tarjeta cuando se resuelva SCRUM-126/133 (marcas en el nombre de las madres viejas).
