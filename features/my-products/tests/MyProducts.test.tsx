@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CATALOG_CATEGORY_TEXT } from "@/constants";
 import type { CatalogProduct } from "@/types/catalog.types";
 import { listMyProducts } from "../services/my-products.service";
 import { MyProducts } from "../MyProducts";
@@ -17,6 +18,7 @@ beforeEach(() => {
 });
 
 const MANUAL_PRODUCT: CatalogProduct = {
+  category: CATALOG_CATEGORY_TEXT.UNASSIGNED,
   productId: "product-1",
   productName: "Leche",
   variants: [

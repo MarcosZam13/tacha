@@ -1013,6 +1013,15 @@ export type Database = {
       }
       get_recipe_coverage: { Args: { target_recipe_id: string }; Returns: Json }
       leave_household: { Args: { new_admin_user_id?: string }; Returns: string }
+      list_catalog_by_category: {
+        Args: { filter_category_id?: string; filter_household_id?: string }
+        Returns: {
+          category: string
+          name: string
+          product_catalog_id: string
+          variants: Json
+        }[]
+      }
       normalize_pending_staging: {
         Args: { batch_size?: number }
         Returns: {
