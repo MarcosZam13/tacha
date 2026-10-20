@@ -100,12 +100,14 @@ No aplica: no usa Supabase ni otras APIs.
 
 ### HU-43 (SCRUM-75)
 
-Ninguno validado todavía.
+Validado el 2026-10-19: tests automáticos y prueba manual de la dueña de la historia en las 3 pantallas existentes (`/catalogo`, `/catalogo/mis-productos` y el detalle de `/lista`), con capturas adjuntas al PR #72. No se registró la prueba en mobile.
 
 - [ ] **CA-01:** el aviso está siempre visible cerca de los precios en "Buscar" (al final de los resultados), "Mis productos" (debajo de las tarjetas) y el detalle de producto de `/lista`. Finanzas (Dashboard), después del merge de #70. Historial, con HU-59.
-- [ ] **CA-02:** el aviso es discreto: aparece una sola vez por pantalla, no tapa contenido ni controles y no interrumpe (sin `role="alert"`).
-- [ ] **CA-03:** muestra el título «Precios estimados» y el texto exacto de la regla 1.
-- [ ] Tests del componente y de cada pantalla; `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
+  - Validado en las 3 pantallas existentes; en `/catalogo`, también antes de buscar y sin resultados.
+  - Sin marcar hasta Finanzas (#70, sin mergear) e Historial (HU-59, sin empezar).
+- [x] **CA-02:** el aviso es discreto: aparece una sola vez por pantalla, no tapa contenido ni controles y no interrumpe (sin `role="alert"`). Validado con los tests y las capturas.
+- [x] **CA-03:** muestra el título «Precios estimados» y el texto exacto de la regla 1. Validado con los tests y las capturas.
+- [x] Tests del componente y de cada pantalla; `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
 
 ## 14. Casos fuera de alcance
 
