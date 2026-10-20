@@ -9,9 +9,11 @@ El qué está en [SPEC.md](SPEC.md) y los pasos en [tasks.md](tasks.md).
 ### Archivos
 
 ```
+constants/price-disclaimer.constants.ts     nuevo: PRICE_DISCLAIMER_TEXT (TITLE, BODY), con export en constants/index.ts
+                                            (como recipes-tabs y catalog-tabs)
 components/price-disclaimer/
   PriceDisclaimer.tsx                       nuevo: el recuadro (<aside> con título y texto)
-  constants/price-disclaimer.constants.ts   nuevo: PRICE_DISCLAIMER_TEXT (TITLE, BODY)
+  tests/PriceDisclaimer.page.ts             nuevo: Page Object
   tests/PriceDisclaimer.test.tsx            nuevo
 
 features/catalog/CatalogSearch.tsx                              + <PriceDisclaimer /> al final de los resultados

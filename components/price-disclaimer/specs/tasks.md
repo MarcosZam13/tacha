@@ -17,7 +17,7 @@ El qué está en [SPEC.md](SPEC.md) y el cómo en [plan.md](plan.md).
 
 ### Etapa 2 — Componente (commit `feat`)
 
-- [ ] 2.1 `PriceDisclaimer`, sus constantes y sus tests.
+- [x] 2.1 `PriceDisclaimer`, sus constantes (`constants/price-disclaimer.constants.ts`, en el barrel `constants/index.ts`) y sus tests (`tests/PriceDisclaimer.page.ts` y `tests/PriceDisclaimer.test.tsx`).
 
 ### Etapa 3 — Pantallas (commit `feat`)
 
