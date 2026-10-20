@@ -6,9 +6,19 @@
 -- supabase/tests/020_curated_mothers.test.sql) — la categoría de prueba del
 -- caso 3 no queda en la base compartida.
 --
+-- Nota sobre el conteo esperado (casos 1 y 2): la función hace, igual que
+-- search_catalog, un INNER JOIN entre matching_products y product_variants.
+-- Un producto de product_catalog sin ninguna fila en product_catalog_variants
+-- (los "productos madre" usados solo por product_mother_rules/recipe_ingredients,
+-- p. ej. "Leche", "Cereal", "Chocolate") queda fuera del resultado. Es el mismo
+-- comportamiento ya establecido en search_catalog, no algo nuevo de esta
+-- función, así que el conteo esperado se calcula solo sobre productos que
+-- sí tienen al menos una variante.
+--
 -- Casos:
 --   1. Sin category_id: devuelve todo el catálogo global (no solo una
---      categoría) — cuenta igual al total de product_catalog global.
+--      categoría) — cuenta igual al total de product_catalog global con
+--      al menos una variante.
 --   2. Con category_id real ("Lácteos"): solo esa categoría, y cada fila
 --      devuelta trae exactamente ese nombre de categoría.
 --   3. Categoría sin ningún producto: 0 filas, nunca un error (la fila de
@@ -26,10 +36,16 @@ declare
   v_expected_count int;
 begin
   select count(*) into v_result_count from list_catalog_by_category(null, null);
-  select count(*) into v_expected_count from product_catalog where household_id is null;
+  select count(*) into v_expected_count
+  from product_catalog pc
+  where pc.household_id is null
+    and exists (
+      select 1 from product_catalog_variants pcv
+      where pcv.product_catalog_id = pc.id
+    );
 
   assert v_result_count = v_expected_count,
-    'Sin category_id: se esperaban ' || v_expected_count || ' productos (todo el catálogo global), dio ' || v_result_count;
+    'Sin category_id: se esperaban ' || v_expected_count || ' productos (todo el catálogo global con variantes), dio ' || v_result_count;
 end $$;
 
 -- ----------------------------------------------------------------------------
@@ -47,11 +63,16 @@ begin
 
   select count(*) into v_result_count from list_catalog_by_category(v_lacteos_id, null);
   select count(*) into v_expected_count
-  from product_catalog
-  where household_id is null and category_id = v_lacteos_id;
+  from product_catalog pc
+  where pc.household_id is null
+    and pc.category_id = v_lacteos_id
+    and exists (
+      select 1 from product_catalog_variants pcv
+      where pcv.product_catalog_id = pc.id
+    );
 
   assert v_result_count = v_expected_count,
-    'Con "Lácteos": se esperaban ' || v_expected_count || ' productos, dio ' || v_result_count;
+    'Con "Lácteos": se esperaban ' || v_expected_count || ' productos (con variantes), dio ' || v_result_count;
 
   select count(*) into v_wrong_category_count
   from list_catalog_by_category(v_lacteos_id, null)
