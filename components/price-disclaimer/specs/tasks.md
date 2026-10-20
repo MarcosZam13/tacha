@@ -21,8 +21,10 @@ El qué está en [SPEC.md](SPEC.md) y el cómo en [plan.md](plan.md).
 
 ### Etapa 3 — Pantallas (commit `feat`)
 
-- [ ] 3.1 Catálogo "Buscar" (al final de los resultados), "Mis productos" (debajo de las tarjetas) y detalle de producto en `/lista`, con un test por pantalla.
-- [ ] 3.2 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`.
+- [x] 3.1 Catálogo "Buscar" (al final de los resultados), "Mis productos" (debajo de las tarjetas) y detalle de producto en `/lista`, con un test por pantalla.
+  - Tests: `features/catalog/tests/CatalogSearch.test.tsx` (nuevo), un caso en `features/my-products/tests/MyProducts.test.tsx` y `features/shopping-list/tests/ShoppingListItemDetail.test.tsx` (nuevo).
+  - Comprueban que el aviso aparece una sola vez y en su lugar: después de los resultados y de las tarjetas (fuera de la grilla), y en `/lista` como el elemento inmediato después de "Precio de referencia por supermercado".
+- [x] 3.2 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-19): los cuatro sin errores; Vitest completo, 837 tests en 93 archivos; `git diff --check` limpio.
 
 ### Etapa 4 — Finanzas (después del merge de #70)
 
