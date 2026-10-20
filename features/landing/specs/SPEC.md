@@ -8,14 +8,15 @@ Incluye:
 - Sprint 1: HU-01 navbar, HU-02 hero, HU-08 footer, HU-09 redes, HU-11 logo.
 - Sprint 2: HU-03 intro (SCRUM-25), HU-04 leer más (SCRUM-26), HU-05 testimonios (SCRUM-27), HU-07 sección de demo con marcador "Aquí va la demo" (SCRUM-29), HU-10 términos (SCRUM-32), HU-12 misión y visión (SCRUM-34), HU-13 organización (SCRUM-35).
 - Sprint 3: HU-06 formulario de contacto con reCAPTCHA en / y el enlace "Contacto" de la navbar apuntando a él (SCRUM-28).
+- Sprint 3: HU-14 el mismo formulario de contacto en /nosotros (SCRUM-36).
 
-No incluye: el formulario de contacto en /nosotros (HU-14, SCRUM-36: reutiliza la sección de SCRUM-28), "Iniciar sesión" en la navbar (HU-22), el video de la demo.
+No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
 
 ## 3. Entradas
 - testimonials: TestimonialList (lista no vacía) → TestimonialsCarousel
 - Clic en "Leer más", en las flechas del carrusel y en "Volver".
 - Formulario de contacto: name: string, email: string, message: string, captchaToken (lo entrega el widget de reCAPTCHA).
-- source: "landing" (prop de ContactSection; "about" llega con SCRUM-36).
+- source: "landing" | "about" (prop de ContactSection según la página).
 
 ## 4. Salidas
 - "Leer más" lleva a la sección ampliada (#mas-informacion).
@@ -57,7 +58,7 @@ No incluye: el formulario de contacto en /nosotros (HU-14, SCRUM-36: reutiliza l
 - Testimonios: inicial, nombre, ubicación, cita, flechas y posición "1 de 3".
 - Footer: enlaces "Términos y condiciones" y "Nosotros".
 - /terminos: botón "Volver", título, fecha y secciones numeradas.
-- /nosotros: título, Misión y Visión en bloques separados, "Quiénes somos".
+- /nosotros: título, Misión y Visión en bloques separados, "Quiénes somos" y la sección "Contactanos" al final.
 - Sección "Contactanos" (id formulario-contacto) al final de /: descripción, Nombre, Correo electrónico, Mensaje (textarea con contador), reCAPTCHA y botón "Enviar mensaje" / "Enviando...".
 - Confirmación: texto de éxito y botón "Enviar otro mensaje".
 
@@ -108,12 +109,12 @@ No incluye: el formulario de contacto en /nosotros (HU-14, SCRUM-36: reutiliza l
 - Caso 14 (CA-07): un envío exitoso muestra la confirmación y vacía el formulario.
 - Caso 15 (CA-08): un fallo del servidor o de la red muestra un mensaje claro y conserva el texto.
 - Caso 16 (seguridad): un insert directo a contact_messages con la anon key falla con 42501.
+- Caso 17 (HU-14 CA-01 a CA-08): /nosotros muestra la misma sección "Contactanos", con las mismas validaciones, reCAPTCHA, confirmación y errores; el mensaje se guarda con source "about".
 
 ## 14. Casos fuera de alcance
 - El video de la demo y sus controles.
 - Autoplay del carrusel.
 - Contenido editable desde una base de datos.
-- El formulario de contacto en /nosotros (HU-14, SCRUM-36).
 - Avisar por correo al equipo cuando llega un mensaje (requiere un proveedor de correo; hoy se leen en el Table Editor de Supabase).
 - Panel para leer o responder mensajes desde la app.
 - reCAPTCHA v3 / invisible.

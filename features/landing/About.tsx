@@ -1,6 +1,8 @@
+import { ContactSection } from "./components/ContactSection";
 import { MissionVisionSection } from "./components/MissionVisionSection";
 import { OrganizationSection } from "./components/OrganizationSection";
 import { PublicLayout } from "./components/PublicLayout";
+import { CONTACT_SOURCE } from "./constants/contact.constants";
 import { ABOUT_TEXT } from "./constants/landing.constants";
 
 export const About = (): React.JSX.Element => (
@@ -11,5 +13,6 @@ export const About = (): React.JSX.Element => (
     </header>
     <MissionVisionSection />
     <OrganizationSection />
+    <ContactSection source={CONTACT_SOURCE.ABOUT} />
   </PublicLayout>
 );

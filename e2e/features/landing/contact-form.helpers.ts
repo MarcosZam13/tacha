@@ -4,6 +4,8 @@ import { getRequiredEnv } from "../../support/supabase";
 // Cómo preparar y usar el formulario de contacto. Sin aserciones: eso es del test
 // (playwright-e2e, references/standards.md).
 export const HOME_PATH = "/";
+export const ABOUT_PATH = "/nosotros";
+
 
 const RECAPTCHA_SCRIPT_URL = "https://www.google.com/recaptcha/api.js**";
 const CONTACT_FUNCTION_PATH = "/functions/v1/submit-contact-message";

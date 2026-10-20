@@ -95,8 +95,9 @@ export const CONTACT_API_CODE_RESULT: Partial<Record<string, ContactResultType>>
   [CONTACT_API_CODE.RATE_LIMITED]: CONTACT_RESULT.RATE_LIMITED,
 };
 
-// Desde qué página llega el mensaje (columna `source` de contact_messages). SCRUM-36 agrega ABOUT.
+// Desde qué página llega el mensaje (columna `source` de contact_messages).
 export const CONTACT_SOURCE = {
+  ABOUT: "about",
   LANDING: "landing",
 } as const;
 
