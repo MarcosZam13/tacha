@@ -248,3 +248,13 @@ Continúa después de los commits ya mergeados de SCRUM-83 (`refactor(SCRUM-83):
 ### Qué skills aplican (HU-52)
 
 Los mismos de HU-51 (`component-architecture`, `constants-standards`, `project-structure`, `clean-code-practices`, `nextjs-enterprise-patterns`, `unit-testing-standards`), más **`security-practices`**: esta historia sí agrega una migración y una función nueva — revisar que quede `security invoker` (como `search_catalog`, no `security definer`: es lectura pública, no necesita saltarse RLS) y con `search_path` fijo, mismo patrón que dejó SCRUM-131.
+
+### Desviaciones respecto al plan original (2026-10-20, durante la implementación de tasks.md 6-14)
+
+El comportamiento y los criterios de la SPEC no cambiaron; solo el alcance de algunos archivos, descubierto al implementar.
+
+| Plan original | Implementado | Por qué |
+|---|---|---|
+| `components/ui/` gana un `Chip` nuevo si no existe uno | Ya existía `components/ui/chip/Chip.tsx` (con `CHIP_TONE`); se reusa tal cual. `CatalogCategoryChips` envuelve cada `<Chip>` en un `<button aria-pressed>` propio, porque el primitivo es solo presentación (un `<span>`), sin variante clicable | `nextjs-enterprise-patterns` §1: componer sobre el primitivo existente, no clonarlo. Un wrapper delgado de interacción no es lo mismo que duplicar el chip |
+| `CatalogProduct.category` aditivo, sin otros archivos tocados | `features/my-products/services/my-products.service.ts` también tuvo que tocarse: construye un `CatalogProduct` a mano y, al volverse `category` un campo obligatorio, dejaba de compilar. Se le puso `CATALOG_CATEGORY_TEXT.UNASSIGNED` (constante nueva en `constants/catalog.constants.ts`), no un string vacío suelto | SPEC.md §10 exige que lista y recetas (y, por el mismo motivo, "Mis productos") sigan compilando; "Mis productos" no asigna categoría todavía (HU-55, selector es SCRUM-87), así que no hay un nombre real que mapear |
+| `features/catalog/components/CatalogEmptyState.tsx` sin cambios | Gana un `message` opcional (`CatalogEmptyStateProps`), para distinguir "sin resultados de texto" (CA-04 de HU-51) de "categoría sin productos" (caso adicional de HU-52, SPEC.md §7) | Ninguna CA pide un componente de vacío distinto; reusar el mismo con el texto correcto evita duplicar el layout del estado vacío |
