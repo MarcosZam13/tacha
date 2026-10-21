@@ -101,7 +101,7 @@ Lista y recetas no leen los campos nuevos, así que no cambian de comportamiento
 
 ### Decisiones del 2026-10-03
 
-Tomadas por Daniel (orquestador) tras valorar su impacto en el resto del proyecto. Avisos y respuestas del equipo en [tasks.md](tasks.md#comunicación-al-equipo).
+Decisiones de arquitectura, tomadas tras valorar su impacto en el resto del proyecto. Avisos y respuestas del equipo en [tasks.md](tasks.md#comunicación-al-equipo).
 
 | Decisión | Alternativa | Por qué esta |
 |---|---|---|

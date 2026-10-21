@@ -50,3 +50,6 @@ supabase/.temp/
 /blob-report/
 /playwright/.cache/
 /.playwright-cli/
+
+# Notas administrativas locales de cada desarrollador, no deben subirse al repositorio
+*.local.md
