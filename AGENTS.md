@@ -80,3 +80,13 @@ Si una historia cambia una decisión de producto o del modelo de datos, `docs/do
 ## Stack (referencia rápida)
 
 Next.js · TypeScript · Tailwind CSS · Supabase (Postgres + Auth + Realtime + RLS) vía PostgREST/RPC · estado de servidor con servicios (`services/`) + `useEffect` en el ViewModel (TanStack Query: opción a evaluar por el equipo, no instalado). El patrón de estado compartido puramente de cliente (modales, selección activa) todavía no está decidido por el equipo — ver [nextjs-enterprise-patterns §3](.agents/skills/nextjs-enterprise-patterns/SKILL.md#3-estado-compartido-de-cliente--elegir-un-patrón-y-exigirlo) antes de introducir uno nuevo ad hoc.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
