@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createPriceDisclaimerPage } from "@/components/price-disclaimer/tests/PriceDisclaimer.page";
 import type { CatalogProduct } from "@/types/catalog.types";
 import { listMyProducts } from "../services/my-products.service";
 import { MyProducts } from "../MyProducts";
@@ -71,5 +72,25 @@ describe("MyProducts", () => {
 
     await waitFor(() => expect(page.getError()).toBeInTheDocument());
     expect(page.queryEmptyState()).not.toBeInTheDocument();
+  });
+
+  // SCRUM-75: el aviso de precios estimados va una sola vez, debajo de las tarjetas.
+  it("shows the price disclaimer once, below the cards (SCRUM-75 CA-01, CA-02)", async () => {
+    listMyProductsMock.mockResolvedValue([
+      MANUAL_PRODUCT,
+      { ...MANUAL_PRODUCT, productId: "product-2", productName: "Café" },
+    ]);
+    render(<MyProducts />);
+    const page = createMyProductsPage();
+    const disclaimer = createPriceDisclaimerPage();
+
+    await waitFor(() => expect(page.queryCards()).toHaveLength(2));
+    const cardsList = page.queryCards()[0].closest("ul");
+
+    expect(disclaimer.queryAllDisclaimers()).toHaveLength(1);
+    expect(cardsList).not.toContainElement(disclaimer.getDisclaimer());
+    expect(
+      (cardsList as HTMLElement).compareDocumentPosition(disclaimer.getDisclaimer()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
