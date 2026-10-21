@@ -5,6 +5,7 @@ import type { HouseholdInviteLinkCardProps } from "../components/models/Househol
 import type { HouseholdJoinFormProps } from "../components/models/HouseholdJoinFormProps.interface";
 import type { HouseholdLeaveDialogProps } from "../components/models/HouseholdLeaveDialogProps.interface";
 import type { HouseholdMembersSectionProps } from "../components/models/HouseholdMembersSectionProps.interface";
+import type { HouseholdRemoveMemberDialogProps } from "../components/models/HouseholdRemoveMemberDialogProps.interface";
 import type { PersonalListsDecisionProps } from "../components/models/PersonalListsDecisionProps.interface";
 import {
   HOUSEHOLD_FORM_ERROR,
@@ -23,7 +24,9 @@ import { createHousehold, getHouseholdMembership, hasRegisteredSession } from ".
 import { useHouseholdInvite } from "./useHouseholdInvite";
 import { useHouseholdJoinForm } from "./useHouseholdJoinForm";
 import { toMemberInitials } from "../utils/toMemberInitials";
+import { toMemberLabel } from "../utils/toMemberLabel";
 import { useHouseholdLeave } from "./useHouseholdLeave";
+import { useHouseholdMemberRemoval } from "./useHouseholdMemberRemoval";
 import { useHouseholdMembers } from "./useHouseholdMembers";
 import { usePersonalListsDecision } from "./usePersonalListsDecision";
 
@@ -75,6 +78,8 @@ interface UseHouseholdViewModelReturn {
   nameError: NullableUndefined<string>;
   onCreateSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onNameChange: (name: string) => void;
+  /** "¿Eliminar a este integrante?" (SCRUM-61), ya armado. */
+  removeDialog: HouseholdRemoveMemberDialogProps;
   showCreateForm: boolean;
   showInvite: boolean;
   /** Miembro o admin: los dos pueden salir (CA-01). */
@@ -92,14 +97,23 @@ const toMembersCountText = (count: number): string =>
   `${count} ${count === 1 ? HOUSEHOLD_MEMBERS_TEXT.COUNT_SINGULAR : HOUSEHOLD_MEMBERS_TEXT.COUNT_PLURAL}`;
 
 // Lo que dibuja cada fila. Ser admin sale del rol, nunca del nombre; el id
-// solo es la key de React.
-const toMemberRow = (member: HouseholdMember): HouseholdMembersSectionProps["rows"][number] => ({
-  initials: toMemberInitials(member.displayName),
-  isAdmin: member.role === HOUSEHOLD_ROLE.ADMIN,
-  isCurrentUser: member.isCurrentUser,
-  label: member.displayName?.trim() || HOUSEHOLD_LEAVE_TEXT.UNNAMED_MEMBER,
-  rowKey: member.userId,
-});
+// solo es la key de React. onRemoveRequest llega solo cuando quien mira es el
+// admin, y nunca en su propia fila ni en la de un admin (SCRUM-61, CA-01).
+const toMemberRow = (
+  member: HouseholdMember,
+  onRemoveRequest: NullableRef<(member: HouseholdMember) => void>,
+): HouseholdMembersSectionProps["rows"][number] => {
+  const canBeRemoved = onRemoveRequest !== null && !member.isCurrentUser && member.role !== HOUSEHOLD_ROLE.ADMIN;
+
+  return {
+    initials: toMemberInitials(member.displayName),
+    isAdmin: member.role === HOUSEHOLD_ROLE.ADMIN,
+    isCurrentUser: member.isCurrentUser,
+    label: toMemberLabel(member.displayName),
+    onRemoveRequest: canBeRemoved ? () => onRemoveRequest(member) : null,
+    rowKey: member.userId,
+  };
+};
 
 // Qué pantalla le toca al usuario actual según su sesión y su membresía.
 const loadHouseholdScreen = async (): Promise<HouseholdScreenState> => {
@@ -190,6 +204,22 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   const listsDecision = usePersonalListsDecision(householdName !== null);
   // Solo con familia: la base deriva cuál es desde la sesión (025).
   const householdMembers = useHouseholdMembers(householdName !== null);
+  // Sube cuando la persona deja la lista (removed o member_not_found): la
+  // sección enfoca su título, porque esa fila ya no existe (SPEC §9, SCRUM-61).
+  // Cancelar o not_admin no lo cambian.
+  const [membersTitleFocusKey, setMembersTitleFocusKey] = useState<number>(0);
+  // SCRUM-61: el admin elimina a un integrante. Quién puede y a quién lo
+  // decide la base (026); acá se recarga lo que cambió.
+  const memberRemoval = useHouseholdMemberRemoval({
+    // Ya no es admin (salió o pasó el rol en otra pestaña): se vuelve a leer
+    // la membresía para mostrar el estado real.
+    onAdminLost: () => void reloadHouseholdScreen(),
+    // La persona ya no está: se recarga la lista desde la primera página.
+    onMembersChanged: () => {
+      householdMembers.onRetry();
+      setMembersTitleFocusKey((focusKey) => focusKey + 1);
+    },
+  });
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -263,8 +293,11 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       hasCreateFailed,
       inviteErrorMessage,
     ),
+    // El aviso de eliminar va primero: es la última acción del admin.
     feedbackMessage:
-      listsDecision.noticeMessage ?? (isAdmin ? householdInvite.feedbackMessage : leaveNotice),
+      memberRemoval.noticeMessage ??
+      listsDecision.noticeMessage ??
+      (isAdmin ? householdInvite.feedbackMessage : leaveNotice),
     householdName,
     invite: {
       // La tarjeta recibe solo lo que dibuja: nada del servicio ni del hook.
@@ -336,12 +369,24 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       onQueryChange: householdMembers.onQueryChange,
       onRetry: householdMembers.onRetry,
       query: householdMembers.query,
-      rows: householdMembers.members.map(toMemberRow),
+      rows: householdMembers.members.map((member) =>
+        toMemberRow(member, isAdmin ? memberRemoval.onRemoveRequest : null),
+      ),
+      titleFocusKey: membersTitleFocusKey,
     },
     name,
     nameError,
     onCreateSubmit,
     onNameChange,
+    removeDialog: {
+      // El diálogo recibe solo lo que dibuja: el nombre, nunca el id.
+      errorMessage: memberRemoval.errorMessage,
+      isDialogOpen: memberRemoval.isDialogOpen,
+      isRemoving: memberRemoval.isRemoving,
+      memberLabel: memberRemoval.memberLabel,
+      onRemoveCancel: memberRemoval.onRemoveCancel,
+      onRemoveConfirm: memberRemoval.onRemoveConfirm,
+    },
     showCreateForm:
       state.status === HOUSEHOLD_SCREEN_STATUS.NO_HOUSEHOLD || state.status === HOUSEHOLD_SCREEN_STATUS.CREATING,
     showInvite: isAdmin,

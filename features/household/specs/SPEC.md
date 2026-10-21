@@ -6,7 +6,8 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-57 / HU-34](https://tacha.atlassian.net/browse/SCRUM-57): unirse a un household por link. Sprint 2, mergeada.
 - [SCRUM-58 / HU-34c](https://tacha.atlassian.net/browse/SCRUM-58): salir de mi household. En curso.
 - [SCRUM-59 / HU-34b](https://tacha.atlassian.net/browse/SCRUM-59): decidir qué hacer con la lista personal al unirse o crear un household. Sprint 4, implementada en la rama; falta aplicar la migración `024`, correr su prueba SQL y el QA manual (ver [§2](#2-alcance): la separación de una parte en otro ticket sigue pendiente del equipo).
-- [SCRUM-60 / HU-35](https://tacha.atlassian.net/browse/SCRUM-60): consultar familiares del household. Sprint 4, en planificación.
+- [SCRUM-60 / HU-35](https://tacha.atlassian.net/browse/SCRUM-60): consultar familiares del household. Sprint 4, mergeada (#68, 2026-10-19).
+- [SCRUM-61 / HU-36](https://tacha.atlassian.net/browse/SCRUM-61): eliminar a un familiar del household. Sprint 4, en implementación (PR #69).
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md).
 
@@ -35,6 +36,11 @@ Que una persona que ya usaba Tacha por su cuenta y crea una familia o se une a u
 ### SCRUM-60
 
 Que cualquier integrante de una familia vea quiénes la forman: el nombre de cada persona, quién administra la familia y cuál es su propia fila. Cuando la familia es grande, encontrar a alguien por su nombre sin cargar a todos de una vez.
+
+### SCRUM-61
+
+Que el administrador pueda quitar a alguien de su familia, para decidir quién tiene acceso a la lista y a lo que comparte la familia. La persona eliminada deja de ver los datos de la familia en ese momento, pero no pierde nada propio: conserva su lista personal, sus recetas, sus planes y sus compras.
+
 
 ## 2. Alcance
 
@@ -100,6 +106,16 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 - Estados de carga, sin resultados, error y reintento.
 - Backend: una migración nueva, `025_household_members_page.sql`, con una RPC paginada para cualquier miembro, y su prueba SQL en `supabase/tests/`. `get_household_members()` (`023`) no cambia: la sigue usando el diálogo de salir (SCRUM-58).
 
+### SCRUM-61
+
+- En la sección "Integrantes de la familia" de `/household` (SCRUM-60), el administrador ve un botón **"Eliminar integrante"** en cada fila, salvo en la suya (CA-01). Un miembro no lo ve.
+- "Eliminar integrante" abre un diálogo (`Modal`) que pide confirmación explícita. Solo el botón "Eliminar" del diálogo ejecuta la acción (CA-02).
+- Al confirmar, la base borra la membresía de esa persona en una sola operación: pierde el acceso a la lista y a los datos de la familia en ese momento, y sus datos personales no se tocan (CA-03).
+- Después aparece un aviso de confirmación y la lista de integrantes se vuelve a cargar (CA-04).
+- No se envían notificaciones a la persona eliminada (D2) y el enlace de invitación de la familia no cambia (D1).
+- Backend: una migración nueva (número en [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia)) con la RPC `remove_household_member(member_user_id)` y su prueba SQL en `supabase/tests/`.
+
+
 ## 3. Entradas
 
 ### SCRUM-56
@@ -157,6 +173,17 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 | Página | número de miembros ya cargados | "Cargar más" |
 | Miembros de la página | lista de `{ userId, displayName, role, isCurrentUser }` (modelo `HouseholdMember` existente) y si hay más | La RPC nueva ([§12](#12-contratos-externos)) |
 
+### SCRUM-61
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Membresía y rol | `HouseholdMembership` | `getHouseholdMembership()` (reutilizado): solo el administrador ve "Eliminar integrante" |
+| Integrantes | `HouseholdMember[]` (`userId`, `displayName`, `role`, `isCurrentUser`) | `useHouseholdMembers` (SCRUM-60) |
+| `onRemoveRequest` | `() => void`, uno por fila | Botón "Eliminar integrante" de la fila |
+| `onRemoveConfirm` / `onRemoveCancel` | `() => void` | Botones del diálogo |
+| Resultado | `HouseholdRemoveMemberResultType` | `remove_household_member(member_user_id)` ([§12](#12-contratos-externos)) |
+
+
 ## 4. Salidas
 
 ### SCRUM-56
@@ -196,6 +223,14 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 - Llama a la RPC nueva al mostrar la sección, al cambiar la búsqueda (después del debounce) y al pulsar "Cargar más".
 - No modifica nada: es solo lectura.
 - Nunca muestra correos ni otros datos de Auth: solo el nombre del registro, el rol y si es quien consulta.
+
+### SCRUM-61
+
+- Llama a `remove_household_member(member_user_id)` solo al confirmar en el diálogo. El `userId` de la persona viaja solo en esa llamada; nunca se dibuja en el HTML (mismo criterio que SCRUM-60).
+- Según el resultado, la base borra la fila de esa persona en `household_members`. No toca nada más: tampoco el enlace de invitación (D1).
+- Muestra el aviso en la zona `role="status"` de la pantalla y vuelve a cargar la lista de integrantes.
+- Nunca muestra correos ni ids.
+
 
 ## 5. Reglas de negocio
 
@@ -309,6 +344,35 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 10. **Límites:** texto de búsqueda de hasta 60 caracteres; tamaño de página entre 1 y 50 (la interfaz usa 20); el desplazamiento no puede ser negativo. Valores fuera de rango: error `22023`.
 11. **Respuestas viejas:** si la búsqueda cambia mientras llega una página, esa respuesta se descarta; una búsqueda nueva empieza desde la primera página.
 
+### SCRUM-61
+
+**Decididas por la dueña de la historia** (2026-10-18):
+
+1. **D1. Enlace de invitación:** invalidar el enlace asociado a la persona eliminada, si existe y el modelo actual lo permite de forma segura, sin invalidar enlaces compartidos que afecten a otros usuarios. **El modelo actual no lo permite** (verificado el 2026-10-18 en la `011` y la `014`):
+   - hay **un solo enlace por familia** (`household_invite_links.household_id` es la clave primaria), no uno por persona;
+   - unirse (`accept_household_invite`) no guarda qué enlace usó cada quien ni quién lo generó;
+   - borrar o regenerar ese enlace dejaría sin acceso a cualquier otra persona a quien el administrador ya se lo mandó.
+
+   Por eso **eliminar a alguien no toca el enlace**. **Limitación aceptada:** mientras el enlace de la familia siga vigente (7 días desde que se generó), la persona eliminada puede volver a unirse con él si lo conserva. El administrador puede cortarlo cuando quiera con "Generar enlace nuevo" (SCRUM-56), que reemplaza el token. Un enlace por persona o una lista de bloqueados quedan fuera de esta historia ([§14](#14-casos-fuera-de-alcance)).
+2. **D2. Sin notificaciones** a la persona eliminada. La próxima vez que abra `/household` ve el estado sin familia, y `/lista` le muestra su lista personal.
+3. **D3. Textos aprobados:** "Eliminar integrante", "¿Eliminar a este integrante?", "Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán", "Cancelar", "Eliminar", "Integrante eliminado correctamente" y "No se pudo eliminar al integrante. Inténtalo de nuevo" (ver [§7](#7-errores) y [§8](#8-ui-esperada)). Se usan tal cual, incluida la palabra "household" que pidió la dueña de la historia.
+
+**Reglas:**
+
+4. **Solo cuentas registradas.** Sin `auth.uid()` o con `is_anonymous` en el JWT: `42501`.
+5. **Solo el administrador, solo en su familia.** La base deriva la familia y el rol de quien llama desde `auth.uid()`. El cliente manda únicamente el `user_id` de la persona a eliminar; nunca `household_id` ni un rol. Quien no es administrador recibe `not_admin`, sin cambios (la interfaz ni siquiera le muestra el botón).
+6. **Nunca a sí mismo** (CA-01): `cannot_remove_self`, sin cambios. Para irse está "Salir de la familia" (SCRUM-58), que exige pasar el rol.
+7. **Solo a un miembro de la misma familia.** Si la persona no está en la familia de quien llama (es de otra familia, no tiene familia, ya fue eliminada o ya salió): `member_not_found`, sin cambios. La respuesta es la misma en todos esos casos, para no revelar si un `user_id` existe ni a qué familia pertenece.
+8. **Confirmación explícita** (CA-02): abrir el diálogo o cancelarlo no llama a la base.
+9. **Acceso inmediato** (CA-03): todo el acceso a los datos de la familia se resuelve por membresía, en la RLS (la familia en la `011`, la lista y sus ítems en la `024`) y dentro de las RPC. Al borrarse la fila, la siguiente consulta de esa persona ya no ve nada de la familia, y Realtime deja de enviarle cambios de `list_items` (aplica la RLS a cada evento). El JWT no guarda la membresía, así que no hay permisos en caché.
+10. **Conservación de datos** (CA-03). Es lo mismo que pasa cuando un miembro sale (SCRUM-58 y D6 de SCRUM-59):
+    - **Se queda con la persona:** su lista general personal (`household_id` nulo), con lo que haya dejado en ella al elegir "Mantener"; sus recetas y sus planes (hoy siempre personales); sus compras (`purchase_sessions`).
+    - **Se queda en la familia:** la lista general de la familia con todo lo que la persona agregó o tachó, y los requisitos de sus recetas en esos ítems (`recipe_id` y cantidades, nunca el nombre de la receta); los productos de "Mis productos" creados para la familia (`product_catalog.household_id`: son de la familia y no tienen dueño).
+    - **Se borra:** solo su fila de `household_members`, con su decisión de listas (`personal_lists_decision`). Si se une a una familia otra vez, se le vuelve a preguntar.
+11. **Atomicidad y concurrencia:** una sola llamada y una sola transacción. Bloquea en el mismo orden que `leave_household` y `accept_household_invite` (enlace → familia) y, con el bloqueo tomado, vuelve a leer el rol de quien llama y la membresía de la persona. Así una eliminación no se cruza con una salida, una transferencia del rol o una unión por enlace en la misma familia (detalle en [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia)).
+12. **Doble clic:** el botón se deshabilita y una guarda `useRef` ignora el segundo clic. Si igual llega una segunda llamada, la base responde `member_not_found` sin cambios.
+
+
 ## 6. Estados
 
 ### SCRUM-56
@@ -394,6 +458,20 @@ La consulta de si corresponde preguntar corre en segundo plano, sin spinner: la 
 
 La lista sin búsqueda nunca está vacía: quien consulta siempre aparece.
 
+### SCRUM-61
+
+Flujo de eliminar (`HOUSEHOLD_REMOVE_MEMBER_STATUS`, propuesto):
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| `idle` | Diálogo cerrado | La lista con "Eliminar integrante" en cada fila ajena (solo el administrador) |
+| `confirming` | Eligió a alguien | El diálogo con su nombre, "Cancelar" y "Eliminar" |
+| `removing` | Esperando a la base | Botones deshabilitados (`aria-busy`); el diálogo no se puede cerrar |
+| `failed` | Error de red o de la base | El error en el diálogo; se reintenta o se cancela |
+
+Con `removed`, el diálogo se cierra, aparece el aviso y la lista se recarga. Con `member_not_found` o `not_admin` también se cierra y se recarga lo que corresponda ([§7](#7-errores)).
+
+
 ## 7. Errores
 
 ### SCRUM-56
@@ -465,6 +543,20 @@ Textos propuestos, se confirman al escribir las constantes:
 | Búsqueda sin resultados | "Nadie de tu familia coincide con esa búsqueda." (no es un error) |
 
 Los errores de Supabase no se muestran crudos ni con ids.
+
+### SCRUM-61
+
+Textos aprobados (D3):
+
+| Situación | Qué se ve |
+|---|---|
+| Falló la eliminación (red o base) | "No se pudo eliminar al integrante. Inténtalo de nuevo" en el diálogo (`role="alert"`); "Eliminar" reintenta |
+| `cannot_remove_self` | No debería pasar (la fila propia no tiene el botón): el mismo error |
+| `member_not_found` | La persona ya no estaba (salió, o la eliminó otra pestaña): el diálogo se cierra y la lista se recarga, sin mensaje. D3 no define un texto para este caso |
+| `not_admin` | Sin mensaje: se vuelve a leer la membresía y se muestra el estado real |
+
+- Los errores de Supabase no se muestran crudos ni con ids.
+
 
 ## 8. UI esperada
 
@@ -541,6 +633,18 @@ En `/household`, para miembro y administrador, una sección **"Integrantes de la
 
 Componentes compartidos: `Input`, `Chip`, `Button` y `Spinner` de `@/components/ui`. El debounce reutiliza el criterio de la búsqueda de productos (`PRODUCT_SEARCH.DEBOUNCE_MS`, 300 ms) o una constante propia con el mismo valor (se decide en el plan).
 
+### SCRUM-61
+
+En la sección "Integrantes de la familia" (SCRUM-60), solo para el administrador:
+
+- En cada fila que no es la suya, un botón **"Eliminar integrante"** (variante secundaria) al final de la fila.
+- Diálogo (`Modal`) con el título **"¿Eliminar a este integrante?"**, el nombre de la persona ("Miembro sin nombre" si no tiene) para que quede claro a quién se elimina, y el mensaje **"Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán"**. Botones **"Cancelar"** y **"Eliminar"** (variante destructiva).
+- Aviso después de eliminar, en la zona `role="status"`: **"Integrante eliminado correctamente"**.
+- Error, dentro del diálogo: **"No se pudo eliminar al integrante. Inténtalo de nuevo"**.
+
+Componentes compartidos: `Button` y `Modal` de `@/components/ui`. Los textos son los aprobados (D3).
+
+
 ## 9. Accesibilidad
 
 ### SCRUM-56
@@ -582,6 +686,14 @@ Componentes compartidos: `Input`, `Chip`, `Button` y `Spinner` de `@/components/
 - La cantidad de resultados y "sin resultados" se anuncian en una zona `role="status"`; los errores, con `role="alert"`.
 - "Cargar más" no mueve el foco: los miembros nuevos se agregan al final de la lista.
 - Todo se puede hacer con teclado.
+
+### SCRUM-61
+
+- Todos los botones dicen "Eliminar integrante". Para que el lector de pantalla los distinga, su nombre accesible empieza con ese texto visible y agrega el nombre de la persona (por ejemplo, "Eliminar integrante Ana"), como pide WCAG 2.5.3.
+- El diálogo usa el `Modal` compartido: se cierra con "Cancelar" o Escape, salvo mientras elimina (`removing`).
+- Al cerrarse después de eliminar, la fila ya no existe: el foco tiene que quedar en un lugar estable (por ejemplo, el título de la sección). Se verifica con el `Modal` actual al implementar.
+- El aviso va en la zona `role="status"` siempre montada de `Household.tsx`; los errores, en `role="alert"`.
+- Todo el flujo se puede hacer solo con teclado.
 
 ## 10. Restricciones técnicas
 
@@ -633,6 +745,15 @@ Componentes compartidos: `Input`, `Chip`, `Button` y `Spinner` de `@/components/
 - La pantalla usa `getSession()`, nunca `ensureSession()`.
 - Los textos, el tamaño de página y el debounce van en constantes.
 
+### SCRUM-61
+
+- Todo lo de SCRUM-58 y SCRUM-60 aplica igual.
+- La lógica del flujo vive en un hook propio (`useHouseholdMemberRemoval`) que compone `useHouseholdViewModel`, como `useHouseholdLeave`.
+- La RPC es `security definer` con `set search_path = ''`, nombres calificados, `revoke execute` de `public` y `anon` y `grant` a `authenticated`. No se agregan políticas ni permisos de tabla: `household_members` sigue sin `delete` para el cliente.
+- Migración nueva con el procedimiento de `supabase/README.md`. No se modifican la `023`, la `024` ni la `025`.
+- Tests automáticos obligatorios (CONTRIBUTING §7) y prueba SQL de la migración en `supabase/tests/`.
+
+
 ## 11. Dependencias
 
 ### SCRUM-56
@@ -682,6 +803,16 @@ Componentes compartidos: `Input`, `Chip`, `Button` y `Spinner` de `@/components/
 | `get_household_members()` (`023`) | En `develop` | No se modifica: la usa el diálogo de salir |
 | HU-30 (perfil) | No existe | La foto real queda para esa historia |
 | HU-36 (eliminar miembros) | No empezada | Fuera de esta historia |
+
+### SCRUM-61
+
+| Dependencia | Estado (2026-10-18) | Efecto |
+|---|---|---|
+| SCRUM-60 (HU-35, ver integrantes) | Mergeada en `develop` (#68, 2026-10-19) y traída a esta rama | La acción vive en su lista (`HouseholdMembersSection`, `useHouseholdMembers`, migración `025`) |
+| SCRUM-58 (salir) | En `develop` | Mismo orden de bloqueos y mismo criterio de datos. `leave_household` no cambia |
+| SCRUM-59 (lista de la familia) | En `develop` | Su acceso por membresía (`024`) es lo que hace que perder la fila quite el acceso |
+| SCRUM-56 (enlace) | En `develop` | D1: un solo enlace por familia; eliminar no lo toca. "Generar enlace nuevo" es la forma de cortarlo |
+
 
 ## 12. Contratos externos
 
@@ -791,6 +922,26 @@ returns table (user_id uuid, display_name text, role text, is_current_user boole
 - Parámetros fuera de los límites de la regla 10: `22023`.
 - `revoke execute … from public, anon`; `grant execute … to authenticated`.
 - El cliente pide `page_size + 1` filas para saber si hay más, sin contar el total.
+
+### SCRUM-61
+
+RPC nueva, en una migración nueva (número provisional `026`, ver [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia)):
+
+```
+remove_household_member(member_user_id uuid) returns text
+```
+
+- `security definer`, `set search_path = ''`, nombres calificados, `revoke execute … from public, anon`, `grant execute … to authenticated`. Sin cuenta registrada: `42501`. `member_user_id` nulo: `22023`.
+- Devuelve:
+
+| Valor | Significado | ¿Cambia algo? |
+|---|---|---|
+| `removed` | La persona ya no es miembro de la familia | Sí |
+| `member_not_found` | La persona no es miembro de la familia de quien llama | No |
+| `cannot_remove_self` | Quien llama intentó eliminarse a sí mismo | No |
+| `not_admin` | Quien llama no es administrador de ninguna familia | No |
+
+- Tablas usadas: `household_invite_links` (solo bloqueo, para respetar el orden de [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia); nunca se modifica, D1), `households` (bloqueo) y `household_members` (lectura y borrado de la fila de la persona). No toca `lists`, `list_items`, `list_item_recipe_requirements`, `recipes`, `meal_plans`, `purchase_sessions` ni `product_catalog`.
 
 ## 13. Casos de aceptación
 
@@ -915,6 +1066,36 @@ Casos de cada flujo:
 - [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite.
 - [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` pasan.
 
+### HU-36 (SCRUM-61)
+
+Validado el 2026-10-19 con la prueba SQL de la `026` (corrida completa en la base con `plpgsql.check_asserts` en `on`, terminó en `ok`) y con los tests automáticos (Vitest: 865 tests en 93 archivos). Prueba manual de la dueña de la historia con cuentas registradas (2026-10-19): CA-01, CA-02 y CA-04 con captura; CA-03 comprobado sin captura.
+
+Criterios de la historia:
+
+- [x] **CA-01:** solo el administrador de la familia ve la acción "Eliminar integrante" junto a cada miembro, excepto sobre sí mismo.
+  - Manual, con captura: el admin ve el botón en las filas de B y C, y no en la suya.
+  - Que un miembro no lo ve lo cubren los tests de pantalla; no se probó a mano.
+- [x] **CA-02:** al eliminar, se pide confirmación explícita antes de ejecutar la acción.
+  - Manual, con captura: «Cancelar» cierra el diálogo sin eliminar al integrante.
+  - Escape y el clic afuera los cubren los tests; no se probaron a mano.
+- [x] **CA-03:** al confirmar, el miembro pierde el acceso inmediato a las listas y los datos de la familia; sus listas y productos personales no se eliminan.
+  - Manual, **sin captura**: B desaparece de la familia, pierde el acceso y conserva sus datos personales.
+  - En la base lo comprueba la prueba SQL de la `026`.
+- [x] **CA-04:** se muestra un mensaje de confirmación después de eliminar. Manual, con captura: aparece «Integrante eliminado correctamente».
+
+Casos de cada flujo:
+
+- [x] **Resultados:** `removed`, `member_not_found`, `cannot_remove_self` y `not_admin` en la prueba SQL y en el servicio.
+- [x] **Permisos:** sin sesión y anónimo → `42501`; un miembro que no es administrador recibe `not_admin` sin cambios; un administrador no puede eliminar a alguien de otra familia; `delete` directo sobre `household_members` sigue rechazado (prueba SQL).
+- [x] **Acceso:** después de eliminarla, la persona no ve la familia, ni su lista general ni sus ítems; los demás miembros siguen viéndolos (prueba SQL).
+- [x] **Conservación:** la lista personal, las recetas, los planes y las compras de la persona siguen iguales; la lista de la familia conserva lo que agregó (prueba SQL).
+- [ ] **Enlace (D1):** eliminar a alguien no cambia el enlace de la familia (mismo token y vencimiento); "Generar enlace nuevo" sigue funcionando. Comprobado por la prueba SQL que el token y el vencimiento no cambian; falta comprobar «Generar enlace nuevo» a mano.
+- [x] **Sin notificaciones (D2)** y **textos de D3** exactamente como se aprobaron (no hay ningún envío; los textos están en `HOUSEHOLD_REMOVE_MEMBER_TEXT` y los usan los tests de pantalla).
+- [ ] **Concurrencia:** eliminar a alguien que está saliendo, o a quien el administrador le pasa el rol al mismo tiempo, nunca deja la familia sin administrador ni con dos.
+- [x] **Doble clic y cancelar:** una sola llamada; cerrar el diálogo no llama a la base (tests del hook y de la pantalla; en la base, la segunda llamada responde `member_not_found`).
+- [x] **Nombres:** "Miembro sin nombre" si no tiene; ningún correo ni id en la página (tests del hook y de la pantalla).
+
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-56
@@ -966,6 +1147,16 @@ Casos de cada flujo:
 - Ordenar o filtrar por otro criterio que no sea el nombre.
 - Cambiar `get_household_members()` o el diálogo de salir (SCRUM-58).
 
+### SCRUM-61
+
+- Notificar a la persona eliminada (D2).
+- Invalidar un enlace "de la persona eliminada" (D1): el modelo tiene un solo enlace por familia. Haría falta un enlace por persona o registrar qué enlace usó cada quien.
+- Impedir que vuelva a unirse, con el enlace vigente o con uno nuevo (lista de bloqueados).
+- Transferir el rol sin salir, tener varios administradores, renombrar o eliminar la familia.
+- Eliminar a varias personas a la vez.
+- Mover a la lista personal de la persona lo que agregó a la lista de la familia.
+- La foto de perfil (HU-30).
+
 ## 15. Notas de implementación
 
 - **Número de la migración (SCRUM-56):** es la `011` porque la `009` (SCRUM-123, `009_close_store_preferences_writes.sql`) y la `010` (SCRUM-96, `010_delete_recipes.sql`) ya existen en `develop`. Se escribió primero como `010` y se renombró al sincronizar la rama con `develop` el 2026-10-03. En la base compartida ya estaba aplicada: el nombre del archivo no cambia nada ahí.
@@ -984,3 +1175,9 @@ Casos de cada flujo:
 - **SCRUM-59, textos:** los de la historia usan voseo y "household"; la app usa tú y "familia" (D8).
 - **SCRUM-59, alcance:** la parte A (lista general de la familia) cambia el control de acceso de toda la lista general. Necesita `security-reviewer` antes de aplicarse y la aprobación del equipo antes de empezar.
 - **SCRUM-60, decisiones (2026-10-17):** iniciales o ícono genérico en vez de foto (HU-30), cualquier miembro consulta solo su familia, 20 por página con "Cargar más", búsqueda automática con debounce y la etiqueta "Tú". Se agrega una función nueva en vez de cambiar `get_household_members()`, porque esa la usa el diálogo de salir (SCRUM-58) y es solo del administrador.
+- **SCRUM-61, specs (2026-10-18):** las subsecciones de SCRUM-61 se escriben sobre `develop`, que todavía no tiene las de SCRUM-60 (#68). Cuando se mergee la #68 y se traiga `develop` a esta rama, los tres specs de `features/household/` van a tener conflictos en los mismos lugares: se resuelven conservando las subsecciones de las dos historias.
+- **SCRUM-61, número de la migración:** `026`, verificada libre el 2026-10-19: `develop` tiene la `025` (SCRUM-60) y la `028` (SCRUM-28), y la `027` es de SCRUM-69 (#70). Se revisa otra vez antes del merge.
+- **SCRUM-61, sin E2E:** por la misma razón que SCRUM-57: el soporte de `e2e/` usa usuarios anónimos y este flujo necesita tres cuentas registradas reales. Queda cubierto por la prueba SQL de la `026` (en la base), los tests automáticos y las pruebas manuales.
+- **SCRUM-61, concurrencia:** eliminar a alguien mientras sale, o mientras el admin le pasa el rol, no se puede reproducir en una sola transacción. Queda cubierto por el diseño (mismo orden de bloqueos que salir y unirse, y relectura del rol con el bloqueo tomado) y por la revisión de seguridad; el caso de §13 sigue sin marcar.
+- **SCRUM-61, merge de `develop` (2026-10-19):** se trajo `develop` con SCRUM-60 a esta rama (`e5dd9c4`). Los tres specs conservan las subsecciones de las dos historias y no quedaron marcas de conflicto.
+

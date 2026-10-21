@@ -9,6 +9,7 @@ import {
   HOUSEHOLD_LISTS_DECISION_RESULT,
   HOUSEHOLD_LISTS_DECISION_STATE,
   HOUSEHOLD_MEMBERS_PAGE,
+  HOUSEHOLD_REMOVE_MEMBER_RESULT,
   HOUSEHOLD_ROLE,
   HOUSEHOLD_ROUTE,
 } from "../constants/household.constants";
@@ -18,6 +19,7 @@ import type {
   HouseholdListsChoiceType,
   HouseholdListsDecisionResultType,
   HouseholdListsDecisionStateType,
+  HouseholdRemoveMemberResultType,
   HouseholdRoleType,
 } from "../constants/household.constants";
 import type { HouseholdInvite } from "../models/HouseholdInvite.interface";
@@ -252,6 +254,34 @@ export const leaveHousehold = async (newAdminUserId?: string): Promise<Household
   }
 
   return leaveResult;
+};
+
+// Los únicos resultados que puede devolver remove_household_member (migración 026).
+const HOUSEHOLD_REMOVE_MEMBER_RESULT_VALUES: readonly string[] = Object.values(HOUSEHOLD_REMOVE_MEMBER_RESULT);
+
+const isHouseholdRemoveMemberResult = (removeResult: string): removeResult is HouseholdRemoveMemberResultType =>
+  HOUSEHOLD_REMOVE_MEMBER_RESULT_VALUES.includes(removeResult);
+
+/**
+ * El admin elimina a un integrante de su familia (SCRUM-61, migración 026).
+ * El cliente manda solo el user_id de esa persona: la familia y el rol de
+ * quien llama los decide la base a partir de la sesión, y solo borra la
+ * membresía (los datos personales de la persona no se tocan).
+ *
+ * Los errores no llevan el id de la persona ni lo que devolvió la base.
+ */
+export const removeHouseholdMember = async (memberUserId: string): Promise<HouseholdRemoveMemberResultType> => {
+  const { data: removeResult, error } = await getSupabaseClient().rpc(HOUSEHOLD_DB.RPC.REMOVE_HOUSEHOLD_MEMBER, {
+    member_user_id: memberUserId,
+  });
+  if (error) throw error;
+
+  // Un valor fuera del contrato es un error de integración, no un resultado.
+  if (!isHouseholdRemoveMemberResult(removeResult)) {
+    throw new Error(`${HOUSEHOLD_DB.RPC.REMOVE_HOUSEHOLD_MEMBER} devolvió un resultado desconocido`);
+  }
+
+  return removeResult;
 };
 
 // Los únicos valores que puede devolver get_personal_lists_decision_state (migración 024).
