@@ -1,9 +1,11 @@
 import { APP_ROUTE } from "@/constants";
-import type { AppRouteType } from "@/constants";
+import type { NullableUndefined } from "@/types/nullable.types";
+import { getSafeReturnPath } from "@/utils/returnPath.utils";
 
 /**
- * A dónde ir después de un login exitoso: adentro de la app, no a la landing.
- * Punto de extensión de SCRUM-136: va a recibir la URL de retorno y devolverla
- * si es una ruta interna válida, con prioridad sobre este default.
+ * A dónde ir después de un login exitoso (SCRUM-136): a la ruta de la que venía el usuario
+ * (parámetro next) si es una ruta interna segura; si no, adentro de la app, a la lista
+ * general (SCRUM-135), nunca a la landing.
  */
-export const resolvePostLoginRoute = (): AppRouteType => APP_ROUTE.LIST;
+export const resolvePostLoginRoute = (returnPath?: NullableUndefined<string>): string =>
+  getSafeReturnPath(returnPath) ?? APP_ROUTE.LIST;

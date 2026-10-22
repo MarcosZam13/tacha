@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { NullableUndefined } from "@/types/nullable.types";
 import { normalizeEmail } from "@/utils/email.utils";
+import { readReturnPathFromUrl } from "@/utils/returnPath.utils";
 import {
   LOGIN_ERROR_MESSAGE,
   LOGIN_FIELD,
@@ -61,10 +62,13 @@ export const useLoginViewModel = (): LoginViewModel => {
       setValues((previous) => ({ ...previous, [LOGIN_FIELD.PASSWORD]: "" }));
     }
     // Con contraseña débil se queda en la pantalla para mostrar el aviso en vez de entrar a la app.
-    return nextStatus === LOGIN_SUBMIT_STATUS.SUCCESS ? router.push(resolvePostLoginRoute()) : undefined;
+    // Al entrar, vuelve a la ruta del parámetro next si es segura (SCRUM-136).
+    return nextStatus === LOGIN_SUBMIT_STATUS.SUCCESS
+      ? router.push(resolvePostLoginRoute(readReturnPathFromUrl()))
+      : undefined;
   };
 
-  const handleContinue = (): void => router.push(resolvePostLoginRoute());
+  const handleContinue = (): void => router.push(resolvePostLoginRoute(readReturnPathFromUrl()));
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
