@@ -7,16 +7,15 @@ import type { CatalogCategoryChipsProps } from "./models/CatalogCategoryChipsPro
  * Fila de chips de categoría (HU-52): "Todas" + una por categoría, con scroll
  * horizontal si no caben en una línea. Solo presentación: decide cuándo
  * llamar a onCategoryChange, nunca qué RPC usar (eso lo decide el
- * ViewModel). Tocar el chip ya activo, o "Todas", limpia el filtro.
+ * ViewModel). "Todas" es una acción que siempre limpia el filtro, no un
+ * estado de chip: nunca se resalta (SPEC.md §5 regla 13).
  */
 export const CatalogCategoryChips = ({
   activeCategoryId,
   categories,
   onCategoryChange,
 }: CatalogCategoryChipsProps): React.JSX.Element => {
-  const isAllActive = activeCategoryId === null;
-
-  const toggleCategory = (categoryId: string | null): void => {
+  const toggleCategory = (categoryId: string): void => {
     onCategoryChange(activeCategoryId === categoryId ? null : categoryId);
   };
 
@@ -26,10 +25,8 @@ export const CatalogCategoryChips = ({
       aria-label={CATALOG_CATEGORY_CHIPS_TEXT.ARIA_LABEL}
       className="flex gap-2 overflow-x-auto"
     >
-      <button type="button" className="shrink-0" aria-pressed={isAllActive} onClick={() => toggleCategory(null)}>
-        <Chip tone={isAllActive ? CHIP_TONE.TEAL : CHIP_TONE.NEUTRAL}>
-          {CATALOG_CATEGORY_CHIPS_TEXT.ALL_CATEGORIES_LABEL}
-        </Chip>
+      <button type="button" className="shrink-0" aria-pressed={false} onClick={() => onCategoryChange(null)}>
+        <Chip tone={CHIP_TONE.NEUTRAL}>{CATALOG_CATEGORY_CHIPS_TEXT.ALL_CATEGORIES_LABEL}</Chip>
       </button>
       {categories.map((category) => {
         const isActive = activeCategoryId === category.id;

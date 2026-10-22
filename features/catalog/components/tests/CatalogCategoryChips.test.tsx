@@ -37,11 +37,11 @@ describe("CatalogCategoryChips", () => {
     expect(page.getChip(ALL_LABEL)).toHaveAttribute("aria-pressed", "false");
   });
 
-  it('marks "Todas" as pressed when there is no active category', () => {
+  it('never marks "Todas" as pressed, even with no active category', () => {
     render(<CatalogCategoryChips activeCategoryId={null} categories={CATEGORIES} onCategoryChange={vi.fn()} />);
     const page = createCatalogCategoryChipsPage();
 
-    expect(page.getChip(ALL_LABEL)).toHaveAttribute("aria-pressed", "true");
+    expect(page.getChip(ALL_LABEL)).toHaveAttribute("aria-pressed", "false");
   });
 
   it("activates a category when touching its chip", async () => {
