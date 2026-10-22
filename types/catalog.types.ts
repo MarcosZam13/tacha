@@ -92,3 +92,27 @@ export interface StorePriceRange {
   storeName: string;
   storeSlug?: string;
 }
+
+/**
+ * Una marca disponible de una variante (detalle de producto, SCRUM-85). Solo
+ * informativa (SPEC.md §5.3): no afecta qué se agrega a la lista.
+ * `logoUrl` null hoy para todas las marcas del catálogo (ver SPEC.md §15) —
+ * se muestra el nombre solo (SPEC.md §5.8).
+ */
+export interface CatalogBrand {
+  logoUrl: NullableRef<string>;
+  name: string;
+}
+
+/**
+ * Todo lo que la tarjeta de catálogo no muestra (SCRUM-85): marcas y precio
+ * por supermercado de una variante puntual. La devuelve getCatalogVariantDetail().
+ */
+export interface CatalogVariantDetail {
+  brands: CatalogBrand[];
+  imageUrl: NullableRef<string>;
+  productName: string;
+  sizeLabel: string;
+  storePriceRanges: StorePriceRange[];
+  variantId: string;
+}

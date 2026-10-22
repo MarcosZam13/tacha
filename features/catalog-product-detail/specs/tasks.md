@@ -14,9 +14,9 @@ manual fuera de este flujo — los comandos exactos están en la sección final.
 
 ## 2. Servicio y tipos nuevos del detalle
 
-- [ ] 6. Agregar `CatalogBrand` y `CatalogVariantDetail` a `types/catalog.types.ts` (aditivo).
-- [ ] 7. Agregar `getCatalogVariantDetail(variantId)` a `services/catalog.service.ts` (aditivo, sin tocar `searchCatalog`).
-- [ ] 8. Agregar `STORE_ICON_PATH_BY_SLUG` a `constants/catalog.constants.ts`, apuntando a los 3 SVG ya comiteados en `public/store-icons/`.
+- [x] 6. `CatalogBrand` y `CatalogVariantDetail` agregados a `types/catalog.types.ts` (aditivo, sin tocar las interfaces existentes).
+- [x] 7. `getCatalogVariantDetail(variantId)` agregado a `services/catalog.service.ts` (aditivo, mismo patrón de `getItemDetail` de SCRUM-64: consulta directa, sin RPC nueva; `searchCatalog`/`listCatalogByCategory` sin tocar). Usa `toStorePriceRanges` y `formatSizeLabel` ya promovidos/existentes.
+- [x] 8. `STORE_ICON_PATH_BY_SLUG` agregado a `constants/catalog.constants.ts` (`satisfies Record<StoreSlug, string>`), apuntando a los 3 SVG ya comiteados en `public/store-icons/`.
 
 ## 3. Feature `features/catalog-product-detail/`
 
