@@ -71,3 +71,48 @@ export interface CatalogCardData {
   /** "Leche — 1000 ml". Sin marca. */
   title: string;
 }
+
+/**
+ * Último precio de una marca en una tienda, tal como lo devuelve el
+ * servicio (lista general y detalle de producto, SCRUM-85).
+ */
+export interface StorePrice {
+  price: number;
+  storeName: string;
+  /** Slug de la tienda (stores.slug), para elegir su ícono. Falta si quien
+   * armó el precio no lo pidió (ej. el detalle de la lista general, que no
+   * muestra íconos). */
+  storeSlug?: string;
+}
+
+/** Precio más bajo y más alto entre las marcas de una tienda. */
+export interface StorePriceRange {
+  maxPrice: number;
+  minPrice: number;
+  storeName: string;
+  storeSlug?: string;
+}
+
+/**
+ * Una marca disponible de una variante (detalle de producto, SCRUM-85). Solo
+ * informativa (SPEC.md §5.3): no afecta qué se agrega a la lista.
+ * `logoUrl` null hoy para todas las marcas del catálogo (ver SPEC.md §15) —
+ * se muestra el nombre solo (SPEC.md §5.8).
+ */
+export interface CatalogBrand {
+  logoUrl: NullableRef<string>;
+  name: string;
+}
+
+/**
+ * Todo lo que la tarjeta de catálogo no muestra (SCRUM-85): marcas y precio
+ * por supermercado de una variante puntual. La devuelve getCatalogVariantDetail().
+ */
+export interface CatalogVariantDetail {
+  brands: CatalogBrand[];
+  imageUrl: NullableRef<string>;
+  productName: string;
+  sizeLabel: string;
+  storePriceRanges: StorePriceRange[];
+  variantId: string;
+}
