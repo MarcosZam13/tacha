@@ -32,6 +32,7 @@ enlace de confirmación.
 1. Campos obligatorios: nombre, correo, contraseña, repetir contraseña.
 2. El botón "Registrarme" se habilita solo si los 4 campos tienen contenido.
 3. Cada campo inválido muestra su mensaje debajo del campo.
+3b. **Al salir de un campo (blur) se valida ese campo** (SCRUM-137, decisión del equipo): un campo obligatorio vacío muestra "... es obligatorio." y un correo o una contraseña con formato inválido muestran su error. Los campos que todavía no se tocaron no se marcan. Antes la única señal era el botón deshabilitado, sin decir por qué. El error se borra al volver a escribir.
 4. El correo se valida con formato válido antes de enviar.
 5. Si Supabase responde que el correo ya existe, se muestra un mensaje y no se crea la cuenta.
 6. Durante el envío el botón muestra el estado de carga y no admite un segundo clic.
@@ -91,6 +92,7 @@ enlace de confirmación.
 - [x] El formulario muestra nombre, correo, contraseña y repetir contraseña.
 - [x] El botón de registro está deshabilitado mientras falte algún campo.
 - [x] Un correo con formato inválido muestra un mensaje claro y no se envía.
+- [x] (SCRUM-137) Salir de un campo obligatorio vacío muestra su mensaje "obligatorio"; los campos no tocados no se marcan.
 - [x] Un correo ya registrado muestra un mensaje y no crea una cuenta.
 - [x] Un registro válido crea el usuario en Supabase Auth.
 - [x] Doble clic en el botón no genera dos solicitudes.
