@@ -1,3 +1,4 @@
+import { APP_ROUTE } from "@/constants/routes.constants";
 import { STORE_NAMES } from "@/constants/stores.constants";
 import type { StoreSlug } from "@/constants/stores.constants";
 
@@ -77,6 +78,11 @@ export const CATALOG_CATEGORY_TEXT = {
 export const CATALOG_CARD = {
   TITLE_SEPARATOR: " — ",
 } as const;
+
+// Ruta del detalle de un producto (SCRUM-85, plan.md §1.4): la usan
+// CatalogCard (envuelta en Link) y la propia ruta app/(app)/catalogo/producto/[variantId]/.
+export const CATALOG_PRODUCT_DETAIL_ROUTE = (variantId: string): string =>
+  `${APP_ROUTE.CATALOG}/producto/${variantId}`;
 
 export const CATALOG_CARD_TEXT = {
   NO_PRICE: "Sin precio disponible",
