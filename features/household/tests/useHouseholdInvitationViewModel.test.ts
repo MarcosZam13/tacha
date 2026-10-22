@@ -65,6 +65,12 @@ describe("useHouseholdInvitationViewModel", () => {
     expect(result.current.showJoinButton).toBe(false);
   });
 
+  it("points the login link back to this invitation (SCRUM-136)", () => {
+    const { result } = renderHook(() => useHouseholdInvitationViewModel(TOKEN));
+
+    expect(result.current.loginHref).toBe(`/login?next=${encodeURIComponent(`/invitacion/${TOKEN}`)}`);
+  });
+
   it("is ready to join with a registered session and does not join on its own", async () => {
     const { result } = await renderReadyViewModel();
 

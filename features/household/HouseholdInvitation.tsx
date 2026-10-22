@@ -48,7 +48,7 @@ export const HouseholdInvitation = ({ token }: HouseholdInvitationProps): React.
             </div>
           ) : null}
           {viewModel.showLoginLink ? (
-            <Link href={HOUSEHOLD_ROUTE.LOGIN} className={LINK_BUTTON_CLASS_NAME}>
+            <Link href={viewModel.loginHref} className={LINK_BUTTON_CLASS_NAME}>
               {HOUSEHOLD_JOIN_TEXT.LOGIN}
             </Link>
           ) : null}

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
+import { toLoginRoute } from "@/utils/returnPath.utils";
 import type { PersonalListsDecisionProps } from "../components/models/PersonalListsDecisionProps.interface";
 import {
   HOUSEHOLD_JOIN_RESULT_STATUS,
   HOUSEHOLD_JOIN_STATUS,
   HOUSEHOLD_JOIN_TEXT,
+  HOUSEHOLD_ROUTE,
 } from "../constants/household.constants";
 import type { HouseholdJoinStatusType } from "../constants/household.constants";
 import { acceptHouseholdInvite, hasRegisteredSession } from "../services/household.service";
@@ -20,6 +22,8 @@ interface UseHouseholdInvitationViewModelReturn {
   isJoining: boolean;
   /** "Unirme" o "Uniéndote…". */
   joinLabel: string;
+  /** /login con esta invitación como next: tras iniciar sesión se vuelve acá (SCRUM-136). */
+  loginHref: string;
   /** "¿Qué quieres hacer con tu lista actual?" (SCRUM-59), ya armada. */
   listsDecision: PersonalListsDecisionProps;
   onJoin: () => void;
@@ -141,6 +145,7 @@ export const useHouseholdInvitationViewModel = (token: string): UseHouseholdInvi
     isChecking: status === HOUSEHOLD_JOIN_STATUS.CHECKING,
     isJoining,
     joinLabel: isJoining ? HOUSEHOLD_JOIN_TEXT.JOINING : HOUSEHOLD_JOIN_TEXT.JOIN,
+    loginHref: toLoginRoute(`${HOUSEHOLD_ROUTE.INVITATION}/${token}`),
     listsDecision: {
       errorMessage: listsDecision.errorMessage,
       isSaving: listsDecision.isSaving,

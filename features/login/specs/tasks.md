@@ -81,3 +81,16 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [ ] 15. Pasar el PR a `waiting qa` y la tarjeta de Jira a Waiting QA.
 
 El guard de sesión (SCRUM-49) tiene sus propias tareas en `features/session-guard/specs/tasks.md`.
+
+## SCRUM-136: volver a la ruta de origen después del login
+
+- [x] 1. `AUTH_QUERY_PARAM` en `constants/routes.constants.ts`.
+- [x] 2. `utils/returnPath.utils.ts` (`toLoginRoute`, `getSafeReturnPath`, `readReturnPathFromUrl`) y sus pruebas (13 casos, incluidas las redirecciones abiertas).
+- [x] 3. `resolvePostLoginRoute(returnPath)` y su prueba.
+- [x] 4. `useLoginViewModel` navega con `resolvePostLoginRoute(readReturnPathFromUrl())` (login exitoso y "Ahora no" del aviso de contraseña débil).
+- [x] 5. El guard redirige con `toLoginRoute(pathname)`.
+- [x] 6. La invitación usa `loginHref` (y se quita `HOUSEHOLD_ROUTE.LOGIN`); pruebas actualizadas.
+- [x] 7. `npx tsc --noEmit`, `npm run lint`, `npm test` (1019 pasan), `npm run build`.
+- [x] 8. Casos 136-1 a 136-4 en el navegador con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=true` (8/8 verificaciones).
+- [x] 9. QA denied (BUG-1): `next` con tab o salto de línea después de la primera `/` saltaba la validación. `getSafeReturnPath` resuelve la ruta con `new URL` y exige el mismo origen; 4 pruebas nuevas que fallan sin el arreglo.
+- [x] 10. QA denied otra vez (BUG-2): `/a/..//evil.example` se resolvía en el mismo origen pero con pathname `//evil.example`. La ruta resuelta vuelve a pasar `hasInternalPathShape`; pruebas con las 7 variantes del reporte y una que verifica que nada de lo devuelto sale del origen. Una prueba masiva (300 000 rutas generadas, no commiteada) encontró además que `new URL` lanzaba con hosts inválidos (`/	/a b`) y tumbaba el login: ahora se atrapa y devuelve `undefined`.
