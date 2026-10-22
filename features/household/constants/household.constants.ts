@@ -89,13 +89,12 @@ export const HOUSEHOLD_INVITE_TIME_MS = {
   COPY_FEEDBACK: 2_000,
 } as const;
 
-// Rutas propias de la feature. /login va acá y no se importa de features/login
-// para no acoplar una feature a otra por una constante (como LANDING_ROUTE).
+// Rutas propias de la feature. El enlace al login lo arma toLoginRoute (utils/returnPath.utils.ts,
+// SCRUM-136), que lleva la invitación como next para volver a ella después de iniciar sesión.
 export const HOUSEHOLD_ROUTE = {
   HOUSEHOLD: APP_ROUTE.HOUSEHOLD,
   // Base del link: SCRUM-56 lo arma y SCRUM-57 lo abre con app/invitacion/[token].
   INVITATION: "/invitacion",
-  LOGIN: "/login",
 } as const;
 
 // Un UUID 8-4-4-4-12 en hexadecimal, como los que genera gen_random_uuid().
