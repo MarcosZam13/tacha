@@ -292,3 +292,21 @@ Abro Tacha con sesión → `app/layout.tsx` monta `InactivityTimeout` → `useIn
 - Dos `router.replace` seguidos: gana el último. Por eso el motivo no puede depender de la URL.
 - `sessionStorage` (por pestaña, sobrevive a una recarga) frente a `localStorage` (compartido entre pestañas).
 - Regla de ESLint `react-hooks/set-state-in-effect` y cuándo se justifica desactivarla (leer algo que solo existe en el navegador).
+
+## SCRUM-136: volver a la ruta de origen después del login
+
+| Pieza | Dónde | Por qué ahí |
+|---|---|---|
+| `AUTH_QUERY_PARAM.RETURN_PATH = "next"` | `constants/routes.constants.ts` | Lo escriben el guard y la invitación y lo lee el login: tres features, así que va a la raíz |
+| `toLoginRoute`, `getSafeReturnPath`, `readReturnPathFromUrl` | `utils/returnPath.utils.ts` | Mismo motivo; funciones puras, probadas en `utils/tests/returnPath.utils.test.ts` |
+| `resolvePostLoginRoute(returnPath)` | `features/login/utils/` | Ya era el punto de extensión que dejó SCRUM-135; ahora prioriza `next` seguro sobre `/lista` |
+| `router.replace(toLoginRoute(pathname))` | `useSessionGuardViewModel` | El guard sabe de qué ruta privada viene el usuario |
+| `loginHref` | `useHouseholdInvitationViewModel` | El enlace "Iniciar sesión" de la invitación lleva la misma invitación como `next`; reemplaza `HOUSEHOLD_ROUTE.LOGIN` |
+
+Decisiones:
+
+| Decisión | Alternativa | Por qué |
+|---|---|---|
+| Validar con reglas simples (empieza con `/`, no `//` ni `/\`, sin `:`, no ruta de login) | `new URL(next, location.origin)` y comparar el origen | Las reglas se leen y se prueban caso por caso; no dependen del origen del navegador en las pruebas |
+| Leer `next` de `window.location.search` al navegar | `useSearchParams` | La página `/login` se prerenderiza: `useSearchParams` obliga a envolverla en `Suspense` |
+| Solo la ruta (`pathname`) viaja en `next` desde el guard | Ruta + query | Ninguna pantalla privada depende hoy de su query; se puede ampliar sin cambiar la validación |

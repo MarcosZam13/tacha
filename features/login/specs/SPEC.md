@@ -1,6 +1,6 @@
 # Feature: Login
 
-Cubre SCRUM-45 (HU-22), SCRUM-46 (HU-23), SCRUM-47 (HU-24), SCRUM-48 (HU-25) y SCRUM-50 (HU-27). El guard de sesión (SCRUM-49) tiene su propio spec en `features/session-guard/specs/`.
+Cubre SCRUM-45 (HU-22), SCRUM-46 (HU-23), SCRUM-47 (HU-24), SCRUM-48 (HU-25), SCRUM-50 (HU-27) y SCRUM-136 (volver a la ruta de origen). El guard de sesión (SCRUM-49) tiene su propio spec en `features/session-guard/specs/`.
 
 ## 1. Objetivo
 
@@ -11,7 +11,7 @@ Un visitante con cuenta verificada inicia sesión con correo y contraseña, y an
 Incluye:
 - Pantalla `/login` con correo, contraseña y el widget reCAPTCHA (v2, casilla "No soy un robot").
 - Verificación del token de reCAPTCHA en el servidor (Edge Function) antes de intentar la autenticación.
-- Inicio de sesión con Supabase Auth y redirección a la app al tener éxito.
+- Inicio de sesión con Supabase Auth y redirección a la app al tener éxito: a la ruta del parámetro `next` si es una ruta interna segura (SCRUM-136), si no a `/lista`.
 - Mensaje de error cuando el reCAPTCHA no se completa o falla.
 - Botón con ícono de ojo en el campo de contraseña para alternar entre texto oculto (puntos) y visible (texto plano). Oculto por defecto.
 - Mensaje genérico para credenciales incorrectas y mensajes específicos para cuenta no verificada, cuenta bloqueada y demasiados intentos. Los mensajes son visibles y no bloquean el formulario: el usuario puede corregir y reintentar.
@@ -79,7 +79,10 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - La marca de actividad se borra cuando la sesión termina por cualquier causa (cierre por inactividad, cierre manual futuro, token que no se renueva, otra pestaña), no solo en el cierre por inactividad: una marca vieja haría que el siguiente inicio de sesión venciera al instante.
 - La marca nunca es posterior a la hora actual: si el reloj estuvo adelantado y se corrigió, se toma la hora actual.
 - El motivo va en una bandera de `sessionStorage` y no en la URL: con el guard encendido, el guard y el cierre por inactividad redirigen a `/login` a la vez, y el último `replace` pisaría un parámetro de la URL (se comprobó: el aviso no aparecía). Con la bandera, da igual quién redirija primero. La bandera se anota antes de cerrar la sesión.
-- La URL no decide nada: no hay parámetro que lea el login, así que no hay redirección abierta ni un mensaje que cualquiera pueda provocar con un enlace.
+- El motivo del cierre por inactividad no viaja en la URL, así que nadie puede provocar ese mensaje con un enlace.
+- La URL solo decide a dónde volver (SCRUM-136): el parámetro `next` se usa únicamente si es una ruta interna de la app (empieza con `/`, no con `//` ni `/\`, sin `:` y que no sea una ruta del login). Cualquier otro valor se ignora y se va a `/lista`: así `next` no sirve como redirección abierta (`/login?next=https://otro-sitio`).
+- `next` se lee al navegar después del login (`window.location.search`) y no con `useSearchParams`, que en una página prerenderizada exigiría un `Suspense`.
+- Si el guard y el cierre por inactividad redirigen a la vez, gana el último `replace`; si es el del cierre, se pierde `next` y el usuario entra a `/lista`. Se acepta: después de un cierre por inactividad no hace falta volver a la pantalla exacta.
 - El aviso se consume: se muestra, se borra la bandera y no vuelve a salir al recargar.
 
 ## 6. Estados
@@ -198,6 +201,12 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 - Caso 6: credenciales incorrectas con reCAPTCHA válido muestra el mensaje genérico y el formulario sigue editable.
 - Caso 7: tras un intento fallido el widget se reinicia y hay que completarlo de nuevo.
 - Caso 8: si la Edge Function no responde, se muestra el mensaje de error inesperado.
+
+Ruta de retorno (SCRUM-136), con el guard encendido:
+- Caso 136-1: abrir `/invitacion/<token>` sin sesión lleva a `/login?next=%2Finvitacion%2F<token>`; al iniciar sesión se vuelve a la invitación con el botón "Unirme".
+- Caso 136-2: abrir `/recetas` sin sesión y luego iniciar sesión deja al usuario en `/recetas`.
+- Caso 136-3: `/login?next=https://evil.example` y `/login?next=//evil.example` terminan en `/lista`.
+- Caso 136-4: sin `next`, el login sigue llevando a `/lista`.
 - Caso 9: con la contraseña correcta pero el correo sin verificar, se muestra el mensaje de correo sin verificar, no el de credenciales incorrectas.
 - Caso 10: si Supabase limita los intentos, se muestra el mensaje de demasiados intentos.
 - Caso 11: al abrir `/login`, la contraseña se ve como puntos y el ícono es el ojo abierto.
@@ -251,7 +260,7 @@ Con `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES=1` (SCRUM-50):
 - Pantalla de recuperación y de actualización de contraseña por correo (HU-28 y HU-29): este cambio es solo del flujo del login.
 - Guard de rutas y expiración de sesión (SCRUM-49).
 - Aviso previo con cuenta regresiva o botón "seguir conectado" antes del cierre por inactividad: no lo piden los criterios.
-- Botón de cerrar sesión (HU-32, Sprint 4), duración máxima total de la sesión (ajuste del proyecto de Supabase), límite distinto por rol o usuario, y volver a la pantalla de origen tras iniciar sesión (parámetro `next`, ver SPEC del guard).
+- Botón de cerrar sesión (HU-32, Sprint 4), duración máxima total de la sesión (ajuste del proyecto de Supabase), límite distinto por rol o usuario.
 - "¿Olvidaste tu contraseña?" (HU-28), login con Google o Facebook.
 - Límite de intentos propio: lo aplica Supabase (rate limit de Auth).
 

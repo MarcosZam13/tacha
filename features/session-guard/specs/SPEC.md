@@ -31,7 +31,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - Ruta pública: se muestran los hijos de inmediato, sin esperar a la sesión.
 - Ruta privada con sesión real: se muestran los hijos.
 - Ruta privada mientras se verifica la sesión: un indicador de carga; el contenido privado no se muestra.
-- Ruta privada sin sesión real: redirección a `/login` (reemplaza la entrada del historial) y nada del contenido privado.
+- Ruta privada sin sesión real: redirección a `/login?next=<ruta>` (reemplaza la entrada del historial) y nada del contenido privado. El login vuelve a esa ruta después de iniciar sesión (SCRUM-136).
 
 ## 5. Reglas de negocio
 
@@ -110,6 +110,7 @@ Con el interruptor **encendido**:
 - Caso 8: después de la redirección, el botón "atrás" no devuelve a la pantalla privada.
 - Caso 9: al abrir una ruta privada se ve el indicador de carga y, antes de saber que hay sesión, no aparece nada del contenido privado.
 - Caso 10: tras iniciar sesión en `/login` y navegar a `/lista`, la pantalla se abre.
+- Caso 10b (SCRUM-136): sin sesión, abrir `/recetas` redirige a `/login?next=%2Frecetas`; al iniciar sesión se vuelve a `/recetas`. La validación de `next` (que no sea redirección abierta) está en la SPEC del login.
 
 Con el interruptor **apagado** (por defecto):
 - Caso 11: sin sesión, `/lista` y `/recetas` se abren como antes de esta feature.
@@ -122,7 +123,6 @@ Documentación:
 
 - Botón o acción de cerrar sesión: no es de esta historia.
 - Cierre automático por inactividad y su aviso: HU-27 (Sprint 3).
-- Volver a la página de origen después de iniciar sesión (un parámetro `next` abre riesgo de redirección abierta).
 - Validar la sesión contra el servidor en cada navegación, cookies de sesión y `proxy.ts`.
 - Control por roles o por household (quién puede ver qué): lo resuelven RLS y las historias de household.
 - Migrar o descartar los datos de las sesiones anónimas: ticket aparte.
