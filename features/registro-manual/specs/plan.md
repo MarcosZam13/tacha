@@ -90,3 +90,9 @@ features/registro-manual/
 - **Estado del modal:** vive en el mismo ViewModel del registro, como un booleano más (abierto/cerrado), no en un store aparte — es un solo checkbox de una sola pantalla.
 - **Bloqueo:** el checkbox se suma a `isSubmitDisabled`, igual que los demás campos obligatorios.
 - **Texto legal:** placeholder hasta que el equipo redacte los términos reales; se anota en el PR para que no se confunda con contenido definitivo.
+
+## SCRUM-137 (F5): errores al salir del campo
+
+- **Decisión:** mostrar los errores al salir del campo (opción elegida por el equipo frente a dejarlo como estaba y documentarlo).
+- **Cómo:** `handleBlur(field)` en `useRegistroManualViewModel` reusa `validateRegistroForm(values)[field]`: la misma regla que al enviar, sin duplicar validaciones. `Input` recibe `onBlur`.
+- **Por qué solo ese campo:** marcar todo al primer blur llenaría de rojo campos que la persona todavía no tocó.

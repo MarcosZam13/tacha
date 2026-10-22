@@ -62,7 +62,13 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
       setValues((previous) => ({ ...previous, [field]: value }));
       setErrors((previous) => ({ ...previous, [field]: undefined }));
     };
-  
+
+  // Al salir de un campo se valida solo ese campo (SCRUM-137, F5): así un campo obligatorio vacío
+  // dice por qué el botón está deshabilitado, sin marcar en rojo los campos que todavía no se tocaron.
+  const handleBlur = (field: RegistroFieldType) => (): void => {
+    setErrors((previous) => ({ ...previous, [field]: validateRegistroForm(values)[field] }));
+  };
+
   const handleAcceptedTermsChange = (isChecked: boolean): void => {
     setIsAcceptedTerms(isChecked);
   };
@@ -105,6 +111,7 @@ export const useRegistroManualViewModel = (): RegistroManualViewModel => {
   return {
     errors: visibleErrors,
     handleAcceptedTermsChange,
+    handleBlur,
     handleChange,
     handleSubmit,
     handleTermsModalClose,

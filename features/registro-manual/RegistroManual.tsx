@@ -20,6 +20,7 @@ export const RegistroManual = (): React.JSX.Element => {
   const {
     errors,
     handleAcceptedTermsChange,
+    handleBlur,
     handleChange,
     handleSubmit,
     handleTermsModalClose,
@@ -51,6 +52,7 @@ export const RegistroManual = (): React.JSX.Element => {
                 type={type}
                 value={values[field]}
                 onChange={handleChange(field)}
+                onBlur={handleBlur(field)}
                 errorMessage={errors[field]}
               />
 

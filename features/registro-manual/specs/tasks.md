@@ -46,3 +46,10 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 2. ViewModel: estado de aceptación, del modal, y que bloquee el envío.
 - [x] 3. Presentación: `Checkbox` + enlace + `Modal` en `RegistroManual.tsx`.
 - [x] 4. Validar en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
+
+## SCRUM-137 (F5): errores al salir del campo
+
+- [x] 1. `onBlur` opcional en `Input`.
+- [x] 2. `handleBlur` en el ViewModel y en su interfaz; `RegistroManual.tsx` lo pasa a cada campo.
+- [x] 3. Pruebas: `tests/useRegistroManualViewModel.test.ts` (5 casos).
+- [x] 4. Navegador: salir del nombre vacío muestra "El nombre es obligatorio.", el correo no tocado no se marca, un correo sin @ muestra su error.
