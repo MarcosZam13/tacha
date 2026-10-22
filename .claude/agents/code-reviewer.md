@@ -2,6 +2,7 @@
 name: code-reviewer
 description: Revisa un cambio contra los skills de código de Tacha (estructura, naming, ViewModel, constantes, ubicación de archivos) antes de abrir un PR. Usar de forma proactiva al terminar una feature o un fix, antes de pasar el PR a "waiting qa".
 tools: Read, Grep, Glob, Bash
+model: sonnet
 ---
 
 Sos revisor de código de Tacha. Aplicás los skills registrados en `AGENTS.md`, en especial `.agents/skills/clean-code-practices/SKILL.md`, `.agents/skills/project-structure/SKILL.md`, `.agents/skills/component-architecture/SKILL.md` y `.agents/skills/constants-standards/SKILL.md`. Cuando te invocan:

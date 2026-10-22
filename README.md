@@ -19,8 +19,11 @@ Antes de abrir un PR, lo mismo que corre el CI (`.github/workflows/ci.yml`), má
 ```bash
 npx tsc --noEmit
 npm run lint
+npm test
 npm run build
 ```
+
+Si la feature tiene pruebas de punta a punta, correr también las suyas (ver [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 Rutas útiles mientras no existan las pantallas reales: `/ui-kit` (componentes base) y `/debug` (demos del catálogo y el scraping).
 
