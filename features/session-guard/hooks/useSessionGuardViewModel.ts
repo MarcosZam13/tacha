@@ -4,7 +4,8 @@ import { SESSION_STATUS } from "@/constants";
 import type { SessionStatusType } from "@/constants";
 import { subscribeToSessionChanges } from "@/services/session.service";
 import { getSessionStatus } from "@/utils/getSessionStatus";
-import { IS_SESSION_GUARD_ENABLED, SESSION_GUARD_ROUTE } from "../constants/session-guard.constants";
+import { toLoginRoute } from "@/utils/returnPath.utils";
+import { IS_SESSION_GUARD_ENABLED } from "../constants/session-guard.constants";
 import type { SessionGuardViewModel } from "../models/SessionGuardViewModel.interface";
 import { isPublicRoute } from "../utils/isPublicRoute";
 
@@ -30,11 +31,12 @@ export const useSessionGuardViewModel = (): SessionGuardViewModel => {
   }, []);
 
   // replace y no push: con push, "atrás" volvería a la pantalla privada y la redirección se repetiría.
+  // La ruta privada viaja como next para volver a ella después del login (SCRUM-136).
   useEffect(() => {
     if (isGuarded && status === SESSION_STATUS.UNAUTHENTICATED) {
-      router.replace(SESSION_GUARD_ROUTE.LOGIN);
+      router.replace(toLoginRoute(pathname));
     }
-  }, [isGuarded, status, router]);
+  }, [isGuarded, status, router, pathname]);
 
   return {
     canShowContent: !isGuarded || status === SESSION_STATUS.AUTHENTICATED,
