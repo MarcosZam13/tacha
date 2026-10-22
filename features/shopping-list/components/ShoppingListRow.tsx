@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui";
+import { QuantityStepper } from "@/components/quantity-stepper/QuantityStepper";
 import { BUTTON_VARIANT } from "@/constants";
 import { SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
-import { QuantityStepper } from "./QuantityStepper";
 import type { ShoppingListRowProps } from "./models/ShoppingListRowProps.interface";
 
 /**
@@ -45,6 +45,8 @@ export const ShoppingListRow = ({
       <QuantityStepper
         canDecrease={row.canDecrease}
         canIncrease={row.canIncrease}
+        decreaseLabel={SHOPPING_LIST_TEXT.DECREASE_QUANTITY}
+        increaseLabel={SHOPPING_LIST_TEXT.INCREASE_QUANTITY}
         onDecrease={onDecrease}
         onIncrease={onIncrease}
         quantity={row.displayedQuantity}
