@@ -92,3 +92,4 @@ El guard de sesión (SCRUM-49) tiene sus propias tareas en `features/session-gua
 - [x] 6. La invitación usa `loginHref` (y se quita `HOUSEHOLD_ROUTE.LOGIN`); pruebas actualizadas.
 - [x] 7. `npx tsc --noEmit`, `npm run lint`, `npm test` (1019 pasan), `npm run build`.
 - [x] 8. Casos 136-1 a 136-4 en el navegador con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=true` (8/8 verificaciones).
+- [x] 9. QA denied (BUG-1): `next` con tab o salto de línea después de la primera `/` saltaba la validación. `getSafeReturnPath` resuelve la ruta con `new URL` y exige el mismo origen; 4 pruebas nuevas que fallan sin el arreglo.

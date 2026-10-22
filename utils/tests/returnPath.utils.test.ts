@@ -40,6 +40,18 @@ describe("getSafeReturnPath", () => {
     expect(getSafeReturnPath("/javascript:alert(1)")).toBeUndefined();
   });
 
+  it.each([
+    ["a tab", "/\t/evil.example"],
+    ["a newline", "/\n/evil.example"],
+    ["a carriage return", "/\r/evil.example"],
+  ])("rejects %s after the first slash, which the browser strips and reads as another site", (_, candidate) => {
+    expect(getSafeReturnPath(candidate)).toBeUndefined();
+  });
+
+  it("returns the path as the browser resolves it, without the stripped characters", () => {
+    expect(getSafeReturnPath("/rece\ttas")).toBe("/recetas");
+  });
+
   it("rejects the login itself so the user does not loop back to it", () => {
     expect(getSafeReturnPath(`${AUTH_ROUTE.LOGIN}?next=%2Flista`)).toBeUndefined();
   });

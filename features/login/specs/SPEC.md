@@ -80,7 +80,7 @@ No incluye: ver [14](#14-casos-fuera-de-alcance).
 - La marca nunca es posterior a la hora actual: si el reloj estuvo adelantado y se corrigió, se toma la hora actual.
 - El motivo va en una bandera de `sessionStorage` y no en la URL: con el guard encendido, el guard y el cierre por inactividad redirigen a `/login` a la vez, y el último `replace` pisaría un parámetro de la URL (se comprobó: el aviso no aparecía). Con la bandera, da igual quién redirija primero. La bandera se anota antes de cerrar la sesión.
 - El motivo del cierre por inactividad no viaja en la URL, así que nadie puede provocar ese mensaje con un enlace.
-- La URL solo decide a dónde volver (SCRUM-136): el parámetro `next` se usa únicamente si es una ruta interna de la app (empieza con `/`, no con `//` ni `/\`, sin `:` y que no sea una ruta del login). Cualquier otro valor se ignora y se va a `/lista`: así `next` no sirve como redirección abierta (`/login?next=https://otro-sitio`).
+- La URL solo decide a dónde volver (SCRUM-136): el parámetro `next` se usa únicamente si es una ruta interna de la app (empieza con `/`, no con `//` ni `/\`, sin `:` y que no sea una ruta del login). Además la ruta se resuelve como lo hace el navegador y tiene que quedar en el mismo origen, porque el navegador borra tabs y saltos de línea (`/%09/evil.example` se leería como `//evil.example`); se navega a la ruta ya resuelta. Cualquier otro valor se ignora y se va a `/lista`: así `next` no sirve como redirección abierta (`/login?next=https://otro-sitio`).
 - `next` se lee al navegar después del login (`window.location.search`) y no con `useSearchParams`, que en una página prerenderizada exigiría un `Suspense`.
 - Si el guard y el cierre por inactividad redirigen a la vez, gana el último `replace`; si es el del cierre, se pierde `next` y el usuario entra a `/lista`. Se acepta: después de un cierre por inactividad no hace falta volver a la pantalla exacta.
 - El aviso se consume: se muestra, se borra la bandera y no vuelve a salir al recargar.
@@ -205,7 +205,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 Ruta de retorno (SCRUM-136), con el guard encendido:
 - Caso 136-1: abrir `/invitacion/<token>` sin sesión lleva a `/login?next=%2Finvitacion%2F<token>`; al iniciar sesión se vuelve a la invitación con el botón "Unirme".
 - Caso 136-2: abrir `/recetas` sin sesión y luego iniciar sesión deja al usuario en `/recetas`.
-- Caso 136-3: `/login?next=https://evil.example` y `/login?next=//evil.example` terminan en `/lista`.
+- Caso 136-3: `/login?next=https://evil.example`, `/login?next=//evil.example` y `/login?next=%2F%09%2Fevil.example` (tab, BUG-1 de la QA de #76) terminan en `/lista`.
 - Caso 136-4: sin `next`, el login sigue llevando a `/lista`.
 - Caso 9: con la contraseña correcta pero el correo sin verificar, se muestra el mensaje de correo sin verificar, no el de credenciales incorrectas.
 - Caso 10: si Supabase limita los intentos, se muestra el mensaje de demasiados intentos.
