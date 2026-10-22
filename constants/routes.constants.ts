@@ -22,3 +22,9 @@ export const AUTH_ROUTE = {
 } as const;
 
 export type AuthRouteType = (typeof AUTH_ROUTE)[keyof typeof AUTH_ROUTE];
+
+// Parámetro de /login con la ruta a la que volver después de iniciar sesión (SCRUM-136):
+// /login?next=/invitacion/<token>. Lo escriben el guard y la invitación; lo lee el login.
+export const AUTH_QUERY_PARAM = {
+  RETURN_PATH: "next",
+} as const;
