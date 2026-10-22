@@ -20,16 +20,18 @@ manual fuera de este flujo — los comandos exactos están en la sección final.
 
 ## 3. Feature `features/catalog-product-detail/`
 
-- [ ] 9. `hooks/useProductDetailViewModel.ts`: fetch cancelable (mismo patrón que `useItemDetail`), estados `loading`/`error`/`ready`/`adding`, selector de cantidad local, flujo de "agregar" descrito en `plan.md` §3.
-- [ ] 10. `components/ProductDetailHeader.tsx`, `ProductDetailBrands.tsx`, `ProductDetailStorePrices.tsx`, `AddToListControl.tsx` — solo presentación.
-- [ ] 11. `ProductDetail.tsx` — entrada delgada, compone el ViewModel con los componentes.
-- [ ] 12. `constants/catalog-product-detail.constants.ts` — todos los textos y estados (cero literales).
+- [x] 9. `hooks/useProductDetailViewModel.ts`: fetch cancelable (mismo patrón que `useItemDetail`), estados `loading`/`error`/`ready`/`adding`, selector de cantidad local (mínimo `ITEM_QUANTITY.MIN`), flujo de "agregar" secuencial descrito en `plan.md` §3 (1 llamada a `addVariantToGeneralList` + cantidad−1 a `changeListItemQuantity`, nunca en paralelo). Al mismo tiempo se corrigió `getCatalogVariantDetail` (sección 2) de `.single()` a `.maybeSingle()` + manejo de `POSTGRES_ERROR_CODE.INVALID_TEXT_REPRESENTATION` (mismo patrón que `getRecipeForEditing`, SCRUM-95): sin eso no había forma de distinguir "producto no encontrado" (CA adicional de SPEC.md §13) de un error genérico.
+- [x] 10. `components/ProductDetailHeader.tsx`, `ProductDetailBrands.tsx`, `ProductDetailStorePrices.tsx`, `AddToListControl.tsx` — solo presentación. `AddToListControl` reusa `QuantityStepper`, promovido a `components/quantity-stepper/` cuando esta historia se volvió su segundo consumidor real (autorizado por Marcos, dueño del módulo de shopping-list — mismo patrón que la promoción de la sección 1). Se le agregaron `decreaseLabel`/`increaseLabel` como props: el texto exacto ("Quitar uno"/"Añadir uno" en la lista vs. "Disminuir cantidad"/"Aumentar cantidad" acá) difiere entre quien lo usa.
+- [x] 11. `ProductDetail.tsx` — entrada delgada, compone el ViewModel con los componentes. Gate de `loading`/`error` (con "Reintentar" solo si no es "producto no encontrado"); `ready`/`adding` comparten el mismo árbol (AddToListControl deshabilita sus controles con `isAdding`).
+- [x] 12. `constants/catalog-product-detail.constants.ts` — todos los textos y estados (cero literales). Se agregó también `utils/getStoreIconPath.ts` (ícono por slug, con guarda de tipo) y `utils/toAddErrorMessage.ts` (mensaje de "agregar" fallido, con la cantidad ya agregada si la hubo).
+
+Tests: `tests/useProductDetailViewModel.test.ts` (ViewModel puro, sin POM: loading→ready, no encontrado, error genérico + retry, tope de cantidad, agregar completo, agregar con falla a mitad de camino). Pendiente: Page Object + test de integración de `ProductDetail.tsx` (sección 5, junto a la validación manual).
 
 ## 4. Ruta y navegación
 
-- [ ] 13. `app/(app)/catalogo/producto/[variantId]/page.tsx` — ruta delgada.
-- [ ] 14. `components/catalog-card/CatalogCard.tsx` — envolver en `Link` hacia el detalle; confirmar que sigue sirviendo igual a `features/catalog/` (Buscar) y a `features/my-products/` (Mis productos), sin romper sus tests existentes.
-- [ ] 15. `CATALOG_PRODUCT_DETAIL_ROUTE(variantId)` en `constants/catalog.constants.ts`, usado por `CatalogCard` y por la propia página.
+- [x] 13. `app/(app)/catalogo/producto/[variantId]/page.tsx` — ruta delgada (mismo patrón que `app/(app)/recetas/[id]/editar/page.tsx`: `params` como `Promise` en Next 16).
+- [x] 14. `components/catalog-card/CatalogCard.tsx` — envuelta entera en `Link` (sin botones propios adentro, no hay `<a>` anidado); sirve igual a `features/catalog/` (Buscar) y a `features/my-products/` (Mis productos) — ningún test de esos dos consumidores ni del propio `CatalogCard.test.tsx` interactúa con la tarjeta como link, así que no se tocaron.
+- [x] 15. `CATALOG_PRODUCT_DETAIL_ROUTE(variantId)` agregado a `constants/catalog.constants.ts` (usa `APP_ROUTE.CATALOG`), usado por `CatalogCard` y por la propia página.
 
 ## 5. Validación manual (CA-01 a CA-04 de SPEC.md + casos adicionales)
 

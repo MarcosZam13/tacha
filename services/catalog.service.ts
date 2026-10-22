@@ -1,6 +1,7 @@
-import { CATALOG_DB } from "@/constants";
+import { CATALOG_DB, POSTGRES_ERROR_CODE } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 import { getSupabaseClient } from "@/services/supabase.client";
+import type { NullableRef } from "@/types/nullable.types";
 import type {
   CatalogProduct,
   CatalogSearchVariantRow,
@@ -99,14 +100,23 @@ export const getCategories = async (): Promise<Category[]> => {
  * aproximado por supermercado, lo que la tarjeta de catálogo no muestra.
  * Lectura directa (mismo patrón que getItemDetail de SCRUM-64, sin RPC
  * nueva): no se toca search_catalog ni su contrato (SPEC.md §10).
+ *
+ * Devuelve null si no se encontró: no existe, se borró, o el id de la URL no
+ * es un uuid (mismo patrón que getRecipeForEditing, SCRUM-95) — las tres dan
+ * el mismo resultado, que la pantalla traduce al CA-07 "producto no
+ * encontrado" sin un error genérico.
  */
-export const getCatalogVariantDetail = async (variantId: string): Promise<CatalogVariantDetail> => {
+export const getCatalogVariantDetail = async (
+  variantId: string,
+): Promise<NullableRef<CatalogVariantDetail>> => {
   const { data: variant, error } = await getSupabaseClient()
     .from(CATALOG_DB.TABLE.VARIANTS)
     .select(CATALOG_DB.VARIANT_DETAIL_SELECT)
     .eq("id", variantId)
-    .single();
+    .maybeSingle();
+  if (error?.code === POSTGRES_ERROR_CODE.INVALID_TEXT_REPRESENTATION) return null;
   if (error) throw error;
+  if (!variant) return null;
 
   const storePrices: StorePrice[] = variant.latest_prices.flatMap(({ price, stores }) =>
     price !== null && stores
