@@ -21,6 +21,7 @@ Dar a cualquier integrante del equipo (Melany, Laura, Esteban, Roberto, Marcos) 
 
 ## Casos límite y errores
 - `Input`/`FormField` en estado de error: borde y helper text distinguibles sin depender solo del color (ver accesibilidad — texto de error explícito, no solo borde rojo).
+- `Input` (SCRUM-137): el texto de ayuda o de error va FUERA del `<label>`, en un `<p>` ligado al campo con `aria-describedby`; el campo con error lleva `aria-invalid="true"`. Así el nombre accesible es solo la etiqueta (más el `*` de obligatorio) y no cambia cuando aparece un error. El id sale de `useId`, único aunque haya varios `Input` en la pantalla. Acepta `onBlur` opcional.
 - `Modal` cierra con click en el overlay y con Escape; no atrapa el foco todavía (fuera de alcance de esta primera pasada — anotado como pendiente).
 - `Button` deshabilitado: opacidad reducida + `cursor-not-allowed`, sin depender solo de quitar el handler.
 
@@ -31,4 +32,4 @@ Seguir component-architecture (presentación pura, sin ViewModel porque no hay l
 - [x] Los 9 primitivos existen, tipados, sin strings/hex mágicos.
 - [x] Consumibles vía `components/ui/<primitivo>/<Primitivo>.tsx`.
 - [x] Página de demo (`app/(demo)/ui-kit/page.tsx`) renderiza todas las variantes — sustituto de Storybook mientras el proyecto no lo tenga configurado.
-- [ ] Tests de componente (unit-testing-standards) — no incluidos en esta primera pasada, ver nota en el PR.
+- [ ] Tests de componente (unit-testing-standards) — no incluidos en esta primera pasada, ver nota en el PR. `Input` ya tiene los suyos (SCRUM-137: `components/ui/input/tests/`).
