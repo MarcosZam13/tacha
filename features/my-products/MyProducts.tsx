@@ -3,6 +3,7 @@
 import { Spinner } from "@/components/ui";
 import { CatalogCard } from "@/components/catalog-card/CatalogCard";
 import { CatalogTabs } from "@/components/catalog-tabs/CatalogTabs";
+import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { CATALOG_TAB, CATALOG_TABS_TEXT } from "@/constants";
 import { MyProductsEmptyState } from "./components/MyProductsEmptyState";
 import { MY_PRODUCTS_STATUS, MY_PRODUCTS_TEXT } from "./constants/my-products.constants";
@@ -38,6 +39,9 @@ export const MyProducts = (): React.JSX.Element => {
           ))}
         </ul>
       ) : null}
+
+      {/* SCRUM-75: una sola vez, debajo de las tarjetas, siempre visible. */}
+      <PriceDisclaimer />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { Button, Spinner } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
 import { SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
@@ -52,6 +53,9 @@ export const ShoppingListItemDetail = ({ detail, onClose }: ShoppingListItemDeta
             <p className="text-tacha-textsec">{SHOPPING_LIST_TEXT.DETAIL_NO_PRICES}</p>
           )}
         </section>
+
+        {/* SCRUM-75: justo debajo de "Precio de referencia por supermercado". */}
+        <PriceDisclaimer />
       </>
     ) : null}
 

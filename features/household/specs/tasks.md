@@ -330,6 +330,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Sublistas por fecha y listas privadas.
 - [ ] HU-35, HU-36 y HU-38.
 
+
 ## SCRUM-60: consultar a los integrantes de la familia
 
 Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1 y queda en `in progress` hasta el final.
@@ -379,3 +380,75 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 - [ ] La foto real del perfil (HU-30).
 - [ ] Eliminar miembros (HU-36).
+
+## SCRUM-61: eliminar a un integrante de la familia
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1, en `on hold` mientras SCRUM-60 (#68) no esté en `develop`.
+
+### Etapa 0 — Decisiones
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-10-18): D1 (el enlace no se invalida porque es uno por familia; limitación documentada), D2 (sin notificaciones) y textos de D3 (SPEC §5, §7 y §8).
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-61 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md`, `specs/tasks.md` y `docs/documento-proyecto.md` §4.1.
+- [x] 1.2 Revisión y aprobación de la documentación (la dueña de la historia confirmó las decisiones y pidió implementar, 2026-10-19).
+- [x] 1.3 Commit `docs(SCRUM-61): add household member removal planning` (`d6df4e2`), push y abrir el PR hacia `develop` con label `on hold` (PR #69).
+
+### Etapa 2 — Después del merge de SCRUM-60
+
+- [x] 2.1 Traer `develop` a esta rama; resolver los conflictos de los specs conservando las subsecciones de las dos historias (`e5dd9c4`; sin marcas de conflicto, las dos historias en los tres specs).
+- [x] 2.2 Pasar el PR a `in progress` (y Jira). El PR #69 está en `in progress`.
+
+### Etapa 3 — Migración (commit `feat`)
+
+- [x] 3.1 Revisar otra vez el número libre (`026`). Libre el 2026-10-19 en `develop` y en todas las ramas remotas.
+- [x] 3.2 Escribir `026_remove_household_member.sql` con lo de [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia) y su prueba SQL (`supabase/tests/026_remove_household_member.test.sql`). La prueba pasa en PGlite, con la `011` real y las políticas reales de `lists` y `list_items` de la `024`, y detecta las mutaciones de autorización.
+- [ ] 3.3 Revisión con `security-reviewer`; aprobación; commit.
+  - Hecho (2026-10-19): `security-reviewer`, sin hallazgos críticos ni altos.
+    - Medio: el enlace no rota. Es la limitación aceptada en D1 (SPEC §5).
+    - Bajo, corregido: el chequeo de admin va antes que el de «a sí mismo».
+    - Casos agregados a la prueba: `search_path` fijo, un miembro contra el admin y un miembro con su propio id.
+  - Falta: tu aprobación y el commit.
+- [x] 3.4 La dueña de la historia la aplica con su fila del historial y corre la prueba SQL. Hecho el 2026-10-19:
+  - aplicada y verificada: devuelve `text`, `security definer`, `search_path` vacío y `execute` solo para `authenticated`;
+  - con `plpgsql.check_asserts` en `on`, la prueba completa terminó en `ok`.
+
+### Etapa 4 — Tipos y servicio (commit `feat`)
+
+- [x] 4.1 `remove_household_member` en `types/database.types.ts`, comparado con `pg_proc` (`member_user_id uuid` → `text`, verificado en la base el 2026-10-19).
+- [x] 4.2 Constantes del servicio (`HOUSEHOLD_DB.RPC.REMOVE_HOUSEHOLD_MEMBER`, `HOUSEHOLD_REMOVE_MEMBER_RESULT`), `removeHouseholdMember` y sus tests (`tests/household.service.test.ts`).
+
+### Etapa 5 — Hook (commit `feat`)
+
+- [x] 5.1 Constantes del flujo y `useHouseholdMemberRemoval` con sus tests.
+  - Constantes: `HOUSEHOLD_REMOVE_MEMBER_STATUS` y `HOUSEHOLD_REMOVE_MEMBER_TEXT`, con los textos de D3.
+  - Tests: `tests/useHouseholdMemberRemoval.test.ts` (confirmar, cancelar, los cuatro resultados, error y reintento, doble clic, pantalla cerrada).
+
+### Etapa 6 — Pantalla (commit `feat`)
+
+- [x] 6.1 `HouseholdRemoveMemberDialog` y sus props; "Eliminar integrante" en las filas de `HouseholdMembersSection` (nombre accesible «Eliminar integrante {nombre}»; el foco va al título de la sección después de eliminar).
+- [x] 6.2 Integración en `useHouseholdViewModel` y `Household.tsx`: el botón solo para el admin y nunca en su fila; `onMembersChanged` recarga la lista y `onAdminLost` vuelve a leer la membresía; el aviso va en la zona `role="status"`.
+- [x] 6.3 Page Object y tests (jsdom): `tests/HouseholdRemoveMember.page.ts` y `tests/HouseholdRemoveMember.test.tsx` (15 tests). Incluye una regresión: la fila propia del admin nunca tiene el botón, aunque la lista lo muestre con rol `member`; falla si se quita la regla «nunca en la fila propia».
+- [x] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-19): los cuatro sin errores; Vitest completo, 860 tests en 92 archivos; el build genera `/household`.
+
+### Etapa 7 — QA y cierre
+
+- [x] 7.1 Pruebas manuales de CA-01 a CA-04 con tres cuentas registradas de prueba, con capturas sin correos. Hecho por la dueña de la historia (2026-10-19):
+  - CA-01, con captura: el admin ve «Eliminar integrante» en las filas de B y C, y no en la suya;
+  - CA-02, con captura: «Cancelar» cierra el diálogo sin eliminar a nadie;
+  - CA-04, con captura: al eliminar aparece el aviso de éxito y B desaparece de la familia;
+  - CA-03, **sin captura** (comprobado funcionalmente): como B, perdió el acceso a la familia y conserva sus datos personales.
+- [x] 7.2 `docs/documento-proyecto.md` §4.1 y §6, y marcar SPEC §13 solo con lo validado (2026-10-19). En §13 están marcados los casos que validan la prueba SQL en la base y los tests; CA-01 a CA-04, la concurrencia y «Generar enlace nuevo» esperan la prueba manual.
+- [ ] 7.3 `code-reviewer`, `security-reviewer` y `qa-checker`.
+  - Hecho (2026-10-19): las tres revisiones, sin hallazgos críticos ni altos.
+    - Corregido: el diálogo nombra igual que la fila (`utils/toMemberLabel.ts`; con un nombre de solo espacios mostraba un texto vacío), dos comentarios de `titleFocusKey` y el orden de `removeDialog`.
+    - Tests agregados: la fila de otro admin sin botón, Escape mientras elimina y el nombre de solo espacios.
+    - Anotado en SPEC §15: sin E2E y la concurrencia.
+  - Falta: la aprobación de la dueña de la historia sobre las correcciones.
+- [ ] 7.4 Descripción del PR, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Notificar a la persona eliminada.
+- [ ] Impedir que vuelva a unirse (lista de bloqueados).

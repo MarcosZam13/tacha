@@ -34,7 +34,7 @@ No incluye: ver §14.
 
 1. El shell se muestra en todas las pantallas privadas y en ninguna pública (landing, nosotros, términos, login, registro, invitación).
 2. Las URLs no cambian.
-3. Solo se muestran secciones que existen hoy: General (`/lista`), Catálogo (`/catalogo`), Recetas (`/recetas`) y Household (`/household`). Las de DESIGN.md que todavía no existen (Fechas, Listas privadas, Finanzas) quedan ocultas hasta que existan (decisión del 2026-10-08).
+3. Solo se muestran secciones que existen hoy: General (`/lista`), Catálogo (`/catalogo`), Recetas (`/recetas`), Finanzas (`/finanzas`, agregada con SCRUM-69) y Household (`/household`). Las de DESIGN.md que todavía no existen (Fechas, Listas privadas) quedan ocultas hasta que existan (decisión del 2026-10-08).
 4. Un ítem está activo si la ruta actual es la suya o una subruta (`/recetas/nueva` activa "Recetas").
 5. El login exitoso navega a la ruta que devuelva `resolvePostLoginRoute()`. Hoy siempre es `/lista`; SCRUM-136 le va a dar prioridad a la URL de retorno.
 6. Una sesión anónima no cuenta como registrada (mismo criterio que el session guard de SCRUM-49).
@@ -51,8 +51,8 @@ No incluye: ver §14.
 
 ## 8. UI esperada
 
-- **Desktop (≥ `md`):** sidebar fijo a la izquierda con "Tacha" arriba y los 4 ítems; ítem activo con fondo `tacha-chipbg` y texto `tacha-teal` (mockup v3). La pantalla a la derecha.
-- **Mobile (< `md`):** barra de tabs fija abajo con los 4 ítems; la pantalla deja espacio para que la barra no tape contenido. Con 4 ítems no hace falta "Más" (§3.2 lo pide a partir de 6).
+- **Desktop (≥ `md`):** sidebar fijo a la izquierda con "Tacha" arriba y los 5 ítems; ítem activo con fondo `tacha-chipbg` y texto `tacha-teal` (mockup v3). La pantalla a la derecha.
+- **Mobile (< `md`):** barra de tabs fija abajo con los 5 ítems; la pantalla deja espacio para que la barra no tape contenido. Con 5 ítems no hace falta "Más" (§3.2 lo pide a partir de 6).
 - **Navbar pública:** el botón de la derecha dice "Registrarse" (a `/registro`) o "Ir a mi lista" (a `/lista`).
 
 ## 9. Accesibilidad
@@ -93,7 +93,7 @@ No incluye: ver §14.
 
 - Cerrar sesión: SCRUM-55. Va en el pie del sidebar (desktop) y, cuando haya más ítems, en "Más" (mobile); ver plan.md.
 - URL de retorno después del login: SCRUM-136. Entra por `resolvePostLoginRoute()`.
-- Ítems de secciones que no existen (Fechas, Listas privadas, Finanzas) y el menú "Más": se agregan con su pantalla.
+- Ítems de secciones que no existen (Fechas, Listas privadas) y el menú "Más": se agregan con su pantalla.
 - Íconos en los ítems: el repo no tiene set de íconos; se agregan cuando el equipo elija uno.
 - Sub-tabs internos de Catálogo y Recetas (DESIGN.md §3.1): son de cada pantalla.
 - Proteger las rutas privadas: ya lo hace el session guard (SCRUM-49) detrás de su flag.

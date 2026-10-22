@@ -39,6 +39,8 @@ export const HOUSEHOLD_DB = {
     // Migración 024.
     GET_PERSONAL_LISTS_DECISION_STATE: "get_personal_lists_decision_state",
     LEAVE_HOUSEHOLD: "leave_household",
+    // Migración 026 (contrato en specs/SPEC.md §12, SCRUM-61).
+    REMOVE_HOUSEHOLD_MEMBER: "remove_household_member",
   },
   TABLE: {
     HOUSEHOLD_MEMBERS: "household_members",
@@ -240,6 +242,43 @@ export const HOUSEHOLD_LEAVE_RESULT = {
 } as const;
 
 export type HouseholdLeaveResultType = (typeof HOUSEHOLD_LEAVE_RESULT)[keyof typeof HOUSEHOLD_LEAVE_RESULT];
+
+// Lo que responde remove_household_member (migración 026, specs/SPEC.md §12,
+// SCRUM-61). Los valores los decide la base; acá solo se nombran.
+export const HOUSEHOLD_REMOVE_MEMBER_RESULT = {
+  CANNOT_REMOVE_SELF: "cannot_remove_self",
+  MEMBER_NOT_FOUND: "member_not_found",
+  NOT_ADMIN: "not_admin",
+  REMOVED: "removed",
+} as const;
+
+export type HouseholdRemoveMemberResultType =
+  (typeof HOUSEHOLD_REMOVE_MEMBER_RESULT)[keyof typeof HOUSEHOLD_REMOVE_MEMBER_RESULT];
+
+// Estados del flujo de eliminar (unión en hooks/useHouseholdMemberRemoval.ts,
+// specs/SPEC.md §6, SCRUM-61).
+export const HOUSEHOLD_REMOVE_MEMBER_STATUS = {
+  CONFIRMING: "confirming",
+  FAILED: "failed",
+  IDLE: "idle",
+  REMOVING: "removing",
+} as const;
+
+export type HouseholdRemoveMemberStatusType =
+  (typeof HOUSEHOLD_REMOVE_MEMBER_STATUS)[keyof typeof HOUSEHOLD_REMOVE_MEMBER_STATUS];
+
+// Textos aprobados por la dueña de la historia (D3, specs/SPEC.md §5, §7 y §8).
+// Se usan tal cual, incluida la palabra "household".
+export const HOUSEHOLD_REMOVE_MEMBER_TEXT = {
+  ACTION: "Eliminar integrante",
+  CANCEL: "Cancelar",
+  CONFIRM: "Eliminar",
+  DIALOG_MESSAGE:
+    "Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán",
+  DIALOG_TITLE: "¿Eliminar a este integrante?",
+  ERROR: "No se pudo eliminar al integrante. Inténtalo de nuevo",
+  SUCCESS: "Integrante eliminado correctamente",
+} as const;
 
 // Estados del flujo de salir (unión en hooks/useHouseholdLeave.ts, specs/SPEC.md §6).
 export const HOUSEHOLD_LEAVE_STATUS = {

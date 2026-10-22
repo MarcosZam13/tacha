@@ -45,13 +45,29 @@ const pageMock = vi.mocked(getHouseholdMembersPage);
 afterEach(cleanup);
 
 describe("HouseholdMembersSection", () => {
-  const ANA_ROW = { initials: "AP", isAdmin: true, isCurrentUser: false, label: "Ana Pérez", rowKey: "row-ana" };
-  const BETO_ROW = { initials: "B", isAdmin: false, isCurrentUser: true, label: "Beto", rowKey: "row-beto" };
+  // Sin "Eliminar integrante" (onRemoveRequest null): eso lo prueba HouseholdRemoveMember.test.tsx.
+  const ANA_ROW = {
+    initials: "AP",
+    isAdmin: true,
+    isCurrentUser: false,
+    label: "Ana Pérez",
+    onRemoveRequest: null,
+    rowKey: "row-ana",
+  };
+  const BETO_ROW = {
+    initials: "B",
+    isAdmin: false,
+    isCurrentUser: true,
+    label: "Beto",
+    onRemoveRequest: null,
+    rowKey: "row-beto",
+  };
   const UNNAMED_ROW = {
     initials: null,
     isAdmin: false,
     isCurrentUser: false,
     label: HOUSEHOLD_LEAVE_TEXT.UNNAMED_MEMBER,
+    onRemoveRequest: null,
     rowKey: "row-unnamed",
   };
 
@@ -68,6 +84,7 @@ describe("HouseholdMembersSection", () => {
     onRetry: vi.fn(),
     query: "",
     rows: [ANA_ROW, BETO_ROW, UNNAMED_ROW],
+    titleFocusKey: 0,
     ...overrides,
   });
 

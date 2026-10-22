@@ -3,6 +3,7 @@
 import { Input, Spinner } from "@/components/ui";
 import { CatalogCard } from "@/components/catalog-card/CatalogCard";
 import { CatalogTabs } from "@/components/catalog-tabs/CatalogTabs";
+import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { CATALOG_TAB, CATALOG_TABS_TEXT, PRODUCT_SEARCH_TEXT } from "@/constants";
 import { CATALOG_SEARCH_STATUS, CATALOG_TEXT } from "./constants/catalog-search.constants";
 import { CatalogCategoryChips } from "./components/CatalogCategoryChips";
@@ -57,6 +58,9 @@ export const CatalogSearch = (): React.JSX.Element => {
           ))}
         </ul>
       ) : null}
+
+      {/* SCRUM-75: una sola vez, al final de los resultados (y del catálogo), siempre visible. */}
+      <PriceDisclaimer />
     </div>
   );
 };

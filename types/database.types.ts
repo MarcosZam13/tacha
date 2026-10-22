@@ -768,6 +768,24 @@ export type Database = {
           },
         ]
       }
+      spending_budgets: {
+        Row: {
+          amount: number
+          owner_id: string
+          period: string
+        }
+        Insert: {
+          amount: number
+          owner_id?: string
+          period: string
+        }
+        Update: {
+          amount?: number
+          owner_id?: string
+          period?: string
+        }
+        Relationships: []
+      }
       stores: {
         Row: {
           base_url: string
@@ -1058,6 +1076,7 @@ export type Database = {
           variant_id: string
         }[]
       }
+      remove_household_member: { Args: { member_user_id: string }; Returns: string }
       save_recipe: {
         Args: {
           ingredient_list: Json
@@ -1098,6 +1117,20 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      set_spending_budget: {
+        Args: { budget_amount: number; budget_period: string }
+        Returns: {
+          amount: number
+          owner_id: string
+          period: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "spending_budgets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       start_purchase_session: {
         Args: { local_day_start: string; target_store_id: string }
         Returns: {
