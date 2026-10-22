@@ -106,6 +106,7 @@ La inactividad no guarda estado: el vencimiento es una función pura de `(ahora,
 | Credenciales incorrectas (correo inexistente o contraseña incorrecta) | "Correo o contraseña incorrectos." (el mismo mensaje en ambos casos) |
 | Edge Function caída o sin red | "No pudimos iniciar sesión. Intentá de nuevo en unos minutos." |
 | El script de Google no carga | Mensaje que explica que el reCAPTCHA no cargó; el botón sigue deshabilitado |
+| Falta `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` o Google rechaza la configuración al dibujar (SCRUM-137) | El mismo mensaje, sin error sin atrapar en la consola; sin clave ni siquiera se pide el script. Aplica también al formulario de contacto, que usa el mismo widget |
 | Nueva contraseña vacía, corta o débil | El botón de guardar está deshabilitado y el medidor lista los requisitos que faltan |
 | Las contraseñas nuevas no coinciden | "Las contraseñas no coinciden." bajo el campo de repetir |
 | La nueva contraseña es igual a la actual | "La nueva contraseña debe ser distinta de la actual." |

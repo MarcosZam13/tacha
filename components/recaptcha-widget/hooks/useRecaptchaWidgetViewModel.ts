@@ -22,9 +22,13 @@ export const useRecaptchaWidgetViewModel = ({
   const containerRef = useRef<NullableRef<HTMLDivElement>>(null);
   const widgetIdRef = useRef<NullableRef<number>>(null);
   const [hasLoadError, setHasLoadError] = useState(false);
+  // Sin clave del sitio, Google lanza "Missing required parameters: sitekey" al dibujar (SCRUM-137, F3):
+  // se muestra el mismo aviso que cuando el script no carga y ni se pide el script.
+  const isMissingSiteKey = RECAPTCHA_SITE_KEY === "";
 
   // Sincroniza con algo externo (el script de Google): por eso es un efecto.
   useEffect(() => {
+    if (isMissingSiteKey) return undefined;
     let isCancelled = false;
 
     const renderWidget = (): void => {
@@ -35,12 +39,18 @@ export const useRecaptchaWidgetViewModel = ({
       grecaptcha.ready(() => {
         // Se revisa acá y no antes: ready() puede disparar después, y dos llamadas dibujarían el widget dos veces.
         if (isCancelled || widgetIdRef.current !== null) return;
-        widgetIdRef.current = grecaptcha.render(container, {
-          callback: onTokenChange,
-          "error-callback": () => onTokenChange(undefined),
-          "expired-callback": () => onTokenChange(undefined),
-          sitekey: RECAPTCHA_SITE_KEY,
-        });
+        // render lanza si Google rechaza la configuración (clave inválida, contenedor ya usado): sin este
+        // try/catch el error quedaba sin atrapar y el botón seguía deshabilitado sin ningún mensaje.
+        try {
+          widgetIdRef.current = grecaptcha.render(container, {
+            callback: onTokenChange,
+            "error-callback": () => onTokenChange(undefined),
+            "expired-callback": () => onTokenChange(undefined),
+            sitekey: RECAPTCHA_SITE_KEY,
+          });
+        } catch {
+          setHasLoadError(true);
+        }
       });
     };
 
@@ -58,7 +68,7 @@ export const useRecaptchaWidgetViewModel = ({
       script.removeEventListener("load", renderWidget);
       script.removeEventListener("error", handleError);
     };
-  }, [onTokenChange]);
+  }, [onTokenChange, isMissingSiteKey]);
 
   // Cada vez que el ViewModel del login sube el contador, el widget se reinicia (el token ya se gastó).
   useEffect(() => {
@@ -67,5 +77,5 @@ export const useRecaptchaWidgetViewModel = ({
     if (grecaptcha && widgetId !== null) grecaptcha.reset(widgetId);
   }, [resetCount]);
 
-  return { containerRef, hasLoadError };
+  return { containerRef, hasLoadError: hasLoadError || isMissingSiteKey };
 };
