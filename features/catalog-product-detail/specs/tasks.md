@@ -35,11 +35,11 @@ Tests: `tests/useProductDetailViewModel.test.ts` (ViewModel puro, sin POM: loadi
 
 ## 5. Validación manual (CA-01 a CA-04 de SPEC.md + casos adicionales)
 
-- [ ] 16. Probar con una variante de varias marcas y varios supermercados (ej. las que mostraron 3-4 marcas en la comprobación de la base) y con una de una sola marca.
-- [ ] 17. Probar explícitamente el caso realista de hoy: marca sin logo (todas, por ahora) — confirmar que se ve bien solo con el nombre.
-- [ ] 18. Probar agregar con cantidad > 1 (ej. 3) y confirmar en la lista general que quedó la cantidad correcta, no solo 1.
-- [ ] 19. Probar un `variantId` inventado en la URL — debe decir "producto no encontrado", no romperse.
-- [ ] 20. `npx tsc --noEmit && npm run lint && npm test && npm run build` — **pendiente de ejecución manual**, comando exacto más abajo.
+- [x] 16. Probado en vivo (Playwright, servidor real) con dos variantes: "Leche Semidescremada Dos Pinos -1 L" (2 marcas, 1 supermercado con rango ₡980–₡1 050) y "Arroz" 8000 g (3 marcas: TIO PELON, SABEMAS, INDIANA). Los datos de semilla actuales solo tienen precios cargados para MaxiPali (ninguna variante con precio simultáneo en Walmart/MasxMenos), así que no se pudo ver en vivo una segunda fila de supermercado — pero `ProductDetailStorePrices` itera la lista completa de `storePriceRanges` sin asumir cantidad, y eso ya está cubierto con 2-3 tiendas mockeadas en `ProductDetail.test.tsx` y en el test del ViewModel.
+- [x] 17. Confirmado en vivo: las marcas sin logo (todas, hoy) se ven bien solo con el nombre en una píldora — sin hueco ni ícono roto.
+- [x] 18. Confirmado en vivo: cantidad subida a 3 en el detalle → "Agregar a mi lista" → mensaje "Se agregó a tu lista." → navegado a `/lista` → la fila de "Leche Semidescremada Dos Pinos -1 L" quedó con cantidad 3 (no 1), confirmando que el flujo secuencial (1 alta + 2 incrementos) llega completo a la lista general.
+- [x] 19. Probados ambos casos en vivo: UUID válido pero inexistente (`00000000-0000-0000-0000-000000000000`) y string que ni siquiera es UUID (`esto-no-es-un-uuid`) — los dos muestran "No encontramos ese producto." sin romper la página y sin botón "Reintentar". El segundo caso genera un 400 esperado de PostgREST en la consola (capturado por `POSTGRES_ERROR_CODE.INVALID_TEXT_REPRESENTATION` en `getCatalogVariantDetail`, sección 2) — no es un error no manejado.
+- [x] 20. `npx tsc --noEmit && npm run lint && npm test && npm run build` — ejecutado manualmente por Daniel, los 4 comandos pasaron sin fallos (confirmado antes de esta sesión de validación en vivo).
 
 ## 6. Antes de pasar a QA
 
