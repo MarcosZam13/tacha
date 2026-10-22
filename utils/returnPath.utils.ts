@@ -15,6 +15,20 @@ const RESOLVE_BASE_ORIGIN = "http://tacha.invalid";
 export const toLoginRoute = (returnPath: string): string =>
   `${AUTH_ROUTE.LOGIN}?${AUTH_QUERY_PARAM.RETURN_PATH}=${encodeURIComponent(returnPath)}`;
 
+// Forma de ruta interna: empieza con "/", pero no con "//" ni "/\" (otro dominio) y no trae esquema.
+const hasInternalPathShape = (path: string): boolean =>
+  path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\") && !path.includes(":");
+
+// new URL lanza si lo que queda no es una URL válida ("/\t/a b" se lee como el host "a b").
+// Una ruta así no es segura, y no puede tumbar el login justo después de iniciar sesión.
+const resolveUrl = (path: string): NullableUndefined<URL> => {
+  try {
+    return new URL(path, RESOLVE_BASE_ORIGIN);
+  } catch {
+    return undefined;
+  }
+};
+
 /**
  * Devuelve la ruta solo si es segura para redirigir; si no, undefined (el login usa la ruta por defecto).
  * Segura = ruta interna de la app: empieza con "/", pero no con "//" ni "/\" (el navegador los lee
@@ -25,18 +39,22 @@ export const toLoginRoute = (returnPath: string): string =>
  * "/\t/evil.example" pasa las reglas de arriba y termina en //evil.example. Por eso además se resuelve
  * la ruta como lo hará el navegador (new URL) y se exige que quede en el mismo origen; lo que se
  * devuelve es la ruta ya resuelta, no el texto original.
+ *
+ * Y la ruta resuelta vuelve a pasar las mismas reglas, porque resolver también cambia el texto:
+ * "/a/..//evil.example" queda en el mismo origen, pero al quitar el ".." su pathname es
+ * "//evil.example", que el router lee como otro sitio. La regla es simple: lo que se devuelve
+ * tiene que ser tan seguro como lo que se exige a la entrada.
  */
 export const getSafeReturnPath = (candidate: NullableUndefined<string>): NullableUndefined<string> => {
-  if (!candidate || !candidate.startsWith("/")) return undefined;
-  if (candidate.startsWith("//") || candidate.startsWith("/\\")) return undefined;
-  if (candidate.includes(":")) return undefined;
+  if (!candidate || !hasInternalPathShape(candidate)) return undefined;
 
-  const resolved = new URL(candidate, RESOLVE_BASE_ORIGIN);
-  if (resolved.origin !== RESOLVE_BASE_ORIGIN) return undefined;
+  const resolved = resolveUrl(candidate);
+  if (!resolved || resolved.origin !== RESOLVE_BASE_ORIGIN) return undefined;
 
-  return AUTH_ROUTES.includes(resolved.pathname)
-    ? undefined
-    : `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  const resolvedPath = `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  if (!hasInternalPathShape(resolvedPath)) return undefined;
+
+  return AUTH_ROUTES.includes(resolved.pathname) ? undefined : resolvedPath;
 };
 
 /**

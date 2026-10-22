@@ -52,6 +52,36 @@ describe("getSafeReturnPath", () => {
     expect(getSafeReturnPath("/rece\ttas")).toBe("/recetas");
   });
 
+  it.each([
+    "/a/..//evil.example",
+    "/a/..///evil.example",
+    "/a/%2e%2e//evil.example",
+    "/a/.%2e//evil.example",
+    "/a/\t..//evil.example",
+    "/recetas\\..\\..\\/evil.example",
+    "/a\\..\\/evil.example",
+  ])("rejects %j, whose dot segments resolve to another site", (candidate) => {
+    expect(getSafeReturnPath(candidate)).toBeUndefined();
+  });
+
+  it("returns undefined instead of throwing when the path resolves to an invalid URL", () => {
+    expect(getSafeReturnPath("/\t/a b")).toBeUndefined();
+  });
+
+  it("keeps a path whose dot segments stay inside the app", () => {
+    expect(getSafeReturnPath("/a/../recetas")).toBe("/recetas");
+  });
+
+  it("never returns a path that the browser would read as another site", () => {
+    const tricky = ["/a/..//x.example", "/\t/x.example", "/./\\x.example", "/%2e%2e//x.example", "/a/b/../../..//x.example"];
+    const base = "http://tacha.invalid";
+
+    tricky.forEach((candidate) => {
+      const result = getSafeReturnPath(candidate);
+      if (result !== undefined) expect(new URL(result, base).origin).toBe(base);
+    });
+  });
+
   it("rejects the login itself so the user does not loop back to it", () => {
     expect(getSafeReturnPath(`${AUTH_ROUTE.LOGIN}?next=%2Flista`)).toBeUndefined();
   });
