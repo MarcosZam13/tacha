@@ -1,19 +1,10 @@
-// Constantes propias de la lista general. Viven dentro de la feature porque
-// ninguna otra las usa todavía; se promueven a constants/ con el segundo consumidor.
-
-// MIN es espejo del check quantity_requested >= 1 de list_items: la UI
-// deshabilita el "−" ahí, y la base lo rechaza igual si alguien lo salta.
-// STEP son los únicos deltas que acepta la RPC change_item_quantity.
-export const ITEM_QUANTITY = {
-  MIN: 1,
-  STEP: {
-    DECREASE: -1,
-    INCREASE: 1,
-  },
-} as const;
-
-export type ItemQuantityStepType =
-  (typeof ITEM_QUANTITY.STEP)[keyof typeof ITEM_QUANTITY.STEP];
+// Constantes propias de la lista general.
+// ITEM_QUANTITY y las RPC de list_items se promovieron a
+// constants/list-items.constants.ts (SCRUM-85): catalog-product-detail
+// también agrega productos y cambia su cantidad. Se reexportan aquí para no
+// tocar los imports que ya existían en esta feature.
+export { ITEM_QUANTITY } from "@/constants/list-items.constants";
+export type { ItemQuantityStepType } from "@/constants/list-items.constants";
 
 // Cuánto se ve el toast de "Producto eliminado". Es también el plazo para
 // deshacer: el borrado en la base sale recién cuando vence.
@@ -42,9 +33,7 @@ export const SHOPPING_LIST_DB = {
   // cada tienda (la vista latest_prices ya se queda con el más reciente).
   ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
   RPC: {
-    ADD_ITEM_TO_GENERAL_LIST: "add_item_to_general_list",
     CHANGE_BOUGHT_QUANTITY: "change_bought_quantity",
-    CHANGE_ITEM_QUANTITY: "change_item_quantity",
     CHECK_LIST_ITEM_IN_SESSION: "check_list_item_in_session",
     // La lista general de quien llama: la de su familia o la personal (024, SCRUM-59).
     FIND_GENERAL_LIST_ID: "find_general_list_id",

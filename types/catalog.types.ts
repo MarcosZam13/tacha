@@ -71,3 +71,24 @@ export interface CatalogCardData {
   /** "Leche — 1000 ml". Sin marca. */
   title: string;
 }
+
+/**
+ * Último precio de una marca en una tienda, tal como lo devuelve el
+ * servicio (lista general y detalle de producto, SCRUM-85).
+ */
+export interface StorePrice {
+  price: number;
+  storeName: string;
+  /** Slug de la tienda (stores.slug), para elegir su ícono. Falta si quien
+   * armó el precio no lo pidió (ej. el detalle de la lista general, que no
+   * muestra íconos). */
+  storeSlug?: string;
+}
+
+/** Precio más bajo y más alto entre las marcas de una tienda. */
+export interface StorePriceRange {
+  maxPrice: number;
+  minPrice: number;
+  storeName: string;
+  storeSlug?: string;
+}

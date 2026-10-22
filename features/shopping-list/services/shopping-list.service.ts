@@ -1,5 +1,6 @@
 import type { QueryData } from "@supabase/supabase-js";
 import type { CatalogBaseUnitType } from "@/constants";
+import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
@@ -105,51 +106,35 @@ export const getKeptPersonalList = async (): Promise<ShoppingListItem[]> => {
 };
 
 /**
- * Añade la variante a la lista general. La RPC decide si es fila nueva, si
- * suma 1 a la existente o si reabre una tachada (con cantidad 1), y devuelve
- * la fila final: la pantalla muestra lo que quedó en la base, no lo que
- * supuso el cliente.
+ * Añade la variante a la lista general. Delega en el servicio compartido
+ * (services/list-items.service.ts, SCRUM-85): la RPC y su mapeo viven ahí,
+ * aquí solo se completan los datos que esta feature ya tenía (nombre y
+ * presentación) porque la fila que devuelve la RPC no los trae.
  */
 export const addItemToGeneralList = async (
   searchResult: CatalogSearchResult,
 ): Promise<ShoppingListItem> => {
-  await ensureSession();
-
-  const { data: listItem, error } = await getSupabaseClient().rpc(
-    SHOPPING_LIST_DB.RPC.ADD_ITEM_TO_GENERAL_LIST,
-    { target_variant_id: searchResult.variantId },
-  );
-  if (error) throw error;
+  const listItem = await addVariantToGeneralList(searchResult.variantId);
 
   return {
-    ...toItemCheck(listItem),
+    checkedAt: listItem.checkedAt,
     id: listItem.id,
     productName: searchResult.productName,
-    quantity: listItem.quantity_requested,
+    purchaseSessionId: listItem.purchaseSessionId,
+    quantity: listItem.quantity,
+    quantityBought: listItem.quantityBought,
     sizeLabel: searchResult.sizeLabel,
-    variantId: listItem.product_catalog_variant_id,
+    variantId: listItem.variantId,
   };
 };
 
 /**
- * Suma o resta 1 a la cantidad de un item. Se manda el delta, no la cantidad
- * final: si llegan dos cambios a la vez (dos pestañas), la base suma los dos
- * en vez de que el segundo pise al primero. Devuelve la cantidad que quedó.
+ * Suma o resta 1 a la cantidad de un item. Delega en el servicio compartido
+ * (SCRUM-85): misma RPC que usa catalog-product-detail, sin lógica propia
+ * que mantener en dos lugares.
  */
-export const changeItemQuantity = async (
-  itemId: string,
-  quantityStep: ItemQuantityStepType,
-): Promise<number> => {
-  await ensureSession();
-
-  const { data: listItem, error } = await getSupabaseClient().rpc(
-    SHOPPING_LIST_DB.RPC.CHANGE_ITEM_QUANTITY,
-    { quantity_delta: quantityStep, target_item_id: itemId },
-  );
-  if (error) throw error;
-
-  return listItem.quantity_requested;
-};
+export const changeItemQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<number> =
+  changeListItemQuantity;
 
 /**
  * Tacha o destacha un item. Se manda el estado deseado, no "invertir": si dos
