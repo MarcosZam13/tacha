@@ -24,7 +24,16 @@ export type CatalogSearchStatusType =
   (typeof CATALOG_SEARCH_STATUS)[keyof typeof CATALOG_SEARCH_STATUS];
 
 export const CATALOG_TEXT = {
+  // HU-52: categoría activa sin ningún producto. Distinto de NO_RESULTS
+  // (PRODUCT_SEARCH_TEXT, búsqueda por texto) porque la causa es otra.
+  EMPTY_CATEGORY: "No encontramos productos en esta categoría.",
   EMPTY_SUGGESTION: "Si no existe, puedes crearlo en \"Mis productos\".",
   IDLE_HINT: `Escribe al menos ${PRODUCT_SEARCH.MIN_QUERY_LENGTH} letras para buscar.`,
   SEARCHING: "Buscando…",
+} as const;
+
+// HU-52: fila de chips de categoría encima de la cuadrícula de resultados.
+export const CATALOG_CATEGORY_CHIPS_TEXT = {
+  ALL_CATEGORIES_LABEL: "Todas",
+  ARIA_LABEL: "Filtrar por categoría",
 } as const;

@@ -38,6 +38,7 @@ export const PRICE_FORMAT = {
 
 export const CATALOG_DB = {
   RPC: {
+    LIST_CATALOG_BY_CATEGORY: "list_catalog_by_category",
     SEARCH_CATALOG: "search_catalog",
   },
 } as const;
@@ -50,6 +51,13 @@ export const CATALOG_SOURCE = {
 } as const;
 
 export type CatalogSourceType = (typeof CATALOG_SOURCE)[keyof typeof CATALOG_SOURCE];
+
+// CatalogProduct.category (HU-52) cuando el producto no tiene categoría
+// asignada todavía (hoy solo "Mis productos", SCRUM-86): no hay fila de
+// categories para "sin categoría", así que no se inventa un nombre.
+export const CATALOG_CATEGORY_TEXT = {
+  UNASSIGNED: "",
+} as const;
 
 // "Leche — 1L": producto y tamaño, sin marca (documento-proyecto §4.5). Se
 // promovió aquí en SCRUM-86, cuando "Mis productos" se volvió el segundo

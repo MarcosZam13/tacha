@@ -9,7 +9,10 @@ import type { CatalogProduct } from "@/types/catalog.types";
 import { CatalogSearch } from "../CatalogSearch";
 
 // Sin Supabase real: los resultados salen de un servicio simulado.
-vi.mock("@/services/catalog.service", () => ({ searchCatalog: vi.fn() }));
+vi.mock("@/services/catalog.service", () => ({
+  getCategories: vi.fn().mockResolvedValue([]),
+  searchCatalog: vi.fn(),
+}));
 const searchCatalogMock = vi.mocked(searchCatalog);
 
 // Sin globals, Testing Library no limpia solo el DOM entre tests.
@@ -20,6 +23,7 @@ beforeEach(() => {
 });
 
 const createProduct = (productId: string, productName: string): CatalogProduct => ({
+  category: "Abarrotes",
   productId,
   productName,
   variants: [

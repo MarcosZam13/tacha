@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CATALOG_SOURCE } from "@/constants";
+import { CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
 import { MY_PRODUCTS_DB } from "../constants/my-products.constants";
 import { listMyProducts } from "../services/my-products.service";
 
@@ -94,6 +94,7 @@ describe("listMyProducts", () => {
 
     await expect(listMyProducts()).resolves.toEqual([
       {
+        category: CATALOG_CATEGORY_TEXT.UNASSIGNED,
         productId: "product-1",
         productName: "Leche",
         variants: [

@@ -6,6 +6,7 @@ import { CatalogTabs } from "@/components/catalog-tabs/CatalogTabs";
 import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { CATALOG_TAB, CATALOG_TABS_TEXT, PRODUCT_SEARCH_TEXT } from "@/constants";
 import { CATALOG_SEARCH_STATUS, CATALOG_TEXT } from "./constants/catalog-search.constants";
+import { CatalogCategoryChips } from "./components/CatalogCategoryChips";
 import { CatalogEmptyState } from "./components/CatalogEmptyState";
 import { useCatalogSearchViewModel } from "./hooks/useCatalogSearchViewModel";
 
@@ -28,6 +29,12 @@ export const CatalogSearch = (): React.JSX.Element => {
         placeholder={PRODUCT_SEARCH_TEXT.PLACEHOLDER}
       />
 
+      <CatalogCategoryChips
+        activeCategoryId={viewModel.activeCategoryId}
+        categories={viewModel.categories}
+        onCategoryChange={viewModel.onCategoryChange}
+      />
+
       {viewModel.status === CATALOG_SEARCH_STATUS.IDLE ? (
         <p className="font-body text-sm text-tacha-textsec">{CATALOG_TEXT.IDLE_HINT}</p>
       ) : null}
@@ -39,7 +46,11 @@ export const CatalogSearch = (): React.JSX.Element => {
           {viewModel.errorMessage}
         </p>
       ) : null}
-      {viewModel.status === CATALOG_SEARCH_STATUS.EMPTY ? <CatalogEmptyState /> : null}
+      {viewModel.status === CATALOG_SEARCH_STATUS.EMPTY ? (
+        <CatalogEmptyState
+          message={viewModel.activeCategoryId !== null ? CATALOG_TEXT.EMPTY_CATEGORY : undefined}
+        />
+      ) : null}
       {viewModel.status === CATALOG_SEARCH_STATUS.READY ? (
         <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {viewModel.cards.map((card) => (
