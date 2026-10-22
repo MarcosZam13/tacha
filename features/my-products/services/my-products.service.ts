@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import type { CatalogBaseUnitType } from "@/constants";
-import { CATALOG_SOURCE } from "@/constants";
+import { CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
 import { getSupabaseClient } from "@/services/supabase.client";
 import type { CatalogProduct } from "@/types/catalog.types";
 import type { NullableRef } from "@/types/nullable.types";
@@ -55,6 +55,11 @@ export const listMyProducts = async (): Promise<CatalogProduct[]> => {
   if (error) throw error;
 
   return productRows.map((productRow): CatalogProduct => ({
+    // "Mis productos" todavía no asigna categoría (HU-55; el selector es
+    // SCRUM-87) ni la muestra en esta pantalla: category queda sin asignar,
+    // sin consultar categories, hasta que haga falta de verdad (HU-52 solo
+    // agregó el campo a CatalogProduct para "Buscar").
+    category: CATALOG_CATEGORY_TEXT.UNASSIGNED,
     productId: productRow.id,
     productName: productRow.name,
     variants: productRow.product_catalog_variants.map((variantRow) => ({

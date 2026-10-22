@@ -7,9 +7,17 @@ import type { NullableRef } from "@/types/nullable.types";
  * lista general añade variantes; recetas liga el ingrediente al producto madre.
  */
 export interface CatalogProduct {
+  /** Nombre de la categoría del producto (HU-52); viene de search_catalog y list_catalog_by_category. */
+  category: string;
   productId: string;
   productName: string;
   variants: CatalogProductVariant[];
+}
+
+/** Fila de la tabla categories (lectura directa, sin RPC — HU-52). */
+export interface Category {
+  id: string;
+  name: string;
 }
 
 export interface CatalogProductVariant {
