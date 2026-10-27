@@ -12,7 +12,7 @@ import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewMode
 import type { StorePickerViewModel } from "../models/StorePickerViewModel.interface";
 import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
 import { isBoughtInSession, toShoppingListRow } from "../utils/toShoppingListRow";
-import { toStorePriceRanges } from "../utils/toStorePriceRanges";
+import { toStorePriceRanges } from "@/utils/toStorePriceRanges";
 import { useClosePurchase } from "./useClosePurchase";
 import { useItemDetail } from "./useItemDetail";
 import { useItemRemoval } from "./useItemRemoval";

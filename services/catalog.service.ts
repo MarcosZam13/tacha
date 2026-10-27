@@ -1,6 +1,17 @@
-import { CATALOG_DB } from "@/constants";
+import { CATALOG_DB, POSTGRES_ERROR_CODE } from "@/constants";
+import type { CatalogBaseUnitType } from "@/constants";
 import { getSupabaseClient } from "@/services/supabase.client";
-import type { CatalogProduct, CatalogSearchVariantRow, Category, PriceRange } from "@/types/catalog.types";
+import type { NullableRef } from "@/types/nullable.types";
+import type {
+  CatalogProduct,
+  CatalogSearchVariantRow,
+  CatalogVariantDetail,
+  Category,
+  PriceRange,
+  StorePrice,
+} from "@/types/catalog.types";
+import { formatSizeLabel } from "@/utils/formatSizeLabel";
+import { toStorePriceRanges } from "@/utils/toStorePriceRanges";
 
 /**
  * Adapter del jsonb de la RPC: se queda solo con las tiendas que tienen
@@ -82,4 +93,44 @@ export const getCategories = async (): Promise<Category[]> => {
   if (error) throw error;
 
   return categories;
+};
+
+/**
+ * Detalle completo de una variante (SCRUM-85): sus marcas y el precio
+ * aproximado por supermercado, lo que la tarjeta de catálogo no muestra.
+ * Lectura directa (mismo patrón que getItemDetail de SCRUM-64, sin RPC
+ * nueva): no se toca search_catalog ni su contrato (SPEC.md §10).
+ *
+ * Devuelve null si no se encontró: no existe, se borró, o el id de la URL no
+ * es un uuid (mismo patrón que getRecipeForEditing, SCRUM-95) — las tres dan
+ * el mismo resultado, que la pantalla traduce al CA-07 "producto no
+ * encontrado" sin un error genérico.
+ */
+export const getCatalogVariantDetail = async (
+  variantId: string,
+): Promise<NullableRef<CatalogVariantDetail>> => {
+  const { data: variant, error } = await getSupabaseClient()
+    .from(CATALOG_DB.TABLE.VARIANTS)
+    .select(CATALOG_DB.VARIANT_DETAIL_SELECT)
+    .eq("id", variantId)
+    .maybeSingle();
+  if (error?.code === POSTGRES_ERROR_CODE.INVALID_TEXT_REPRESENTATION) return null;
+  if (error) throw error;
+  if (!variant) return null;
+
+  const storePrices: StorePrice[] = variant.latest_prices.flatMap(({ price, stores }) =>
+    price !== null && stores
+      ? [{ price, storeName: stores.display_name, storeSlug: stores.slug }]
+      : [],
+  );
+
+  return {
+    brands: variant.product_brands.map((brand) => ({ logoUrl: brand.logo_url, name: brand.name })),
+    imageUrl: variant.image_url,
+    productName: variant.product_catalog.name,
+    // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
+    sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
+    storePriceRanges: toStorePriceRanges(storePrices),
+    variantId,
+  };
 };
