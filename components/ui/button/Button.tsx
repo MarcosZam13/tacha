@@ -5,7 +5,7 @@ const VARIANT_CLASS_NAME: Record<string, string> = {
   [BUTTON_VARIANT.PRIMARY]: "bg-tacha-teal text-white hover:opacity-90",
   [BUTTON_VARIANT.SECONDARY]:
     "border border-tacha-teal text-tacha-teal hover:bg-tacha-teal/10",
-  [BUTTON_VARIANT.DESTRUCTIVE]: "bg-red-600 text-white hover:opacity-90",
+  [BUTTON_VARIANT.DESTRUCTIVE]: "bg-tacha-danger text-tacha-surface hover:opacity-90",
 };
 
 export const Button = ({

@@ -16,6 +16,8 @@
   --tacha-chipborder: #e9c4a5;
   --tacha-text: #2b2420;
   --tacha-textsec: #8a7f70;
+  /* Acciones destructivas (eliminar, salir). Contraste >= 4.5 sobre bg, surface y con texto surface encima. */
+  --tacha-danger: #b91c1c;
 }
 
 :root[data-theme="dark"] {
@@ -28,6 +30,7 @@
   --tacha-chipborder: #4a362a;
   --tacha-text: #f5efe6;
   --tacha-textsec: #b5a997;
+  --tacha-danger: #f87171;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -41,6 +44,7 @@
     --tacha-chipborder: #4a362a;
     --tacha-text: #f5efe6;
     --tacha-textsec: #b5a997;
+    --tacha-danger: #f87171;
   }
 }
 
@@ -54,6 +58,7 @@
   --color-tacha-chipborder: var(--tacha-chipborder);
   --color-tacha-text: var(--tacha-text);
   --color-tacha-textsec: var(--tacha-textsec);
+  --color-tacha-danger: var(--tacha-danger);
 
   --font-display: var(--font-fraunces);
   --font-body: var(--font-public-sans);
