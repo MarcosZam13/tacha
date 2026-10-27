@@ -2,6 +2,7 @@ export * from "./button/Button";
 export * from "./category-label/CategoryLabel";
 export * from "./checkbox/Checkbox";
 export * from "./chip/Chip";
+export * from "./icon/Icon";
 export * from "./input/Input";
 export * from "./item-row/ItemRow";
 export * from "./modal/Modal";
