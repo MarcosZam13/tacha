@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Button, Spinner } from "@/components/ui";
+import { PersonalListsDecision } from "./components/PersonalListsDecision";
 import { HOUSEHOLD_JOIN_TEXT, HOUSEHOLD_ROUTE } from "./constants/household.constants";
 import { useHouseholdInvitationViewModel } from "./hooks/useHouseholdInvitationViewModel";
 import type { HouseholdInvitationProps } from "./models/HouseholdInvitationProps.interface";
@@ -47,12 +48,14 @@ export const HouseholdInvitation = ({ token }: HouseholdInvitationProps): React.
             </div>
           ) : null}
           {viewModel.showLoginLink ? (
-            <Link href={HOUSEHOLD_ROUTE.LOGIN} className={LINK_BUTTON_CLASS_NAME}>
+            <Link href={viewModel.loginHref} className={LINK_BUTTON_CLASS_NAME}>
               {HOUSEHOLD_JOIN_TEXT.LOGIN}
             </Link>
           ) : null}
         </section>
       ) : null}
+
+      {viewModel.showListsDecision ? <PersonalListsDecision {...viewModel.listsDecision} /> : null}
 
       {viewModel.showHouseholdLink ? (
         <Link href={HOUSEHOLD_ROUTE.HOUSEHOLD} className={LINK_BUTTON_CLASS_NAME}>

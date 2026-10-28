@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toLoginRoute } from "@/utils/returnPath.utils";
 import { HOUSEHOLD_JOIN_RESULT, HOUSEHOLD_JOIN_TEXT, HOUSEHOLD_ROUTE } from "../constants/household.constants";
 import { HouseholdInvitation } from "../HouseholdInvitation";
 import { acceptHouseholdInvite, hasRegisteredSession } from "../services/household.service";
@@ -8,6 +9,9 @@ import { createHouseholdInvitationPage } from "./HouseholdInvitation.page";
 
 vi.mock("../services/household.service", () => ({
   acceptHouseholdInvite: vi.fn(),
+  // SCRUM-59: después de unirse se pregunta por la lista personal. Por defecto
+  // ya decidió (literal: el factory de vi.mock no puede usar las constantes).
+  getPersonalListsDecisionState: vi.fn(() => Promise.resolve("decided")),
   hasRegisteredSession: vi.fn(),
 }));
 
@@ -49,12 +53,12 @@ describe("HouseholdInvitation", () => {
     expect(page.getPageText()).not.toContain(TOKEN);
   });
 
-  it("links to the login when there is no registered session", async () => {
+  it("links to the login with this invitation as the return path when there is no registered session", async () => {
     hasRegisteredSessionMock.mockResolvedValue(false);
     render(<HouseholdInvitation token={TOKEN} />);
     const page = createHouseholdInvitationPage();
 
-    expect(await page.findLoginLink()).toHaveAttribute("href", HOUSEHOLD_ROUTE.LOGIN);
+    expect(await page.findLoginLink()).toHaveAttribute("href", toLoginRoute(`${HOUSEHOLD_ROUTE.INVITATION}/${TOKEN}`));
     expect(page.queryJoinButton()).toBeNull();
   });
 

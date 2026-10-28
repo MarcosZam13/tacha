@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { LANDING_ROUTE, NAV_LINKS, NAVBAR_TEXT } from "../constants/landing.constants";
-import { ButtonLink } from "./ButtonLink";
+import { NAV_LINKS, NAVBAR_TEXT } from "../constants/landing.constants";
 import { Logo } from "./Logo";
+import { PublicNavbarCta } from "./PublicNavbarCta";
 
 export const PublicNavbar = (): React.JSX.Element => (
   <header className="border-b border-tacha-border bg-tacha-bg">
@@ -23,7 +23,7 @@ export const PublicNavbar = (): React.JSX.Element => (
           </li>
         ))}
         <li>
-          <ButtonLink href={LANDING_ROUTE.REGISTER}>{NAVBAR_TEXT.REGISTER}</ButtonLink>
+          <PublicNavbarCta />
         </li>
       </ul>
     </nav>

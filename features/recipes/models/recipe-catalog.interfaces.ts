@@ -1,4 +1,5 @@
 import type { NullableRef } from "@/types/nullable.types";
+import type { RecipeCoverageViewModel } from "./recipe-coverage.interfaces";
 import type { RecipeDeletionViewModel } from "./recipe-deletion.interfaces";
 import type { RecipeListAdditionViewModel } from "./recipe-list-addition.interfaces";
 
@@ -40,6 +41,8 @@ export interface RecipeSummary {
 
 /** Lo que useRecipeCatalogViewModel le entrega a RecipeCatalog.tsx, ya calculado. */
 export interface RecipeCatalogViewModel {
+  /** "Ver qué falta" agrupado aparte: lo usan el botón y el panel de cada tarjeta. */
+  coverage: RecipeCoverageViewModel;
   /** Eliminación agrupada aparte: solo la usan el diálogo y el botón de cada tarjeta. */
   deletion: RecipeDeletionViewModel;
   errorMessage: NullableRef<string>;

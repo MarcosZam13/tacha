@@ -2,6 +2,8 @@
 
 Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente.
 
+> **Nota (SCRUM-52):** varias piezas que este plan describe dentro de `features/login/` se movieron a carpetas compartidas porque la recuperación de contraseña pasó a ser su segundo consumidor (sin cambiar el comportamiento del login): `PasswordInput`, `EyeIcon` y su ViewModel → `components/password-input/`; `FocusedHeading` y `useFocusHeadingOnMount` → `components/focused-heading/`; `validateChangePasswordForm` → `utils/validateNewPasswordForm.ts`; `password.service.ts` (`updateUserPassword`) → `services/password.service.ts`; `ChangePasswordFormValues` → `types/new-password.types.ts`; `INPUT_TYPE` y `AUTOCOMPLETE` → `constants/ui.constants.ts`; `PASSWORD_TOGGLE_LABEL` → `constants/password.constants.ts`; y los campos, etiquetas, mensajes y resultados del formulario de nueva contraseña (`CHANGE_PASSWORD_*` → `NEW_PASSWORD_*`) → `constants/new-password.constants.ts`. Las tareas de abajo conservan los nombres y rutas de cuando se hicieron.
+
 ## SCRUM-45: login con reCAPTCHA
 
 - [x] 1. Constantes de la feature (`constants/login.constants.ts`).
@@ -60,4 +62,35 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 15. Preparar en Supabase una cuenta verificada con contraseña débil (por ejemplo `12345678`) para probar.
 - [x] 16. Validar los casos 22 a 30 del SPEC en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
+## SCRUM-50: cierre de sesión por inactividad
+
+- [x] 1. Constantes: límite por defecto, eventos, claves de `localStorage`, bandera del aviso, textos del aviso (`constants/login.constants.ts`).
+- [x] 2. Funciones puras con sus pruebas: `utils/isInactivityExpired.ts` y `utils/parseInactivityLimit.ts` (`tests/`). Casos borde: justo en el límite, marca futura, valor vacío, `0`, texto.
+- [x] 3. Servicio de actividad: `services/activity.service.ts` (`recordActivity`, `readLastActivity`, `clearLastActivity`), con respaldo en memoria si `localStorage` falla.
+- [x] 4. `signOutUser()` en `services/session.service.ts` (`scope: "local"`, no lanza).
+- [x] 5. ViewModel: `hooks/useInactivityTimeoutViewModel.ts` (suscripción a la sesión, listeners, temporizador, comprobación al volver a la pestaña, cierre y redirección).
+- [x] 6. Presentación: `InactivityTimeout.tsx` (devuelve `null`) y montarlo en `app/layout.tsx`.
+- [x] 7. Aviso en el login: `services/inactivity-notice.service.ts` (bandera en `sessionStorage`), `useInactivityNoticeViewModel.ts` e `InactivityNotice.tsx`, pintado en `LoginForm`. El hook de inactividad anota la bandera antes de cerrar la sesión (paso 5).
+- [x] 8. `.env.example`: documentar `NEXT_PUBLIC_INACTIVITY_TIMEOUT_MINUTES` (comentada).
+- [x] 9. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`.
+- [x] 10. Validar los casos 31 a 44 del SPEC con el límite en 1 minuto (incluye dos pestañas y pestaña en segundo plano).
+- [ ] 11. Quitar la variable de prueba de `.env.local`.
+- [x] 12. `E2E.md` y prueba en `e2e/` (playwright-e2e): casos 31, 32, 37, 38 y 43.
+- [x] 13. Aplicar la revisión de `code-reviewer` y `security-reviewer`: marca limpia al terminar la sesión, tope de 5 s en `signOutUser`, mínimo y máximo del límite, marca nunca futura, constantes y legibilidad, tests de los dos servicios, y corrección del SPEC §15 sobre el token de renovación.
+- [ ] 14. Verificar con una sesión real que el refresh token queda rechazado tras el cierre (SPEC §15).
+- [ ] 15. Pasar el PR a `waiting qa` y la tarjeta de Jira a Waiting QA.
+
 El guard de sesión (SCRUM-49) tiene sus propias tareas en `features/session-guard/specs/tasks.md`.
+
+## SCRUM-136: volver a la ruta de origen después del login
+
+- [x] 1. `AUTH_QUERY_PARAM` en `constants/routes.constants.ts`.
+- [x] 2. `utils/returnPath.utils.ts` (`toLoginRoute`, `getSafeReturnPath`, `readReturnPathFromUrl`) y sus pruebas (13 casos, incluidas las redirecciones abiertas).
+- [x] 3. `resolvePostLoginRoute(returnPath)` y su prueba.
+- [x] 4. `useLoginViewModel` navega con `resolvePostLoginRoute(readReturnPathFromUrl())` (login exitoso y "Ahora no" del aviso de contraseña débil).
+- [x] 5. El guard redirige con `toLoginRoute(pathname)`.
+- [x] 6. La invitación usa `loginHref` (y se quita `HOUSEHOLD_ROUTE.LOGIN`); pruebas actualizadas.
+- [x] 7. `npx tsc --noEmit`, `npm run lint`, `npm test` (1019 pasan), `npm run build`.
+- [x] 8. Casos 136-1 a 136-4 en el navegador con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=true` (8/8 verificaciones).
+- [x] 9. QA denied (BUG-1): `next` con tab o salto de línea después de la primera `/` saltaba la validación. `getSafeReturnPath` resuelve la ruta con `new URL` y exige el mismo origen; 4 pruebas nuevas que fallan sin el arreglo.
+- [x] 10. QA denied otra vez (BUG-2): `/a/..//evil.example` se resolvía en el mismo origen pero con pathname `//evil.example`. La ruta resuelta vuelve a pasar `hasInternalPathShape`; pruebas con las 7 variantes del reporte y una que verifica que nada de lo devuelto sale del origen. Una prueba masiva (300 000 rutas generadas, no commiteada) encontró además que `new URL` lanzaba con hosts inválidos (`/	/a b`) y tumbaba el login: ahora se atrapa y devuelve `undefined`.

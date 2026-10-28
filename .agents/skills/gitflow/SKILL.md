@@ -110,6 +110,7 @@ No se apilan ramas (`ticket/B` saliendo de `ticket/A`): toda rama de ticket nace
 | PR #2 usó una clave que no existe en Jira (`TACHA-100`) y se mergeó sin label | La clave sale de Jira; el label se pone al abrir el PR |
 | PR #3 se mergeó con `waiting qa` | Solo se mergea con `qa accepted` |
 | PR #5 (SCRUM-118) se abrió sin label, desde un agente | El label va en el mismo `gh pr create`, sección 2 |
+| Migraciones `006`-`011` corridas en el SQL Editor sin registrar y otras registradas con timestamp por el MCP; el historial de la base dejó de coincidir con el repo (SCRUM-134) | Una migración se aplica antes de `waiting qa`, en una transacción con su fila del historial `NNN`; nunca con `apply_migration` del MCP. Ver [supabase/README.md#migraciones](../../../supabase/README.md#migraciones) |
 
 ## 7. Checklist antes de dar por terminada cualquier operación de git
 
@@ -121,3 +122,4 @@ No se apilan ramas (`ticket/B` saliendo de `ticket/A`): toda rama de ticket nace
 - [ ] El autor no queda con más de una PR en `in progress`
 - [ ] Ninguna rama de ticket salió de otra rama de ticket; lo dependiente está en `on hold`
 - [ ] Nada se mergeó sin `qa accepted`
+- [ ] Si el PR trae migración, la base tiene su fila `NNN` en `supabase_migrations.schema_migrations`

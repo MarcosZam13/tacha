@@ -107,7 +107,7 @@ npm install             # por si el PR agregó dependencias
 
 Tu `.env.local` no está en git: se mantiene al cambiar de rama.
 
-**2. Revisar si trae migraciones.** Si el PR agrega archivos en `supabase/migrations/`, confirmar que ya estén aplicadas en la base (la base es compartida: las aplica el autor, no quien hace QA). Si faltan, la app falla por eso y no por el código: se le avisa al autor y el PR queda en `on hold` o `qa denied`.
+**2. Revisar si trae migraciones.** Si el PR agrega archivos en `supabase/migrations/`, confirmar que ya estén aplicadas en la base (la base es compartida: las aplica el autor, no quien hace QA). Si faltan, la app falla por eso y no por el código: se le avisa al autor y el PR queda en `on hold` o `qa denied`. Para confirmarlo: `select version, name from supabase_migrations.schema_migrations order by version;` debe tener una fila por cada archivo de la rama (cómo se aplica una migración: [supabase/README.md#migraciones](supabase/README.md#migraciones)).
 
 **3. Correrlo**
 
@@ -163,4 +163,5 @@ Una historia pasa a `Done` solo si:
 - [ ] Si toca auth, household, RLS, formularios o variables de entorno: se revisó con [security-practices](.agents/skills/security-practices/SKILL.md) (o el subagente `security-reviewer`)
 - [ ] El PR usa la plantilla, con pasos de prueba manual, y otra persona del equipo lo aprobó
 - [ ] QA lo probó sobre la rama y quedó en `qa accepted`
+- [ ] Si trae migración: se aplicó con su fila en el historial, como dice [supabase/README.md#migraciones](supabase/README.md#migraciones)
 - [ ] Si cambió una decisión de producto o del modelo de datos, se actualizó `docs/documento-proyecto.md` en el mismo PR

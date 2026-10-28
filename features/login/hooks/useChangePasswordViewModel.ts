@@ -1,48 +1,42 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import type { NullableUndefined } from "@/types/nullable.types";
-import { evaluatePasswordStrength } from "@/utils/password.utils";
 import {
-  CHANGE_PASSWORD_FIELD,
-  CHANGE_PASSWORD_STEP,
+  NEW_PASSWORD_FIELD,
   PASSWORD_UPDATE_RESULT,
   PASSWORD_UPDATE_RESULT_MESSAGE,
-} from "../constants/login.constants";
-import type {
-  ChangePasswordFieldType,
-  ChangePasswordStepType,
-  PasswordUpdateResultType,
-} from "../constants/login.constants";
-import type { ChangePasswordFormValues } from "../models/ChangePasswordFormValues.interface";
+} from "@/constants";
+import type { NewPasswordFieldType, PasswordUpdateResultType } from "@/constants";
+import { updateUserPassword } from "@/services/password.service";
+import type { NullableUndefined } from "@/types/nullable.types";
+import type { NewPasswordFormValues } from "@/types/new-password.types";
+import { evaluatePasswordStrength } from "@/utils/password.utils";
+import { hasNewPasswordErrors, validateNewPasswordForm } from "@/utils/validateNewPasswordForm";
+import { CHANGE_PASSWORD_STEP } from "../constants/login.constants";
+import type { ChangePasswordStepType } from "../constants/login.constants";
 import type { ChangePasswordViewModel } from "../models/ChangePasswordViewModel.interface";
-import { updateUserPassword } from "../services/password.service";
-import {
-  hasChangePasswordErrors,
-  validateChangePasswordForm,
-} from "../utils/validateChangePasswordForm";
 
-const INITIAL_VALUES: ChangePasswordFormValues = { confirmPassword: "", newPassword: "" };
+const INITIAL_VALUES: NewPasswordFormValues = { confirmPassword: "", newPassword: "" };
 
 export const useChangePasswordViewModel = (): ChangePasswordViewModel => {
   const [step, setStep] = useState<ChangePasswordStepType>(CHANGE_PASSWORD_STEP.NOTICE);
-  const [values, setValues] = useState<ChangePasswordFormValues>(INITIAL_VALUES);
+  const [values, setValues] = useState<NewPasswordFormValues>(INITIAL_VALUES);
   const [submitError, setSubmitError] = useState<NullableUndefined<string>>(undefined);
 
   const isSaving = step === CHANGE_PASSWORD_STEP.SAVING;
 
   // Se calculan en cada render (no son estado): cambian solos al escribir.
-  const validationErrors = validateChangePasswordForm(values);
+  const validationErrors = validateNewPasswordForm(values);
   const passwordStrength =
     values.newPassword.length > 0 ? evaluatePasswordStrength(values.newPassword) : undefined;
   // Los requisitos de la nueva contraseña los lista el medidor; aquí solo se avisa si no coinciden.
   const confirmPasswordError =
     values.confirmPassword.length > 0
-      ? validationErrors[CHANGE_PASSWORD_FIELD.CONFIRM_PASSWORD]
+      ? validationErrors[NEW_PASSWORD_FIELD.CONFIRM_PASSWORD]
       : undefined;
 
   // Al escribir se limpia el error general del intento anterior.
   const handleChange =
-    (field: ChangePasswordFieldType) =>
+    (field: NewPasswordFieldType) =>
     (value: string): void => {
       setValues((previous) => ({ ...previous, [field]: value }));
       setSubmitError(undefined);
@@ -74,7 +68,7 @@ export const useChangePasswordViewModel = (): ChangePasswordViewModel => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
-    return !hasChangePasswordErrors(validationErrors) && !isSaving
+    return !hasNewPasswordErrors(validationErrors) && !isSaving
       ? await savePassword()
       : undefined;
   };
@@ -85,7 +79,7 @@ export const useChangePasswordViewModel = (): ChangePasswordViewModel => {
     handleChange,
     handleOpenForm,
     handleSubmit,
-    isSaveDisabled: hasChangePasswordErrors(validationErrors) || isSaving,
+    isSaveDisabled: hasNewPasswordErrors(validationErrors) || isSaving,
     isSaving,
     passwordStrength,
     step,

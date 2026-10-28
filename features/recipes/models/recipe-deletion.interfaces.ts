@@ -16,6 +16,12 @@ export interface RecipeDeletionViewModel {
   errorMessage: NullableRef<string>;
   isDeleting: boolean;
   isDialogOpen: boolean;
+  /**
+   * Aviso de que la receta está en el plan semanal ("Está en 3 espacios de tu
+   * plan; quedarán vacíos."); null si no está, si todavía se está contando o si
+   * no se pudo contar (el diálogo se abre y borrar funciona igual).
+   */
+  mealPlanNotice: NullableRef<string>;
   onDeleteCancel: () => void;
   onDeleteConfirm: () => void;
   onDeleteRequest: (recipe: RecipeDeletionTarget) => void;

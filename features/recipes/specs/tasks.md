@@ -11,7 +11,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 5. Utils puros: `toRecipeSummary`, `formatServings`.
 - [x] 6. Servicio `recipes.service.ts`: `getRecipeSummaries()`.
 - [x] 7. `useRecipeCatalogViewModel`: carga inicial con bandera de cancelación, estado derivado.
-- [x] 8. Presentación: `RecipesTabs`, `RecipeCard`, `RecipeCatalogEmptyState`, `RecipeCatalog`, ruta `app/recetas/page.tsx`.
+- [x] 8. Presentación: `RecipesTabs`, `RecipeCard`, `RecipeCatalogEmptyState`, `RecipeCatalog`, ruta `app/(app)/recetas/page.tsx`.
 - [x] 9. Seed `supabase/seed-demo-recipes.sql` y `docs/documento-proyecto.md` §6.
 - [x] 10. Validar CA-01 y CA-02 en el navegador (con y sin recetas, y con otra sesión); `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
@@ -36,7 +36,7 @@ Bloqueado / pendiente de decisión del equipo:
 - [x] 5. Utils puros: `getDefaultUnit`, `validateRecipeForm` (+ `normalizeDecimal`, `hasRecipeFormErrors`), `getRecipeEditPath`, `toSaveRecipePayload`, `toRecipeEditorValues`, `recipe-editor.reducer`.
 - [x] 6. Servicio: `getRecipeForEditing()` (con "no encontrada" para id inexistente, ajeno o inválido) y `saveRecipe()`.
 - [x] 7. `useRecipeEditor` (reducer + carga para editar con bandera de cancelación + guardar) y `useRecipeEditorViewModel` (facade con `useProductSearch` y navegación).
-- [x] 8. Presentación: `RecipeBasicsFields`, `RecipeIngredientRow`, `RecipeIngredientsField`, `RecipeEditorActions`, `RecipeEditor`; rutas `app/recetas/nueva/page.tsx` y `app/recetas/[id]/editar/page.tsx`.
+- [x] 8. Presentación: `RecipeBasicsFields`, `RecipeIngredientRow`, `RecipeIngredientsField`, `RecipeEditorActions`, `RecipeEditor`; rutas `app/(app)/recetas/nueva/page.tsx` y `app/(app)/recetas/[id]/editar/page.tsx`.
 - [x] 9. Catálogo: link "+ Nueva receta" en `RecipeCatalog` y "Editar" en `RecipeCard`.
 - [x] 10. Validar CA-01..04 en el navegador (crear, editar, casos límite de la SPEC, receta ajena por URL) y con otra sesión; `npx tsc --noEmit`, `npm run lint`, `npm run build`.
 
@@ -61,7 +61,7 @@ Bloqueado / fuera de esta historia: eliminar (SCRUM-96), foto (ticket propio), e
 
 Bloqueado / fuera de esta historia:
 
-- [ ] CA-02 (aviso por asignaciones en el plan semanal): lo cierra SCRUM-100 al crear `meal_plans` (contrato en SPEC §15).
+- [x] CA-02 (aviso por asignaciones en el plan semanal): cerrado por SCRUM-100 (`countRecipeMealPlans`, `mealPlanNotice` y el aviso del diálogo).
 - [ ] Borrado por miembros del household (integración con households).
 
 ## SCRUM-97: agregar una receta a la lista
@@ -84,3 +84,24 @@ Bloqueado / fuera de esta historia:
 
 - [ ] Mostrar el faltante bajo el producto en `/lista`: SCRUM-114 (toca `features/shopping-list/`, con revisión de Marcos).
 - [ ] Resolver el faltante al tachar: SCRUM-115 (se engancha en tachar, SCRUM-66).
+
+## SCRUM-98: ver qué falta de una receta
+
+- [x] 1. SPEC (huecos de HU-66 decididos con el responsable el 2026-10-09: panel en la tarjeta, cubierto = tachado, Realtime sobre `list_items`).
+- [x] 2. Plan y tareas.
+- [x] 3. Migración `017_recipe_coverage.sql` (la `016` la tomó SCRUM-67): RPC `get_recipe_coverage` y publicación de Realtime.
+- [x] 4. Migración aplicada en el SQL Editor (2026-10-09). `types/database.types.ts`: se commitea SOLO `Functions.get_recipe_coverage`, tal como lo genera el dashboard; el resto del diff regenerado (tablas de SCRUM-67) se descartó para no chocar con su PR. Falta probar la RPC en el SQL Editor con los casos de §13 (no está en la lista, sin tachar, faltante registrado, conteo tachado, todo cubierto, destachar, receta ajena `P0002`). Bloquea la validación de la tarea 12, no el código del cliente.
+- [x] 5. Constantes: estados, textos, motivos, RPC y nombre del canal.
+- [x] 6. Modelos en `models/recipe-coverage.types.ts` y `models/recipe-coverage.interfaces.ts`.
+- [x] 7. Utils puros: `toCoverageIngredients`, `toCoverageSummaryText`, `toCoverageReasonText`.
+- [x] 8. Servicio `recipe-coverage.service.ts`: `getRecipeCoverage()` (con `P0002` → `null`) y `subscribeToListChanges()` (devuelve la función que cancela).
+- [x] 9. Hook `useRecipeCoverage` (abrir, cerrar, uno a la vez, carga, suscripción con limpieza, coalescencia, bandera de cancelación) y su composición en `useRecipeCatalogViewModel` (+ `coverage` en `RecipeCatalogViewModel`, en el mismo commit para que compile). Incluye `onRecipeRemoved`: borrar una receta con su panel abierto cierra el panel y cancela la suscripción.
+- [x] 10. Presentación: botón en `RecipeCard`, `RecipeCoveragePanel`, `RecipeCoverageIngredient` y la conexión en `RecipeCatalog`. Suma `ariaExpanded` y `ariaControls` opcionales al `Button` compartido (`components/ui/button`).
+- [x] 11. `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test`; tests de las utils y del hook.
+- [x] 12. Validar en el navegador los casos de §13 de HU-66, incluido tachar desde **otra pestaña** con el panel abierto, y en el SQL Editor la RLS con otra sesión. Depende de la tarea 4.
+- [x] 13. Revisión con `code-reviewer` y `security-reviewer` (RLS y publicación de Realtime), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Si cambia una decisión de producto, actualizar `docs/documento-proyecto.md` en el mismo PR. Revisiones hechas el 2026-10-09: corregidos el aviso al quedar activa la suscripción, la cancelación al entrar a `refresh` y la prueba de aislamiento del SQL (B con lista propia, permisos de `anon`); el Medium de los eventos delete de Realtime se documentó en SPEC §15.
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Inventario o despensa ("en casa"): sin historia ni tabla (SPEC §14).
+- [ ] Recalcular el faltante si cambia la lista: SCRUM-115.

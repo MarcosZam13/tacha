@@ -3,16 +3,32 @@ import type { FormEvent } from "react";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import type { HouseholdInviteLinkCardProps } from "../components/models/HouseholdInviteLinkCardProps.interface";
 import type { HouseholdJoinFormProps } from "../components/models/HouseholdJoinFormProps.interface";
+import type { HouseholdLeaveDialogProps } from "../components/models/HouseholdLeaveDialogProps.interface";
+import type { HouseholdMembersSectionProps } from "../components/models/HouseholdMembersSectionProps.interface";
+import type { HouseholdRemoveMemberDialogProps } from "../components/models/HouseholdRemoveMemberDialogProps.interface";
+import type { PersonalListsDecisionProps } from "../components/models/PersonalListsDecisionProps.interface";
 import {
   HOUSEHOLD_FORM_ERROR,
   HOUSEHOLD_FORM_LIMIT,
+  HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION,
+  HOUSEHOLD_LEAVE_RESULT,
+  HOUSEHOLD_LEAVE_TEXT,
+  HOUSEHOLD_MEMBERS_TEXT,
   HOUSEHOLD_ROLE,
   HOUSEHOLD_SCREEN_STATUS,
   HOUSEHOLD_TEXT,
 } from "../constants/household.constants";
+import type { HouseholdLeaveResultType } from "../constants/household.constants";
+import type { HouseholdMember } from "../models/HouseholdMember.interface";
 import { createHousehold, getHouseholdMembership, hasRegisteredSession } from "../services/household.service";
 import { useHouseholdInvite } from "./useHouseholdInvite";
 import { useHouseholdJoinForm } from "./useHouseholdJoinForm";
+import { toMemberInitials } from "../utils/toMemberInitials";
+import { toMemberLabel } from "../utils/toMemberLabel";
+import { useHouseholdLeave } from "./useHouseholdLeave";
+import { useHouseholdMemberRemoval } from "./useHouseholdMemberRemoval";
+import { useHouseholdMembers } from "./useHouseholdMembers";
+import { usePersonalListsDecision } from "./usePersonalListsDecision";
 
 /** Unión discriminada por `status`: la pantalla está en uno solo de estos estados. */
 type HouseholdScreenState =
@@ -36,6 +52,12 @@ interface HouseholdInviteSection {
   showInviteButton: boolean;
 }
 
+/** La sección "Salir de la familia" y su diálogo, con solo lo que dibuja la pantalla. */
+interface HouseholdLeaveSection {
+  dialog: HouseholdLeaveDialogProps;
+  onLeaveRequest: () => void;
+}
+
 interface UseHouseholdViewModelReturn {
   /** Único aviso de error visible a la vez (role="alert" en la pantalla). */
   errorMessage: NullableRef<string>;
@@ -47,15 +69,51 @@ interface UseHouseholdViewModelReturn {
   isLoading: boolean;
   /** "Unirme con una invitación": props del formulario, ya armadas. */
   join: HouseholdJoinFormProps;
+  leave: HouseholdLeaveSection;
+  /** "¿Qué quieres hacer con tu lista actual?" (SCRUM-59), ya armada. */
+  listsDecision: PersonalListsDecisionProps;
+  /** "Integrantes de la familia" (SCRUM-60), ya armada. */
+  members: HouseholdMembersSectionProps;
   name: string;
   nameError: NullableUndefined<string>;
   onCreateSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onNameChange: (name: string) => void;
+  /** "¿Eliminar a este integrante?" (SCRUM-61), ya armado. */
+  removeDialog: HouseholdRemoveMemberDialogProps;
   showCreateForm: boolean;
   showInvite: boolean;
+  /** Miembro o admin: los dos pueden salir (CA-01). */
+  showLeave: boolean;
+  /** La pregunta de la lista personal se muestra (CA-01). */
+  showListsDecision: boolean;
   showMemberNotice: boolean;
+  /** Miembro o admin: los dos ven a su familia (SCRUM-60). */
+  showMembers: boolean;
   showNoAccount: boolean;
 }
+
+// "1 integrante", "5 integrantes": cuántos hay cargados en la lista.
+const toMembersCountText = (count: number): string =>
+  `${count} ${count === 1 ? HOUSEHOLD_MEMBERS_TEXT.COUNT_SINGULAR : HOUSEHOLD_MEMBERS_TEXT.COUNT_PLURAL}`;
+
+// Lo que dibuja cada fila. Ser admin sale del rol, nunca del nombre; el id
+// solo es la key de React. onRemoveRequest llega solo cuando quien mira es el
+// admin, y nunca en su propia fila ni en la de un admin (SCRUM-61, CA-01).
+const toMemberRow = (
+  member: HouseholdMember,
+  onRemoveRequest: NullableRef<(member: HouseholdMember) => void>,
+): HouseholdMembersSectionProps["rows"][number] => {
+  const canBeRemoved = onRemoveRequest !== null && !member.isCurrentUser && member.role !== HOUSEHOLD_ROLE.ADMIN;
+
+  return {
+    initials: toMemberInitials(member.displayName),
+    isAdmin: member.role === HOUSEHOLD_ROLE.ADMIN,
+    isCurrentUser: member.isCurrentUser,
+    label: toMemberLabel(member.displayName),
+    onRemoveRequest: canBeRemoved ? () => onRemoveRequest(member) : null,
+    rowKey: member.userId,
+  };
+};
 
 // Qué pantalla le toca al usuario actual según su sesión y su membresía.
 const loadHouseholdScreen = async (): Promise<HouseholdScreenState> => {
@@ -91,12 +149,20 @@ const getScreenErrorMessage = (
   return inviteErrorMessage;
 };
 
+// El aviso después de salir. not_member no lleva aviso: la pantalla solo
+// muestra el estado real que vuelve a leer.
+const getLeaveNotice = (leaveResult: HouseholdLeaveResultType): NullableRef<string> => {
+  if (leaveResult === HOUSEHOLD_LEAVE_RESULT.LEFT) return HOUSEHOLD_LEAVE_TEXT.LEFT;
+  if (leaveResult === HOUSEHOLD_LEAVE_RESULT.HOUSEHOLD_DELETED) return HOUSEHOLD_LEAVE_TEXT.HOUSEHOLD_DELETED;
+  return null;
+};
+
 /**
  * Facade de la pantalla "Mi familia": resuelve qué ve el usuario (sin
  * cuenta, sin household, miembro o admin), maneja el formulario para crear
  * el household, compone useHouseholdJoinForm ("Unirme con una invitación")
- * y le pasa a useHouseholdInvite si es admin. Le entrega a
- * Household.tsx exactamente lo que dibuja.
+ * y useHouseholdLeave ("Salir de la familia"), y le pasa a useHouseholdInvite
+ * si es admin. Le entrega a Household.tsx exactamente lo que dibuja.
  */
 export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   // Arranca en "cargando": el efecto nunca hace un setState síncrono para empezar.
@@ -104,9 +170,56 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   const [name, setName] = useState<string>("");
   const [nameError, setNameError] = useState<NullableUndefined<string>>(undefined);
   const [hasCreateFailed, setHasCreateFailed] = useState<boolean>(false);
+  // "Saliste de la familia." o "Saliste y la familia se eliminó.", en la zona role="status".
+  const [leaveNotice, setLeaveNotice] = useState<NullableRef<string>>(null);
 
-  const householdInvite = useHouseholdInvite(state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN);
+  const isAdmin = state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN;
+  const householdName =
+    state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN || state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER
+      ? state.householdName
+      : null;
+
+  // Vuelve a leer la membresía para mostrar lo que quedó en la base.
+  const reloadHouseholdScreen = async (): Promise<void> => {
+    try {
+      setState(await loadHouseholdScreen());
+    } catch {
+      setState({ status: HOUSEHOLD_SCREEN_STATUS.LOAD_FAILED });
+    }
+  };
+
+  // Ya no es parte de la familia: se vuelve a leer la membresía (normalmente
+  // queda "sin familia") en vez de suponer el estado.
+  const handleLeft = (leaveResult: HouseholdLeaveResultType): void => {
+    setLeaveNotice(getLeaveNotice(leaveResult));
+    setState({ status: HOUSEHOLD_SCREEN_STATUS.LOADING });
+    void reloadHouseholdScreen();
+  };
+
+  const householdInvite = useHouseholdInvite(isAdmin);
   const joinForm = useHouseholdJoinForm();
+  const householdLeave = useHouseholdLeave({ isAdmin, onLeft: handleLeft });
+  // Miembro o admin: después de crear la familia (o al volver a /household
+  // sin haber decidido) se pregunta qué hacer con la lista personal.
+  const listsDecision = usePersonalListsDecision(householdName !== null);
+  // Solo con familia: la base deriva cuál es desde la sesión (025).
+  const householdMembers = useHouseholdMembers(householdName !== null);
+  // Sube cuando la persona deja la lista (removed o member_not_found): la
+  // sección enfoca su título, porque esa fila ya no existe (SPEC §9, SCRUM-61).
+  // Cancelar o not_admin no lo cambian.
+  const [membersTitleFocusKey, setMembersTitleFocusKey] = useState<number>(0);
+  // SCRUM-61: el admin elimina a un integrante. Quién puede y a quién lo
+  // decide la base (026); acá se recarga lo que cambió.
+  const memberRemoval = useHouseholdMemberRemoval({
+    // Ya no es admin (salió o pasó el rol en otra pestaña): se vuelve a leer
+    // la membresía para mostrar el estado real.
+    onAdminLost: () => void reloadHouseholdScreen(),
+    // La persona ya no está: se recarga la lista desde la primera página.
+    onMembersChanged: () => {
+      householdMembers.onRetry();
+      setMembersTitleFocusKey((focusKey) => focusKey + 1);
+    },
+  });
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -127,19 +240,22 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
   }, []);
 
   // Al escribir se borran el error de validación y el de un intento anterior
-  // de crear: los dos hablaban del nombre que había antes.
+  // de crear: los dos hablaban del nombre que había antes. También el aviso
+  // de salida: ya empezó otra cosa y no debe verse junto a un error de crear.
   const onNameChange = (nextName: string): void => {
     setName(nextName);
     setNameError(undefined);
     setHasCreateFailed(false);
+    setLeaveNotice(null);
   };
 
   const submitHousehold = async (): Promise<void> => {
     // Doble clic: mientras crea no se manda otra vez.
     if (state.status === HOUSEHOLD_SCREEN_STATUS.CREATING) return;
 
-    // Un intento nuevo empieza sin el error del intento anterior.
+    // Un intento nuevo empieza sin el error del intento anterior ni el aviso de salida.
     setHasCreateFailed(false);
+    setLeaveNotice(null);
     const validationError = validateHouseholdName(name);
     setNameError(validationError);
     if (validationError) return;
@@ -154,14 +270,9 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       return;
     }
 
-    // Ya se creó: se vuelve a leer la membresía para mostrar lo que quedó en
-    // la base (ahora es admin). Si solo falla esta lectura, no se ofrece crear
-    // otra vez: el household ya existe.
-    try {
-      setState(await loadHouseholdScreen());
-    } catch {
-      setState({ status: HOUSEHOLD_SCREEN_STATUS.LOAD_FAILED });
-    }
+    // Ya se creó: se vuelve a leer la membresía (ahora es admin). Si solo
+    // falla esta lectura, no se ofrece crear otra vez: el household ya existe.
+    await reloadHouseholdScreen();
   };
 
   const onCreateSubmit = (event: FormEvent<HTMLFormElement>): void => {
@@ -170,7 +281,6 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
     void submitHousehold();
   };
 
-  const isAdmin = state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN;
   const inviteErrorMessage = isAdmin
     ? (householdInvite.loadErrorMessage ??
       householdInvite.generateErrorMessage ??
@@ -183,11 +293,12 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
       hasCreateFailed,
       inviteErrorMessage,
     ),
-    feedbackMessage: isAdmin ? householdInvite.feedbackMessage : null,
-    householdName:
-      state.status === HOUSEHOLD_SCREEN_STATUS.ADMIN || state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER
-        ? state.householdName
-        : null,
+    // El aviso de eliminar va primero: es la última acción del admin.
+    feedbackMessage:
+      memberRemoval.noticeMessage ??
+      listsDecision.noticeMessage ??
+      (isAdmin ? householdInvite.feedbackMessage : leaveNotice),
+    householdName,
     invite: {
       // La tarjeta recibe solo lo que dibuja: nada del servicio ni del hook.
       card:
@@ -213,14 +324,76 @@ export const useHouseholdViewModel = (): UseHouseholdViewModelReturn => {
     isCreating: state.status === HOUSEHOLD_SCREEN_STATUS.CREATING,
     isLoading: state.status === HOUSEHOLD_SCREEN_STATUS.LOADING,
     join: joinForm,
+    leave: {
+      // El diálogo recibe solo lo que dibuja: nada del servicio ni ids en el HTML.
+      dialog: {
+        description: HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION[householdLeave.dialogCase],
+        errorMessage: householdLeave.errorMessage,
+        isConfirmDisabled: householdLeave.isConfirmDisabled,
+        isDialogOpen: householdLeave.isDialogOpen,
+        isLeaving: householdLeave.isLeaving,
+        isLoadingMembers: householdLeave.isLoadingMembers,
+        newAdminOptions: householdLeave.newAdminCandidates.map((candidate) => ({
+          isSelected: candidate.userId === householdLeave.selectedNewAdminId,
+          label: candidate.displayName ?? HOUSEHOLD_LEAVE_TEXT.UNNAMED_MEMBER,
+          onSelect: () => householdLeave.onNewAdminSelect(candidate.userId),
+          optionKey: candidate.userId,
+        })),
+        onLeaveCancel: householdLeave.onLeaveCancel,
+        onLeaveConfirm: householdLeave.onLeaveConfirm,
+        showConfirm: householdLeave.showConfirm,
+        title: householdName
+          ? `${HOUSEHOLD_LEAVE_TEXT.DIALOG_TITLE_PREFIX} ${householdName}${HOUSEHOLD_LEAVE_TEXT.DIALOG_TITLE_SUFFIX}`
+          : HOUSEHOLD_LEAVE_TEXT.LEAVE,
+      },
+      onLeaveRequest: householdLeave.onLeaveRequest,
+    },
+    listsDecision: {
+      errorMessage: listsDecision.errorMessage,
+      isSaving: listsDecision.isSaving,
+      onKeep: listsDecision.onKeep,
+      onShare: listsDecision.onShare,
+    },
+    members: {
+      countText:
+        householdMembers.isLoading || householdMembers.errorMessage || householdMembers.members.length === 0
+          ? null
+          : toMembersCountText(householdMembers.members.length),
+      errorMessage: householdMembers.errorMessage,
+      hasMore: householdMembers.hasMore,
+      hasNoResults: householdMembers.hasNoResults,
+      isLoading: householdMembers.isLoading,
+      isLoadingMore: householdMembers.isLoadingMore,
+      loadMoreErrorMessage: householdMembers.loadMoreErrorMessage,
+      onLoadMore: householdMembers.onLoadMore,
+      onQueryChange: householdMembers.onQueryChange,
+      onRetry: householdMembers.onRetry,
+      query: householdMembers.query,
+      rows: householdMembers.members.map((member) =>
+        toMemberRow(member, isAdmin ? memberRemoval.onRemoveRequest : null),
+      ),
+      titleFocusKey: membersTitleFocusKey,
+    },
     name,
     nameError,
     onCreateSubmit,
     onNameChange,
+    removeDialog: {
+      // El diálogo recibe solo lo que dibuja: el nombre, nunca el id.
+      errorMessage: memberRemoval.errorMessage,
+      isDialogOpen: memberRemoval.isDialogOpen,
+      isRemoving: memberRemoval.isRemoving,
+      memberLabel: memberRemoval.memberLabel,
+      onRemoveCancel: memberRemoval.onRemoveCancel,
+      onRemoveConfirm: memberRemoval.onRemoveConfirm,
+    },
     showCreateForm:
       state.status === HOUSEHOLD_SCREEN_STATUS.NO_HOUSEHOLD || state.status === HOUSEHOLD_SCREEN_STATUS.CREATING,
     showInvite: isAdmin,
+    showLeave: householdName !== null,
+    showListsDecision: listsDecision.isVisible,
     showMemberNotice: state.status === HOUSEHOLD_SCREEN_STATUS.MEMBER,
+    showMembers: householdName !== null,
     showNoAccount: state.status === HOUSEHOLD_SCREEN_STATUS.NO_ACCOUNT,
   };
 };

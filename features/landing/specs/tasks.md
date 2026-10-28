@@ -61,3 +61,20 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 ## SCRUM-35: información de la organización (bloqueada por SCRUM-34)
 - [x] 1. OrganizationSection.
 
+## SCRUM-28: formulario de contacto en la landing (reCAPTCHA)
+- [x] 1. SPEC, plan, tareas y E2E.md.
+- [x] 2. Mover RecaptchaWidget a components/recaptcha-widget y sus constantes a constants/recaptcha.constants.ts; el login sigue funcionando.
+- [x] 3. Migración 028 + prueba SQL; aplicarla con su fila del historial antes de waiting qa.
+- [x] 4. _shared/recaptcha.ts (lo usa solo submit-contact-message; login-with-recaptcha no se toca).
+- [x] 5. Edge Function submit-contact-message; deploy.
+- [x] 6. Constantes, modelos, utils, servicio y ViewModel del contacto.
+- [x] 7. ContactSection, ContactForm, ContactMessageField, ContactSuccess; montar en Landing; "Contacto" de la navbar al formulario.
+- [x] 8. Tests: validateContactForm, contact.service, useContactFormViewModel, ContactSection (POM).
+- [x] 9. E2E-CONTACTO-01 a 03.
+- [x] 10. Probar en 320px y desktop, claro y oscuro; tsc, lint, test, build, e2e.
+
+## SCRUM-36: contacto desde About
+- [x] 1. CONTACT_SOURCE.ABOUT; ContactSection en About.tsx.
+- [x] 2. Test del ViewModel con source about; E2E en /nosotros.
+- [x] 3. Probar; tsc, lint, test, build, e2e.
+

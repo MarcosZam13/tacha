@@ -9,6 +9,9 @@ import { acceptHouseholdInvite, hasRegisteredSession } from "../services/househo
 // Sin Supabase real: el servicio se reemplaza por funciones de prueba.
 vi.mock("../services/household.service", () => ({
   acceptHouseholdInvite: vi.fn(),
+  // SCRUM-59: después de unirse se pregunta por la lista personal. Por defecto
+  // ya decidió (literal: el factory de vi.mock no puede usar las constantes).
+  getPersonalListsDecisionState: vi.fn(() => Promise.resolve("decided")),
   hasRegisteredSession: vi.fn(),
 }));
 
@@ -60,6 +63,12 @@ describe("useHouseholdInvitationViewModel", () => {
     await waitFor(() => expect(result.current.showLoginLink).toBe(true));
     expect(result.current.description).toBe(HOUSEHOLD_JOIN_TEXT.NO_ACCOUNT);
     expect(result.current.showJoinButton).toBe(false);
+  });
+
+  it("points the login link back to this invitation (SCRUM-136)", () => {
+    const { result } = renderHook(() => useHouseholdInvitationViewModel(TOKEN));
+
+    expect(result.current.loginHref).toBe(`/login?next=${encodeURIComponent(`/invitacion/${TOKEN}`)}`);
   });
 
   it("is ready to join with a registered session and does not join on its own", async () => {

@@ -38,11 +38,11 @@ Actuar como ingeniero senior Next.js/React/TypeScript. Nunca volver a patrones j
 ```
 app/              Solo rutas: page.tsx, layout.tsx, grupos (debug)/ y (demo)/
 features/         Una carpeta por feature/historia con todo lo suyo (component-architecture)
-components/       Solo lo compartido entre features: ui/ con los primitivos
+components/       Solo lo compartido entre features: ui/ con los primitivos; app-shell/ (navegación de las rutas privadas); recipes-tabs/ (sub-tabs de Recetas)
 constants/        Constantes por dominio + barrel constants/index.ts
 types/            Tipos compartidos entre features
 e2e/              Pruebas de punta a punta con Playwright: features/<feature>/, support/, smoke/ (playwright-e2e)
-supabase/         schema.sql, migrations/ (solo .sql), functions/ (Edge Functions, Deno)
+supabase/         schema.sql, migrations/ (solo .sql), tests/ (pruebas SQL de migraciones), functions/ (Edge Functions, Deno)
 docs/             Documento de proyecto, historias de usuario, sprints, diseño, docs por módulo
 .agents/skills/   Skills de este archivo
 .claude/agents/   Subagentes de revisión
@@ -80,3 +80,13 @@ Si una historia cambia una decisión de producto o del modelo de datos, `docs/do
 ## Stack (referencia rápida)
 
 Next.js · TypeScript · Tailwind CSS · Supabase (Postgres + Auth + Realtime + RLS) vía PostgREST/RPC · estado de servidor con servicios (`services/`) + `useEffect` en el ViewModel (TanStack Query: opción a evaluar por el equipo, no instalado). El patrón de estado compartido puramente de cliente (modales, selección activa) todavía no está decidido por el equipo — ver [nextjs-enterprise-patterns §3](.agents/skills/nextjs-enterprise-patterns/SKILL.md#3-estado-compartido-de-cliente--elegir-un-patrón-y-exigirlo) antes de introducir uno nuevo ad hoc.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -1,14 +1,14 @@
 import Link from "next/link";
+import { PasswordInput } from "@/components/password-input/PasswordInput";
 import { Button, Input } from "@/components/ui";
+import { AUTH_ROUTE, AUTOCOMPLETE, INPUT_TYPE } from "@/constants";
 import {
-  AUTOCOMPLETE,
-  INPUT_TYPE,
   LOGIN_FORM_FIELDS,
   LOGIN_LABEL,
   LOGIN_ROUTE,
 } from "../constants/login.constants";
-import { PasswordInput } from "./PasswordInput";
-import { RecaptchaWidget } from "./RecaptchaWidget";
+import { InactivityNotice } from "./InactivityNotice";
+import { RecaptchaWidget } from "@/components/recaptcha-widget/RecaptchaWidget";
 import type { LoginFormProps } from "./models/LoginFormProps.interface";
 
 /** Formulario de inicio de sesión: correo, contraseña, reCAPTCHA y enlace al registro. */
@@ -24,6 +24,8 @@ export const LoginForm = ({
   values,
 }: LoginFormProps): React.JSX.Element => (
   <>
+    <InactivityNotice />
+
     <h1 className="font-display text-3xl font-bold text-tacha-text">{LOGIN_LABEL.TITLE}</h1>
 
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -50,6 +52,13 @@ export const LoginForm = ({
           />
         ),
       )}
+
+      <Link
+        href={AUTH_ROUTE.FORGOT_PASSWORD}
+        className="self-end font-body text-sm text-tacha-teal underline"
+      >
+        {LOGIN_LABEL.FORGOT_PASSWORD}
+      </Link>
 
       <RecaptchaWidget onTokenChange={handleCaptchaTokenChange} resetCount={captchaResetCount} />
 

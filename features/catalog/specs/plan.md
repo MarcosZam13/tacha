@@ -27,7 +27,7 @@ features/catalog/
     catalog-search.constants.ts        textos, tabs, estados (y su tipo CatalogSearchStatusType), ruta; la grilla se define con clases en CatalogSearch.tsx
   specs/  SPEC.md · plan.md · tasks.md
 
-app/catalogo/page.tsx                  ruta delgada: solo renderiza <CatalogSearch />
+app/(app)/catalogo/page.tsx                  ruta delgada: solo renderiza <CatalogSearch />
 
 Código compartido que se toca
   services/catalog.service.ts          aditivo: el mapeo suma imageUrl y priceRangeByStore
@@ -101,7 +101,7 @@ Lista y recetas no leen los campos nuevos, así que no cambian de comportamiento
 
 ### Decisiones del 2026-10-03
 
-Tomadas por Daniel (orquestador) tras valorar su impacto en el resto del proyecto. Avisos y respuestas del equipo en [tasks.md](tasks.md#comunicación-al-equipo).
+Decisiones de arquitectura, tomadas tras valorar su impacto en el resto del proyecto. Avisos y respuestas del equipo en [tasks.md](tasks.md#comunicación-al-equipo).
 
 | Decisión | Alternativa | Por qué esta |
 |---|---|---|
@@ -128,3 +128,133 @@ El comportamiento y los criterios de la SPEC no cambiaron; solo la forma interna
 ## Qué skills aplican
 
 `component-architecture` (feature con ViewModel y specs), `constants-standards` (textos, estados, rutas), `project-structure` (ruta delgada, alias `@/`), `clean-code-practices`, `nextjs-enterprise-patterns` (tipos nullable, reutilización), `unit-testing-standards` (cuando exista runner). `security-practices` no aplica: solo lectura, sin auth, formularios ni RLS nuevos.
+
+---
+
+## HU-52 (SCRUM-84): filtrar catálogo por categoría
+
+Deriva de [SPEC.md](SPEC.md), secciones marcadas "HU-52". No modifica nada de lo de arriba (HU-51/SCRUM-83, ya implementado y en `waiting qa`).
+
+> **Verificado el 2026-10-20** contra la rama `ticket/SCRUM-84-filter-catalog-by-category`, rebaseada con `develop`: SCRUM-131 ya está mergeado (migraciones `020_curated_mothers.sql` y `021_harden_search_cache_log.sql` presentes); `categories` tiene 7 filas y las 12 madres curadas tienen `category_id`. SCRUM-86 ya está mergeado a esta rama: no quedan imports a las rutas viejas de `features/catalog/components/CatalogTabs|CatalogCard` ni `features/catalog/utils/toCatalogCards|getOverallPriceRange` (verificado con `grep`, 0 resultados). `search_catalog` sigue en `supabase/migrations/001_add_search_catalog_rpc.sql`, sin cambios desde SCRUM-131.
+
+### Archivos nuevos/tocados (HU-52)
+
+```
+supabase/migrations/029_list_catalog_by_category.sql   nuevo — RPC list_catalog_by_category (número confirmado, 2026-10-20)
+supabase/tests/029_list_catalog_by_category.test.sql    nuevo — mismo patrón que 020/021
+
+features/catalog/
+  CatalogSearch.tsx                     tocado: agrega <CatalogCategoryChips /> y decide, junto con el ViewModel, cuál RPC llamar
+  components/
+    CatalogCategoryChips.tsx            nuevo — presentación: fila de chips, "Todas" + una por categoría
+    models/CatalogCategoryChipsProps.interface.ts   nuevo
+  hooks/
+    useCatalogSearchViewModel.ts        tocado: agrega activeCategoryId, categories, onCategoryChange; decide search_catalog vs list_catalog_by_category vs idle
+  models/
+    catalog-search.interfaces.ts        tocado: CatalogSearchViewModel gana activeCategoryId, categories, onCategoryChange
+  utils/
+    toCatalogCards.ts                   sin cambios (sigue aplanando CatalogProduct[] → CatalogCardData[]; no necesita saber de categoría)
+  constants/
+    catalog-search.constants.ts         tocado: textos nuevos (aria-label de los chips, mensaje de categoría vacía)
+  specs/  SPEC.md · plan.md · tasks.md  (este PR)
+
+components/ui/
+  Chip.tsx (o chip-label/)              nuevo si no existe ya un primitivo de chip en el design system — compartido, no local a catálogo
+
+constants/
+  catalog.constants.ts                  tocado: + CATALOG_DB.RPC.LIST_CATALOG_BY_CATEGORY
+
+services/
+  catalog.service.ts                    tocado, aditivo:
+                                           - searchCatalog() deja de descartar product.category (lo mapea a CatalogProduct.category)
+                                           - nueva función listCatalogByCategory(categoryId: string | null)
+                                           - nueva función getCategories() (select directo a categories, sin RPC)
+
+types/
+  catalog.types.ts                      tocado, aditivo: CatalogProduct gana category: string; nuevo Category { id: string; name: string }
+```
+
+### Datos (HU-52)
+
+`categories`, lectura directa (sin RPC):
+
+```ts
+// select id, name from categories order by name
+interface Category { id: string; name: string }
+```
+
+RPC nueva, mismo shape de fila que `search_catalog` (reusa sus mismos CTE de `variant_brands`/`variant_prices` internamente, cambiando solo el filtro de `matching_products`):
+
+```sql
+list_catalog_by_category(category_id uuid default null, household_id uuid default null)
+returns table (product_catalog_id uuid, name text, category text, variants jsonb)
+```
+
+- `category_id is null` → todo el catálogo global (`household_id is null`).
+- `category_id` con valor → solo `product_catalog.category_id = category_id`.
+- Mismo cálculo de `visible_store_ids` por `household_id` que `search_catalog`: se duplica ese bloque pequeño dentro de la función nueva (ver Decisiones) — no se toca el cuerpo de `search_catalog` para nada, ni siquiera para extraer un helper.
+
+Cambio aditivo a `CatalogProduct` (hoy descarta `category`, viene de SPEC.md regla 12):
+
+```ts
+export interface CatalogProduct {
+  category: string;   // nuevo — antes se descartaba al mapear
+  productId: string;
+  productName: string;
+  variants: CatalogProductVariant[];
+}
+```
+
+### Flujo (HU-52)
+
+1. Al entrar a `/catalogo`, el ViewModel pide `getCategories()` una vez (para los chips) y arranca en `idle` si no hay texto ni categoría — sin cambios de comportamiento respecto a HU-51 (decidido con el responsable de la historia, 2026-10-20).
+2. El usuario toca un chip → `onCategoryChange(categoryId | null)`.
+   - Si no hay término buscable: llama a `listCatalogByCategory(categoryId)` (null = "Todas").
+   - Si hay término buscable (≥2 caracteres): no se repite la llamada a búsqueda; se filtran en memoria los resultados que ya tiene `search_catalog` por `product.category === categoryName` (SPEC regla 12).
+3. El usuario escribe texto (con categoría activa o no) → `useProductSearch` sigue igual (debounce, mínimo 2, descarta respuestas viejas); al llegar la respuesta, si hay categoría activa se filtra igual que en el punto 2.
+4. Tocar el mismo chip activo (o "Todas") limpia `activeCategoryId` → vuelve al flujo sin filtro de categoría.
+5. `getCatalogSearchStatus` no cambia su firma (loading/error/empty/ready/idle); solo cambian las condiciones que lo disparan (ahora también por categoría, no solo por `isSearching`/`hasNoResults` de `useProductSearch`).
+
+### Qué RPC decide el ViewModel (tabla de casos)
+
+| Texto ≥2 chars | Categoría activa | RPC / fuente | Filtro adicional |
+|---|---|---|---|
+| No | No | ninguna (idle) | — |
+| No | Sí | `listCatalogByCategory(categoryId)` | — |
+| Sí | No | `searchCatalog(term)` | — |
+| Sí | Sí | `searchCatalog(term)` | cliente: `product.category === categoryName` |
+
+### Decisiones (HU-52)
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| RPC nueva `list_catalog_by_category`, sin tocar `search_catalog` | Agregar `category_id` opcional a `search_catalog` | `search_catalog` tiene su contrato congelado desde SCRUM-131 (SPEC.md §15); tocarlo afecta a lista y recetas, que ya lo llaman hoy |
+| Filtrar en el cliente cuando hay categoría + búsqueda (caso 4 de la tabla) | Pasarle `category_id` también a `search_catalog` | Mismo motivo — `search_catalog` ya devuelve `category`, filtrar 1-12 filas en memoria no pesa nada y no toca el RPC congelado |
+| `categories` se lee directo (PostgREST), sin RPC | Una RPC `list_categories()` | Ya tiene policy de lectura pública; una RPC solo para esto sería una capa de más sin nada que agregar |
+| Chips muestran las 7 categorías siempre, no solo las que tienen producto | Calcular "categorías con producto" en la RPC nueva | Ninguna CA de HU-52 lo pide; además esa misma lectura la va a reusar el selector de SCRUM-87 (avisado en su Jira) |
+| `idle` se mantiene igual que en HU-51; solo un chip activo saca de `idle` sin texto | Retirar `idle`: listar todo el catálogo al entrar | Decidido con el responsable de la historia (2026-10-20): no tocar el comportamiento ya validado por QA en SCRUM-83 sin confirmación explícita |
+| Duplicar el bloque `visible_store_ids` dentro de la función nueva | Extraer una función auxiliar compartida y hacer que `search_catalog` la llame | Evita volver a tocar el cuerpo de `search_catalog`, ya aprobado por QA, por una historia que no es la suya. Son ~6 líneas; si se duplica la lógica otra vez en el futuro, ahí sí se extrae un helper en un ticket propio |
+| Componente `Chip` nuevo en `components/ui/` si no existe ya uno | Botones sueltos con clases repetidas en `CatalogCategoryChips` | Un chip de selección es un primitivo reusable (ya lo prevé `docs/DESIGN.md` §6, "chip / badge"); evita que el próximo filtro de categoría (ej. historial de compras, documento-proyecto §4.6) reinvente el estilo |
+
+### Orden de commits (HU-52)
+
+Continúa después de los commits ya mergeados de SCRUM-83 (`refactor(SCRUM-83): ...`, `feat(SCRUM-83): ...`):
+
+1. `feat(SCRUM-84): add list_catalog_by_category RPC` — solo la migración `029` y su test SQL. Sin UI. Se aplica antes de pasar a `waiting qa`, con aviso al grupo (`supabase/README.md#migraciones`).
+2. `refactor(SCRUM-84): stop discarding category in catalog.service` — aditivo: `CatalogProduct.category`, `getCategories()`, `listCatalogByCategory()`. Sin cambio de comportamiento visible todavía.
+3. `feat(SCRUM-84): add category chips and filter catalog by category` — `CatalogCategoryChips`, el ViewModel, `CatalogSearch.tsx`, constantes y textos.
+4. (Si hace falta) `feat(SCRUM-84): add Chip primitive to design system` — antes del commit 3, si no existe ya un primitivo de chip.
+
+### Qué skills aplican (HU-52)
+
+Los mismos de HU-51 (`component-architecture`, `constants-standards`, `project-structure`, `clean-code-practices`, `nextjs-enterprise-patterns`, `unit-testing-standards`), más **`security-practices`**: esta historia sí agrega una migración y una función nueva — revisar que quede `security invoker` (como `search_catalog`, no `security definer`: es lectura pública, no necesita saltarse RLS) y con `search_path` fijo, mismo patrón que dejó SCRUM-131.
+
+### Desviaciones respecto al plan original (2026-10-20, durante la implementación de tasks.md 6-14)
+
+El comportamiento y los criterios de la SPEC no cambiaron; solo el alcance de algunos archivos, descubierto al implementar.
+
+| Plan original | Implementado | Por qué |
+|---|---|---|
+| `components/ui/` gana un `Chip` nuevo si no existe uno | Ya existía `components/ui/chip/Chip.tsx` (con `CHIP_TONE`); se reusa tal cual. `CatalogCategoryChips` envuelve cada `<Chip>` en un `<button aria-pressed>` propio, porque el primitivo es solo presentación (un `<span>`), sin variante clicable | `nextjs-enterprise-patterns` §1: componer sobre el primitivo existente, no clonarlo. Un wrapper delgado de interacción no es lo mismo que duplicar el chip |
+| `CatalogProduct.category` aditivo, sin otros archivos tocados | `features/my-products/services/my-products.service.ts` también tuvo que tocarse: construye un `CatalogProduct` a mano y, al volverse `category` un campo obligatorio, dejaba de compilar. Se le puso `CATALOG_CATEGORY_TEXT.UNASSIGNED` (constante nueva en `constants/catalog.constants.ts`), no un string vacío suelto | SPEC.md §10 exige que lista y recetas (y, por el mismo motivo, "Mis productos") sigan compilando; "Mis productos" no asigna categoría todavía (HU-55, selector es SCRUM-87), así que no hay un nombre real que mapear |
+| `features/catalog/components/CatalogEmptyState.tsx` sin cambios | Gana un `message` opcional (`CatalogEmptyStateProps`), para distinguir "sin resultados de texto" (CA-04 de HU-51) de "categoría sin productos" (caso adicional de HU-52, SPEC.md §7) | Ninguna CA pide un componente de vacío distinto; reusar el mismo con el texto correcto evita duplicar el layout del estado vacío |

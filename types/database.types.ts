@@ -93,18 +93,21 @@ export type Database = {
         Row: {
           created_at: string
           household_id: string
+          personal_lists_decision: string | null
           role: string
           user_id: string
         }
         Insert: {
           created_at?: string
           household_id: string
+          personal_lists_decision?: string | null
           role: string
           user_id: string
         }
         Update: {
           created_at?: string
           household_id?: string
+          personal_lists_decision?: string | null
           role?: string
           user_id?: string
         }
@@ -209,24 +212,36 @@ export type Database = {
       }
       list_items: {
         Row: {
+          checked_at: string | null
+          checked_by: string | null
           created_at: string
           id: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
           quantity_requested: number
         }
         Insert: {
+          checked_at?: string | null
+          checked_by?: string | null
           created_at?: string
           id?: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id?: string | null
+          quantity_bought?: number | null
           quantity_requested?: number
         }
         Update: {
+          checked_at?: string | null
+          checked_by?: string | null
           created_at?: string
           id?: string
           list_id?: string
           product_catalog_variant_id?: string
+          purchase_session_id?: string | null
+          quantity_bought?: number | null
           quantity_requested?: number
         }
         Relationships: [
@@ -242,6 +257,13 @@ export type Database = {
             columns: ["product_catalog_variant_id"]
             isOneToOne: false
             referencedRelation: "product_catalog_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_purchase_session_id_fkey"
+            columns: ["purchase_session_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -271,7 +293,59 @@ export type Database = {
           status?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lists_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_plans: {
+        Row: {
+          assigned_cook: string | null
+          created_at: string
+          date: string
+          household_id: string | null
+          id: string
+          meal_type: string
+          owner_id: string
+          recipe_id: string
+          servings_multiplier: number
+        }
+        Insert: {
+          assigned_cook?: string | null
+          created_at?: string
+          date: string
+          household_id?: string | null
+          id?: string
+          meal_type: string
+          owner_id?: string
+          recipe_id: string
+          servings_multiplier?: number
+        }
+        Update: {
+          assigned_cook?: string | null
+          created_at?: string
+          date?: string
+          household_id?: string | null
+          id?: string
+          meal_type?: string
+          owner_id?: string
+          recipe_id?: string
+          servings_multiplier?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_brands: {
         Row: {
@@ -500,6 +574,61 @@ export type Database = {
           },
         ]
       }
+      purchase_sessions: {
+        Row: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          household_id?: string | null
+          id?: string
+          list_id?: string | null
+          owner_id?: string
+          started_at?: string
+          store_id: string
+          total_amount?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          household_id?: string | null
+          id?: string
+          list_id?: string | null
+          owner_id?: string
+          started_at?: string
+          store_id?: string
+          total_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_sessions_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_sessions_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_sessions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe_ingredients: {
         Row: {
           created_at: string
@@ -639,6 +768,24 @@ export type Database = {
           },
         ]
       }
+      spending_budgets: {
+        Row: {
+          amount: number
+          owner_id: string
+          period: string
+        }
+        Insert: {
+          amount: number
+          owner_id?: string
+          period: string
+        }
+        Update: {
+          amount?: number
+          owner_id?: string
+          period?: string
+        }
+        Relationships: []
+      }
       stores: {
         Row: {
           base_url: string
@@ -703,10 +850,14 @@ export type Database = {
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
+          checked_at: string | null
+          checked_by: string | null
           created_at: string
           id: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
           quantity_requested: number
         }
         SetofOptions: {
@@ -720,18 +871,111 @@ export type Database = {
         Args: { target_recipe_id: string }
         Returns: Json
       }
-      change_item_quantity: {
+      add_units_to_list_item: {
+        Args: {
+          target_list_id: string
+          target_variant_id: string
+          units_to_add: number
+        }
+        Returns: string
+      }
+      add_week_ingredients_to_list: {
+        Args: {
+          servings_multiplier: number
+          target_list_id: string
+          target_recipe_id: string
+        }
+        Returns: Json
+      }
+      add_week_to_general_list: {
+        Args: { week_from: string; week_to: string }
+        Returns: Json
+      }
+      assign_meal_slot: {
+        Args: {
+          cook_is_self: boolean
+          slot_date: string
+          slot_meal_type: string
+          slot_servings_multiplier: number
+          target_recipe_id: string
+        }
+        Returns: string
+      }
+      change_bought_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
+          checked_at: string | null
+          checked_by: string | null
           created_at: string
           id: string
           list_id: string
           product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
           quantity_requested: number
         }
         SetofOptions: {
           from: "*"
           to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      change_item_quantity: {
+        Args: { quantity_delta: number; target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      check_list_item_in_session: {
+        Args: { target_item_id: string; target_session_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      close_purchase_session: {
+        Args: { spent_total: number; target_session_id: string }
+        Returns: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "purchase_sessions"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -744,6 +988,9 @@ export type Database = {
           token: string
         }[]
       }
+      decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
+      ensure_general_list_id: { Args: never; Returns: string }
+      find_general_list_id: { Args: never; Returns: string }
       get_household_invite: {
         Args: never
         Returns: {
@@ -751,6 +998,25 @@ export type Database = {
           token: string
         }[]
       }
+      get_household_members: {
+        Args: never
+        Returns: {
+          display_name: string | null
+          is_current_user: boolean
+          role: string
+          user_id: string
+        }[]
+      }
+      get_household_members_page: {
+        Args: { page_offset?: number; page_size?: number; search_query?: string }
+        Returns: {
+          display_name: string | null
+          is_current_user: boolean
+          role: string
+          user_id: string
+        }[]
+      }
+      get_personal_lists_decision_state: { Args: never; Returns: string }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
         Returns: {
@@ -761,6 +1027,17 @@ export type Database = {
           scraped_name: string
           scraped_size_text: string
           status: string
+        }[]
+      }
+      get_recipe_coverage: { Args: { target_recipe_id: string }; Returns: Json }
+      leave_household: { Args: { new_admin_user_id?: string }; Returns: string }
+      list_catalog_by_category: {
+        Args: { filter_category_id?: string; filter_household_id?: string }
+        Returns: {
+          category: string
+          name: string
+          product_catalog_id: string
+          variants: Json
         }[]
       }
       normalize_pending_staging: {
@@ -788,6 +1065,18 @@ export type Database = {
           base_unit: string
         }[]
       }
+      pick_recipe_variant: {
+        Args: {
+          needed_quantity: number
+          target_product_id: string
+          target_unit: string
+        }
+        Returns: {
+          base_quantity: number
+          variant_id: string
+        }[]
+      }
+      remove_household_member: { Args: { member_user_id: string }; Returns: string }
       save_recipe: {
         Args: {
           ingredient_list: Json
@@ -806,8 +1095,61 @@ export type Database = {
           variants: Json
         }[]
       }
+      set_list_item_checked: {
+        Args: { is_checked: boolean; target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      set_spending_budget: {
+        Args: { budget_amount: number; budget_period: string }
+        Returns: {
+          amount: number
+          owner_id: string
+          period: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "spending_budgets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      start_purchase_session: {
+        Args: { local_day_start: string; target_store_id: string }
+        Returns: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "purchase_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never

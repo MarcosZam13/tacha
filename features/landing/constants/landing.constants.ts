@@ -12,6 +12,7 @@ export const LANDING_ROUTE = {
 
 export const LANDING_SECTION_ID = {
   CONTACT: "contacto",
+  CONTACT_FORM: "formulario-contacto",
   DEMO: "demo",
   INTRO: "que-es-tacha",
   MORE_INFO: "mas-informacion",
@@ -26,6 +27,7 @@ export const BRAND_LOGO = {
 } as const;
 
 export const NAVBAR_TEXT = {
+  GO_TO_APP: "Ir a mi lista",
   NAV_LABEL: "Navegación principal",
   REGISTER: "Registrarse",
 } as const;
@@ -182,7 +184,7 @@ export const TACHA_INSTAGRAM = {
 export const NAV_LINKS: readonly NavLink[] = [
   { href: LANDING_ROUTE.HOME, label: "Inicio" },
   { href: LANDING_ROUTE.ABOUT, label: "Nosotros" },
-  { href: `${LANDING_ROUTE.HOME}#${LANDING_SECTION_ID.CONTACT}`, label: "Contacto" },
+  { href: `${LANDING_ROUTE.HOME}#${LANDING_SECTION_ID.CONTACT_FORM}`, label: "Contacto" },
 ];
 
 export const FOOTER_LINKS: readonly NavLink[] = [

@@ -1,0 +1,30 @@
+// Rutas de las pantallas privadas (grupo app/(app)/). Las usan el shell de
+// navegación, el redirect del login y la navbar pública.
+export const APP_ROUTE = {
+  CATALOG: "/catalogo",
+  CATALOG_MY_PRODUCTS: "/catalogo/mis-productos",
+  FINANCE: "/finanzas",
+  HOUSEHOLD: "/household",
+  LIST: "/lista",
+  MEAL_PLANNER: "/recetas/planificador",
+  RECIPES: "/recetas",
+  RECIPE_NEW: "/recetas/nueva",
+} as const;
+
+export type AppRouteType = (typeof APP_ROUTE)[keyof typeof APP_ROUTE];
+
+// Rutas públicas de la cuenta: el login, pedir el enlace de recuperación y fijar la nueva
+// contraseña. Las usan el enlace del login, el guard de sesión y la feature de recuperación.
+export const AUTH_ROUTE = {
+  FORGOT_PASSWORD: "/recuperar-contrasena",
+  LOGIN: "/login",
+  RESET_PASSWORD: "/actualizar-contrasena",
+} as const;
+
+export type AuthRouteType = (typeof AUTH_ROUTE)[keyof typeof AUTH_ROUTE];
+
+// Parámetro de /login con la ruta a la que volver después de iniciar sesión (SCRUM-136):
+// /login?next=/invitacion/<token>. Lo escriben el guard y la invitación; lo lee el login.
+export const AUTH_QUERY_PARAM = {
+  RETURN_PATH: "next",
+} as const;

@@ -5,6 +5,8 @@ export interface InputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  /** Al salir del campo (SCRUM-137): el registro valida ahí los campos obligatorios. */
+  onBlur?: () => void;
   helperText?: NullableUndefined<string>;
   errorMessage?: NullableUndefined<string>;
   placeholder?: string;

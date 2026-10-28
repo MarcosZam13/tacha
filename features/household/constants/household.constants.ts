@@ -1,7 +1,9 @@
+import { APP_ROUTE } from "@/constants";
+
 // Constantes de la feature household: crear el household y su link de
-// invitación (SCRUM-56) y unirse con ese link (SCRUM-57). Viven dentro de la
-// feature porque ninguna otra las usa todavía; se promueven a constants/ con
-// el segundo consumidor. No confundir con constants/household.constants.ts
+// invitación (SCRUM-56), unirse con ese link (SCRUM-57) y salir (SCRUM-58).
+// Viven dentro de la feature porque ninguna otra las usa todavía; se promueven
+// a constants/ con el segundo consumidor. No confundir con constants/household.constants.ts
 // (preferencias de tiendas).
 
 // Roles de household_members: el mismo dominio que el check de la migración 011.
@@ -28,6 +30,17 @@ export const HOUSEHOLD_DB = {
     CREATE_HOUSEHOLD: "create_household",
     CREATE_HOUSEHOLD_INVITE: "create_household_invite",
     GET_HOUSEHOLD_INVITE: "get_household_invite",
+    // Migración 024 (contrato en specs/SPEC.md §12, SCRUM-59).
+    DECIDE_PERSONAL_LISTS: "decide_personal_lists",
+    // Migración 023 (contrato en specs/SPEC.md §12).
+    GET_HOUSEHOLD_MEMBERS: "get_household_members",
+    // Migración 025 (contrato en specs/SPEC.md §12, SCRUM-60).
+    GET_HOUSEHOLD_MEMBERS_PAGE: "get_household_members_page",
+    // Migración 024.
+    GET_PERSONAL_LISTS_DECISION_STATE: "get_personal_lists_decision_state",
+    LEAVE_HOUSEHOLD: "leave_household",
+    // Migración 026 (contrato en specs/SPEC.md §12, SCRUM-61).
+    REMOVE_HOUSEHOLD_MEMBER: "remove_household_member",
   },
   TABLE: {
     HOUSEHOLD_MEMBERS: "household_members",
@@ -76,13 +89,12 @@ export const HOUSEHOLD_INVITE_TIME_MS = {
   COPY_FEEDBACK: 2_000,
 } as const;
 
-// Rutas propias de la feature. /login va acá y no se importa de features/login
-// para no acoplar una feature a otra por una constante (como LANDING_ROUTE).
+// Rutas propias de la feature. El enlace al login lo arma toLoginRoute (utils/returnPath.utils.ts,
+// SCRUM-136), que lleva la invitación como next para volver a ella después de iniciar sesión.
 export const HOUSEHOLD_ROUTE = {
-  HOUSEHOLD: "/household",
+  HOUSEHOLD: APP_ROUTE.HOUSEHOLD,
   // Base del link: SCRUM-56 lo arma y SCRUM-57 lo abre con app/invitacion/[token].
   INVITATION: "/invitacion",
-  LOGIN: "/login",
 } as const;
 
 // Un UUID 8-4-4-4-12 en hexadecimal, como los que genera gen_random_uuid().
@@ -216,4 +228,219 @@ export const HOUSEHOLD_JOIN_FORM_TEXT = {
 export const HOUSEHOLD_JOIN_FORM_ERROR = {
   INVALID: "Ese enlace o código no es válido. Revisa que esté completo.",
   REQUIRED: "Pega el enlace o el código de invitación.",
+} as const;
+
+// Lo que responde leave_household (contrato en specs/SPEC.md §12).
+// Los valores los decide la base; acá solo se nombran.
+export const HOUSEHOLD_LEAVE_RESULT = {
+  HOUSEHOLD_DELETED: "household_deleted",
+  INVALID_NEW_ADMIN: "invalid_new_admin",
+  LEFT: "left",
+  NOT_MEMBER: "not_member",
+  TRANSFER_REQUIRED: "transfer_required",
+} as const;
+
+export type HouseholdLeaveResultType = (typeof HOUSEHOLD_LEAVE_RESULT)[keyof typeof HOUSEHOLD_LEAVE_RESULT];
+
+// Lo que responde remove_household_member (migración 026, specs/SPEC.md §12,
+// SCRUM-61). Los valores los decide la base; acá solo se nombran.
+export const HOUSEHOLD_REMOVE_MEMBER_RESULT = {
+  CANNOT_REMOVE_SELF: "cannot_remove_self",
+  MEMBER_NOT_FOUND: "member_not_found",
+  NOT_ADMIN: "not_admin",
+  REMOVED: "removed",
+} as const;
+
+export type HouseholdRemoveMemberResultType =
+  (typeof HOUSEHOLD_REMOVE_MEMBER_RESULT)[keyof typeof HOUSEHOLD_REMOVE_MEMBER_RESULT];
+
+// Estados del flujo de eliminar (unión en hooks/useHouseholdMemberRemoval.ts,
+// specs/SPEC.md §6, SCRUM-61).
+export const HOUSEHOLD_REMOVE_MEMBER_STATUS = {
+  CONFIRMING: "confirming",
+  FAILED: "failed",
+  IDLE: "idle",
+  REMOVING: "removing",
+} as const;
+
+export type HouseholdRemoveMemberStatusType =
+  (typeof HOUSEHOLD_REMOVE_MEMBER_STATUS)[keyof typeof HOUSEHOLD_REMOVE_MEMBER_STATUS];
+
+// Textos aprobados por la dueña de la historia (D3, specs/SPEC.md §5, §7 y §8).
+// Se usan tal cual, incluida la palabra "household".
+export const HOUSEHOLD_REMOVE_MEMBER_TEXT = {
+  ACTION: "Eliminar integrante",
+  CANCEL: "Cancelar",
+  CONFIRM: "Eliminar",
+  DIALOG_MESSAGE:
+    "Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán",
+  DIALOG_TITLE: "¿Eliminar a este integrante?",
+  ERROR: "No se pudo eliminar al integrante. Inténtalo de nuevo",
+  SUCCESS: "Integrante eliminado correctamente",
+} as const;
+
+// Estados del flujo de salir (unión en hooks/useHouseholdLeave.ts, specs/SPEC.md §6).
+export const HOUSEHOLD_LEAVE_STATUS = {
+  CONFIRMING: "confirming",
+  FAILED: "failed",
+  IDLE: "idle",
+  LEAVING: "leaving",
+  LOADING_MEMBERS: "loadingMembers",
+  MEMBERS_LOAD_FAILED: "membersLoadFailed",
+} as const;
+
+export type HouseholdLeaveStatusType = (typeof HOUSEHOLD_LEAVE_STATUS)[keyof typeof HOUSEHOLD_LEAVE_STATUS];
+
+// Qué explica el diálogo de salir según quién sale (specs/SPEC.md §8).
+export const HOUSEHOLD_LEAVE_DIALOG_CASE = {
+  // Miembro: confirma y sale.
+  MEMBER: "member",
+  // Admin único miembro: la familia y su enlace se eliminan.
+  SOLE_ADMIN: "soleAdmin",
+  // Admin con otros miembros: elige al nuevo admin antes de salir.
+  TRANSFER: "transfer",
+} as const;
+
+export type HouseholdLeaveDialogCaseType =
+  (typeof HOUSEHOLD_LEAVE_DIALOG_CASE)[keyof typeof HOUSEHOLD_LEAVE_DIALOG_CASE];
+
+export const HOUSEHOLD_LEAVE_TEXT = {
+  CANCEL: "Cancelar",
+  CONFIRM: "Salir",
+  // Título "¿Salir de {nombre de la familia}?", armado en useHouseholdViewModel.
+  DIALOG_TITLE_PREFIX: "¿Salir de",
+  DIALOG_TITLE_SUFFIX: "?",
+  // Se reintenta con el mismo botón "Salir" (specs/SPEC.md §7).
+  FAILED: "No se pudo salir de tu familia. Intenta de nuevo.",
+  HOUSEHOLD_DELETED: "Saliste y la familia se eliminó.",
+  INVALID_NEW_ADMIN: "Esa persona ya no es parte de tu familia. Elige a otra.",
+  LEAVE: "Salir de la familia",
+  LEAVING: "Saliendo…",
+  LEFT: "Saliste de la familia.",
+  MEMBER_DESCRIPTION: "Vas a dejar de ver lo que comparte esta familia.",
+  MEMBERS_LOAD_ERROR: "No se pudieron cargar los miembros de tu familia. Intenta de nuevo.",
+  NEW_ADMIN_LEGEND: "¿Quién va a administrar la familia?",
+  // CA-04: al salir se conservan la lista general y las privadas.
+  SECTION_DESCRIPTION: "Puedes salir de tu familia cuando quieras. Tus listas personales se quedan contigo.",
+  SOLE_ADMIN_DESCRIPTION:
+    "Eres la única persona en esta familia. Si sales, la familia y su enlace de invitación se eliminan.",
+  TRANSFER_DESCRIPTION: "Antes de salir, elige quién va a administrar la familia.",
+  TRANSFER_REQUIRED: "Elige a quién le pasas la administración antes de salir.",
+  // Los miembros sin nombre en el registro: nunca se muestra el correo.
+  UNNAMED_MEMBER: "Miembro sin nombre",
+} as const;
+
+// Qué explica el diálogo en cada caso (Strategy: sin if encadenados en la vista).
+export const HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION: Record<HouseholdLeaveDialogCaseType, string> = {
+  [HOUSEHOLD_LEAVE_DIALOG_CASE.MEMBER]: HOUSEHOLD_LEAVE_TEXT.MEMBER_DESCRIPTION,
+  [HOUSEHOLD_LEAVE_DIALOG_CASE.SOLE_ADMIN]: HOUSEHOLD_LEAVE_TEXT.SOLE_ADMIN_DESCRIPTION,
+  [HOUSEHOLD_LEAVE_DIALOG_CASE.TRANSFER]: HOUSEHOLD_LEAVE_TEXT.TRANSFER_DESCRIPTION,
+};
+
+export const HOUSEHOLD_LEAVE_FORM = {
+  // Mismo name para todos los radios: las flechas del teclado se mueven entre ellos.
+  NEW_ADMIN_RADIO_NAME: "household-new-admin",
+} as const;
+
+// Lo que la persona elige hacer con su lista personal (SCRUM-59). La base
+// valida los valores (check de household_members.personal_lists_decision).
+export const HOUSEHOLD_LISTS_CHOICE = {
+  KEEP: "keep",
+  SHARE: "share",
+} as const;
+
+export type HouseholdListsChoiceType = (typeof HOUSEHOLD_LISTS_CHOICE)[keyof typeof HOUSEHOLD_LISTS_CHOICE];
+
+// Lo que responde get_personal_lists_decision_state (contrato en specs/SPEC.md §12).
+export const HOUSEHOLD_LISTS_DECISION_STATE = {
+  DECIDED: "decided",
+  NOT_MEMBER: "not_member",
+  NOTHING_TO_DECIDE: "nothing_to_decide",
+  PENDING: "pending",
+} as const;
+
+export type HouseholdListsDecisionStateType =
+  (typeof HOUSEHOLD_LISTS_DECISION_STATE)[keyof typeof HOUSEHOLD_LISTS_DECISION_STATE];
+
+// Lo que responde decide_personal_lists (contrato en specs/SPEC.md §12).
+export const HOUSEHOLD_LISTS_DECISION_RESULT = {
+  ALREADY_DECIDED: "already_decided",
+  KEPT: "kept",
+  NOT_MEMBER: "not_member",
+  // Eligió compartir, pero no pasó nada: la familia ya había comprado todo.
+  NOTHING_SHARED: "nothing_shared",
+  SHARED: "shared",
+  // Pasó al menos uno; lo que la familia ya compró se quedó en la lista personal.
+  SHARED_PARTIALLY: "shared_partially",
+} as const;
+
+export type HouseholdListsDecisionResultType =
+  (typeof HOUSEHOLD_LISTS_DECISION_RESULT)[keyof typeof HOUSEHOLD_LISTS_DECISION_RESULT];
+
+// Estados de la pregunta (unión en hooks/usePersonalListsDecision.ts, specs/SPEC.md §6).
+export const HOUSEHOLD_LISTS_DECISION_STATUS = {
+  ASKING: "asking",
+  FAILED: "failed",
+  HIDDEN: "hidden",
+  SAVING: "saving",
+} as const;
+
+export type HouseholdListsDecisionStatusType =
+  (typeof HOUSEHOLD_LISTS_DECISION_STATUS)[keyof typeof HOUSEHOLD_LISTS_DECISION_STATUS];
+
+export const HOUSEHOLD_LISTS_DECISION_TEXT = {
+  // Propuesto: DESIGN.md §7.15 pide aclarar que aplica a todo y una sola vez.
+  DESCRIPTION: "Tu decisión aplica a todo lo pendiente de tu lista personal y no se vuelve a preguntar.",
+  // Textos aprobados por la dueña de la historia (D8).
+  KEEP: "Mantenerla solo para mí",
+  // Propuestos: el aviso después de decidir.
+  KEPT: "Tu lista personal sigue siendo solo tuya.",
+  // Propuesto: no pasó ningún producto.
+  NOTHING_SHARED: "No se compartió nada: tu familia ya había comprado todo lo que tenías pendiente.",
+  QUESTION: "¿Qué quieres hacer con tu lista actual?",
+  SAVE_ERROR: "No se pudo guardar tu decisión. Intenta de nuevo.",
+  SHARE: "Compartirla con mi familia",
+  SHARED: "Lo pendiente de tu lista ahora está en la lista de tu familia.",
+  // Propuesto: pasó al menos uno y alguno se quedó.
+  SHARED_PARTIALLY:
+    "Compartiste tu lista. Lo que tu familia ya había comprado se quedó en tu lista personal.",
+} as const;
+
+// Integrantes de la familia de a una página (SCRUM-60, decisión del
+// 2026-10-17). La base acepta hasta 50 por página (migración 025).
+export const HOUSEHOLD_MEMBERS_PAGE = {
+  // Misma espera que la búsqueda de productos (PRODUCT_SEARCH.DEBOUNCE_MS).
+  SEARCH_DEBOUNCE_MS: 300,
+  // El mismo tope que valida la base (migración 025).
+  SEARCH_MAX_LENGTH: 60,
+  SIZE: 20,
+} as const;
+
+// Estado de "Cargar más" (hooks/useHouseholdMembers.ts). La primera página
+// no lleva constante: su estado se deriva de la respuesta guardada.
+export const HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS = {
+  FAILED: "failed",
+  LOADING: "loading",
+} as const;
+
+export type HouseholdMembersLoadMoreStatusType =
+  (typeof HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS)[keyof typeof HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS];
+
+// Textos de la sección "Integrantes de la familia" (SPEC §7 y §8, SCRUM-60).
+// Los dos errores los devuelve useHouseholdMembers; el resto, la pantalla.
+export const HOUSEHOLD_MEMBERS_TEXT = {
+  ADMIN: "Administrador",
+  // Cantidad cargada, anunciada en role="status": "1 integrante", "5 integrantes".
+  COUNT_PLURAL: "integrantes",
+  COUNT_SINGULAR: "integrante",
+  CURRENT_USER: "Tú",
+  LOAD_ERROR: "No se pudieron cargar los integrantes de tu familia.",
+  LOAD_MORE: "Cargar más",
+  LOAD_MORE_ERROR: "No se pudieron cargar más integrantes. Intenta de nuevo.",
+  LOADING_MORE: "Cargando…",
+  NO_RESULTS: "Nadie de tu familia coincide con esa búsqueda.",
+  RETRY: "Reintentar",
+  SEARCH_LABEL: "Buscar por nombre",
+  SEARCH_PLACEHOLDER: "Ej. Ana",
+  TITLE: "Integrantes de la familia",
 } as const;

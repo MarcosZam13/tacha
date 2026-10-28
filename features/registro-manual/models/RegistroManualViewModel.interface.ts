@@ -7,6 +7,8 @@ import type { RegistroFormErrors, RegistroFormValues } from "./RegistroFormValue
 export interface RegistroManualViewModel {
   errors: RegistroFormErrors;
   handleChange: (field: RegistroFieldType) => (value: string) => void;
+  /** Al salir de un campo se valida ese campo (SCRUM-137, F5). */
+  handleBlur: (field: RegistroFieldType) => () => void;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleAcceptedTermsChange: (isChecked: boolean) => void;
   handleTermsModalClose: () => void;

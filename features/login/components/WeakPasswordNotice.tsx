@@ -1,7 +1,7 @@
+import { FocusedHeading } from "@/components/focused-heading/FocusedHeading";
 import { Button } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
 import { CHANGE_PASSWORD_LABEL } from "../constants/login.constants";
-import { FocusedHeading } from "./FocusedHeading";
 import type { WeakPasswordNoticeProps } from "./models/WeakPasswordNoticeProps.interface";
 
 /** Aviso de contraseña débil. No bloquea: "Ahora no" siempre deja continuar. */

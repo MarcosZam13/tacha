@@ -1,25 +1,20 @@
 import type { NullableRef } from "@/types/nullable.types";
+import type { CatalogCardData, Category } from "@/types/catalog.types";
 import type { CatalogSearchStatusType } from "../constants/catalog-search.constants";
 
-// Interfaces de la pantalla "Buscar" del catálogo (SCRUM-83).
-
-/** Una tarjeta lista para dibujar: una variante (producto + tamaño), con los textos ya armados. */
-export interface CatalogCardData {
-  /** Id de la variante: es lo que identifica la tarjeta aunque cambie el orden de los resultados. */
-  id: string;
-  imageUrl: NullableRef<string>;
-  /** Letra que se muestra cuando la variante no tiene foto. */
-  placeholderInitial: string;
-  /** "₡800 – ₡1 200", un solo precio si coinciden, o el aviso de que no hay precio. */
-  priceLabel: string;
-  /** "Leche — 1000 ml". Sin marca. */
-  title: string;
-}
+// Interfaces de la pantalla "Buscar" del catálogo (SCRUM-83/HU-51, SCRUM-84/HU-52).
+// CatalogCardData vive en @/types/catalog.types porque la usan dos
+// features desde SCRUM-86: "Buscar" y "Mis productos".
 
 /** Lo que useCatalogSearchViewModel le entrega a CatalogSearch.tsx, ya calculado. */
 export interface CatalogSearchViewModel {
+  /** Categoría del chip activo (HU-52); null = "Todas"/sin filtro. */
+  activeCategoryId: string | null;
   cards: CatalogCardData[];
+  /** Filas de categories, para dibujar los chips (HU-52). */
+  categories: Category[];
   errorMessage: NullableRef<string>;
+  onCategoryChange: (categoryId: string | null) => void;
   onQueryChange: (query: string) => void;
   query: string;
   status: CatalogSearchStatusType;

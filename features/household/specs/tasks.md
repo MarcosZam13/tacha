@@ -52,7 +52,7 @@ Deriva de [plan.md](plan.md). Cada etapa se revisa y se aprueba antes de pasar a
 - [x] 6.1 Crear `components/HouseholdCreateForm.tsx` y `components/models/HouseholdCreateFormProps.interface.ts` (solo presentación, con `Input` y `Button`).
 - [x] 6.2 Ajustar `components/HouseholdInviteLinkCard.tsx` y sus props: quitar `role="status"` y `feedbackMessage`.
 - [x] 6.3 Crear `Household.tsx`: título, estados, formulario o tarjeta, `role="status"` siempre montado y `role="alert"` para errores.
-- [x] 6.4 Crear `app/household/page.tsx` (una línea + metadata).
+- [x] 6.4 Crear `app/(app)/household/page.tsx` (una línea + metadata).
 - [x] 6.5 Pasar los textos visibles al español en `constants/household.constants.ts` ("Mi familia", "Crea tu familia", "Nombre de la familia", "Crear mi familia", "Invitar a mi familia", "Generar enlace de invitación", "Enlace de invitación", "Copiar enlace", "Generar nuevo enlace"); los nombres técnicos siguen con `household`.
 - [ ] 6.6 Accesibilidad (revisada en el código; falta probarla en el navegador): solo teclado, anuncios de `role="status"`, estados con texto (no solo color).
 - [ ] 6.7 Revisión y aprobación.
@@ -203,3 +203,252 @@ Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr)) que compil
 - [ ] Salir de la familia (HU-34c, SCRUM-58).
 - [ ] Decidir qué pasa con la lista personal al unirse (HU-34b, SCRUM-59).
 - [ ] Vista previa del nombre de la familia antes de aceptar.
+
+## SCRUM-58: salir de la familia
+
+Cada etapa termina en un commit (ver [plan.md](plan.md#commits-y-pr-1)) que compila por sí solo, y se revisa y aprueba antes de seguir. El PR (nuevo, no el #43) se abre con el commit de la etapa 1 y queda en `in progress` hasta la etapa 8.
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-58 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md` y `specs/tasks.md`.
+- [x] 1.2 Revisión y aprobación de la documentación.
+- [x] 1.3 Commit `docs(SCRUM-58): add leave household spec, plan and tasks`, push y abrir el PR hacia `develop` con label `in progress` (la tarjeta de Jira en In Progress). PR #63.
+
+### Etapa 2 — Migración (commits `feat` y `test`)
+
+- [x] 2.1 Revisar otra vez el número libre en `develop` y en los PRs abiertos (al 2026-10-10: `develop` llega a la `019`; `020`–`022` en ramas abiertas; propuesta `023`).
+- [x] 2.2 Escribir `supabase/migrations/023_leave_household.sql` con encabezado (ticket, qué hace, por qué): `get_household_members()` y `leave_household(new_admin_user_id)` según [plan.md](plan.md#datos-2) (bloqueos, relectura, resultados), `revoke`/`grant`, sin políticas ni permisos de tabla nuevos.
+- [x] 2.3 Escribir `supabase/tests/023_leave_household.test.sql` con los casos de [plan.md](plan.md#cómo-se-aplica-y-se-prueba-la-migración).
+- [x] 2.4 Revisión del SQL con el subagente `security-reviewer`; aprobación; commit de la migración y su prueba (uno solo: `feat(SCRUM-58): add leave household RPCs and SQL tests`).
+
+### Etapa 3 — Aplicar y tipos (commit `feat`)
+
+- [x] 3.1 La dueña de la historia avisa al grupo y aplica la migración en el SQL Editor **junto con su fila** en `supabase_migrations.schema_migrations` (procedimiento de `supabase/README.md`).
+- [x] 3.2 Comprobar que el historial coincide con `migrations/`.
+- [x] 3.3 Correr completo `supabase/tests/023_leave_household.test.sql`.
+- [x] 3.4 Agregar `get_household_members` y `leave_household` a `types/database.types.ts` a mano y compararlos con la firma real (`pg_proc`). Comparados con `023_leave_household.sql` y con la consulta a `pg_proc` (la dueña de la historia).
+- [x] 3.5 Commit.
+
+### Etapa 4 — Constantes, modelo y servicio (commit `feat`)
+
+- [x] 4.1 Constantes que usa el servicio: nombres de las RPC y `HOUSEHOLD_LEAVE_RESULT` (+ tipo), con claves en orden alfabético y `as const`. `HOUSEHOLD_LEAVE_STATUS`, `HOUSEHOLD_LEAVE_TEXT` y "Miembro sin nombre" se agregan en las etapas 5 y 6, donde se usan.
+- [x] 4.2 `models/HouseholdMember.interface.ts`.
+- [x] 4.3 `getHouseholdMembers()` y `leaveHousehold(newAdminUserId)` en `household.service.ts`, con type guards para el rol y el resultado, sin correos ni datos sensibles en los errores.
+- [x] 4.4 Tests del servicio con el cliente de Supabase mockeado.
+- [x] 4.5 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit.
+
+### Etapa 5 — ViewModel (commit `feat`)
+
+- [x] 5.1 `HOUSEHOLD_LEAVE_STATUS` y `HOUSEHOLD_LEAVE_DIALOG_CASE` (+ tipos) en las constantes y `hooks/useHouseholdLeave.ts`: unión de estados, carga de miembros solo para el admin, elegido, confirmar con guarda `useRef`, mapa resultado → estado, cancelar.
+- [x] 5.2 Test de `useHouseholdLeave` con el servicio mockeado ([plan.md](plan.md#pruebas-1)).
+- [ ] 5.3 `npx tsc --noEmit`, `npm run lint` y `npm test`; revisión y aprobación; commit. Las comprobaciones pasan (etapas 5 y 6 implementadas juntas); faltan la revisión y el commit.
+
+### Etapa 6 — Diálogo y pantalla (commit `feat`)
+
+- [x] 6.1 `HOUSEHOLD_LEAVE_TEXT` (con "Miembro sin nombre"), `HOUSEHOLD_LEAVE_DIALOG_DESCRIPTION` y `HOUSEHOLD_LEAVE_FORM` en las constantes y `components/HouseholdLeaveDialog.tsx` y sus props: solo presentación, `Modal`, radios nativos en `fieldset` con `legend` y `label`.
+- [x] 6.2 `useHouseholdViewModel` compone `useHouseholdLeave` y vuelve a leer la membresía al salir; `Household.tsx` muestra la sección "Salir de la familia" para miembro y admin.
+- [x] 6.3 Page Object y tests de interfaz: `tests/HouseholdLeave.page.ts` (un solo Page Object para la sección y el diálogo, sin `expect`) y `tests/HouseholdLeave.test.tsx` (jsdom: el diálogo solo y la pantalla completa). Se unieron con los de `HouseholdLeaveDialog` después de la revisión, sin quitar ningún test.
+- [ ] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`; revisión y aprobación; commit. Las comprobaciones pasan; faltan la revisión y el commit.
+
+### Etapa 7 — Pruebas y documentación (commit `docs`)
+
+- [x] 7.1 Comprobar que cada CA de SPEC §13 (HU-34c) tenga al menos un test (camino feliz + un caso negativo o límite, CONTRIBUTING §7).
+- [ ] 7.2 Pruebas manuales de CA-01 a CA-04 con cuentas de prueba; capturas sin correos ni datos sensibles. **Pendiente: las ejecuta la dueña de la historia.**
+- [x] 7.3 `docs/documento-proyecto.md` §4.1 y §6 ([plan.md](plan.md#documento-del-proyecto-1)).
+- [ ] 7.4 Marcar en SPEC §13 y en esta lista solo lo que se validó; commit `docs`.
+
+### Etapa 8 — Revisiones y QA
+
+- [x] 8.1 Traer `develop` con un merge (la rama no se rebasea: ya está publicada) y volver a revisar el número de la migración. Al 2026-10-11 `develop` no avanzó desde el último merge (no hace falta otro) y ninguna otra rama usa la `023`.
+- [x] 8.2 `git diff --check`, `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build`. Pasan todos (595 tests).
+- [ ] 8.3 Subagentes `code-reviewer`, `security-reviewer` y `qa-checker`; corregir en commits `fix(SCRUM-58): …`. Primera pasada hecha antes del commit de las etapas 5 y 6, con los hallazgos confirmados ya corregidos (aviso de salida que no se borraba, "elige a otra" sin nadie a quien elegir, tests de cancelación que no podían fallar, `not_member` y falla al salir en la pantalla, aviso buscado en `role="status"`, un solo act por test, nombres del Page Object, tabla de pruebas del plan). Pasada final de `code-reviewer` hecha: las correcciones están bien y sus dos hallazgos bajos (Escape desde el Page Object, test de radios con dos acciones) se corrigieron en un commit `fix`. La revisión de `security-reviewer` sigue vigente (después no cambió nada de sesión, permisos ni datos). Falta `qa-checker` sobre la evidencia del QA manual.
+- [ ] 8.4 Completar la descripción del PR con la plantilla (en inglés), pasos de prueba y evidencia; pasar a `waiting qa` y mover la tarjeta de Jira en el mismo momento.
+- [ ] 8.5 Merge solo con `qa accepted` puesto por otra persona.
+
+### Fuera de esta historia
+
+- [ ] Qué pasa con las listas compartidas al salir (contrato para HU-34b, SCRUM-59).
+- [ ] Ver a todos los miembros (HU-35, SCRUM-60) y eliminar miembros (HU-36).
+- [ ] Borrado de cuenta del único administrador (deuda M1).
+
+## SCRUM-59: decidir qué hacer con la lista personal
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1, con label `on hold` mientras la #63 (SCRUM-58) esté `in progress` ([plan.md](plan.md#dependencias-y-gitflow)).
+
+### Etapa 0 — Decisiones y aprobaciones (antes de implementar)
+
+- [x] 0.1 Decisiones de producto D1 a D9 de la dueña de la historia (2026-10-10), registradas en SPEC §5.
+- [x] 0.2 T1: reglas para compartir (cantidades, tachados, compras y requisitos de receta). Implementadas con la propuesta (SPEC §5); la dueña de la historia las confirma en la revisión del PR.
+- [x] 0.3 T2: qué se puede hacer con la lista personal después de "Mantener". Implementado: sección de solo lectura en `/lista`; confirmar en la revisión.
+- [x] 0.4 T3: qué pasa con la lista de la familia cuando la familia se elimina, y si se actualiza la prueba SQL de SCRUM-58. Implementado: la lista se va con la familia; las recetas y los planes quedan personales; prueba de la `023` actualizada.
+- [x] 0.5 T4: si el modo compra sobre la lista de la familia entra en la parte A. Funciona sin cambios, con compras personales; el gasto de la familia es HU-38.
+- [ ] 0.6 T5 y D7: el equipo aprueba (o no) separar la parte A en otro ticket; se registra en Jira y en `docs/sprints.md`. **Pendiente:** la parte A quedó implementada en esta rama.
+- [x] 0.7 D5 y D6: diseño de dónde se guarda la decisión y qué conserva quien sale, coordinado con SCRUM-58. `household_members.personal_lists_decision` (se borra al salir); quien sale pierde el acceso por la RLS y conserva su lista personal.
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-59 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md` y `specs/tasks.md`.
+- [x] 1.2 Revisión y aprobación de la documentación.
+- [x] 1.3 Commit `docs(SCRUM-59): add personal list decision planning` (`28bde3a`), push y abrir el PR hacia `develop` con el título `feat(SCRUM-59): manage personal lists when joining a household` y label `on hold`: PR #64.
+
+### Etapa 2 — Plan detallado (después de la etapa 0)
+
+- [x] 2.1 Completar en plan.md archivos, datos, contratos de RPC, concurrencia y commits de la parte A y de la parte B.
+- [x] 2.2 Revisar otra vez el número de la migración: al 2026-10-11 la `024` está libre en `develop` y en las ramas remotas (la `020` y la `021` son de SCRUM-131).
+- [x] 2.3 Traer `develop` con un merge cuando la #63 esté mergeada (`03b3b07`) y resolver los conflictos de los specs conservando las dos historias. El merge dejó separadores `=======` y líneas perdidas; los tres specs se reconstruyeron el 2026-10-11 ([plan.md](plan.md#dependencias-y-gitflow)).
+
+### Etapa 3 — Implementación (2026-10-11)
+
+- [x] 3.1 Migración `024_household_lists.sql` (partes A y B) y su prueba `supabase/tests/024_household_lists.test.sql`; paso 8 de la prueba de la `023` actualizado.
+- [x] 3.2 Tipos en `types/database.types.ts`, escritos a mano a partir de la `024`.
+- [ ] 3.3 Comparar los tipos con la firma real (`pg_proc`) después de aplicar la `024`.
+- [x] 3.4 Servicio, constantes y `usePersonalListsDecision` con sus tests; mocks de los tests existentes de household.
+- [x] 3.5 `PersonalListsDecision` en `/household` (después de crear) y en `/invitacion/<token>` (después de unirse), con Page Object y tests.
+- [x] 3.6 `/lista`: `getGeneralList` usa `find_general_list_id`; sección de solo lectura "Mi lista personal"; test del servicio.
+- [x] 3.7 `npx tsc --noEmit`, `npm run lint`, `npm test` (639 tests) y `npm run build` pasan; `git diff --check` limpio.
+
+### Etapa 4 — Aplicar la migración (la dueña de la historia)
+
+- [x] 4.1 `security-reviewer` sobre la `024` antes de aplicarla (2026-10-11): sin hallazgos críticos ni altos; los de la prueba y los refuerzos menores se corrigieron; las dos medias y tres bajas quedan como decisión o deuda en [plan.md](plan.md#riesgos).
+- [ ] 4.2 Aplicar la `024` con su fila del historial ([plan.md](plan.md#cómo-se-aplica-y-se-prueba-la-024)).
+- [ ] 4.3 Correr `024_household_lists.test.sql` y otra vez `023_leave_household.test.sql`.
+- [ ] 4.4 Verificar de solo lectura las políticas y las firmas.
+
+### Etapa 5 — QA y cierre
+
+- [ ] 5.1 Pruebas manuales de CA-01 a CA-05 con cuentas registradas de prueba (dos o tres), con capturas sin correos ni tokens. Incluye la regresión de `/lista`, el modo compra, las recetas y el plan.
+- [ ] 5.2 E2E de `/lista` (`features/shopping-list/specs/E2E.md`) contra la base con la `024` aplicada.
+- [x] 5.3 `docs/documento-proyecto.md` §4.1, §4.2 y §6.
+- [ ] 5.4 Revisiones `code-reviewer`, `security-reviewer` (final) y `qa-checker`.
+- [ ] 5.5 Marcar en SPEC §13 solo lo validado; descripción del PR #64; `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Conservar la lista de una sesión anónima al registrarse (ticket aparte, SCRUM-49).
+- [ ] Tarea técnica: que borrar la cuenta de quien creó la lista de la familia no la borre para todos ([plan.md](plan.md#riesgos)).
+- [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`).
+- [ ] Sublistas por fecha y listas privadas.
+- [ ] HU-35, HU-36 y HU-38.
+
+
+## SCRUM-60: consultar a los integrantes de la familia
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1 y queda en `in progress` hasta el final.
+
+### Etapa 0 — Decisiones
+
+- [x] 0.1 Decisiones de producto de la dueña de la historia (2026-10-17): iniciales o ícono genérico, cualquier miembro consulta su familia, 20 por página con "Cargar más", búsqueda automática con debounce, etiqueta "Tú" (SPEC §5).
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-60 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md`, `specs/tasks.md` y `docs/documento-proyecto.md` §4.1.
+- [ ] 1.2 Revisión y aprobación de la documentación.
+- [x] 1.3 Commit `docs(SCRUM-60): add household members list planning`, push y abrir el PR hacia `develop` con label `in progress` (PR #68).
+
+### Etapa 2 — Migración (commit `feat`)
+
+- [x] 2.1 Revisar otra vez el número libre (`025`).
+- [x] 2.2 Escribir `025_household_members_page.sql` con los requisitos de seguridad de [plan.md](plan.md#datos-3) y su prueba SQL.
+- [x] 2.3 Revisión con `security-reviewer`; aprobación; commit (`0bc8f8c`).
+- [x] 2.4 La dueña de la historia la aplica con su fila del historial y corre la prueba SQL: aplicada y registrada; la prueba terminó en `ok`.
+
+### Etapa 3 — Tipos (commit `feat`)
+
+- [x] 3.1 `get_household_members_page` en `types/database.types.ts`, comparado con `pg_proc` (la firma coincidió).
+
+### Etapa 4 — Servicio y ViewModel (commit `feat`)
+
+- [x] 4.1 Constantes: RPC, tamaño de página, debounce, estados y textos. `GET_HOUSEHOLD_MEMBERS_PAGE`, `HOUSEHOLD_MEMBERS_PAGE` (20 por página, debounce de 300 ms, tope de 60 caracteres), `HOUSEHOLD_MEMBERS_LOAD_MORE_STATUS` y `HOUSEHOLD_MEMBERS_TEXT` (título, búsqueda, etiquetas, cantidad, sin resultados, errores, reintento y "Cargar más").
+- [x] 4.2 `getHouseholdMembersPage` y sus tests (con el modelo `HouseholdMembersPage`).
+- [x] 4.3 `useHouseholdMembers` y sus tests. Incluye que, al cambiar de familia, nunca se ve a nadie de la anterior mientras carga la nueva.
+
+### Etapa 5 — Pantalla (commit `feat`)
+
+- [x] 5.1 `HouseholdMembersSection` y sus props, con `toMemberInitials` para el avatar.
+- [x] 5.2 Integración en `useHouseholdViewModel` y `Household.tsx`.
+- [x] 5.3 Page Object y tests (jsdom): `HouseholdMembers.page.ts`, `HouseholdMembers.test.tsx` y `toMemberInitials.test.ts`.
+- [x] 5.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-17): los cuatro sin errores; Vitest completo, 796 tests en 86 archivos.
+
+### Etapa 6 — QA y cierre
+
+- [ ] 6.1 Pruebas manuales de CA-01 a CA-03 con cuentas registradas de prueba, con capturas sin correos.
+- [ ] 6.2 `docs/documento-proyecto.md` §6 y marcar SPEC §13 solo con lo validado.
+- [ ] 6.3 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [ ] 6.4 Descripción del PR, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] La foto real del perfil (HU-30).
+- [ ] Eliminar miembros (HU-36).
+
+## SCRUM-61: eliminar a un integrante de la familia
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir. El PR se abre con el commit de la etapa 1, en `on hold` mientras SCRUM-60 (#68) no esté en `develop`.
+
+### Etapa 0 — Decisiones
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-10-18): D1 (el enlace no se invalida porque es uno por familia; limitación documentada), D2 (sin notificaciones) y textos de D3 (SPEC §5, §7 y §8).
+
+### Etapa 1 — Specs (commit `docs`)
+
+- [x] 1.1 Agregar SCRUM-61 a `specs/SPEC.md` (subsecciones en las 15 secciones), `specs/plan.md`, `specs/tasks.md` y `docs/documento-proyecto.md` §4.1.
+- [x] 1.2 Revisión y aprobación de la documentación (la dueña de la historia confirmó las decisiones y pidió implementar, 2026-10-19).
+- [x] 1.3 Commit `docs(SCRUM-61): add household member removal planning` (`d6df4e2`), push y abrir el PR hacia `develop` con label `on hold` (PR #69).
+
+### Etapa 2 — Después del merge de SCRUM-60
+
+- [x] 2.1 Traer `develop` a esta rama; resolver los conflictos de los specs conservando las subsecciones de las dos historias (`e5dd9c4`; sin marcas de conflicto, las dos historias en los tres specs).
+- [x] 2.2 Pasar el PR a `in progress` (y Jira). El PR #69 está en `in progress`.
+
+### Etapa 3 — Migración (commit `feat`)
+
+- [x] 3.1 Revisar otra vez el número libre (`026`). Libre el 2026-10-19 en `develop` y en todas las ramas remotas.
+- [x] 3.2 Escribir `026_remove_household_member.sql` con lo de [plan.md](plan.md#scrum-61-eliminar-a-un-integrante-de-la-familia) y su prueba SQL (`supabase/tests/026_remove_household_member.test.sql`). La prueba pasa en PGlite, con la `011` real y las políticas reales de `lists` y `list_items` de la `024`, y detecta las mutaciones de autorización.
+- [ ] 3.3 Revisión con `security-reviewer`; aprobación; commit.
+  - Hecho (2026-10-19): `security-reviewer`, sin hallazgos críticos ni altos.
+    - Medio: el enlace no rota. Es la limitación aceptada en D1 (SPEC §5).
+    - Bajo, corregido: el chequeo de admin va antes que el de «a sí mismo».
+    - Casos agregados a la prueba: `search_path` fijo, un miembro contra el admin y un miembro con su propio id.
+  - Falta: tu aprobación y el commit.
+- [x] 3.4 La dueña de la historia la aplica con su fila del historial y corre la prueba SQL. Hecho el 2026-10-19:
+  - aplicada y verificada: devuelve `text`, `security definer`, `search_path` vacío y `execute` solo para `authenticated`;
+  - con `plpgsql.check_asserts` en `on`, la prueba completa terminó en `ok`.
+
+### Etapa 4 — Tipos y servicio (commit `feat`)
+
+- [x] 4.1 `remove_household_member` en `types/database.types.ts`, comparado con `pg_proc` (`member_user_id uuid` → `text`, verificado en la base el 2026-10-19).
+- [x] 4.2 Constantes del servicio (`HOUSEHOLD_DB.RPC.REMOVE_HOUSEHOLD_MEMBER`, `HOUSEHOLD_REMOVE_MEMBER_RESULT`), `removeHouseholdMember` y sus tests (`tests/household.service.test.ts`).
+
+### Etapa 5 — Hook (commit `feat`)
+
+- [x] 5.1 Constantes del flujo y `useHouseholdMemberRemoval` con sus tests.
+  - Constantes: `HOUSEHOLD_REMOVE_MEMBER_STATUS` y `HOUSEHOLD_REMOVE_MEMBER_TEXT`, con los textos de D3.
+  - Tests: `tests/useHouseholdMemberRemoval.test.ts` (confirmar, cancelar, los cuatro resultados, error y reintento, doble clic, pantalla cerrada).
+
+### Etapa 6 — Pantalla (commit `feat`)
+
+- [x] 6.1 `HouseholdRemoveMemberDialog` y sus props; "Eliminar integrante" en las filas de `HouseholdMembersSection` (nombre accesible «Eliminar integrante {nombre}»; el foco va al título de la sección después de eliminar).
+- [x] 6.2 Integración en `useHouseholdViewModel` y `Household.tsx`: el botón solo para el admin y nunca en su fila; `onMembersChanged` recarga la lista y `onAdminLost` vuelve a leer la membresía; el aviso va en la zona `role="status"`.
+- [x] 6.3 Page Object y tests (jsdom): `tests/HouseholdRemoveMember.page.ts` y `tests/HouseholdRemoveMember.test.tsx` (15 tests). Incluye una regresión: la fila propia del admin nunca tiene el botón, aunque la lista lo muestre con rol `member`; falla si se quita la regla «nunca en la fila propia».
+- [x] 6.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-19): los cuatro sin errores; Vitest completo, 860 tests en 92 archivos; el build genera `/household`.
+
+### Etapa 7 — QA y cierre
+
+- [x] 7.1 Pruebas manuales de CA-01 a CA-04 con tres cuentas registradas de prueba, con capturas sin correos. Hecho por la dueña de la historia (2026-10-19):
+  - CA-01, con captura: el admin ve «Eliminar integrante» en las filas de B y C, y no en la suya;
+  - CA-02, con captura: «Cancelar» cierra el diálogo sin eliminar a nadie;
+  - CA-04, con captura: al eliminar aparece el aviso de éxito y B desaparece de la familia;
+  - CA-03, **sin captura** (comprobado funcionalmente): como B, perdió el acceso a la familia y conserva sus datos personales.
+- [x] 7.2 `docs/documento-proyecto.md` §4.1 y §6, y marcar SPEC §13 solo con lo validado (2026-10-19). En §13 están marcados los casos que validan la prueba SQL en la base y los tests; CA-01 a CA-04, la concurrencia y «Generar enlace nuevo» esperan la prueba manual.
+- [ ] 7.3 `code-reviewer`, `security-reviewer` y `qa-checker`.
+  - Hecho (2026-10-19): las tres revisiones, sin hallazgos críticos ni altos.
+    - Corregido: el diálogo nombra igual que la fila (`utils/toMemberLabel.ts`; con un nombre de solo espacios mostraba un texto vacío), dos comentarios de `titleFocusKey` y el orden de `removeDialog`.
+    - Tests agregados: la fila de otro admin sin botón, Escape mientras elimina y el nombre de solo espacios.
+    - Anotado en SPEC §15: sin E2E y la concurrencia.
+  - Falta: la aprobación de la dueña de la historia sobre las correcciones.
+- [ ] 7.4 Descripción del PR, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Notificar a la persona eliminada.
+- [ ] Impedir que vuelva a unirse (lista de bloqueados).

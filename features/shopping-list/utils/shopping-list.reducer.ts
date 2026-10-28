@@ -6,6 +6,7 @@ import type { ShoppingListState } from "../models/ShoppingListState.interface";
 // dispatch síncrono para "empezar a cargar" (nextjs-enterprise-patterns §3).
 export const INITIAL_SHOPPING_LIST_STATE: ShoppingListState = {
   addErrorMessage: null,
+  checkErrorMessage: null,
   isLoading: true,
   items: [],
   loadErrorMessage: null,
@@ -18,12 +19,13 @@ export const INITIAL_SHOPPING_LIST_STATE: ShoppingListState = {
  * Función pura: mismo estado + misma acción = mismo resultado, sin llamar a
  * la red ni a React. Todas las reglas de cómo cambia la lista viven acá.
  *
- * Hay tres errores separados:
+ * Hay un error separado por acción:
  * - carga: solo lo borra una carga exitosa (añadir no lo borra: la lista seguiría incompleta);
  * - añadir: lo borra el siguiente añadido exitoso;
  * - cantidad: es uno para toda la lista y lo borra el siguiente cambio de
  *   cantidad exitoso, de cualquier fila (el último intento es el que importa);
- * - eliminar: lo borra el siguiente borrado exitoso.
+ * - eliminar: lo borra el siguiente borrado exitoso;
+ * - tachar: como cantidad, uno para toda la lista; lo borra el siguiente tachado exitoso.
  */
 export const shoppingListReducer = (
   state: ShoppingListState,
@@ -65,12 +67,47 @@ export const shoppingListReducer = (
         quantityErrorMessage: null,
       };
 
+    case SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED:
+      // Modo compra (SCRUM-67): mismo bloqueo y mismo error que la cantidad
+      // pedida (QUANTITY_CHANGE_STARTED / FAILED), pero cambia lo comprado.
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === action.itemId ? { ...item, quantityBought: action.quantityBought } : item,
+        ),
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+        quantityErrorMessage: null,
+      };
+
     case SHOPPING_LIST_ACTION.QUANTITY_CHANGE_FAILED:
       // La cantidad no se toca: la fila sigue mostrando lo último que confirmó la base.
       return {
         ...state,
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
         quantityErrorMessage: action.errorMessage,
+      };
+
+    case SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED:
+      // Comparte pendingItemIds con la cantidad: una sola escritura por fila a la vez.
+      return { ...state, pendingItemIds: [...state.pendingItemIds, action.itemId] };
+
+    case SHOPPING_LIST_ACTION.CHECK_TOGGLED:
+      // Solo cambia el estado de tachado (cuándo, compra y lo comprado); la fila
+      // no se mueve dentro de items. La sección se deriva de checkedAt en el
+      // ViewModel, así destachar la devuelve a su lugar.
+      return {
+        ...state,
+        checkErrorMessage: null,
+        items: state.items.map((item) => (item.id === action.itemId ? { ...item, ...action.check } : item)),
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+      };
+
+    case SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED:
+      // checkedAt no se toca: la fila sigue en la sección que confirmó la base.
+      return {
+        ...state,
+        checkErrorMessage: action.errorMessage,
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
       };
 
     case SHOPPING_LIST_ACTION.ITEM_REMOVED:

@@ -1,15 +1,13 @@
 "use client";
 
 import { Input, Spinner } from "@/components/ui";
-import { PRODUCT_SEARCH_TEXT } from "@/constants";
-import { CatalogCard } from "./components/CatalogCard";
+import { CatalogCard } from "@/components/catalog-card/CatalogCard";
+import { CatalogTabs } from "@/components/catalog-tabs/CatalogTabs";
+import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
+import { CATALOG_TAB, CATALOG_TABS_TEXT, PRODUCT_SEARCH_TEXT } from "@/constants";
+import { CATALOG_SEARCH_STATUS, CATALOG_TEXT } from "./constants/catalog-search.constants";
+import { CatalogCategoryChips } from "./components/CatalogCategoryChips";
 import { CatalogEmptyState } from "./components/CatalogEmptyState";
-import { CatalogTabs } from "./components/CatalogTabs";
-import {
-  CATALOG_SEARCH_STATUS,
-  CATALOG_TAB,
-  CATALOG_TEXT,
-} from "./constants/catalog-search.constants";
 import { useCatalogSearchViewModel } from "./hooks/useCatalogSearchViewModel";
 
 /**
@@ -20,8 +18,8 @@ export const CatalogSearch = (): React.JSX.Element => {
   const viewModel = useCatalogSearchViewModel();
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 bg-tacha-bg px-4 py-8">
-      <h1 className="font-display text-3xl font-bold text-tacha-text">{CATALOG_TEXT.TITLE}</h1>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+      <h1 className="font-display text-3xl font-bold text-tacha-text">{CATALOG_TABS_TEXT.SECTION_TITLE}</h1>
       <CatalogTabs activeTab={CATALOG_TAB.SEARCH} />
 
       <Input
@@ -29,6 +27,12 @@ export const CatalogSearch = (): React.JSX.Element => {
         value={viewModel.query}
         onChange={viewModel.onQueryChange}
         placeholder={PRODUCT_SEARCH_TEXT.PLACEHOLDER}
+      />
+
+      <CatalogCategoryChips
+        activeCategoryId={viewModel.activeCategoryId}
+        categories={viewModel.categories}
+        onCategoryChange={viewModel.onCategoryChange}
       />
 
       {viewModel.status === CATALOG_SEARCH_STATUS.IDLE ? (
@@ -42,7 +46,11 @@ export const CatalogSearch = (): React.JSX.Element => {
           {viewModel.errorMessage}
         </p>
       ) : null}
-      {viewModel.status === CATALOG_SEARCH_STATUS.EMPTY ? <CatalogEmptyState /> : null}
+      {viewModel.status === CATALOG_SEARCH_STATUS.EMPTY ? (
+        <CatalogEmptyState
+          message={viewModel.activeCategoryId !== null ? CATALOG_TEXT.EMPTY_CATEGORY : undefined}
+        />
+      ) : null}
       {viewModel.status === CATALOG_SEARCH_STATUS.READY ? (
         <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {viewModel.cards.map((card) => (
@@ -50,6 +58,9 @@ export const CatalogSearch = (): React.JSX.Element => {
           ))}
         </ul>
       ) : null}
-    </main>
+
+      {/* SCRUM-75: una sola vez, al final de los resultados (y del catálogo), siempre visible. */}
+      <PriceDisclaimer />
+    </div>
   );
 };

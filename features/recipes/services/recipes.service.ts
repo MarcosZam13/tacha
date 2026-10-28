@@ -1,6 +1,7 @@
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
-import { POSTGRES_ERROR_CODE, RECIPES_DB } from "../constants/recipes.constants";
+import { POSTGRES_ERROR_CODE } from "@/constants";
+import { RECIPES_DB } from "../constants/recipes.constants";
 import type { RecipeSummary } from "../models/recipe-catalog.interfaces";
 import type { DeleteRecipePayload, DeleteRecipeResponse } from "../models/recipe-deletion.interfaces";
 import type { RecipeEditorValues, SaveRecipePayload, SaveRecipeResponse } from "../models/recipe-editor.interfaces";
@@ -122,4 +123,22 @@ export const addRecipeToList = async (
 
   // La RPC devuelve jsonb: la base no le da tipo, lo fija el contrato de la función (013).
   return toAddRecipeToListResponse(addedRecipeRow as unknown as AddRecipeToListRow);
+};
+
+/**
+ * Cuenta cuántos espacios del plan semanal usan una receta, para avisarlo en el
+ * diálogo de eliminar (al borrarla esos espacios quedan vacíos). Solo cuenta:
+ * `head` no trae las filas. RLS acota a lo propio, así que no hace falta
+ * filtrar por dueño.
+ */
+export const countRecipeMealPlans = async (recipeId: string): Promise<number> => {
+  await ensureSession();
+
+  const { count, error } = await getSupabaseClient()
+    .from(RECIPES_DB.TABLE.MEAL_PLANS)
+    .select(RECIPES_DB.COLUMN.ID, { count: "exact", head: true })
+    .eq(RECIPES_DB.COLUMN.RECIPE_ID, recipeId);
+  if (error) throw error;
+
+  return count ?? 0;
 };
