@@ -1,11 +1,13 @@
 "use client";
 
-import { BUTTON_VARIANT, CHIP_TONE } from "@/constants";
+import { Info, Minus, Plus, Trash2 } from "lucide-react";
+import { BUTTON_VARIANT, CHIP_TONE, ICON_SIZE } from "@/constants";
 import {
   Button,
   CategoryLabel,
   Checkbox,
   Chip,
+  Icon,
   Input,
   ItemRow,
   Modal,
@@ -53,6 +55,18 @@ const UiKitPage = (): React.JSX.Element => {
       <section className="flex flex-col gap-3">
         <CategoryLabel>Checkbox</CategoryLabel>
         <Checkbox isChecked={isChecked} onChange={toggleChecked} label="Acepto los términos" />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <CategoryLabel>Icon</CategoryLabel>
+        <div className="flex items-center gap-4 text-tacha-teal">
+          <Icon icon={Minus} size={ICON_SIZE.SMALL} />
+          <Icon icon={Plus} />
+          <Icon icon={Info} size={ICON_SIZE.LARGE} />
+          <span className="text-tacha-danger">
+            <Icon icon={Trash2} />
+          </span>
+        </div>
       </section>
 
       <section className="flex flex-col gap-3">

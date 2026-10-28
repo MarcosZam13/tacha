@@ -4,7 +4,7 @@
 Dar a cualquier integrante del equipo (Melany, Laura, Esteban, Roberto, Marcos) un set mínimo de primitivos visuales consistentes con DESIGN.md, para que cada módulo (auth, catálogo, finanzas, recetas, listas, inventario) los componga en vez de reinventar botones/inputs/modales sueltos por pantalla.
 
 ## Alcance
-- Button, Input/FormField, Modal, Spinner, Checkbox, CategoryLabel, Chip/Badge, StatCard, ItemRow — los 9 "componentes base a mantener consistentes" de DESIGN.md sección 5.
+- Button, Input/FormField, Modal, Spinner, Checkbox, CategoryLabel, Chip/Badge, StatCard, ItemRow — los 9 "componentes base a mantener consistentes" de DESIGN.md sección 5. Más `Icon` (SCRUM-145, DESIGN.md 2.5).
 - Puramente presentacionales (props → JSX), sin fetch, sin estado de servidor, sin lógica de negocio de ningún módulo específico.
 
 ## Fuera de alcance
@@ -24,9 +24,10 @@ Dar a cualquier integrante del equipo (Melany, Laura, Esteban, Roberto, Marcos) 
 - `Input` (SCRUM-137): el texto de ayuda o de error va FUERA del `<label>`, en un `<p>` ligado al campo con `aria-describedby`; el campo con error lleva `aria-invalid="true"`. Así el nombre accesible es solo la etiqueta (más el `*` de obligatorio) y no cambia cuando aparece un error. El id sale de `useId`, único aunque haya varios `Input` en la pantalla. Acepta `onBlur` opcional.
 - `Modal` cierra con click en el overlay y con Escape; no atrapa el foco todavía (fuera de alcance de esta primera pasada — anotado como pendiente).
 - `Button` deshabilitado: opacidad reducida + `cursor-not-allowed`, sin depender solo de quitar el handler.
+- `Icon` (SCRUM-145): envuelve un ícono de `lucide-react` con el tamaño (`ICON_SIZE`) y el trazo (`ICON_STROKE_WIDTH`) de la app. Siempre `aria-hidden`: no cambia el nombre accesible del botón que lo contiene. Hereda el color del padre (`currentColor`). `Button` `destructive` usa el token `tacha-danger`.
 
 ## Restricciones
-Seguir component-architecture (presentación pura, sin ViewModel porque no hay lógica), constants-standards (`BUTTON_VARIANT`, `CHIP_TONE`, `FORM_FIELD_STATE`, `SPINNER_SIZE` en `constants/ui.constants.ts`), nextjs-enterprise-patterns (tipos nullable centralizados en `types/nullable.types.ts`), clean-code-practices (nombrado, sin abreviaciones, estructura por dominio).
+Seguir component-architecture (presentación pura, sin ViewModel porque no hay lógica), constants-standards (`BUTTON_VARIANT`, `CHIP_TONE`, `FORM_FIELD_STATE`, `SPINNER_SIZE` en `constants/ui.constants.ts`; `ICON_SIZE`, `ICON_STROKE_WIDTH` en `constants/icons.constants.ts`), nextjs-enterprise-patterns (tipos nullable centralizados en `types/nullable.types.ts`), clean-code-practices (nombrado, sin abreviaciones, estructura por dominio).
 
 ## Criterios de aceptación
 - [x] Los 9 primitivos existen, tipados, sin strings/hex mágicos.
