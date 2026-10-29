@@ -70,16 +70,16 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 ## 10. Tests
 
-- [ ] 10.1 `personal-product.service.test.ts` — éxito (con/sin household, con/sin compartir), nombre/categoría inválidos, error del RPC
-- [ ] 10.2 `category.service.test.ts`
-- [ ] 10.3 `useCreateProductForm.test.ts` — validación, transición de estados
-- [ ] 10.4 `CreateProductForm.test.tsx` — casos de aceptación §13 de `SPEC.md` (CA-01, CA-02, CA-03 con sus 3 variantes, CA-04)
-- [ ] 10.5 Ajustar `my-products.service.test.ts` existente para la extensión aditiva (sin romper los casos de SCRUM-86 ya cubiertos)
+- [X] 10.1 `services/tests/personal-product.service.test.ts` — `createPersonalProduct` (payload mapeado a snake_case, `brand_name` undefined sin marca, `ensureSession`, error del RPC) y `hasHousehold` (sin sesión, sin membresía, con membresía, error)
+- [X] 10.2 Sin `category.service.test.ts`: no hay `category.service.ts` (ver 8.1) — `getCategories()` ya tiene su test en `services/tests/catalog.service.test.ts` desde SCRUM-84
+- [X] 10.3 `hooks/tests/useCreateProductForm.test.ts` — validación (CA-02: nombre/categoría/cantidad), `canSubmit`, carga de categorías/`hasHousehold` al abrir, guardar con éxito (payload, `onSuccess`, reset y cierre), error genérico sin perder lo escrito, cancelar
+- [X] 10.4 `components/create-product-form/tests/CreateProductForm.test.tsx` — cerrado no renderiza, campos visibles, errores inline (nombre sin `role="alert"` igual que `Input`; categoría con `role="alert"`), `canSubmit` deshabilita "Guardar", checkbox de compartir visible solo con household (CA-03), estado `submitting`, cancelar
+- [X] 10.5 `features/my-products/tests/my-products.service.test.ts` reescrito para la extensión aditiva: consulta por `owner_id` sin household, unión household+owner sin duplicados y ordenada, filtros por columna en cada consulta, errores de cualquiera de las dos — sin romper los casos de SCRUM-86 ya cubiertos
 
 ## 11. Cierre
 
 - [ ] 11.1 Validar contra los 9 casos de aceptación de `SPEC.md §13` (los 4 de SCRUM-86 siguen pasando + los 5 nuevos de HU-56)
-- [ ] 11.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` (los corre Daniel, no Claude)
+- [ ] 11.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` 
 - [ ] 11.3 Subagente `code-reviewer` (siempre) y `security-reviewer` (toca auth/household/formularios — obligatorio según `AGENTS.md`)
 - [ ] 11.4 Comentario en Jira SCRUM-88 (HU-57) señalando dónde quedó el formulario, para cuando se agreguen los campos de tienda/precio
 - [ ] 11.5 Descripción del PR (incluyendo "How should this be manually tested?") y paso de label `in progress` → `waiting qa`

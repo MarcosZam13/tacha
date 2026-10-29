@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Button, Checkbox, Input, Modal } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
 import {
@@ -18,6 +19,9 @@ import type { CreateProductFormProps } from "./models/CreateProductFormProps.int
  * ya vienen calculados en las props. La unidad usa un <select> nativo, mismo
  * criterio que RecipeIngredientRow (features/recipes/components): todavía no
  * hay un segundo consumidor real de un Select compartido fuera de ese caso.
+ * El error de categoría va fuera del <label> y ligado por aria-describedby
+ * (mismo criterio que Input, SCRUM-137): dentro, el lector de pantalla lo
+ * anunciaría como parte del nombre del campo.
  */
 export const CreateProductForm = ({
   baseUnit,
@@ -45,99 +49,107 @@ export const CreateProductForm = ({
   quantityError,
   shareWithHousehold,
   showShareCheckbox,
-}: CreateProductFormProps): React.JSX.Element => (
-  <Modal isOpen={isOpen} onClose={onCancel} title={CREATE_PRODUCT_FORM_TEXT.TITLE}>
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <Input
-        label={CREATE_PRODUCT_FORM_TEXT.NAME_LABEL}
-        value={name}
-        onChange={onNameChange}
-        errorMessage={nameError}
-        isRequired
-      />
+}: CreateProductFormProps): React.JSX.Element => {
+  const categorySelectId = useId();
+  const categoryDescriptionId = `${categorySelectId}-descripcion`;
+  const unitSelectId = useId();
+  const categoryDescription = categoryError ?? categoriesErrorMessage;
 
-      <Input label={CREATE_PRODUCT_FORM_TEXT.BRAND_LABEL} value={brandName} onChange={onBrandNameChange} />
+  return (
+    <Modal isOpen={isOpen} onClose={onCancel} title={CREATE_PRODUCT_FORM_TEXT.TITLE}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <Input
+          label={CREATE_PRODUCT_FORM_TEXT.NAME_LABEL}
+          value={name}
+          onChange={onNameChange}
+          errorMessage={nameError}
+          isRequired
+        />
 
-      <label className="flex flex-col gap-1 font-body text-sm">
-        <span className="font-medium text-tacha-text">
-          {CREATE_PRODUCT_FORM_TEXT.CATEGORY_LABEL}
-          <span className="text-tacha-terracotta"> *</span>
-        </span>
-        <select
-          value={categoryId}
-          onChange={(event) => onCategoryChange(event.target.value)}
-          disabled={isCategoriesLoading}
-          className="rounded-tacha-badge border border-tacha-border bg-tacha-surface px-3 py-2 text-tacha-text outline-none focus:ring-2 focus:ring-tacha-teal"
-        >
-          <option value="">{CREATE_PRODUCT_FORM_TEXT.CATEGORY_PLACEHOLDER}</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        {categoryError ? (
-          <p role="alert" className="text-red-600">
-            {categoryError}
-          </p>
-        ) : null}
-        {categoriesErrorMessage ? (
-          <p role="alert" className="text-red-600">
-            {categoriesErrorMessage}
-          </p>
-        ) : null}
-      </label>
+        <Input label={CREATE_PRODUCT_FORM_TEXT.BRAND_LABEL} value={brandName} onChange={onBrandNameChange} />
 
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <Input
-            label={CREATE_PRODUCT_FORM_TEXT.QUANTITY_LABEL}
-            value={quantity}
-            onChange={onQuantityChange}
-            type="number"
-            errorMessage={quantityError}
-            isRequired
-          />
-        </div>
-        <label className="flex w-28 flex-col gap-1 font-body text-sm">
-          <span className="font-medium text-tacha-text">{CREATE_PRODUCT_FORM_TEXT.UNIT_LABEL}</span>
+        <div className="flex flex-col gap-1 font-body text-sm">
+          <label htmlFor={categorySelectId} className="font-medium text-tacha-text">
+            {CREATE_PRODUCT_FORM_TEXT.CATEGORY_LABEL}
+            <span className="text-tacha-terracotta"> *</span>
+          </label>
           <select
-            value={baseUnit}
-            // Los valores salen de CREATE_PRODUCT_FORM_UNIT_OPTIONS, así que siempre es una unidad válida.
-            onChange={(event) => onBaseUnitChange(event.target.value as typeof baseUnit)}
+            id={categorySelectId}
+            value={categoryId}
+            onChange={(event) => onCategoryChange(event.target.value)}
+            disabled={isCategoriesLoading}
+            aria-invalid={categoryError ? true : undefined}
+            aria-describedby={categoryDescription ? categoryDescriptionId : undefined}
             className="rounded-tacha-badge border border-tacha-border bg-tacha-surface px-3 py-2 text-tacha-text outline-none focus:ring-2 focus:ring-tacha-teal"
           >
-            {CREATE_PRODUCT_FORM_UNIT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            <option value="">{CREATE_PRODUCT_FORM_TEXT.CATEGORY_PLACEHOLDER}</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
-        </label>
-      </div>
+          {categoryDescription ? (
+            <p id={categoryDescriptionId} role="alert" className="text-red-600">
+              {categoryDescription}
+            </p>
+          ) : null}
+        </div>
 
-      {showShareCheckbox ? (
-        <Checkbox
-          isChecked={shareWithHousehold}
-          onChange={onShareWithHouseholdChange}
-          label={CREATE_PRODUCT_FORM_TEXT.SHARE_LABEL}
-        />
-      ) : null}
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Input
+              label={CREATE_PRODUCT_FORM_TEXT.QUANTITY_LABEL}
+              value={quantity}
+              onChange={onQuantityChange}
+              type="number"
+              errorMessage={quantityError}
+              isRequired
+            />
+          </div>
+          <div className="flex w-28 flex-col gap-1 font-body text-sm">
+            <label htmlFor={unitSelectId} className="font-medium text-tacha-text">
+              {CREATE_PRODUCT_FORM_TEXT.UNIT_LABEL}
+            </label>
+            <select
+              id={unitSelectId}
+              value={baseUnit}
+              // Los valores salen de CREATE_PRODUCT_FORM_UNIT_OPTIONS, así que siempre es una unidad válida.
+              onChange={(event) => onBaseUnitChange(event.target.value as typeof baseUnit)}
+              className="rounded-tacha-badge border border-tacha-border bg-tacha-surface px-3 py-2 text-tacha-text outline-none focus:ring-2 focus:ring-tacha-teal"
+            >
+              {CREATE_PRODUCT_FORM_UNIT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-      {errorMessage ? (
-        <p role="alert" className="font-body text-sm text-red-600">
-          {errorMessage}
-        </p>
-      ) : null}
+        {showShareCheckbox ? (
+          <Checkbox
+            isChecked={shareWithHousehold}
+            onChange={onShareWithHouseholdChange}
+            label={CREATE_PRODUCT_FORM_TEXT.SHARE_LABEL}
+          />
+        ) : null}
 
-      <div className="flex justify-end gap-3">
-        <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onCancel} isDisabled={isSubmitting}>
-          {CREATE_PRODUCT_FORM_TEXT.CANCEL}
-        </Button>
-        <Button type="submit" isDisabled={!canSubmit || isSubmitting}>
-          {isSubmitting ? CREATE_PRODUCT_FORM_TEXT.SAVING : CREATE_PRODUCT_FORM_TEXT.SAVE}
-        </Button>
-      </div>
-    </form>
-  </Modal>
-);
+        {errorMessage ? (
+          <p role="alert" className="font-body text-sm text-red-600">
+            {errorMessage}
+          </p>
+        ) : null}
+
+        <div className="flex justify-end gap-3">
+          <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onCancel} isDisabled={isSubmitting}>
+            {CREATE_PRODUCT_FORM_TEXT.CANCEL}
+          </Button>
+          <Button type="submit" isDisabled={!canSubmit || isSubmitting}>
+            {isSubmitting ? CREATE_PRODUCT_FORM_TEXT.SAVING : CREATE_PRODUCT_FORM_TEXT.SAVE}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
