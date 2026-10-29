@@ -44,15 +44,15 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 ## 6. Decisión de arquitectura y aviso al equipo (SCRUM-87, antes de tocar el esquema)
 
-- [ ] 6.1 Registrar la decisión de agregar `owner_id` a `product_catalog` en `docs/documento-proyecto.md §6` con fecha (regla de `modos/arquitectura.md`: una decisión de modelo de datos se registra ahí antes/junto con la spec, no dentro de ella) — pendiente de autorización explícita para escribir ese archivo
-- [ ] 6.2 Coordinar con el equipo el número de migración (próximo libre verificado: 031) y avisar que se va a tocar `product_catalog`, tabla que SCRUM-86 ya construyó encima
+- [X] 6.1 Registrar la decisión de agregar `owner_id` a `product_catalog` en `docs/documento-proyecto.md §6` con fecha (regla de `modos/arquitectura.md`: una decisión de modelo de datos se registra ahí antes/junto con la spec, no dentro de ella)
+- [X] 6.2 Coordinar con el equipo el número de migración (próximo libre verificado: 031) y avisar que se va a tocar `product_catalog`, tabla que SCRUM-86 ya construyó encima
 
 ## 7. Migración y RPC nueva
 
-- [ ] 7.1 `supabase/migrations/0XX_add_owner_id_to_product_catalog.sql`: `ALTER TABLE product_catalog ADD COLUMN owner_id uuid NULL REFERENCES auth.users(id) ON DELETE CASCADE`
-- [ ] 7.2 Función `security definer` nueva (nombre a confirmar: `create_personal_product`) — resuelve household internamente vía `auth.uid()`, inserta producto + variante (+ marca si hay) en una transacción, valida nombre/categoría del lado del servidor, devuelve el producto creado
-- [ ] 7.3 `grant execute` de la función solo a `authenticated` (mismo patrón que `ensure_general_list_id`/`find_general_list_id`)
-- [ ] 7.4 Test SQL de la función (caso sin household, con household sin compartir, con household compartiendo, nombre/categoría inválidos) — mismo criterio que los tests SQL ya existentes para `029`/`030`
+- [X] 7.1 `supabase/migrations/031_create_personal_product.sql`: `ALTER TABLE product_catalog ADD COLUMN owner_id uuid NULL REFERENCES auth.users(id) ON DELETE CASCADE` + índice en `owner_id`
+- [X] 7.2 Función `security definer` nueva (`create_personal_product`) — resuelve household internamente vía `auth.uid()`, inserta producto + variante (+ marca si hay) en una transacción, valida nombre/categoría/unidad/cantidad del lado del servidor, devuelve el `id` del producto creado
+- [X] 7.3 `grant execute` de la función solo a `authenticated` (mismo patrón que `ensure_general_list_id`/`find_general_list_id`)
+- [X] 7.4 Test SQL de la función (`supabase/tests/031_create_personal_product.test.sql`: sin sesión, nombre/categoría/unidad/cantidad inválidos, sin household, con household sin compartir, con household compartiendo, con marca) — mismo criterio que los tests SQL ya existentes para `029`/`030`
 
 ## 8. Servicios y hook del formulario
 
