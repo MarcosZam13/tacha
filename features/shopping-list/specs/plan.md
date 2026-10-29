@@ -361,21 +361,21 @@ e2e/features/shopping-list/            E2E-LISTA-05 (modo compra de punta a punt
 
 Deriva de [SPEC.md §16](SPEC.md#16-scrum-114-aviso-pasivo-de-faltante). No cambia ninguna tabla ni política: suma una RPC de solo lectura y lo que se dibuja bajo cada fila.
 
-### Datos: migración `032_list_recipe_shortfalls.sql`
+### Datos: migración `033_list_recipe_shortfalls.sql`
 
 - `get_general_list_shortfalls()`: `stable`, `security definer`, `search_path = ''`, `returns table (list_item_id uuid, recipe_name text, quantity_missing numeric, quantity_unit text)`.
   1. `auth.uid()` nulo → `42501`.
   2. `general_list_id := public.find_general_list_id()` (024). Esa función filtra `household_members` y `lists` por `auth.uid()` explícito, no por RLS, así que dentro de `security definer` devuelve la misma lista que vería el usuario. Nulo → 0 filas.
   3. `list_item_recipe_requirements` ⋈ `list_items` (`list_id = general_list_id`) ⋈ `recipes` (solo `name`), con `quantity_missing > 0` y `quantity_unit in ('ml', 'g')`, ordenado por `list_items.created_at`, `req.created_at`, `req.id`.
 - `revoke execute ... from public, anon`; `grant execute ... to authenticated`.
-- Prueba `supabase/tests/032_list_recipe_shortfalls.test.sql` (begin/rollback, como la 024): el dueño ve su faltante con el nombre; no ve los de faltante 0 ni los de `unidad`; un miembro de la familia ve el de otro miembro con su nombre, y `select` sobre `recipes` sigue sin devolverle esa receta; un usuario de otra familia y uno sin familia reciben 0 filas; sin sesión `42501`; `anon` sin `execute`.
+- Prueba `supabase/tests/033_list_recipe_shortfalls.test.sql` (begin/rollback, como la 024): el dueño ve su faltante con el nombre; no ve los de faltante 0 ni los de `unidad`; un miembro de la familia ve el de otro miembro con su nombre, y `select` sobre `recipes` sigue sin devolverle esa receta; un usuario de otra familia y uno sin familia reciben 0 filas; sin sesión `42501`; `anon` sin `execute`.
 - `types/database.types.ts`: solo `Functions.get_general_list_shortfalls`.
 
 ### Archivos
 
 ```
-supabase/migrations/032_list_recipe_shortfalls.sql
-supabase/tests/032_list_recipe_shortfalls.test.sql
+supabase/migrations/033_list_recipe_shortfalls.sql
+supabase/tests/033_list_recipe_shortfalls.test.sql
 types/database.types.ts                         Functions.get_general_list_shortfalls
 
 constants/recipe-quantity.constants.ts          (nuevo) DECIMAL_SEPARATOR, RECIPE_UNIT_LABEL, RECIPE_UNIT_SINGULAR_LABEL, movidos desde recetas

@@ -337,7 +337,7 @@ No hay estados nuevos. Los faltantes llegan con la carga de la lista (`loading` 
   - Devuelve solo los registros de los ítems de esa lista con `quantity_missing > 0` y `quantity_unit` en `ml` o `g` (reglas 22, 23 y 30), en el orden de la fila y del registro.
   - `execute` solo para `authenticated` (los usuarios anónimos de Supabase también lo son); `anon` y `public` sin permiso.
 - **No cambia** ninguna tabla, política ni función existente: `recipes` sigue siendo solo de su dueño para cualquier otra lectura.
-- **Migración `032`** (la `031` es de la rama de SCRUM-87), con su prueba SQL en `supabase/tests/`.
+- **Migración `033`** (la `031` y la `032` son de la PR #77, SCRUM-87), con su prueba SQL en `supabase/tests/`.
 - **`docs/documento-proyecto.md`** (§4.9.1 y §6) se actualiza en este PR: el aviso ya se muestra y el nombre de la receta es visible para la familia.
 
 ### 16.11 Casos fuera de alcance
