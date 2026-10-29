@@ -9,7 +9,7 @@ import type { CatalogBaseUnitType } from "@/constants/catalog.constants";
 
 // Tabla y columna de la consulta propia de hasHousehold()
 // (services/personal-product.service.ts) y el RPC de guardar.
-export const CREATE_PRODUCT_FORM_DB = {
+export const PERSONAL_PRODUCT_DB = {
   COLUMN: {
     USER_ID: "user_id",
   },

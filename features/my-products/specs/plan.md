@@ -72,6 +72,19 @@ criterio que `getCurrentHouseholdId()` en
 reusar `getHouseholdMembership()` de `features/household` porque esa expone
 `householdName`/`role`, no lo que este formulario necesita (solo si existe o no).
 
+**Desviación de este plan (2026-10-29, hallazgo del `security-reviewer` al cerrar
+el ticket):** la migración 031 (ya escrita cuando se armó este plan) no tocaba RLS,
+asumiendo que `product_catalog`/`product_catalog_variants` (`using (true)`) seguían
+siendo correctas para lectura — cierto antes de que existiera `owner_id`, falso desde
+que existe un producto personal sin compartir (SPEC.md §10 lo decía explícito y
+quedó mal). Se agrega la migración 032: reemplaza esas dos policies (y la de
+`product_brands`, misma cadena) por catálogo global + propio + household,
+restringidas a `authenticated` — mismo criterio que ya usa `lists` (024). La misma
+migración corrige un bug de puntos relacionado: `create_personal_product` dejaba
+`owner_id` y `household_id` a la vez cuando se comparte, duplicando el producto en
+`listMyProducts()`. Detalle completo en el encabezado de
+`supabase/migrations/032_fix_product_catalog_rls.sql`.
+
 ### Cambios en archivos existentes
 
 - `features/my-products/MyProducts.tsx`: agrega el botón "+ Agregar producto" en la

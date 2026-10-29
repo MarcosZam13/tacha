@@ -252,7 +252,9 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
--- 8. A crea marcando compartir: household_id = su familia.
+-- 8. A crea marcando compartir: household_id = su familia, owner_id null
+--    (fix de la migración 032: antes quedaban los dos a la vez, duplicando
+--    el producto en "Mis productos" vía listMyProducts()).
 -- ----------------------------------------------------------------------------
 do $$
 declare
@@ -264,9 +266,10 @@ begin
   );
 
   select * into product_row from public.product_catalog where id = new_id;
-  assert product_row.owner_id = current_setting('tacha_test.user_a')::uuid, 'owner_id debe ser A';
   assert product_row.household_id = current_setting('tacha_test.household_1')::uuid,
     'A marcó compartir: household_id debe ser el de su familia';
+  assert product_row.owner_id is null,
+    'compartido con el household: owner_id debe quedar null (032), nunca los dos a la vez';
 end $$;
 
 -- ----------------------------------------------------------------------------

@@ -60,7 +60,10 @@ const toCatalogProduct = (productRow: {
 });
 
 /** Productos `source = 'manual'` donde `column = value` (household_id u owner_id). */
-const queryManualProductsBy = async (column: string, value: string): Promise<CatalogProduct[]> => {
+const queryManualProductsBy = async (
+  column: typeof MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID | typeof MY_PRODUCTS_DB.COLUMN.OWNER_ID,
+  value: string,
+): Promise<CatalogProduct[]> => {
   const { data: productRows, error } = await getSupabaseClient()
     .from(MY_PRODUCTS_DB.TABLE.PRODUCT_CATALOG)
     .select(MY_PRODUCTS_DB.SELECT)

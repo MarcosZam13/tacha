@@ -112,7 +112,7 @@ No incluye (ver §14):
 - Reutilizar `CatalogProduct`, `toCatalogCards` y `CatalogCard` en vez de duplicar el mapeo de producto→tarjeta.
 - Sin librerías nuevas.
 - Separar UI (`MyProducts.tsx`) de lógica (`hooks/useMyProductsViewModel.ts`), sin fetch ni `useEffect` en el `.tsx`.
-- Sin RPC nueva: `product_catalog`/`product_catalog_variants` ya tienen policy de lectura pública (`using (true)`), así que una consulta directa desde el cliente alcanza — no se toca RLS ni se agrega ninguna policy. *(Esto sigue siendo cierto para la lectura; HU-56 sí necesita una RPC nueva para escribir — ver abajo.)*
+- Sin RPC nueva para leer: una consulta directa desde el cliente alcanza. *(Corrección 2026-10-29, hallazgo del `security-reviewer`: la frase original decía que no hacía falta tocar RLS para esto — falso desde que HU-56 agrega `owner_id`/producto personal sin compartir. La migración 032 corrige la policy de lectura de `product_catalog`/`product_catalog_variants`/`product_brands`, ver §12. HU-56 sí necesita una RPC nueva para escribir — ver abajo.)*
 
 **HU-56:**
 
@@ -135,10 +135,10 @@ No incluye (ver §14):
 
 ## 12. Contratos externos
 
-- Tabla `product_catalog` (columnas reales, verificadas contra la base: `id`, `name`, `category_id`, `household_id`, `source`, `created_at`) — policy `"public read product_catalog"` (`for select to public using (true)`), ya existente, sin cambios para lectura.
-- Tabla `product_catalog_variants` (columnas reales: `id`, `product_catalog_id`, `name`, `base_unit`, `base_quantity`, `image_url`, `created_at`) — policy `"public read variants"`, ya existente, sin cambios para lectura.
+- Tabla `product_catalog` (columnas reales, verificadas contra la base: `id`, `name`, `category_id`, `household_id`, `source`, `created_at`, y desde esta historia `owner_id`) — policy de lectura corregida en la migración 032 (ver abajo): catálogo global + propio + household, `to authenticated`.
+- Tabla `product_catalog_variants` (columnas reales: `id`, `product_catalog_id`, `name`, `base_unit`, `base_quantity`, `image_url`, `created_at`) — policy de lectura corregida en la migración 032: visible si su producto es visible.
 - Tabla `household_members` (columnas `user_id`, `household_id`, `role`, `created_at`, `personal_lists_decision`) para resolver el household del usuario actual — misma tabla que ya usa `features/household`, consulta propia y mínima (solo `household_id`), sin importar el servicio de esa feature (ver `plan.md`, decisión 4 de SCRUM-86).
-- Sin RPC ni policy nueva para **lectura**.
+- *(Corrección 2026-10-29: sí hubo policy nueva para lectura — ver "HU-56" abajo, migración 032.)*
 
 **HU-56 (SCRUM-87) — contratos nuevos:**
 
@@ -147,6 +147,7 @@ No incluye (ver §14):
 - Tabla `categories`: confirmado contra la base real (`pg_policies`) que su policy `"public read categories"` es `for select to public using (true)` — se lee directo, sin RPC, igual que ya hace SCRUM-84 para sus chips (heads-up de Daniel en el comentario de Jira `10049` sobre SCRUM-87, puesto durante SCRUM-84).
 - Confirmado contra la base real (`information_schema.role_table_grants`) que `anon`/`authenticated` **no tienen** `INSERT` sobre `product_catalog` ni `product_catalog_variants` — solo `SELECT`/`REFERENCES`/`TRIGGER`. La función nueva es la única puerta de escritura.
 - Número de migración: el próximo libre verificado contra la base real es **031** (última aplicada: `030_fix_list_catalog_by_category_param_names`) — sin confirmar todavía con el equipo, pendiente de coordinar antes de crear el archivo.
+- **Migración 032, agregada al cierre (2026-10-29, hallazgo del `security-reviewer`):** corrige la policy de lectura de `product_catalog`/`product_catalog_variants`/`product_brands` (ver §10) y un bug de `create_personal_product` (dejaba `owner_id` y `household_id` a la vez al compartir, duplicando el producto en `listMyProducts()`). Detalle completo en el encabezado de la migración y en `plan.md`.
 
 ## 13. Casos de aceptación
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CREATE_PRODUCT_FORM_DB } from "@/constants/create-product-form.constants";
+import { PERSONAL_PRODUCT_DB } from "@/constants/create-product-form.constants";
 import { createPersonalProduct, hasHousehold } from "../personal-product.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con un
@@ -76,7 +76,7 @@ describe("createPersonalProduct", () => {
       shareWithHousehold: true,
     });
 
-    expect(rpcMock).toHaveBeenCalledWith(CREATE_PRODUCT_FORM_DB.RPC.CREATE_PERSONAL_PRODUCT, {
+    expect(rpcMock).toHaveBeenCalledWith(PERSONAL_PRODUCT_DB.RPC.CREATE_PERSONAL_PRODUCT, {
       base_quantity: 1000,
       base_unit: "ml",
       brand_name: "Dos Pinos",
@@ -98,7 +98,7 @@ describe("createPersonalProduct", () => {
     });
 
     expect(rpcMock).toHaveBeenCalledWith(
-      CREATE_PRODUCT_FORM_DB.RPC.CREATE_PERSONAL_PRODUCT,
+      PERSONAL_PRODUCT_DB.RPC.CREATE_PERSONAL_PRODUCT,
       expect.objectContaining({ brand_name: undefined }),
     );
   });
@@ -168,8 +168,8 @@ describe("hasHousehold", () => {
 
     await hasHousehold();
 
-    expect(fromMock).toHaveBeenCalledWith(CREATE_PRODUCT_FORM_DB.TABLE.HOUSEHOLD_MEMBERS);
-    expect(eqSpy).toHaveBeenCalledWith(CREATE_PRODUCT_FORM_DB.COLUMN.USER_ID, USER_ID);
+    expect(fromMock).toHaveBeenCalledWith(PERSONAL_PRODUCT_DB.TABLE.HOUSEHOLD_MEMBERS);
+    expect(eqSpy).toHaveBeenCalledWith(PERSONAL_PRODUCT_DB.COLUMN.USER_ID, USER_ID);
   });
 
   it("rethrows the Supabase error", async () => {

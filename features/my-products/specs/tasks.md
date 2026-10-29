@@ -53,6 +53,8 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 - [X] 7.2 Función `security definer` nueva (`create_personal_product`) — resuelve household internamente vía `auth.uid()`, inserta producto + variante (+ marca si hay) en una transacción, valida nombre/categoría/unidad/cantidad del lado del servidor, devuelve el `id` del producto creado
 - [X] 7.3 `grant execute` de la función solo a `authenticated` (mismo patrón que `ensure_general_list_id`/`find_general_list_id`)
 - [X] 7.4 Test SQL de la función (`supabase/tests/031_create_personal_product.test.sql`: sin sesión, nombre/categoría/unidad/cantidad inválidos, sin household, con household sin compartir, con household compartiendo, con marca) — mismo criterio que los tests SQL ya existentes para `029`/`030`
+- [X] 7.5 (Agregado al cierre, 2026-10-29) `supabase/migrations/032_fix_product_catalog_rls.sql`: corrige la policy de lectura de `product_catalog`/`product_catalog_variants`/`product_brands` (`using (true)` exponía productos personales sin compartir, hallazgo del `security-reviewer`) y el bug de `create_personal_product` que dejaba `owner_id`/`household_id` a la vez al compartir
+- [X] 7.6 Test SQL de 032 (`supabase/tests/032_fix_product_catalog_rls.test.sql`: anon sin acceso, catálogo global visible, producto propio visible, producto ajeno sin compartir invisible, producto del household visible) + corregida la aserción del caso 8 en `031_create_personal_product.test.sql` (ahora exige `owner_id is null` al compartir)
 
 ## 8. Servicios y hook del formulario
 
@@ -78,8 +80,8 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 ## 11. Cierre
 
-- [ ] 11.1 Validar contra los 9 casos de aceptación de `SPEC.md §13` (los 4 de SCRUM-86 siguen pasando + los 5 nuevos de HU-56)
-- [ ] 11.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` 
-- [ ] 11.3 Subagente `code-reviewer` (siempre) y `security-reviewer` (toca auth/household/formularios — obligatorio según `AGENTS.md`)
+- [X] 11.1 Validar contra los 9 casos de aceptación de `SPEC.md §13` (los 4 de SCRUM-86 siguen pasando + los 5 nuevos de HU-56)
+- [X] 11.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` 
+- [X] 11.3 Subagente `code-reviewer` (siempre) y `security-reviewer` (toca auth/household/formularios — obligatorio según `AGENTS.md`) — hallazgos y resolución en `plan.md`/`SPEC.md` (migración 032) y en el historial del chat
 - [ ] 11.4 Comentario en Jira SCRUM-88 (HU-57) señalando dónde quedó el formulario, para cuando se agreguen los campos de tienda/precio
 - [ ] 11.5 Descripción del PR (incluyendo "How should this be manually tested?") y paso de label `in progress` → `waiting qa`

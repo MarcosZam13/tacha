@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { CREATE_PRODUCT_FORM_DB } from "@/constants/create-product-form.constants";
+import { PERSONAL_PRODUCT_DB } from "@/constants/create-product-form.constants";
 import type { CatalogBaseUnitType } from "@/constants/catalog.constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
@@ -41,7 +41,7 @@ export const createPersonalProduct = async (payload: CreatePersonalProductPayloa
   await ensureSession();
 
   const { data: productId, error } = await getSupabaseClient().rpc(
-    CREATE_PRODUCT_FORM_DB.RPC.CREATE_PERSONAL_PRODUCT,
+    PERSONAL_PRODUCT_DB.RPC.CREATE_PERSONAL_PRODUCT,
     {
       base_quantity: payload.baseQuantity,
       base_unit: payload.baseUnit,
@@ -80,9 +80,9 @@ export const hasHousehold = async (): Promise<boolean> => {
   if (!session) return false;
 
   const { data: membershipRow, error } = await getSupabaseClient()
-    .from(CREATE_PRODUCT_FORM_DB.TABLE.HOUSEHOLD_MEMBERS)
-    .select(CREATE_PRODUCT_FORM_DB.COLUMN.USER_ID)
-    .eq(CREATE_PRODUCT_FORM_DB.COLUMN.USER_ID, session.user.id)
+    .from(PERSONAL_PRODUCT_DB.TABLE.HOUSEHOLD_MEMBERS)
+    .select(PERSONAL_PRODUCT_DB.COLUMN.USER_ID)
+    .eq(PERSONAL_PRODUCT_DB.COLUMN.USER_ID, session.user.id)
     .maybeSingle();
   if (error) throw error;
 
