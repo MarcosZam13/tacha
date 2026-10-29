@@ -8,5 +8,7 @@ import type { MyProductsStatusType } from "../constants/my-products.constants";
 export interface MyProductsViewModel {
   cards: CatalogCardData[];
   errorMessage: NullableRef<string>;
+  /** Vuelve a pedir el listado (HU-56): lo llama quien crea un producto nuevo. */
+  reload: () => void;
   status: MyProductsStatusType;
 }

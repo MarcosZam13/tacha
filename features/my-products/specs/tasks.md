@@ -63,10 +63,10 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 ## 9. UI del formulario y conexión con las dos pantallas
 
-- [ ] 9.1 `components/create-product-form/CreateProductForm.tsx` — nombre, marca, categoría (select de `listCategories()`), unidad + cantidad de tamaño, checkbox "Compartir con mi household" (visible solo si el usuario tiene uno)
-- [ ] 9.2 `features/my-products/MyProducts.tsx`: botón "+ Agregar producto" en la cabecera, abre `CreateProductForm`, refresca el listado al guardar con éxito
-- [ ] 9.3 `features/catalog/components/CatalogEmptyState.tsx` (CA-04): agregar el enlace/botón que abre el mismo `CreateProductForm`
-- [ ] 9.4 `features/my-products/services/my-products.service.ts` → extender `listMyProducts()` de forma aditiva (también por `owner_id` cuando no hay household, o además del household si el usuario tiene productos propios sin compartir)
+- [X] 9.1 `components/create-product-form/CreateProductForm.tsx` — nombre, marca, categoría (select de `getCategories()`), unidad + cantidad de tamaño, checkbox "Compartir con mi household" (visible solo si el usuario tiene uno); puramente presentacional, recibe `UseCreateProductFormReturn` completo como props (`CreateProductFormProps.interface.ts`)
+- [X] 9.2 `features/my-products/MyProducts.tsx`: botón "+ Agregar producto" en la cabecera, abre `CreateProductForm`, refresca el listado al guardar con éxito (`useMyProductsViewModel` ganó `reload()`)
+- [X] 9.3 `features/catalog/components/CatalogEmptyState.tsx` (CA-04): agregó `onAddProductClick` y el botón que abre el mismo `CreateProductForm`, cableado desde `CatalogSearch.tsx` con su propia instancia de `useCreateProductForm` (no refresca nada al crear: el producto nuevo no cambia una búsqueda ya hecha, per plan.md)
+- [X] 9.4 `features/my-products/services/my-products.service.ts` → `listMyProducts()` extendido de forma aditiva: siempre consulta por `owner_id`, y además por `household_id` si el usuario pertenece a uno (unión sin duplicados, un producto nunca tiene ambos campos a la vez)
 
 ## 10. Tests
 

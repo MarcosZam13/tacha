@@ -13,7 +13,8 @@ import { createPersonalProduct, hasHousehold } from "@/services/personal-product
 import type { Category } from "@/types/catalog.types";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 
-interface UseCreateProductFormReturn {
+export interface UseCreateProductFormReturn {
+  baseUnit: CatalogBaseUnitType;
   brandName: string;
   canSubmit: boolean;
   categories: Category[];
@@ -211,6 +212,7 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
   };
 
   return {
+    baseUnit,
     brandName,
     canSubmit: name.trim().length > 0 && categoryId.length > 0 && validateQuantity(quantity) === undefined,
     categories,
