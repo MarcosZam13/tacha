@@ -1,4 +1,4 @@
-import { APP_ROUTE, CATALOG_BASE_UNIT, RECIPES_TABS_TEXT } from "@/constants";
+import { APP_ROUTE, CATALOG_BASE_UNIT, RECIPE_UNIT_LABEL, RECIPES_TABS_TEXT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 
 // Constantes propias de recetas. Viven dentro de la feature porque ninguna
@@ -64,25 +64,11 @@ export const RECIPE_FORM_PATTERN = {
   SERVINGS: /^\d+$/,
 } as const;
 
-// En Costa Rica los decimales se escriben con coma; Number() solo entiende punto.
-export const DECIMAL_SEPARATOR = {
-  COMMA: ",",
-  POINT: ".",
-} as const;
-
-// Cómo se muestra cada unidad en el selector del ingrediente.
-export const RECIPE_UNIT_LABEL = {
-  [CATALOG_BASE_UNIT.GRAMS]: "g",
-  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
-  [CATALOG_BASE_UNIT.UNIT]: "unidades",
-} as const satisfies Record<CatalogBaseUnitType, string>;
-
-// Singular de cada unidad, para cantidades de exactamente 1 ("1 unidad", no "1 unidades").
-export const RECIPE_UNIT_SINGULAR_LABEL = {
-  [CATALOG_BASE_UNIT.GRAMS]: "g",
-  [CATALOG_BASE_UNIT.MILLILITERS]: "ml",
-  [CATALOG_BASE_UNIT.UNIT]: "unidad",
-} as const satisfies Record<CatalogBaseUnitType, string>;
+// DECIMAL_SEPARATOR y las etiquetas de unidad se promovieron a
+// constants/recipe-quantity.constants.ts (SCRUM-114): la lista general
+// también escribe cantidades de receta. Se reexportan aquí para no tocar los
+// imports que ya existían en esta feature.
+export { DECIMAL_SEPARATOR, RECIPE_UNIT_LABEL, RECIPE_UNIT_SINGULAR_LABEL } from "@/constants";
 
 // Opciones del selector de unidad. ml primero a propósito: es la unidad más
 // común en las recetas del catálogo actual (lácteos), así queda arriba.

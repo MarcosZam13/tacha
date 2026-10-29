@@ -9,6 +9,7 @@ export * from "./password.constants";
 export * from "./postgres.constants";
 export * from "./price-disclaimer.constants";
 export * from "./recaptcha.constants";
+export * from "./recipe-quantity.constants";
 export * from "./recipes-tabs.constants";
 export * from "./routes.constants";
 export * from "./scraping.constants";
