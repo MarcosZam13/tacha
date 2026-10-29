@@ -356,3 +356,74 @@ e2e/features/shopping-list/            E2E-LISTA-05 (modo compra de punta a punt
 | `parseSpentTotal` como función pura | Validar dentro del hook | Se testea sin React y la regla de qué es un total válido queda en un solo lugar |
 | `ShoppingList` (frontera `Suspense`) + `ShoppingListInner` | Poner el `Suspense` en `app/(app)/lista/page.tsx` | La ruta se mantiene delgada; la necesidad de la frontera es de la feature (usa `useSearchParams`) |
 | `usePurchaseSession` aparte | Todo en `useShoppingListViewModel` | El ViewModel ya coordina lista, buscador, detalle y borrado; la compra es otra responsabilidad (component-architecture §5, sin god ViewModel) |
+
+## SCRUM-114: aviso pasivo de faltante
+
+Deriva de [SPEC.md §16](SPEC.md#16-scrum-114-aviso-pasivo-de-faltante). No cambia ninguna tabla ni política: suma una RPC de solo lectura y lo que se dibuja bajo cada fila.
+
+### Datos: migración `032_list_recipe_shortfalls.sql`
+
+- `get_general_list_shortfalls()`: `stable`, `security definer`, `search_path = ''`, `returns table (list_item_id uuid, recipe_name text, quantity_missing numeric, quantity_unit text)`.
+  1. `auth.uid()` nulo → `42501`.
+  2. `general_list_id := public.find_general_list_id()` (024). Esa función filtra `household_members` y `lists` por `auth.uid()` explícito, no por RLS, así que dentro de `security definer` devuelve la misma lista que vería el usuario. Nulo → 0 filas.
+  3. `list_item_recipe_requirements` ⋈ `list_items` (`list_id = general_list_id`) ⋈ `recipes` (solo `name`), con `quantity_missing > 0` y `quantity_unit in ('ml', 'g')`, ordenado por `list_items.created_at`, `req.created_at`, `req.id`.
+- `revoke execute ... from public, anon`; `grant execute ... to authenticated`.
+- Prueba `supabase/tests/032_list_recipe_shortfalls.test.sql` (begin/rollback, como la 024): el dueño ve su faltante con el nombre; no ve los de faltante 0 ni los de `unidad`; un miembro de la familia ve el de otro miembro con su nombre, y `select` sobre `recipes` sigue sin devolverle esa receta; un usuario de otra familia y uno sin familia reciben 0 filas; sin sesión `42501`; `anon` sin `execute`.
+- `types/database.types.ts`: solo `Functions.get_general_list_shortfalls`.
+
+### Archivos
+
+```
+supabase/migrations/032_list_recipe_shortfalls.sql
+supabase/tests/032_list_recipe_shortfalls.test.sql
+types/database.types.ts                         Functions.get_general_list_shortfalls
+
+constants/recipe-quantity.constants.ts          (nuevo) DECIMAL_SEPARATOR, RECIPE_UNIT_LABEL, RECIPE_UNIT_SINGULAR_LABEL, movidos desde recetas
+constants/index.ts                              + barrel
+utils/formatRecipeQuantity.ts                   (git mv desde features/recipes/utils/) segundo consumidor
+features/recipes/constants/recipes.constants.ts reexporta las tres constantes movidas
+features/recipes/utils/*.ts                     import de formatRecipeQuantity desde @/utils
+
+features/shopping-list/
+  constants/shopping-list.constants.ts          RPC GET_GENERAL_LIST_SHORTFALLS, SHORTFALL_UNIT (ml / g), textos del aviso
+  models/RecipeShortfall.interface.ts           { recipeName, quantityMissing, unit }
+  models/ShoppingListItem.interface.ts          + recipeShortfalls: RecipeShortfall[]
+  models/ShoppingListRowViewModel.interface.ts  + shortfallNotes: string[]
+  services/shopping-list.service.ts             getGeneralList: lista + RPC en paralelo; addItemToGeneralList devuelve recipeShortfalls: []
+  utils/toRecipeShortfalls.ts                   filas de la RPC → Map<itemId, RecipeShortfall[]> (pura, con test)
+  utils/toShortfallNote.ts                      RecipeShortfall → "+ 600 ml necesarios para Tres leches" (pura, con test)
+  utils/toShoppingListRow.ts                    + shortfallNotes
+  utils/shopping-list.reducer.ts                ITEM_UPSERTED conserva los faltantes de la fila existente
+  components/ShoppingListShortfallNotes.tsx     <ul> de avisos, con id para aria-describedby
+  components/ShoppingListRow.tsx                columna con el botón + los avisos; aria-describedby
+  components/models/ShoppingListShortfallNotesProps.interface.ts
+  tests/                                        toRecipeShortfalls, toShortfallNote, toShoppingListRow, reducer, service, ShoppingListRow (POM)
+  specs/E2E.md                                  E2E-LISTA-06
+e2e/features/shopping-list/                     E2E-LISTA-06
+e2e/support/supabase.ts                         createOwnRecipe acepta la cantidad del ingrediente (por defecto 100)
+docs/documento-proyecto.md                      §4.9.1 y §6
+```
+
+### Flujo
+
+1. Abrir `/lista` → `useShoppingList` (efecto de carga, sin cambios) → `getGeneralList()`.
+2. `getGeneralList()` → `ensureSession()` → en paralelo: `findGeneralListId()` + select de la lista (como hoy) y `rpc("get_general_list_shortfalls")`. Si cualquiera falla, falla la carga (`LOAD_FAILED`, SPEC 16.6).
+3. `toRecipeShortfalls(rows)` agrupa por `list_item_id`; `toShoppingListItems` le pone a cada item su arreglo (o `[]`).
+4. El reducer guarda los items como siempre (`LOADED`). `ITEM_UPSERTED` (añadir desde el buscador) reemplaza la fila pero conserva sus `recipeShortfalls` (SPEC regla 32).
+5. `toShoppingListRow` arma `shortfallNotes` con `toShortfallNote` (que usa `formatRecipeQuantity`).
+6. `ShoppingListRow` dibuja el botón de tachar y, debajo, `ShoppingListShortfallNotes` si hay notas; el botón lleva `aria-describedby` al `id` de la lista de avisos.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| RPC `security definer` que devuelve solo el nombre | Política nueva de lectura en `recipes` para miembros | Una política haría aparecer las recetas de otros miembros en su `/recetas` y en el planificador, que leen sin filtrar por dueño; la RPC expone 4 columnas y nada más |
+| La lista la decide `find_general_list_id()` dentro de la RPC | Recibir el id de la lista como parámetro | Con un parámetro, la función `security definer` tendría que repetir la regla de quién ve una lista; sin parámetro no hay id ajeno que probar |
+| Filtrar faltante 0 y `unidad` en la base | Traer todo y filtrar en el cliente | Las reglas de qué es un aviso quedan junto al dato (como `get_recipe_coverage`), y la RPC no devuelve nada que la pantalla no use |
+| RPC en paralelo con la consulta de la lista | Embeber `list_item_recipe_requirements(recipes(name))` | Embebido, el nombre de la receta de otro miembro llega `null` por la RLS de `recipes` |
+| Si falla la RPC, falla la carga | Mostrar la lista sin avisos | Sin avisos la pantalla diría que no falta nada sin saberlo; es el mismo criterio que "no se ofrece añadir si la carga falló" |
+| `recipeShortfalls` obligatorio (`[]` si no hay) | Campo opcional | Sin `undefined` que distinguir: toda fila tiene arreglo, y el compilador obliga a llenarlo en cada lugar que arma un item |
+| El reducer conserva los faltantes en `ITEM_UPSERTED` | Volver a pedir la lista después de añadir | Añadir desde el buscador no toca los registros en la base; recargar todo por eso sería una petición de más |
+| Avisos fuera del botón de tachar, con `aria-describedby` | Dentro del botón, como "Pedido N" | CA-02: tocar el aviso no hace nada, y no alarga el nombre accesible del botón; `aria-describedby` igual lo hace leer |
+| Mini componente `ShoppingListShortfallNotes` | El `<ul>` directo en la fila | Lo pide el contrato de SCRUM-97 y deja la fila legible |
+| Promover `formatRecipeQuantity` a `utils/` | Copiarla en la lista, o importar de `features/recipes/` | Segundo consumidor real; una copia se desincroniza (coma decimal) y un import entre features no se permite |

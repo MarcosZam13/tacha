@@ -71,3 +71,14 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 39. Validar CA-01..07 en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; revisores; body de la PR y guía de estudio.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.
+
+## SCRUM-114: aviso pasivo de faltante
+
+- [x] 40. SPEC (§16; huecos de HU-76 decididos con el responsable el 2026-10-29: pendientes y tachados, una línea por receta, nombre visible para la familia sin abrir la RLS de `recipes`), plan y tareas.
+- [ ] 41. Migración `032_list_recipe_shortfalls.sql` (RPC `get_general_list_shortfalls`) y su prueba `supabase/tests/032_list_recipe_shortfalls.test.sql`.
+- [ ] 42. Aplicar la `032` en Supabase (lo hace Roberto en el SQL Editor: ensayo con la prueba y `rollback`, después con su fila `032` según `supabase/README.md#migraciones`) y copiar `Functions.get_general_list_shortfalls` a `types/database.types.ts`. Bloquea la validación en el navegador (46), no el código.
+- [ ] 43. Promover `formatRecipeQuantity` a `utils/` (`git mv`) con sus constantes a `constants/recipe-quantity.constants.ts` (+ barrel, reexport en recetas). Tests de recetas sin cambios.
+- [ ] 44. Constantes, modelos, `toRecipeShortfalls`, `toShortfallNote`, `toShoppingListRow` y el reducer (`ITEM_UPSERTED`), con tests primero. Servicio (`getGeneralList` en paralelo, `addItemToGeneralList`) con su test.
+- [ ] 45. Presentación: `ShoppingListShortfallNotes` y la fila (`aria-describedby`); test de la fila con Page Object.
+- [ ] 46. `E2E.md` (E2E-LISTA-06) y su test; `docs/documento-proyecto.md` §4.9.1 y §6. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; validar §16.13 en el navegador (con una familia de dos miembros para la regla 29).
+- [ ] 47. Revisión con `code-reviewer` y `security-reviewer` (RPC `security definer`), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Marcos (toca su feature).

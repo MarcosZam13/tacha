@@ -75,3 +75,16 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
   - Paso 6: la URL vuelve a `/lista`, sin la barra ni el panel.
 - **Sincronización:** igual que E2E-LISTA-04, antes de tocar otra cosa en la fila se espera a que vuelva a estar habilitada (la base confirmó).
 - **Datos que quedan:** la compra cerrada del usuario anónimo queda en `purchase_sessions` (la limpieza solo borra los items, como en los otros escenarios).
+
+### E2E-LISTA-06: aviso de faltante de una receta
+
+- **Cubre:** HU-76 CA-01, CA-02 (SPEC §16).
+- **Precondición:** usuario anónimo nuevo con una receta propia creada por la API (`createOwnRecipe`) con un ingrediente de **100 000 ml** (el máximo que acepta una receta): ninguna presentación del catálogo lo cubre, así que agregarla siempre deja faltante (reglas 21 y 22 de recetas). El nombre de la receta lleva un sufijo aleatorio.
+- **Pasos:**
+  1. Abrir `/recetas` y tocar "Agregar receta a lista" en la tarjeta de la receta.
+  2. Abrir `/lista`.
+  3. Tocar el texto del aviso.
+- **Resultado esperado:** después del paso 2, en "Pendientes" hay una fila con un texto que empieza con "+ " y termina en "necesarios para {nombre de la receta}". Después del paso 3 la fila sigue en "Pendientes" (el aviso no tacha) y no se abrió ningún diálogo.
+- **Oráculo:** la cantidad exacta depende de las presentaciones del catálogo, así que se valida la forma del texto, no el número.
+- **Limpieza:** borra los items de la lista (`deleteOwnListItems`) y las recetas (`deleteOwnRecipes`; sus registros se van en cascada).
+- **Fuera del navegador:** conteos, faltante 0 y `unidad` (CA-03) en la prueba SQL de la `032`; el texto y la coma decimal en `tests/toShortfallNote.test.ts`; una línea por receta en `tests/toRecipeShortfalls.test.ts`; la familia (regla 29), en la prueba SQL y a mano (el E2E no maneja cuentas registradas).

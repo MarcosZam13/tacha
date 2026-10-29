@@ -6,6 +6,8 @@ Historias: [SCRUM-62 / HU-36a](https://tacha.atlassian.net/browse/SCRUM-62) (bus
 
 [SCRUM-66 / HU-36e](https://tacha.atlassian.net/browse/SCRUM-66) (tachar/destachar producto) · [SCRUM-67 / HU-36f](https://tacha.atlassian.net/browse/SCRUM-67) (modo compra). Sprint 3.
 
+[SCRUM-114 / HU-76](https://tacha.atlassian.net/browse/SCRUM-114) (aviso pasivo de faltante de receta o plan). Sprint 4, de Roberto con revisión de Marcos: [sección 16](#16-scrum-114-aviso-pasivo-de-faltante).
+
 > Reescrita con la plantilla de 15 secciones en SCRUM-66 (component-architecture §2, "Specs existentes"): tachar cambia el comportamiento de la fila. El contenido de las historias anteriores se conserva, solo cambió de sección.
 
 ## 1. Objetivo
@@ -256,3 +258,117 @@ Casos límite que se validan con tests o en el navegador:
 ## 15. Notas de implementación
 
 `ItemRow` de `components/ui` no se usa: dibuja un checkbox indicador (contra CA-01) y es un `<button>` que envuelve toda la fila, así que los controles de cantidad quedarían anidados. Ver [plan.md](plan.md), SCRUM-66.
+
+## 16. SCRUM-114: aviso pasivo de faltante
+
+Decidido con el responsable el 2026-10-29 (lo que HU-76 no cierra): el aviso sale en **pendientes y tachados**, con **una línea por receta**, y en la lista de la familia cada miembro ve **el nombre de la receta de otro miembro** que dejó el faltante. Para eso la base expone solo ese nombre, sin abrir la RLS de `recipes` ([16.12](#1612-notas-de-implementación)).
+
+### 16.1 Objetivo
+
+Que el usuario vea, bajo el producto de su lista, cuánto más necesita para una receta o para el plan semanal que agregó, sin que la app lo interrumpa ni decida por él qué comprar (documento-proyecto §4.9.1, paso 2). Resolver ese faltante al tachar es SCRUM-115.
+
+### 16.2 Alcance
+
+- Bajo el nombre y el tamaño de cada fila de la lista general, un texto chico y secundario por cada receta que dejó un faltante en esa fila: **"+ 600 ml necesarios para Tres leches"**.
+- Los faltantes ya existen: los registran "Agregar receta a lista" (SCRUM-97) y "Agregar semana a la lista" (SCRUM-101) en `list_item_recipe_requirements`. Esta historia solo los **muestra**; no cambia cómo se calculan.
+- Se cargan junto con la lista, al abrir `/lista`.
+- Migración nueva con una RPC de solo lectura que devuelve los faltantes de la lista general de quien llama con el nombre de su receta ([16.10](#1610-contratos-externos)).
+
+Lo que no incluye está en [16.11](#1611-casos-fuera-de-alcance).
+
+### 16.3 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Faltantes de la lista general | `list_item_id`, nombre de la receta, `quantity_missing`, `quantity_unit` (`ml` / `g`) | RPC nueva, leída al cargar la lista |
+| Filas de la lista | `ShoppingListItem[]` | la carga que ya existe (`getGeneralList`) |
+
+El usuario no ingresa nada: el aviso es solo lectura.
+
+### 16.4 Salidas
+
+- Cada `ShoppingListItem` lleva sus faltantes (`recipeShortfalls`, vacío si no tiene).
+- La fila dibuja una línea por faltante, debajo del producto.
+- No escribe nada en la base.
+
+### 16.5 Reglas de negocio
+
+22. **Qué es un aviso.** Un registro de `list_item_recipe_requirements` con `quantity_missing` mayor que 0 (regla 23 de la [SPEC de recetas](../../recipes/specs/SPEC.md)). Un registro con faltante 0 no se muestra.
+23. **Solo volumen o peso (CA-03).** Solo los registros en `ml` o `g`. Un registro en `unidad` (ingrediente de conteo cuyo producto se vende en otra unidad, regla 22 de recetas) no se muestra: HU-76 excluye los ingredientes de conteo.
+24. **Solo recetas y plan semanal (CA-03).** Los únicos que escriben registros son agregar una receta (SCRUM-97) y agregar la semana (SCRUM-101). Añadir desde el buscador, y en el futuro desde sublistas o grupos, suma directo y nunca deja registro, así que nunca deja aviso.
+25. **Una línea por receta.** Cada registro es por receta (regla 24 de recetas), así que cada uno es su propia línea, en el orden en que se registraron. No se suman faltantes de recetas distintas ni se mezclan `ml` con `g`.
+26. **Texto (CA-01):** "+ {faltante con su unidad} necesarios para {receta}". La cantidad va con coma decimal, como en el resto de recetas ("+ 250,5 ml necesarios para Flan"). Una receta del plan semanal se nombra igual: el registro no guarda si vino de una receta suelta o de la semana.
+27. **Puramente informativo (CA-02).** El aviso no es un botón, no está dentro del botón de tachar y no dispara nada: tocarlo no tacha la fila ni abre nada.
+28. **Pendientes y tachados.** El aviso sale en las dos secciones. Hasta que SCRUM-115 resuelva el faltante al tachar, en la base el faltante sigue registrado; es el mismo criterio que "Te falta comprar 600 ml" del panel "Ver qué falta" (SCRUM-98, regla 30 de recetas).
+29. **Lista de la familia.** Si la lista general es de la familia (SCRUM-59), cada miembro ve todos los avisos de la lista, con el nombre de la receta aunque sea de otro miembro. Solo se expone el nombre: la receta no aparece en el catálogo ni en el planificador de los demás, y sus ingredientes siguen privados.
+30. **Solo la lista que se ve.** La RPC devuelve los faltantes de la lista general de quien llama (la de su familia si es miembro, si no la personal), la misma que dibuja la pantalla. "Mi lista personal" (la que se mantuvo al unirse a una familia, sección de solo lectura) no muestra avisos.
+31. **Se calcula en la base.** El cliente no decide qué registros son aviso: la RPC ya aplica las reglas 22 y 23. El cliente solo arma el texto.
+32. **Cambios en la fila no tocan el aviso.** Cambiar la cantidad, tachar, destachar o volver a añadir el producto desde el buscador no cambia los registros en la base (regla 23 de recetas: el faltante no se recalcula), así que el aviso de la fila se conserva. Borrar la fila borra sus registros (cascada) y con ella el aviso.
+
+### 16.6 Estados
+
+No hay estados nuevos. Los faltantes llegan con la carga de la lista (`loading` → `ready` | `loadError`): si la RPC falla, falla la carga entera con el mismo mensaje, porque mostrar la lista sin avisos diría que no falta nada sin saberlo.
+
+### 16.7 Errores
+
+| Caso | Qué se muestra |
+|---|---|
+| Falla la RPC de faltantes al cargar | "No se pudo cargar tu lista. Intenta de nuevo." (el error de carga que ya existe) |
+| La receta se borra después de cargar | Nada hasta recargar; al recargar el aviso ya no está (cascada) |
+| Otra pestaña agrega una receta | Nada hasta recargar (la lista no tiene tiempo real) |
+
+### 16.8 UI esperada
+
+- Debajo del botón de la fila (nombre y tamaño), alineado con el nombre, una línea por aviso en texto chico (`text-xs`) y color secundario (`text-tacha-textsec`), sin ícono ni fondo.
+- En una fila tachada el aviso **no** se tacha: lo tachado es el producto, el faltante sigue pendiente.
+- Sin aviso, la fila se ve exactamente como antes.
+
+### 16.9 Accesibilidad
+
+- El aviso es texto, fuera del botón de tachar: no cambia el nombre accesible del botón ni se enfoca con Tab.
+- El botón de tachar lo referencia con `aria-describedby`, así que el lector de pantalla lo lee como descripción del producto ("Leche 1000 ml, presionado, + 600 ml necesarios para Tres leches").
+- Varias líneas son una lista (`<ul>`), para que el lector anuncie cuántas son.
+
+### 16.10 Contratos externos
+
+- **RPC nueva `get_general_list_shortfalls() returns table (list_item_id uuid, recipe_name text, quantity_missing numeric, quantity_unit text)`**, de solo lectura (`stable`), `security definer` y `search_path` vacío.
+  - Sin sesión: `42501`.
+  - La lista sale de `find_general_list_id()` (024), que filtra por `auth.uid()` y no por RLS, así que funciona igual dentro de una función `security definer`. Sin lista general devuelve 0 filas.
+  - Devuelve solo los registros de los ítems de esa lista con `quantity_missing > 0` y `quantity_unit` en `ml` o `g` (reglas 22, 23 y 30), en el orden de la fila y del registro.
+  - `execute` solo para `authenticated` (los usuarios anónimos de Supabase también lo son); `anon` y `public` sin permiso.
+- **No cambia** ninguna tabla, política ni función existente: `recipes` sigue siendo solo de su dueño para cualquier otra lectura.
+- **Migración `032`** (la `031` es de la rama de SCRUM-87), con su prueba SQL en `supabase/tests/`.
+- **`docs/documento-proyecto.md`** (§4.9.1 y §6) se actualiza en este PR: el aviso ya se muestra y el nombre de la receta es visible para la familia.
+
+### 16.11 Casos fuera de alcance
+
+- **Resolver el faltante al tachar ("¿Qué hiciste?") y recalcularlo si cambia la lista:** SCRUM-115.
+- **Avisos en "Mi lista personal"** (la que se mantuvo al unirse a una familia): es de solo lectura y no es la lista a la que se agregan recetas.
+- **Tiempo real:** ver avisos nuevos de otra pestaña o de otro miembro sin recargar. Llega con el tiempo real de la lista.
+- **Decir si el faltante vino de una receta suelta o del plan semanal:** el registro no lo guarda; agregarlo cambiaría las funciones de SCRUM-97 y SCRUM-101.
+- **Avisos de sublistas, grupos o ingredientes de conteo:** por diseño no existen (CA-03).
+- **Deuda de SCRUM-66 que sigue igual:** al reabrir una fila tachada (volver a añadirla), sus registros viejos siguen pegados y su aviso también. Se corrige con SCRUM-115.
+
+### 16.12 Notas de implementación
+
+- **Por qué una RPC `security definer` y no abrir la RLS de `recipes`.** El catálogo `/recetas`, el planificador y el editor leen `recipes` sin filtrar por dueño: lo decide la RLS (regla 1 de recetas). Una política que dejara a un miembro leer la receta de otro la haría aparecer en su catálogo y en el diálogo de asignar del planificador, y abriría su fila completa. La RPC devuelve solo cuatro columnas y solo de la lista general de quien llama.
+- **Por qué no embebida en la consulta de la lista.** `list_item_recipe_requirements(recipes(name))` funciona para el dueño, pero en la lista de la familia el nombre de la receta de otro miembro llega `null` por la RLS de `recipes`. La consulta de la lista no cambia; la RPC va en paralelo.
+- **Contrato de SCRUM-97 cumplido:** la SPEC de recetas (§15) dejó para esta historia traer el registro con la lista, un campo en `ShoppingListItem` y un componente chico en `features/shopping-list/components/`, con revisión de Marcos.
+- **`formatRecipeQuantity` se promueve a `utils/`.** Recetas y la lista escriben cantidades de receta con coma decimal: segundo consumidor real (component-architecture §1). Sus etiquetas de unidad y el separador decimal pasan a `constants/`, y `features/recipes/constants/recipes.constants.ts` los reexporta para no tocar sus imports.
+- **Restricciones:** las de la sección 10, sin librerías nuevas. Skills: `component-architecture`, `constants-standards`, `project-structure`, `security-practices` (RPC `security definer`), `unit-testing-standards`, `playwright-e2e`, `gitflow`.
+
+### 16.13 Casos de aceptación (HU-76, SCRUM-114)
+
+- [ ] CA-01: una fila con un faltante de receta muestra debajo del producto "+ 600 ml necesarios para Tres leches", en texto chico y secundario.
+- [ ] CA-02: el aviso no es un botón: tocarlo no tacha la fila ni abre nada, y no se enfoca con Tab.
+- [ ] CA-03: un ingrediente de conteo, un registro con faltante 0 y un producto añadido desde el buscador no muestran aviso.
+- [ ] Un faltante que viene de "Agregar semana a la lista" se muestra igual, con el nombre de la receta.
+- [ ] Dos recetas con faltante sobre el mismo producto: dos líneas, una por receta.
+- [ ] El aviso sigue en la fila al tacharla (sin tachar el texto del aviso) y al destacharla.
+- [ ] Cambiar la cantidad o volver a añadir el producto desde el buscador no quita el aviso.
+- [ ] Borrar la receta (SCRUM-96) y recargar: el aviso ya no está.
+- [ ] En la lista de la familia, otro miembro ve el aviso con el nombre de la receta, y esa receta no aparece en su `/recetas` ni en el planificador.
+- [ ] Otro usuario fuera de la familia no recibe faltantes de mi lista; sin sesión, `42501`; `anon` no puede llamar a la RPC.
+- [ ] Falla la RPC al cargar: "No se pudo cargar tu lista. Intenta de nuevo."
+- [ ] El lector de pantalla lee el aviso como descripción del botón de la fila.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
