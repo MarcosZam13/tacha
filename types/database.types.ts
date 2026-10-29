@@ -13,32 +13,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -57,6 +32,33 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          source?: string
         }
         Relationships: []
       }
@@ -386,6 +388,7 @@ export type Database = {
           household_id: string | null
           id: string
           name: string
+          owner_id: string | null
           source: string
         }
         Insert: {
@@ -394,6 +397,7 @@ export type Database = {
           household_id?: string | null
           id?: string
           name: string
+          owner_id?: string | null
           source?: string
         }
         Update: {
@@ -402,6 +406,7 @@ export type Database = {
           household_id?: string | null
           id?: string
           name?: string
+          owner_id?: string | null
           source?: string
         }
         Relationships: [
@@ -509,6 +514,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_catalog_variants_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_mother_rules: {
+        Row: {
+          created_at: string
+          exclude_keywords: string[]
+          id: string
+          match_keywords: string[]
+          product_catalog_id: string
+          vtex_category_prefix: string | null
+        }
+        Insert: {
+          created_at?: string
+          exclude_keywords?: string[]
+          id?: string
+          match_keywords?: string[]
+          product_catalog_id: string
+          vtex_category_prefix?: string | null
+        }
+        Update: {
+          created_at?: string
+          exclude_keywords?: string[]
+          id?: string
+          match_keywords?: string[]
+          product_catalog_id?: string
+          vtex_category_prefix?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_mother_rules_product_catalog_id_fkey"
             columns: ["product_catalog_id"]
             isOneToOne: false
             referencedRelation: "product_catalog"
@@ -846,7 +886,10 @@ export type Database = {
       }
     }
     Functions: {
-      accept_household_invite: { Args: { invite_token: string }; Returns: string }
+      accept_household_invite: {
+        Args: { invite_token: string }
+        Returns: string
+      }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
@@ -988,6 +1031,17 @@ export type Database = {
           token: string
         }[]
       }
+      create_personal_product: {
+        Args: {
+          base_quantity: number
+          base_unit: string
+          brand_name?: string
+          category_id: string
+          product_name: string
+          share_with_household?: boolean
+        }
+        Returns: string
+      }
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
@@ -1001,16 +1055,20 @@ export type Database = {
       get_household_members: {
         Args: never
         Returns: {
-          display_name: string | null
+          display_name: string
           is_current_user: boolean
           role: string
           user_id: string
         }[]
       }
       get_household_members_page: {
-        Args: { page_offset?: number; page_size?: number; search_query?: string }
+        Args: {
+          page_offset?: number
+          page_size?: number
+          search_query?: string
+        }
         Returns: {
-          display_name: string | null
+          display_name: string
           is_current_user: boolean
           role: string
           user_id: string
@@ -1076,7 +1134,10 @@ export type Database = {
           variant_id: string
         }[]
       }
-      remove_household_member: { Args: { member_user_id: string }; Returns: string }
+      remove_household_member: {
+        Args: { member_user_id: string }
+        Returns: string
+      }
       save_recipe: {
         Args: {
           ingredient_list: Json
@@ -1115,8 +1176,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       set_spending_budget: {
         Args: { budget_amount: number; budget_period: string }
         Returns: {
@@ -1131,6 +1190,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       start_purchase_session: {
         Args: { local_day_start: string; target_store_id: string }
         Returns: {
@@ -1278,9 +1339,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

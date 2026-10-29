@@ -56,10 +56,10 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 ## 8. Servicios y hook del formulario
 
-- [ ] 8.1 `services/category.service.ts`: `listCategories()` (lectura directa de `categories`)
-- [ ] 8.2 `services/personal-product.service.ts`: `createPersonalProduct(input)` (llama al RPC nuevo)
-- [ ] 8.3 `constants/create-product-form.constants.ts`: textos, tabla/columnas, estados del formulario
-- [ ] 8.4 `hooks/useCreateProductForm.ts`: estado (`idle`/`open`/`submitting`/`success`/`error`), validación de nombre/categoría (CA-02), llamada al servicio
+- [X] 8.1 Sin `services/category.service.ts` nuevo: se reusa `getCategories()`, ya existente en `services/catalog.service.ts` (desviación de `plan.md` documentada con fecha 2026-10-29 — ya estaba hecho desde HU-52/SCRUM-84 y ya tenía su propio test)
+- [X] 8.2 `services/personal-product.service.ts`: `createPersonalProduct(input)` (llama al RPC nuevo) y `hasHousehold()` (consulta propia y mínima, decide si se muestra el checkbox de compartir)
+- [X] 8.3 `constants/create-product-form.constants.ts`: textos, tabla/columna/RPC, opciones de unidad, estados del formulario — agregado a `constants/index.ts`
+- [X] 8.4 `hooks/useCreateProductForm.ts`: estado (`idle`/`open`/`submitting`/`error`; "éxito" se resuelve cerrando directo a `idle` y llamando `onSuccess`, sin un estado visible propio), validación de nombre/categoría/cantidad (CA-02), carga de categorías y de `hasHousehold()` al abrir, llamada al servicio sin mostrar nunca el `error.message` crudo (mismo criterio que `useHouseholdViewModel`)
 
 ## 9. UI del formulario y conexión con las dos pantallas
 

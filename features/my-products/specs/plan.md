@@ -33,10 +33,9 @@ components/create-product-form/
   models/
     CreateProductFormProps.interface.ts
 constants/
-  create-product-form.constants.ts       Textos, estados del formulario, columnas/tabla de categories
+  create-product-form.constants.ts       Textos, estados del formulario, columnas/tabla y RPC de este formulario
 services/
-  personal-product.service.ts            createPersonalProduct(): llama al RPC nuevo
-  category.service.ts                    listCategories(): lectura directa de categories (CA-01, select)
+  personal-product.service.ts            createPersonalProduct(), hasHousehold(): llama al RPC nuevo
 hooks/
   useCreateProductForm.ts                 Estado del formulario (open/submitting/error), validación, llamada al servicio
 app/(app)/catalogo/
@@ -50,11 +49,28 @@ de escribir la primera línea, así que no tiene sentido construirlo privado y
 promoverlo un commit después (`component-architecture §1` pide promover con el
 segundo consumidor *real*, que acá ya existe desde el día 1 de esta historia).
 
-**Por qué `personal-product.service.ts` y `category.service.ts` van en `services/`
-(raíz, compartido) y no en `features/my-products/services/`:** los llama tanto el
-botón de "Mis productos" como el enlace de "sin resultados" en `features/catalog/`
-— mismo criterio que ya separa `services/supabase.client.ts` de los servicios
-propios de cada feature.
+**Por qué `personal-product.service.ts` va en `services/` (raíz, compartido) y no en
+`features/my-products/services/`:** lo llama tanto el botón de "Mis productos" como
+el enlace de "sin resultados" en `features/catalog/` — mismo criterio que ya separa
+`services/supabase.client.ts` de los servicios propios de cada feature.
+
+**Desviación de este plan (2026-10-29):** no se crea `services/category.service.ts`.
+Al escribir el código de la sección 8 se encontró que `services/catalog.service.ts`
+ya tiene `getCategories()` (de HU-52/SCRUM-84: misma consulta exacta a `categories`,
+`select("id, name").order("name")`), ya consumida por
+`features/catalog/hooks/useCatalogSearchViewModel.ts` y ya con su propio test. Su
+comentario incluso dice "las usan los chips de esta pantalla y, más adelante, el
+selector de SCRUM-87" — este plan simplemente no lo había visto al escribirse.
+Crear `category.service.ts: listCategories()` habría sido una segunda función
+idéntica a la primera (`AGENTS.md` prohíbe wrappers innecesarios para resolver algo
+en una línea; `component-architecture §1` pide reusar antes de construir). El
+selector de `CreateProductForm.tsx` (sección 9) llama a `getCategories()`
+directamente. `hasHousehold()` sí es nueva (sección 8.1): decide si se muestra el
+checkbox de compartir, consulta mínima propia a `household_members` — mismo
+criterio que `getCurrentHouseholdId()` en
+`features/my-products/services/my-products.service.ts` (decisión 4), sin
+reusar `getHouseholdMembership()` de `features/household` porque esa expone
+`householdName`/`role`, no lo que este formulario necesita (solo si existe o no).
 
 ### Cambios en archivos existentes
 
@@ -78,20 +94,16 @@ propios de cada feature.
 
 Verificado contra la base real (`ifvwumejbfpowxlkjfiu`), no supuesto.
 
-1. **Categorías (CA-01, select del formulario):**
-   ```ts
-   getSupabaseClient()
-     .from(CREATE_PRODUCT_DB.TABLE.CATEGORIES)   // "categories"
-     .select(CREATE_PRODUCT_DB.CATEGORY_SELECT)  // "id, name"
-     .order(CREATE_PRODUCT_DB.COLUMN.NAME);
-   ```
+1. **Categorías (CA-01, select del formulario):** `getCategories()` ya existente en
+   `services/catalog.service.ts` (ver "Desviación de este plan" más abajo) — no hay
+   `CREATE_PRODUCT_FORM_DB.TABLE.CATEGORIES` propio, se reusa tal cual.
    Policy real `"public read categories"` (`for select to public using (true)`) — sin
    RPC, mismo criterio que SCRUM-84 ya usa para sus chips (heads-up de Daniel en el
    comentario de Jira 10049 de SCRUM-87, puesto durante SCRUM-84).
 
 2. **Guardar el producto — RPC nueva, no un insert directo:**
    ```ts
-   getSupabaseClient().rpc(CREATE_PRODUCT_DB.RPC.CREATE_PERSONAL_PRODUCT, {
+   getSupabaseClient().rpc(CREATE_PRODUCT_FORM_DB.RPC.CREATE_PERSONAL_PRODUCT, {
      product_name: input.name,
      category_id: input.categoryId,
      base_unit: input.baseUnit,
