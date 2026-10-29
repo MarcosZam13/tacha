@@ -27,7 +27,6 @@ export const useMyProductsViewModel = (): MyProductsViewModel => {
 
   useEffect(() => {
     let isCancelled = false;
-    setResponse(null);
 
     listMyProducts()
       .then((products) => {
@@ -49,7 +48,10 @@ export const useMyProductsViewModel = (): MyProductsViewModel => {
   return {
     cards,
     errorMessage: response?.errorMessage ?? null,
-    reload: () => setRefreshKey((key) => key + 1),
+    reload: () => {
+      setResponse(null);
+      setRefreshKey((key) => key + 1);
+    },
     status:
       response === null
         ? MY_PRODUCTS_STATUS.LOADING

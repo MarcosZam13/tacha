@@ -5,10 +5,14 @@ import { createPersonalProduct, hasHousehold } from "../personal-product.service
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con un
 // getSession, un from() (hasHousehold) y un rpc() (createPersonalProduct);
 // ensureSession se mockea aparte (mismo patrón que services/list-items.service.ts).
-const ensureSessionMock = vi.fn();
-const getSessionMock = vi.fn();
-const fromMock = vi.fn();
-const rpcMock = vi.fn();
+// vi.mock se ejecuta antes que los imports: los mocks se crean con vi.hoisted
+// para que ya existan cuando corre.
+const { ensureSessionMock, getSessionMock, fromMock, rpcMock } = vi.hoisted(() => ({
+  ensureSessionMock: vi.fn(),
+  getSessionMock: vi.fn(),
+  fromMock: vi.fn(),
+  rpcMock: vi.fn(),
+}));
 
 vi.mock("@/services/supabase.client", () => ({
   ensureSession: ensureSessionMock,

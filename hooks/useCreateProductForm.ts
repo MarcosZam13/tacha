@@ -96,8 +96,6 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     if (!isOpen) return undefined;
 
     let isCancelled = false;
-    setIsCategoriesLoading(true);
-    setCategoriesErrorMessage(null);
 
     Promise.all([getCategories(), hasHousehold()])
       .then(([loadedCategories, loadedHasHousehold]) => {
@@ -132,6 +130,8 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
 
   const onOpen = (): void => {
     resetFields();
+    setIsCategoriesLoading(true);
+    setCategoriesErrorMessage(null);
     setStatus(CREATE_PRODUCT_FORM_STATUS.OPEN);
   };
 
