@@ -85,3 +85,12 @@ Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base
   - **Entorno:** con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=true` en `.env.local`, `/lista` redirige a iniciar sesión y todo el E2E de la lista falla (usa usuarios anónimos). Se corrió con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=false npx playwright test e2e/features/shopping-list` y el puerto 3000 libre, para que Playwright levante `npm run dev` con esa variable.
   - La regla 29 (familia) quedó cubierta por la prueba SQL; a mano con dos cuentas registradas queda para QA.
 - [ ] 47. (Revisores hechos el 2026-10-29: código sin bloqueantes, seguridad sin Críticos ni Altos; corregidos el reexport, la key de los avisos, el prefijo de id en un objeto y la prueba SQL con aislamiento entre familias, lista personal conservada y familia sin lista. Falta la revisión de Marcos.) Revisión con `code-reviewer` y `security-reviewer` (RPC `security definer`), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Marcos (toca su feature).
+
+## SCRUM-156
+
+- [x] Migración `035_keep_purchase_on_readd.sql` + `supabase/tests/035_keep_purchase_on_readd.test.sql` (ensayo con rollback en la base compartida).
+- [x] Pruebas SQL 015, 018 y 024 actualizadas a la regla nueva.
+- [x] `ItemCheckResult`, `CHECK_MERGED`, `mergeRecipeShortfalls`, reducer, `useShoppingList`, buscador del ViewModel.
+- [x] Unitarios: reducer, hook, servicio, `mergeRecipeShortfalls`.
+- [x] SPEC §5 regla 8, §12, §13, §14, §16.11 y §17; plan; documento-proyecto; SPEC de household y de recetas.
+- [ ] Aplicar 035 con su fila de historial, correr las pruebas SQL contra la base y revisar en el navegador.

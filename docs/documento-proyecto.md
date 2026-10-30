@@ -354,8 +354,8 @@ Reglas de negocio que deben vivir en la base de datos (funciones/triggers), no e
   - **Lista general.** `find_general_list_id` y `ensure_general_list_id` resuelven cuál le toca a quien llama: la de su familia si es miembro, si no la personal. Las funciones que agregan a la lista general y `get_recipe_coverage` las usan.
   - **Compartir es atómico** (`decide_personal_lists`, `security definer`, solo cuentas registradas):
     - el cliente manda solo la opción;
-    - la base pasa los pendientes de la lista personal a la de la familia, con las mismas reglas que agregar (misma variante, una fila; una fila tachada se reabre) y combinando los requisitos de receta;
-    - lo tachado se queda en la lista personal, y también un pendiente cuya fila en la familia ya está comprada (no se toca esa compra). Si se compartieron algunos pendientes y otros se quedaron en la lista personal, el resultado es `shared_partially`; si no se compartió ninguno porque la familia ya los había comprado todos, es `nothing_shared`;
+    - la base pasa los pendientes de la lista personal a la de la familia, con las mismas reglas que agregar (misma variante pendiente, una fila; lo tachado no se toca, desde SCRUM-156) y combinando los requisitos de receta;
+    - lo tachado se queda en la lista personal. Un pendiente cuya variante la familia ya compró entra como fila pendiente nueva y esa compra no se toca (SCRUM-156, migración 035; antes se quedaba en la lista personal y el resultado podía ser `shared_partially` o `nothing_shared`, que ya no se devuelven);
     - la suma de cantidades nunca desborda (se limita al máximo de `integer`);
     - una segunda decisión no cambia nada.
   - **Al eliminar una familia:** su lista se borra con ella. Las recetas y los planes que la nombraban quedan personales, por un trigger; un plan de la familia que choca con un espacio personal se borra (gana el personal). Así ningún dato queda con el `household_id` de una familia que no existe.

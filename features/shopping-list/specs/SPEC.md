@@ -67,14 +67,14 @@ La pantalla no recibe props: `app/(app)/lista/page.tsx` solo renderiza `<Shoppin
 
 ## 5. Reglas de negocio
 
-1. Añadir la misma variante dos veces deja una sola fila con la suma (la decide la base).
+1. Añadir la misma variante dos veces deja una sola fila **pendiente** con la suma (la decide la base). Desde SCRUM-156 puede haber además filas tachadas de esa variante: son compras pasadas (regla 8).
 2. La cantidad nunca baja de 1 (UI y `check` en la base).
 3. Deshacer un eliminado no escribe en la base: el item sigue guardado y solo se oculta en pantalla.
 4. Solo el dueño de la lista puede leer, añadir, cambiar, tachar o borrar sus items (RLS).
 5. **(SCRUM-66)** Tocar una fila pendiente la tacha; tocar una fila tachada la destacha.
 6. **(SCRUM-66)** Cuándo y quién tachó lo pone la base, nunca el cliente: el cliente solo dice "tachado" o "no tachado".
 7. **(SCRUM-66)** "Tachados hoy" muestra solo lo tachado desde la medianoche del día local del usuario. Lo tachado antes no aparece en ninguna de las dos secciones (va a vivir en Historial de compras).
-8. **(SCRUM-66)** Añadir un producto que está tachado lo devuelve a "Pendientes" con la cantidad que se pide ahora (1 desde el buscador; lo que calcule la receta desde una receta), en vez de sumarle a lo ya comprado: es una compra nueva.
+8. **(SCRUM-156, reemplaza la de SCRUM-66)** Añadir un producto que está tachado crea una fila **nueva** en "Pendientes" con la cantidad que se pide ahora (1 desde el buscador; lo que calcule la receta desde una receta); la tachada se queda como está, con su compra, quién la tachó y lo comprado. Si ya hay una pendiente de esa variante, se suma a esa. Destachar una fila cuando ya hay una pendiente de la misma variante las junta en la pendiente (suma lo pedido y pasa los pedidos de receta) y la destachada desaparece. *Antes (SCRUM-66 a SCRUM-114):* la tachada se reabría y perdía su compra.
 9. **(SCRUM-66)** Dentro de cada sección las filas mantienen el orden en que se añadieron: destachar devuelve la fila a su lugar y el resto no se mueve.
 10. **(SCRUM-66)** Mientras una fila espera respuesta de la base (cantidad o tachado), sus botones de tachar, cantidad y eliminar quedan deshabilitados. Con el tachado optimista la fila ya se ve en su sección nueva durante esa espera.
 11. **(SCRUM-66)** Al agregar una receta, lo tachado no cuenta como "ya en la lista": ni su cantidad ni lo que otras recetas pidieron sobre esa fila. Si la receta necesita ese producto, lo pide como si no estuviera.
@@ -166,9 +166,10 @@ Los estados vienen de datos (`checkedAt`, `pendingItemIds`, `undoItemId`), no de
 
 - Tablas `lists`, `list_items` (004), con RLS del dueño.
 - **(SCRUM-66)** `list_items.checked_at timestamptz null`, `list_items.checked_by uuid null → auth.users`, y el trigger que los llena (015).
-- RPC `add_item_to_general_list(target_variant_id)` (004; **015** reabre una fila tachada).
+- RPC `add_item_to_general_list(target_variant_id)` (004; 015 reabría una fila tachada; **035** crea una pendiente nueva, regla 8).
+- RPC `set_list_item_checked(target_item_id, is_checked)` (015; **035**: `security definer` con el acceso comprobado a mano; al destachar con una pendiente de la misma variante devuelve **esa** fila, con otro id).
 - RPC `change_item_quantity(target_item_id, quantity_delta)` (005).
-- RPC `add_units_to_list_item(...)` y `add_recipe_to_general_list(target_recipe_id)` (013, SCRUM-97; **015** les aplica las reglas 8 y 11).
+- RPC `add_units_to_list_item(...)` y `add_recipe_to_general_list(target_recipe_id)` (013, SCRUM-97; **015** les aplica las reglas 8 y 11; **035** la regla 8 nueva).
 - **(SCRUM-66)** RPC `set_list_item_checked(target_item_id, is_checked)` (015).
 - **(SCRUM-67)** Tabla `purchase_sessions` (016): `owner_id`, `household_id` (null), `list_id` (null), `store_id`, `started_at`, `closed_at`, `total_amount`; RLS del dueño.
 - **(SCRUM-67)** `list_items.purchase_session_id` (→ `purchase_sessions`) y `list_items.quantity_bought` (≥ 1), validados y limpiados por el trigger de 015, que 016 extiende.
@@ -225,8 +226,8 @@ Casos límite que se validan con tests o en el navegador:
 - Tachar: la fila cambia de sección antes de que responda la base. *Cubierto por:* `tests/useShoppingList.test.ts`.
 - Error al tachar: la fila se ve en la sección nueva mientras espera, vuelve a la original cuando llega el error y aparece el mensaje. *Cubierto por:* `tests/useShoppingList.test.ts`.
 - Doble toque rápido en la fila: el segundo se ignora mientras espera (botón deshabilitado).
-- Añadir desde el buscador un producto tachado: vuelve a "Pendientes" con cantidad 1.
-- Agregar una receta que pide 2 unidades de un producto comprado ayer (3 unidades): falta 1 unidad, y la fila vuelve a "Pendientes" con 1. *Cubierto por:* `supabase/tests/015_check_list_items.test.sql`.
+- Añadir desde el buscador un producto tachado: aparece una fila nueva en "Pendientes" con cantidad 1 y la tachada sigue en "Tachados hoy" (SCRUM-156). *Cubierto por:* `tests/shopping-list.reducer.test.ts` + `supabase/tests/035_keep_purchase_on_readd.test.sql`.
+- Agregar una receta que pide 2 unidades de un producto comprado ayer (3 unidades): falta 1 unidad, en una fila pendiente nueva con 1; la comprada no cambia. *Cubierto por:* `supabase/tests/015_check_list_items.test.sql`.
 - Eliminar una fila tachada: funciona igual que una pendiente.
 - Usuario escribe rápido en el buscador: solo cuenta la última búsqueda.
 - Abrir un detalle, cerrarlo y abrir otro antes de que responda el primero: solo se muestra el segundo.
@@ -241,13 +242,13 @@ Casos límite que se validan con tests o en el navegador:
 - **(SCRUM-67)** Historial de compras y dashboard financiero (leer las compras cerradas): otras historias. Esta solo las guarda.
 - **(SCRUM-67)** Recordar una compra que quedó sin total, cambiar el súper de una compra ya iniciada y el inventario doméstico al tachar (documento-proyecto §6): fuera de esta historia.
 - **(SCRUM-67)** Cambiar la variante comprada ("1 galón" en vez de "2 cajas"): solo se ajusta la cantidad.
-- **(SCRUM-67) Pendiente para Historial de compras:** una fila comprada en una compra que **ya se cerró** sigue en "Tachados hoy" el resto del día. Desde la migración `018` su compra y lo comprado ya no se pueden cambiar ni pasar a otra compra, pero destacharla o volver a añadirla (regla 8 de SCRUM-66) todavía la saca de esa compra cerrada: bloquearlo impediría volver a comprar el producto. La historia de historial tiene que decidir dónde guardar lo comprado para que no dependa de la fila de la lista.
+- **(SCRUM-67) Pendiente para Historial de compras:** una fila comprada en una compra que **ya se cerró** sigue en "Tachados hoy" el resto del día. Desde la migración `018` su compra y lo comprado ya no se pueden cambiar ni pasar a otra compra, pero destacharla todavía la saca de esa compra cerrada (es corregir un error). Volver a añadirla ya no la saca: desde SCRUM-156 crea otra fila (regla 8). La historia de historial tiene que decidir dónde guardar lo comprado para que no dependa de la fila de la lista.
 - Sublistas y listas privadas: no existen todavía; cuando existan reusan esta división (CA-06).
 - Mover de sección una fila tachada a las 23:59 cuando pasa la medianoche con la pantalla abierta: se corrige al recargar.
 - **Deuda (revisión de seguridad, 2026-10-08):** el trigger `stamp_list_item_check` (015) conserva `checked_by` cuando la fila ya estaba tachada, incluso en el `set null` que hace la FK al borrar un usuario: la fila queda apuntando a un usuario borrado. Hoy no ocurre (solo el dueño tacha y sus listas se borran en cascada con él). Se cierra en la migración que abra las listas de household a otros miembros: en ese caso del trigger conservar solo `checked_at`.
 - Salir de la pantalla en los milisegundos entre tocar una fila y que la base confirme: con el tachado optimista la fila ya se vio tachada, pero si el navegador corta la petición, el tachado no se guarda. Mientras tanto la fila se ve deshabilitada; avisar al salir con escrituras pendientes queda para modo compra si hace falta.
 - Tiempo real entre dispositivos (ver lo que tacha otro miembro sin recargar): llega con listas de household.
-- **Pendiente para SCRUM-98** (depende de esta historia): al reabrir una fila tachada, sus registros viejos de `list_item_recipe_requirements` (lo que pidieron recetas anteriores, ya comprado) siguen colgados de ella y vuelven a contar como pedidos. El error es conservador: la lista puede decir que falta más de lo que falta, nunca menos. Ejemplo: receta A pidió 500 ml, se compró y se tachó; al reabrir la fila (1 L) y agregar la receta B (600 ml), se calcula disponible 500 en vez de 1000 y se marca un faltante de 100 que no existe. Y si se agrega otra vez la receta A, su registro acumula sobre el viejo. No se resolvió acá porque borrar esos registros pide abrir `delete` en `list_item_recipe_requirements` (013 le quita todo a `authenticated` menos select/insert/update) y decidir si destachar a mano (un tachado por error) también los borra; las dos cosas son de recetas.
+- **Resuelto en SCRUM-156 (035): una fila tachada ya no se reabre al añadir, así que sus pedidos viejos no vuelven a contar.** Lo que decía este punto, para la historia: **Pendiente para SCRUM-98** (depende de esta historia): al reabrir una fila tachada, sus registros viejos de `list_item_recipe_requirements` (lo que pidieron recetas anteriores, ya comprado) siguen colgados de ella y vuelven a contar como pedidos. El error es conservador: la lista puede decir que falta más de lo que falta, nunca menos. Ejemplo: receta A pidió 500 ml, se compró y se tachó; al reabrir la fila (1 L) y agregar la receta B (600 ml), se calcula disponible 500 en vez de 1000 y se marca un faltante de 100 que no existe. Y si se agrega otra vez la receta A, su registro acumula sobre el viejo. No se resolvió acá porque borrar esos registros pide abrir `delete` en `list_item_recipe_requirements` (013 le quita todo a `authenticated` menos select/insert/update) y decidir si destachar a mano (un tachado por error) también los borra; las dos cosas son de recetas.
 - Animación de tachado progresivo (documento-proyecto §7): retoque visual posterior.
 - Toast compartido para otras pantallas: se promueve a `components/ui` con el segundo consumidor real.
 - Garantizar el borrado si se cierra la pestaña antes de que venza el toast.
@@ -347,7 +348,7 @@ No hay estados nuevos. Los faltantes llegan con la carga de la lista (`loading` 
 - **Tiempo real:** ver avisos nuevos de otra pestaña o de otro miembro sin recargar. Llega con el tiempo real de la lista.
 - **Decir si el faltante vino de una receta suelta o del plan semanal:** el registro no lo guarda; agregarlo cambiaría las funciones de SCRUM-97 y SCRUM-101.
 - **Avisos de sublistas, grupos o ingredientes de conteo:** por diseño no existen (CA-03).
-- **Deuda de SCRUM-66 que sigue igual:** al reabrir una fila tachada (volver a añadirla), sus registros viejos siguen pegados y su aviso también. Se corrige con SCRUM-115.
+- **Deuda de SCRUM-66, resuelta en SCRUM-156:** añadir algo tachado ya no reabre la fila (crea otra), así que sus registros viejos se quedan con la compra y no aparecen sobre la pendiente nueva.
 
 ### 16.12 Notas de implementación
 
@@ -372,3 +373,40 @@ No hay estados nuevos. Los faltantes llegan con la carga de la lista (`loading` 
 - [x] Falla la RPC al cargar: "No se pudo cargar tu lista. Intenta de nuevo." (test del servicio, con la RPC simulada fallando)
 - [x] El lector de pantalla lee el aviso como descripción del botón de la fila.
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+
+## 17. SCRUM-156: volver a añadir algo tachado no borra su compra
+
+**Origen:** análisis de Roberto para SCRUM-115 (2026-10-30). El registro de una compra (quién, cuándo, en qué compra y cuánto) vive solo en la fila de `list_items`, y la regla 8 de SCRUM-66 reabría esa fila al volver a pedir el producto: la compra pasada lo perdía (contradice HU-36e CA-05 y el §14). En la lista de la familia, B agregando una receta desde la casa sacaba de la compra de A lo que A acababa de tachar.
+
+### 17.1 Reglas
+
+- Regla 8 nueva (sección 5): una fila pendiente por variante; las tachadas son compras y no se tocan al añadir.
+- Destachar con una pendiente de la misma variante las junta en la pendiente: suma lo pedido (con tope en el máximo de `integer`), pasa los pedidos de receta (mismo `on conflict` que `decide_personal_lists`) y borra la destachada. La base devuelve la pendiente; el cliente lo nota porque el id es otro.
+- "Compartir" mis listas (SCRUM-59) sigue la misma regla: un pendiente propio entra como pendiente nueva aunque la familia tenga esa variante tachada en una compra. Por eso `decide_personal_lists` ya no devuelve `nothing_shared` ni `shared_partially` (los textos de `features/household` quedan sin uso; los decide su dueño).
+
+### 17.2 Base (migración `035_keep_purchase_on_readd.sql`)
+
+- El `unique (list_id, product_catalog_variant_id)` de 004 pasa a índice único parcial `list_items_one_pending_per_variant ... where checked_at is null`. Los `on conflict` lo nombran con el mismo `where`.
+- `add_item_to_general_list`, `add_units_to_list_item` y `decide_personal_lists`: el `on conflict` solo choca con la pendiente, así que ya no hay `checked_at = null` (no reabren).
+- `set_list_item_checked` pasa a `security definer`: al juntar mueve pedidos de recetas que en la familia pueden ser de otro miembro, y la RLS de `list_item_recipe_requirements` solo deja escribir los de recetas propias. El acceso se comprueba a mano con la misma regla que la política de `lists` (024). `anon` sin `execute`.
+- Carrera: si otro miembro crea la pendiente entre el `select` y el `update`, el `update` choca con el índice (`unique_violation`) y se junta igual.
+
+### 17.3 Cliente
+
+- `useShoppingListViewModel`: el buscador busca la fila **pendiente** de la variante; si solo hay una tachada, añade (la base crea la fila nueva).
+- Reducer `ITEM_UPSERTED`: reemplaza solo la pendiente de esa variante; si no hay, agrega al final.
+- `setItemChecked` devuelve `ItemCheckResult` (`check`, `itemId`, `quantity`). Si el id es otro, `useShoppingList` despacha `CHECK_MERGED`: sale la destachada y la pendiente toma la cantidad de la base y los avisos de las dos (`utils/mergeRecipeShortfalls.ts`, la misma suma que hace la base).
+
+### 17.4 Casos de aceptación
+
+- [x] Tachar en una compra, cerrarla y volver a añadir: fila pendiente nueva; la comprada conserva compra, quién y lo comprado. *Cubierto por:* `supabase/tests/035_keep_purchase_on_readd.test.sql` (paso 2) + revisión en el navegador.
+- [x] Añadir algo ya pendiente suma a esa fila; nunca dos pendientes de la misma variante. *Cubierto por:* 035 (paso 3) + `tests/shopping-list.reducer.test.ts`.
+- [x] Destachar con una pendiente igual deja una sola pendiente con las dos cantidades y los pedidos de receta, aunque destache otro miembro. *Cubierto por:* 035 (paso 4), `tests/shopping-list.reducer.test.ts`, `tests/useShoppingList.test.ts`, `tests/mergeRecipeShortfalls.test.ts`.
+- [x] Los avisos de faltante de una receta nueva caen en la pendiente, no en la tachada. *Cubierto por:* `add_units_to_list_item` devuelve el id de la pendiente (035, paso 3).
+- [x] Un ajeno no tacha filas de otra lista; `anon` no ejecuta la función. *Cubierto por:* 035 (paso 6).
+- [x] Pruebas SQL viejas que esperaban reabrir, actualizadas: 015, 018 y 024.
+
+### 17.5 Fuera de alcance
+
+- Tiempo real de la lista entre miembros: SCRUM-155.
+- Mostrar las compras pasadas (Historial de compras): HU-59 (SCRUM-90). Desde esta historia los datos ya quedan bien guardados para leerlos.
