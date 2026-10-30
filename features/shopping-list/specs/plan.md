@@ -57,7 +57,7 @@ Dependencia nueva: `@supabase/supabase-js` (hoy el repo llama a PostgREST con `f
 Tablas (según documento-proyecto §6, solo las columnas que este sprint usa):
 
 - `lists`: `id`, `owner_id` (→ `auth.users`, siempre), `household_id` (nullable, en este sprint siempre `null`), `type` (`general` / `date` / `private`), `status` (`active` / `completed` / `cancelled`), `created_at`.
-- `list_items`: `id`, `list_id`, `product_catalog_variant_id`, `quantity_requested` (`check >= 1`), `created_at`; `unique (list_id, product_catalog_variant_id)`.
+- `list_items`: `id`, `list_id`, `product_catalog_variant_id`, `quantity_requested` (`check >= 1`), `created_at`; `unique (list_id, product_catalog_variant_id)` (desde 035, SCRUM-156: índice único parcial solo entre pendientes, `where checked_at is null`).
 - RLS en ambas, deny por defecto: este sprint solo abre select/insert de `lists` y select/insert/update de `list_items`, siempre con `owner_id = auth.uid()`; el insert de `lists` exige además `household_id is null` hasta que existan households. Eliminar llega en Sprint 2.
 - Índice único parcial: una sola lista `general` por dueño sin household (también evita dos listas si llegan dos RPC a la vez).
 - RPC `add_item_to_general_list(target_variant_id)`, `security invoker` (RLS sigue aplicando) y `search_path` fijo: busca o crea la lista general del usuario e inserta el item; si ya existe, suma 1 (`on conflict do update`). Devuelve la fila con la cantidad final. Solo `authenticated` puede ejecutarla. La regla de merge vive en la base, como pide documento-proyecto §6.
@@ -427,3 +427,16 @@ docs/documento-proyecto.md                      §4.9.1 y §6
 | Avisos fuera del botón de tachar, con `aria-describedby` | Dentro del botón, como "Pedido N" | CA-02: tocar el aviso no hace nada, y no alarga el nombre accesible del botón; `aria-describedby` igual lo hace leer |
 | Mini componente `ShoppingListShortfallNotes` | El `<ul>` directo en la fila | Lo pide el contrato de SCRUM-97 y deja la fila legible |
 | Promover `formatRecipeQuantity` a `utils/` | Copiarla en la lista, o importar de `features/recipes/` | Segundo consumidor real; una copia se desincroniza (coma decimal) y un import entre features no se permite |
+
+## SCRUM-156: no perder la compra al volver a añadir
+
+- Migración `035_keep_purchase_on_readd.sql`: índice único parcial de pendientes en vez del `unique` de 004; `add_item_to_general_list`, `add_units_to_list_item` y `decide_personal_lists` con `on conflict ... where checked_at is null` (no reabren); `set_list_item_checked` `security definer` con acceso a mano y el caso de juntar al destachar. Prueba en `supabase/tests/035_keep_purchase_on_readd.test.sql`; 015, 018 y 024 actualizadas.
+- Cliente: `ItemCheckResult` (models), `CHECK_MERGED` (constante, tipo de acción y reducer), `utils/mergeRecipeShortfalls.ts`, el buscador del ViewModel busca la pendiente.
+
+| Decisión | Alternativa | Por qué |
+|---|---|---|
+| Fila nueva al añadir algo tachado | Guardar lo comprado en otra tabla y seguir reabriendo | La fila ya tiene todo lo de la compra; una tabla nueva duplica datos y obliga a migrar las lecturas de finanzas y recetas |
+| Índice único parcial | Quitar la unicidad | Sin unicidad entre pendientes, dos "añadir" a la vez crearían dos filas pendientes de lo mismo |
+| Juntar al destachar | Rechazar el destachado si hay pendiente | Destachar es corregir un error: rechazarlo deja a la persona sin salida |
+| `CHECK_MERGED` en el reducer | Recargar la lista entera | Es raro pero se ve: recargar parpadea y descarta otros cambios en curso; la acción es pura y se prueba sola |
+| `set_list_item_checked` `security definer` | Seguir `invoker` | Al juntar se mueven pedidos de recetas de otro miembro y la RLS no lo deja; el acceso se comprueba a mano igual que la política de `lists` |

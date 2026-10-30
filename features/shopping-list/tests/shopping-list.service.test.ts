@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getGeneralList, getKeptPersonalList } from "../services/shopping-list.service";
+import { getGeneralList, getKeptPersonalList, setItemChecked } from "../services/shopping-list.service";
 
 // Sin Supabase real: un cliente falso. Cada método de la consulta devuelve la
 // misma consulta (como el builder de supabase-js) y maybeSingle la resuelve.
@@ -145,5 +145,29 @@ describe("getKeptPersonalList", () => {
     maybeSingleMock.mockResolvedValue({ data: null, error: supabaseError });
 
     await expect(getKeptPersonalList()).rejects.toBe(supabaseError);
+  });
+});
+
+describe("setItemChecked", () => {
+  it("returns the check, the id and the quantity of the row the database left (SCRUM-156)", async () => {
+    // Destachar con otra pendiente de la misma presentación: la base devuelve la pendiente.
+    rpcMock.mockResolvedValue({
+      data: { ...LIST_ITEM_ROW, id: "item-pending", quantity_requested: 4 },
+      error: null,
+    });
+
+    await expect(setItemChecked("item-bought", false)).resolves.toEqual({
+      check: { checkedAt: null, purchaseSessionId: null, quantityBought: null },
+      itemId: "item-pending",
+      quantity: 4,
+    });
+    expect(rpcMock).toHaveBeenCalledWith("set_list_item_checked", { is_checked: false, target_item_id: "item-bought" });
+  });
+
+  it("rethrows the Supabase error", async () => {
+    const supabaseError = { code: "P0002", message: "El producto no está en tu lista" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(setItemChecked("item-ajeno", true)).rejects.toBe(supabaseError);
   });
 });

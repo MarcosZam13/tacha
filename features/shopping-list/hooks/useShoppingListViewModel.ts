@@ -94,7 +94,12 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     const searchResult = searchResults.find((result) => result.variantId === variantId);
     if (!searchResult) return;
     search.clearQuery();
-    const listedItem = state.items.find((item) => item.variantId === searchResult.variantId);
+    // Solo cuenta la fila PENDIENTE de esa variante. Si solo hay una tachada,
+    // es una compra nueva: la base crea otra fila y la tachada conserva su
+    // compra (regla 8, SCRUM-156).
+    const listedItem = state.items.find(
+      (item) => item.variantId === searchResult.variantId && item.checkedAt === null,
+    );
     if (!listedItem) {
       // addItem maneja su propio error (lo pasa al estado), por eso no se espera acá.
       void addItem(searchResult);
@@ -110,12 +115,6 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     // deshabilitado; si no, dos escrituras en paralelo podrían dejar en
     // pantalla una cantidad vieja.
     if (state.pendingItemIds.includes(listedItem.id)) return;
-    // Tachada: es una compra nueva. La RPC de añadir la reabre con cantidad 1
-    // (migración 015) en vez de sumarle a lo que ya se compró.
-    if (listedItem.checkedAt !== null) {
-      void addItem(searchResult);
-      return;
-    }
     void changeQuantity(listedItem.id, ITEM_QUANTITY.STEP.INCREASE);
   };
 
