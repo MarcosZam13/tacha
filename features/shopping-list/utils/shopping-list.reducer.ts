@@ -41,11 +41,17 @@ export const shoppingListReducer = (
     case SHOPPING_LIST_ACTION.ITEM_UPSERTED: {
       // La base ya aplicó el merge; acá solo se refleja: si la variante ya
       // tenía fila se reemplaza (nueva cantidad), si no, se agrega al final.
+      // Añadir no toca los registros de recetas, así que la fila conserva sus
+      // avisos de faltante (SCRUM-114, regla 32).
       const isAlreadyListed = state.items.some(
         (item) => item.variantId === action.item.variantId,
       );
       const items = isAlreadyListed
-        ? state.items.map((item) => (item.variantId === action.item.variantId ? action.item : item))
+        ? state.items.map((item) =>
+            item.variantId === action.item.variantId
+              ? { ...action.item, recipeShortfalls: item.recipeShortfalls }
+              : item,
+          )
         : [...state.items, action.item];
       return { ...state, addErrorMessage: null, items };
     }

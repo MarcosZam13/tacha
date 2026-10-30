@@ -45,3 +45,18 @@ export const startPurchaseAt = async (page: Page, storeName: string): Promise<vo
   await page.getByRole("button", { name: "Iniciar compra" }).click();
   await page.getByRole("dialog", { name: "¿Dónde estás comprando?" }).getByRole("button", { name: storeName }).click();
 };
+
+/** El catálogo de recetas (SCRUM-114: E2E-LISTA-06 agrega una receta desde ahí). */
+export const RECIPES_PATH = "/recetas";
+
+/** "Agregar receta a lista" de la tarjeta de una receta: su nombre accesible lleva el de la receta. */
+export const getAddRecipeToListButton = (page: Page, recipeName: string): Locator =>
+  page.getByRole("button", { name: `Agregar receta a lista ${recipeName}` });
+
+/** El resumen que aparece en la tarjeta al terminar de agregar la receta. */
+export const getAddRecipeToListSummary = (page: Page): Locator => page.getByRole("status");
+
+/** Los avisos de faltante bajo una fila (SCRUM-114): texto, no botones. */
+export const getShortfallNote = (row: Locator, recipeName: string): Locator =>
+  row.getByText(new RegExp(`^\\+ .+ necesarios para ${recipeName}$`));
+

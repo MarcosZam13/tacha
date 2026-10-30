@@ -1,8 +1,8 @@
 import type { CatalogBaseUnitType } from "@/constants";
 import type { NullableRef } from "@/types/nullable.types";
+import { formatRecipeQuantity } from "@/utils/formatRecipeQuantity";
 import { RECIPE_COVERAGE_REASON, RECIPE_COVERAGE_TEXT } from "../constants/recipes.constants";
 import type { CoverageReasonType } from "../models/recipe-coverage.types";
-import { formatRecipeQuantity } from "./formatRecipeQuantity";
 
 /**
  * Por qué falta un ingrediente, en palabras: "No está en tu lista", "En tu

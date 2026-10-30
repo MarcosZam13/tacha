@@ -991,6 +991,15 @@ export type Database = {
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
+      get_general_list_shortfalls: {
+        Args: never
+        Returns: {
+          list_item_id: string
+          quantity_missing: number
+          quantity_unit: string
+          recipe_name: string
+        }[]
+      }
       get_household_invite: {
         Args: never
         Returns: {

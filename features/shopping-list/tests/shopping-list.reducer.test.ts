@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CATALOG_BASE_UNIT } from "@/constants";
 import { SHOPPING_LIST_ACTION, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { ShoppingListState } from "../models/ShoppingListState.interface";
@@ -11,6 +12,7 @@ const createItem = (overrides: Partial<ShoppingListItem> = {}): ShoppingListItem
   purchaseSessionId: null,
   quantity: 1,
   quantityBought: null,
+  recipeShortfalls: [],
   sizeLabel: "1000 ml",
   variantId: "variant-leche",
   ...overrides,
@@ -67,6 +69,20 @@ describe("shoppingListReducer: adding", () => {
 
     expect(state.items).toHaveLength(1);
     expect(state.items[0].quantity).toBe(2);
+  });
+
+  it("keeps the recipe shortfalls of the row when the same variant is added again (SCRUM-114)", () => {
+    const shortfall = { quantityMissing: 600, recipeName: "Tres leches", unit: CATALOG_BASE_UNIT.MILLILITERS };
+    const leche = createItem({ recipeShortfalls: [shortfall] });
+    // Lo que devuelve añadir desde el buscador: sin avisos, la base no los toca.
+    const mergedLeche = createItem({ quantity: 2 });
+
+    const state = shoppingListReducer(createLoadedState([leche]), {
+      item: mergedLeche,
+      type: SHOPPING_LIST_ACTION.ITEM_UPSERTED,
+    });
+
+    expect(state.items[0]).toMatchObject({ quantity: 2, recipeShortfalls: [shortfall] });
   });
 
   it("keeps the list untouched and shows the error when adding fails", () => {

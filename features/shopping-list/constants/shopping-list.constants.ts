@@ -37,6 +37,8 @@ export const SHOPPING_LIST_DB = {
     CHECK_LIST_ITEM_IN_SESSION: "check_list_item_in_session",
     // La lista general de quien llama: la de su familia o la personal (024, SCRUM-59).
     FIND_GENERAL_LIST_ID: "find_general_list_id",
+    // Avisos de faltante de receta de la lista general, con el nombre de la receta (033, SCRUM-114).
+    GET_GENERAL_LIST_SHORTFALLS: "get_general_list_shortfalls",
     SET_LIST_ITEM_CHECKED: "set_list_item_checked",
   },
   TABLE: {
@@ -44,6 +46,13 @@ export const SHOPPING_LIST_DB = {
     LIST_ITEMS: "list_items",
     VARIANTS: "product_catalog_variants",
   },
+} as const;
+
+// Prefijos de ids del DOM. SHORTFALL_NOTES: el bloque de avisos de una fila
+// (SCRUM-114), que el botón de tachar referencia con aria-describedby; lleva
+// el id de la fila para ser único.
+export const SHOPPING_LIST_DOM_ID_PREFIX = {
+  SHORTFALL_NOTES: "shortfall-notes-",
 } as const;
 
 // Acciones del reducer de la lista (utils/shopping-list.reducer.ts).
@@ -91,6 +100,9 @@ export const SHOPPING_LIST_TEXT = {
   REMOVE_ITEM: "Eliminar",
   REMOVE_ITEM_ICON: "✕",
   REMOVED_TOAST: "Producto eliminado",
+  // Aviso de faltante (SCRUM-114): "+ 600 ml necesarios para Tres leches".
+  SHORTFALL_NOTE_FOR: "necesarios para",
+  SHORTFALL_NOTE_PREFIX: "+",
   UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",

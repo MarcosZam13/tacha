@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CATALOG_BASE_UNIT } from "@/constants";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import { isBoughtInSession, toShoppingListRow } from "../utils/toShoppingListRow";
 
@@ -13,6 +14,7 @@ const createItem = (overrides: Partial<ShoppingListItem> = {}): ShoppingListItem
   purchaseSessionId: null,
   quantity: 2,
   quantityBought: null,
+  recipeShortfalls: [],
   sizeLabel: "1000 ml",
   variantId: "variant-leche",
   ...overrides,
@@ -70,5 +72,29 @@ describe("toShoppingListRow", () => {
     const row = toShoppingListRow({ activeSessionId: SESSION_ID, isPending: true, item: boughtHere(3) });
 
     expect(row).toMatchObject({ canDecrease: false, canIncrease: false, canRemove: false, canToggleChecked: false });
+  });
+
+  it("writes one shortfall note per recipe, on pending and on checked rows (SCRUM-114)", () => {
+    const recipeShortfalls = [
+      { quantityMissing: 600, recipeName: "Tres leches", unit: CATALOG_BASE_UNIT.MILLILITERS },
+      { quantityMissing: 200, recipeName: "Flan", unit: CATALOG_BASE_UNIT.GRAMS },
+    ];
+    const expectedNotes = ["+ 600 ml necesarios para Tres leches", "+ 200 g necesarios para Flan"];
+
+    const pendingRow = toShoppingListRow({ activeSessionId: null, isPending: false, item: createItem({ recipeShortfalls }) });
+    const checkedRow = toShoppingListRow({
+      activeSessionId: null,
+      isPending: false,
+      item: createItem({ checkedAt: CHECKED_AT, recipeShortfalls }),
+    });
+
+    expect(pendingRow.shortfallNotes).toEqual(expectedNotes);
+    expect(checkedRow.shortfallNotes).toEqual(expectedNotes);
+  });
+
+  it("has no shortfall notes when the row has no shortfalls", () => {
+    const row = toShoppingListRow({ activeSessionId: null, isPending: false, item: createItem() });
+
+    expect(row.shortfallNotes).toEqual([]);
   });
 });
