@@ -131,11 +131,28 @@ export const useShoppingList = (): UseShoppingListReturn => {
     startTransition(async () => {
       setOptimisticCheck({ ...toOptimisticCheck(item, isChecked, sessionId), itemId });
       try {
-        const check =
-          isChecked && sessionId ? await checkItemInSession(itemId, sessionId) : await setItemChecked(itemId, isChecked);
-        // Después de un await, React pide envolver otra vez en startTransition
-        // para que el cambio siga siendo parte de la misma transición.
-        startTransition(() => dispatch({ check, itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLED }));
+        if (isChecked && sessionId) {
+          const check = await checkItemInSession(itemId, sessionId);
+          // Después de un await, React pide envolver otra vez en startTransition
+          // para que el cambio siga siendo parte de la misma transición.
+          startTransition(() => dispatch({ check, itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLED }));
+          return;
+        }
+        const result = await setItemChecked(itemId, isChecked);
+        // Otro id: al destachar, la base la juntó con la pendiente de la misma
+        // presentación (SCRUM-156) y esta fila ya no existe.
+        startTransition(() =>
+          dispatch(
+            result.itemId === itemId
+              ? { check: result.check, itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLED }
+              : {
+                  itemId,
+                  mergedItemId: result.itemId,
+                  quantity: result.quantity,
+                  type: SHOPPING_LIST_ACTION.CHECK_MERGED,
+                },
+          ),
+        );
       } catch {
         startTransition(() =>
           dispatch({

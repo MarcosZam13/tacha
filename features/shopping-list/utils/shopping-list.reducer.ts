@@ -1,6 +1,8 @@
 import { SHOPPING_LIST_ACTION } from "../constants/shopping-list.constants";
 import type { ShoppingListAction } from "../models/ShoppingListAction.type";
+import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { ShoppingListState } from "../models/ShoppingListState.interface";
+import { mergeRecipeShortfalls } from "./mergeRecipeShortfalls";
 
 // Arranca cargando: el efecto que trae la lista nunca tiene que hacer un
 // dispatch síncrono para "empezar a cargar" (nextjs-enterprise-patterns §3).
@@ -39,18 +41,18 @@ export const shoppingListReducer = (
       return { ...state, isLoading: false, loadErrorMessage: action.errorMessage };
 
     case SHOPPING_LIST_ACTION.ITEM_UPSERTED: {
-      // La base ya aplicó el merge; acá solo se refleja: si la variante ya
-      // tenía fila se reemplaza (nueva cantidad), si no, se agrega al final.
+      // La base ya aplicó el merge; acá solo se refleja. La base junta solo con
+      // la fila PENDIENTE de esa variante (regla 8, SCRUM-156): si existe se
+      // reemplaza (nueva cantidad); si no, la fila es nueva y va al final,
+      // aunque haya una tachada de la misma variante (esa conserva su compra).
       // Añadir no toca los registros de recetas, así que la fila conserva sus
       // avisos de faltante (SCRUM-114, regla 32).
-      const isAlreadyListed = state.items.some(
-        (item) => item.variantId === action.item.variantId,
-      );
-      const items = isAlreadyListed
+      const isPendingSameVariant = (item: ShoppingListItem): boolean =>
+        item.variantId === action.item.variantId && item.checkedAt === null;
+      const isAlreadyPending = state.items.some(isPendingSameVariant);
+      const items = isAlreadyPending
         ? state.items.map((item) =>
-            item.variantId === action.item.variantId
-              ? { ...action.item, recipeShortfalls: item.recipeShortfalls }
-              : item,
+            isPendingSameVariant(item) ? { ...action.item, recipeShortfalls: item.recipeShortfalls } : item,
           )
         : [...state.items, action.item];
       return { ...state, addErrorMessage: null, items };
@@ -107,6 +109,32 @@ export const shoppingListReducer = (
         items: state.items.map((item) => (item.id === action.itemId ? { ...item, ...action.check } : item)),
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
       };
+
+    case SHOPPING_LIST_ACTION.CHECK_MERGED: {
+      // Destachar juntó la fila con la pendiente de la misma variante
+      // (SCRUM-156): la destachada desaparece y la pendiente queda con la
+      // cantidad que confirmó la base y los avisos de las dos.
+      const mergedAwayItem = state.items.find((item) => item.id === action.itemId);
+      return {
+        ...state,
+        checkErrorMessage: null,
+        items: state.items
+          .filter((item) => item.id !== action.itemId)
+          .map((item) =>
+            item.id === action.mergedItemId
+              ? {
+                  ...item,
+                  quantity: action.quantity,
+                  recipeShortfalls: mergeRecipeShortfalls(
+                    item.recipeShortfalls,
+                    mergedAwayItem?.recipeShortfalls ?? [],
+                  ),
+                }
+              : item,
+          ),
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+      };
+    }
 
     case SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED:
       // checkedAt no se toca: la fila sigue en la sección que confirmó la base.
