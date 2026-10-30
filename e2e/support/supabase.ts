@@ -60,8 +60,10 @@ export const deleteOwnListItems = async (page: Page, request: APIRequestContext)
 
 /**
  * Crea una receta propia del usuario con sesión en `page`, con un solo
- * ingrediente (el primer producto del catálogo), llamando a `save_recipe` con
- * su token. Devuelve el id. La página ya tiene que haber abierto sesión (la app
+ * ingrediente (el primer producto del catálogo, en ml), llamando a
+ * `save_recipe` con su token. Devuelve el id. `ingredientMilliliters` cambia
+ * la cantidad del ingrediente (E2E-LISTA-06 usa el máximo para forzar un
+ * faltante). La página ya tiene que haber abierto sesión (la app
  * la abre al cargar una pantalla que lee la base).
  *
  * Supuesto: el catálogo de la base compartida tiene al menos un producto. Si
@@ -72,6 +74,7 @@ export const createOwnRecipe = async (
   request: APIRequestContext,
   recipeName: string,
   baseServings: number,
+  ingredientMilliliters = 100,
 ): Promise<string> => {
   const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
   const anonKey = getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
@@ -86,7 +89,7 @@ export const createOwnRecipe = async (
   const recipeResponse = await request.post(`${supabaseUrl}/rest/v1/rpc/save_recipe`, {
     headers,
     data: {
-      ingredient_list: [{ product_catalog_id: product.id, quantity_unit: "ml", quantity_value: 100 }],
+      ingredient_list: [{ product_catalog_id: product.id, quantity_unit: "ml", quantity_value: ingredientMilliliters }],
       recipe_base_servings: baseServings,
       recipe_name: recipeName,
       target_recipe_id: null,

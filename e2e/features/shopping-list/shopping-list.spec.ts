@@ -1,14 +1,18 @@
 import { expect, test } from "@playwright/test";
-import { deleteOwnListItems } from "../../support/supabase";
+import { createOwnRecipe, deleteOwnListItems, deleteOwnRecipes } from "../../support/supabase";
 import {
   LIST_PATH,
+  RECIPES_PATH,
   addFirstSearchResult,
+  getAddRecipeToListButton,
+  getAddRecipeToListSummary,
   getCheckButton,
   getClosePurchasePanel,
   getEmptyListMessage,
   getListRow,
   getListSection,
   getShoppingModeBar,
+  getShortfallNote,
   startPurchaseAt,
 } from "./shopping-list.helpers";
 
@@ -117,5 +121,41 @@ test.describe("Lista general", () => {
     await expect(page).toHaveURL(LIST_URL);
     await expect(getShoppingModeBar(page)).toHaveCount(0);
     await expect(getClosePurchasePanel(page)).toHaveCount(0);
+  });
+});
+
+test.describe("Lista general: aviso de faltante de receta", () => {
+  // El máximo que acepta una receta (regla 9 de recetas): ninguna presentación
+  // del catálogo lo cubre, así que agregarla siempre deja faltante.
+  const INGREDIENT_MILLILITERS = 100_000;
+  const RECIPE_BASE_SERVINGS = 2;
+
+  test.afterEach(async ({ page, request }) => {
+    await deleteOwnListItems(page, request);
+    // Los registros de faltante se van con la receta (cascada).
+    await deleteOwnRecipes(page, request);
+  });
+
+  test("E2E-LISTA-06 — Aviso de faltante de una receta", async ({ page, request }) => {
+    // Abrir /lista primero abre la sesión anónima que usa la API para crear la receta.
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    const note = getShortfallNote(pendingSection, recipeName);
+    await expect(note).toBeVisible();
+
+    await note.click();
+
+    await expect(getShortfallNote(getListSection(page, PENDING_SECTION), recipeName)).toBeVisible();
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
