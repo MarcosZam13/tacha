@@ -9,6 +9,9 @@ export const MY_PRODUCTS_DB = {
   COLUMN: {
     HOUSEHOLD_ID: "household_id",
     NAME: "name",
+    // Agregado en HU-56 (SCRUM-87, migración 031): filtra los productos
+    // personales que no se compartieron con ningún household.
+    OWNER_ID: "owner_id",
     SOURCE: "source",
     USER_ID: "user_id",
   },

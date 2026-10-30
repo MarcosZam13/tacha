@@ -163,7 +163,7 @@ HU-51
 - [ ] CA-01: el sub-tab "Buscar" dentro de "Catálogo" muestra una barra de búsqueda arriba y los resultados en tarjetas, en una cuadrícula. *(Parcial por dependencia: vive en `/catalogo` hasta que exista el sidebar.)*
 - [ ] CA-02: cada tarjeta muestra el producto y su tamaño (ej. "Leche — 1L"), sin marca, con el precio aproximado como rango.
 - [ ] CA-03: los resultados se filtran en tiempo real a medida que el usuario escribe.
-- [ ] CA-04: si no hay resultados, se muestra un estado vacío con sugerencia de crear el producto en "Mis productos".
+- [ ] CA-04: si no hay resultados, se ofrece crear el producto ahí mismo — botón que abre el mismo formulario "Agregar producto" que usa "Mis productos" (`CreateProductForm`), sin salir de "Buscar". *(Actualizado 2026-10-29: era solo una sugerencia de texto; SCRUM-87/HU-56 lo implementó como un botón real — contrato completo en `features/my-products/specs/SPEC.md` §13, caso 9.)*
 
 Casos adicionales:
 - [ ] Con 0 o 1 carácter no se llama a la base y se muestra la guía.

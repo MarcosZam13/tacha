@@ -1,40 +1,87 @@
-# Tasks: MyProducts (SCRUM-86)
+# Tasks: MyProducts (SCRUM-86) + Crear producto personalizado (SCRUM-87 / HU-56)
 
-Todas las tareas son de esta historia (no hay otro ticket agrupado acá).
+Secciones 1-5: SCRUM-86 (ya Done/mergeado, se dejan como referencia histórica, sin
+volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
-## 1. Promociones a compartido (requisito de las tareas 2-4)
+## 1. Promociones a compartido (SCRUM-86, ya hecho)
 
-- [ ] 1.1 Mover `features/catalog/components/CatalogTabs.tsx` + su interface a `components/catalog-tabs/`, como `RecipesTabs`
-- [ ] 1.2 Crear `constants/catalog-tabs.constants.ts` (`CATALOG_TAB`, `CATALOG_TAB_LABEL`, `CATALOG_TABS` con `href`, `CATALOG_TABS_TEXT`), exportarlo desde `constants/index.ts`; quitar lo equivalente de `features/catalog/constants/catalog-search.constants.ts`
-- [ ] 1.3 Agregar `APP_ROUTE.CATALOG_MY_PRODUCTS` en `constants/routes.constants.ts`
-- [ ] 1.4 Mover `CatalogCard` + su interface a `components/catalog-card/`, agregar prop opcional `badgeLabel`
-- [ ] 1.5 Mover `toCatalogCards`, `CATALOG_CARD`, `CatalogCardData` a compartido (`utils/toCatalogCards.ts` + constante/tipo junto), con segundo parámetro opcional `badgeLabel`
-- [ ] 1.6 Actualizar `features/catalog/CatalogSearch.tsx` y sus tests para los nuevos imports (sin cambio de comportamiento)
+- [X] 1.1 Mover `features/catalog/components/CatalogTabs.tsx` + su interface a `components/catalog-tabs/`, como `RecipesTabs`
+- [X] 1.2 Crear `constants/catalog-tabs.constants.ts` (`CATALOG_TAB`, `CATALOG_TAB_LABEL`, `CATALOG_TABS` con `href`, `CATALOG_TABS_TEXT`), exportarlo desde `constants/index.ts`; quitar lo equivalente de `features/catalog/constants/catalog-search.constants.ts`
+- [X] 1.3 Agregar `APP_ROUTE.CATALOG_MY_PRODUCTS` en `constants/routes.constants.ts`
+- [X] 1.4 Mover `CatalogCard` + su interface a `components/catalog-card/`, agregar prop opcional `badgeLabel`
+- [X] 1.5 Mover `toCatalogCards`, `CATALOG_CARD`, `CatalogCardData` a compartido (`utils/toCatalogCards.ts` + constante/tipo junto), con segundo parámetro opcional `badgeLabel`
+- [X] 1.6 Actualizar `features/catalog/CatalogSearch.tsx` y sus tests para los nuevos imports (sin cambio de comportamiento)
 
-## 2. Servicio y ViewModel
+## 2. Servicio y ViewModel (SCRUM-86, ya hecho)
 
-- [ ] 2.1 `features/my-products/constants/my-products.constants.ts`: estados, textos (título ya existe como `CATALOG_TEXT.TITLE`, reusar), texto de CA-02, badge "Agregado por mí", nombre/columnas de `household_members`
-- [ ] 2.2 `features/my-products/services/my-products.service.ts`: `listMyProducts()` (household_id → product_catalog + variants → `CatalogProduct[]`)
-- [ ] 2.3 `features/my-products/models/my-products.interfaces.ts`: `MyProductsViewModel`
-- [ ] 2.4 `features/my-products/hooks/useMyProductsViewModel.ts`
+- [X] 2.1 `features/my-products/constants/my-products.constants.ts`
+- [X] 2.2 `features/my-products/services/my-products.service.ts`: `listMyProducts()`
+- [X] 2.3 `features/my-products/models/my-products.interfaces.ts`: `MyProductsViewModel`
+- [X] 2.4 `features/my-products/hooks/useMyProductsViewModel.ts`
 
-## 3. UI
+## 3. UI (SCRUM-86, ya hecho)
 
-- [ ] 3.1 `features/my-products/components/MyProductsEmptyState.tsx` (CA-02)
-- [ ] 3.2 `features/my-products/MyProducts.tsx` (título + `CatalogTabs` + estados)
-- [ ] 3.3 `app/(app)/catalogo/mis-productos/page.tsx`
+- [X] 3.1 `features/my-products/components/MyProductsEmptyState.tsx` (CA-02)
+- [X] 3.2 `features/my-products/MyProducts.tsx` (título + `CatalogTabs` + estados)
+- [X] 3.3 `app/(app)/catalogo/mis-productos/page.tsx`
 
-## 4. Tests (unit-testing-standards)
+## 4. Tests (SCRUM-86, ya hecho)
 
-- [ ] 4.1 `my-products.service.test.ts` — household con productos, household sin productos, sin household, error
-- [ ] 4.2 `MyProducts.page.ts` (Page Object)
-- [ ] 4.3 `MyProducts.test.tsx` — casos de aceptación §13 de `SPEC.md`: CA-01, CA-02, error, exclusión de productos madre globales
-- [ ] 4.4 Ajustar tests existentes de `CatalogSearch`/`CatalogTabs`/`CatalogCard` tras la promoción (mismo comportamiento, solo cambia de dónde importan)
+- [X] 4.1 `my-products.service.test.ts`
+- [X] 4.2 `MyProducts.page.ts` (Page Object)
+- [X] 4.3 `MyProducts.test.tsx`
+- [X] 4.4 Ajuste de tests existentes tras la promoción
 
-## 5. Cierre
+## 5. Cierre (SCRUM-86, ya hecho)
 
-- [ ] 5.1 Validar contra los 4 casos de aceptación de `SPEC.md §13`
-- [ ] 5.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
-- [ ] 5.3 Subagente `code-reviewer`
-- [ ] 5.4 Comunicar el impacto de este PR en el flujo de otros tickets: dejar un comentario en cada ticket de Jira correspondiente (al menos SCRUM-84 y SCRUM-85, que van a construir sobre `CatalogCard`/`CatalogTabs`/`toCatalogCards`) explicando qué se movió de `features/catalog/` a compartido y a qué ruta nueva; en el PR de GitHub de los tickets que ya tengan uno abierto (SCRUM-84), dejar el mismo aviso como comentario del PR, para que el cambio quede registrado tanto en Jira como en GitHub antes de que alguien retome esa historia
-- [ ] 5.5 Completar la descripción del PR (How should this be manually tested?) y pasar a `waiting qa`
+- [X] 5.1 Validar contra los 4 casos de aceptación de `SPEC.md §13` (de entonces)
+- [X] 5.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
+- [X] 5.3 Subagente `code-reviewer`
+- [X] 5.4 Comunicar el impacto del PR a SCRUM-84/85 (comentarios en Jira y PR de GitHub)
+- [X] 5.5 Descripción del PR y paso a `waiting qa`
+
+---
+
+## 6. Decisión de arquitectura y aviso al equipo (SCRUM-87, antes de tocar el esquema)
+
+- [X] 6.1 Registrar la decisión de agregar `owner_id` a `product_catalog` en `docs/documento-proyecto.md §6` con fecha (regla de `modos/arquitectura.md`: una decisión de modelo de datos se registra ahí antes/junto con la spec, no dentro de ella)
+- [X] 6.2 Coordinar con el equipo el número de migración (próximo libre verificado: 031) y avisar que se va a tocar `product_catalog`, tabla que SCRUM-86 ya construyó encima
+
+## 7. Migración y RPC nueva
+
+- [X] 7.1 `supabase/migrations/031_create_personal_product.sql`: `ALTER TABLE product_catalog ADD COLUMN owner_id uuid NULL REFERENCES auth.users(id) ON DELETE CASCADE` + índice en `owner_id`
+- [X] 7.2 Función `security definer` nueva (`create_personal_product`) — resuelve household internamente vía `auth.uid()`, inserta producto + variante (+ marca si hay) en una transacción, valida nombre/categoría/unidad/cantidad del lado del servidor, devuelve el `id` del producto creado
+- [X] 7.3 `grant execute` de la función solo a `authenticated` (mismo patrón que `ensure_general_list_id`/`find_general_list_id`)
+- [X] 7.4 Test SQL de la función (`supabase/tests/031_create_personal_product.test.sql`: sin sesión, nombre/categoría/unidad/cantidad inválidos, sin household, con household sin compartir, con household compartiendo, con marca) — mismo criterio que los tests SQL ya existentes para `029`/`030`
+- [X] 7.5 (Agregado al cierre, 2026-10-29) `supabase/migrations/032_fix_product_catalog_rls.sql`: corrige la policy de lectura de `product_catalog`/`product_catalog_variants`/`product_brands` (`using (true)` exponía productos personales sin compartir, hallazgo del `security-reviewer`) y el bug de `create_personal_product` que dejaba `owner_id`/`household_id` a la vez al compartir
+- [X] 7.6 Test SQL de 032 (`supabase/tests/032_fix_product_catalog_rls.test.sql`: anon sin acceso, catálogo global visible, producto propio visible, producto ajeno sin compartir invisible, producto del household visible) + corregida la aserción del caso 8 en `031_create_personal_product.test.sql` (ahora exige `owner_id is null` al compartir)
+
+## 8. Servicios y hook del formulario
+
+- [X] 8.1 Sin `services/category.service.ts` nuevo: se reusa `getCategories()`, ya existente en `services/catalog.service.ts` (desviación de `plan.md` documentada con fecha 2026-10-29 — ya estaba hecho desde HU-52/SCRUM-84 y ya tenía su propio test)
+- [X] 8.2 `services/personal-product.service.ts`: `createPersonalProduct(input)` (llama al RPC nuevo) y `hasHousehold()` (consulta propia y mínima, decide si se muestra el checkbox de compartir)
+- [X] 8.3 `constants/create-product-form.constants.ts`: textos, tabla/columna/RPC, opciones de unidad, estados del formulario — agregado a `constants/index.ts`
+- [X] 8.4 `hooks/useCreateProductForm.ts`: estado (`idle`/`open`/`submitting`/`error`; "éxito" se resuelve cerrando directo a `idle` y llamando `onSuccess`, sin un estado visible propio), validación de nombre/categoría/cantidad (CA-02), carga de categorías y de `hasHousehold()` al abrir, llamada al servicio sin mostrar nunca el `error.message` crudo (mismo criterio que `useHouseholdViewModel`)
+
+## 9. UI del formulario y conexión con las dos pantallas
+
+- [X] 9.1 `components/create-product-form/CreateProductForm.tsx` — nombre, marca, categoría (select de `getCategories()`), unidad + cantidad de tamaño, checkbox "Compartir con mi household" (visible solo si el usuario tiene uno); puramente presentacional, recibe `UseCreateProductFormReturn` completo como props (`CreateProductFormProps.interface.ts`)
+- [X] 9.2 `features/my-products/MyProducts.tsx`: botón "+ Agregar producto" en la cabecera, abre `CreateProductForm`, refresca el listado al guardar con éxito (`useMyProductsViewModel` ganó `reload()`)
+- [X] 9.3 `features/catalog/components/CatalogEmptyState.tsx` (CA-04): agregó `onAddProductClick` y el botón que abre el mismo `CreateProductForm`, cableado desde `CatalogSearch.tsx` con su propia instancia de `useCreateProductForm` (no refresca nada al crear: el producto nuevo no cambia una búsqueda ya hecha, per plan.md)
+- [X] 9.4 `features/my-products/services/my-products.service.ts` → `listMyProducts()` extendido de forma aditiva: siempre consulta por `owner_id`, y además por `household_id` si el usuario pertenece a uno (unión sin duplicados, un producto nunca tiene ambos campos a la vez)
+
+## 10. Tests
+
+- [X] 10.1 `services/tests/personal-product.service.test.ts` — `createPersonalProduct` (payload mapeado a snake_case, `brand_name` undefined sin marca, `ensureSession`, error del RPC) y `hasHousehold` (sin sesión, sin membresía, con membresía, error)
+- [X] 10.2 Sin `category.service.test.ts`: no hay `category.service.ts` (ver 8.1) — `getCategories()` ya tiene su test en `services/tests/catalog.service.test.ts` desde SCRUM-84
+- [X] 10.3 `hooks/tests/useCreateProductForm.test.ts` — validación (CA-02: nombre/categoría/cantidad), `canSubmit`, carga de categorías/`hasHousehold` al abrir, guardar con éxito (payload, `onSuccess`, reset y cierre), error genérico sin perder lo escrito, cancelar
+- [X] 10.4 `components/create-product-form/tests/CreateProductForm.test.tsx` — cerrado no renderiza, campos visibles, errores inline (nombre sin `role="alert"` igual que `Input`; categoría con `role="alert"`), `canSubmit` deshabilita "Guardar", checkbox de compartir visible solo con household (CA-03), estado `submitting`, cancelar
+- [X] 10.5 `features/my-products/tests/my-products.service.test.ts` reescrito para la extensión aditiva: consulta por `owner_id` sin household, unión household+owner sin duplicados y ordenada, filtros por columna en cada consulta, errores de cualquiera de las dos — sin romper los casos de SCRUM-86 ya cubiertos
+
+## 11. Cierre
+
+- [X] 11.1 Validar contra los 9 casos de aceptación de `SPEC.md §13` (los 4 de SCRUM-86 siguen pasando + los 5 nuevos de HU-56)
+- [X] 11.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` 
+- [X] 11.3 Subagente `code-reviewer` (siempre) y `security-reviewer` (toca auth/household/formularios — obligatorio según `AGENTS.md`) — hallazgos y resolución en `plan.md`/`SPEC.md` (migración 032) y en el historial del chat
+- [ ] 11.4 Comentario en Jira SCRUM-88 (HU-57) señalando dónde quedó el formulario, para cuando se agreguen los campos de tienda/precio
+- [ ] 11.5 Descripción del PR (incluyendo "How should this be manually tested?") y paso de label `in progress` → `waiting qa`
