@@ -3,7 +3,7 @@
 tipo: ticket de seguimiento (no bloqueante para PR actual)
 origen: QA review de @MarcosZam13 sobre Specs 1-4, punto 6 ("deuda técnica a documentar")
 fecha: 2026-09-04
-bloquea: no debe llegar a producción sin resolverse — bloquea el lanzamiento, no el merge de este PR
+bloquea: ya no (resuelto en SCRUM-127, migración 034)
 estado: resuelto en SCRUM-127 (migración 034)
 ---
 # Endurecer RLS de `household_store_preferences` cuando exista el módulo de auth/households

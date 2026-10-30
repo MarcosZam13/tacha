@@ -47,5 +47,5 @@ Componente de UI + lógica que permite al usuario elegir cuáles de las 3 tienda
 - [ ] Household nuevo sin filas muestra 3 tiendas con toggle activado
 - [ ] Desactivar toggle de Walmart → crea/actualiza fila `(household_id, store_id_walmart, visible=false)` *(la base lo permite desde 034; falta que el hook use la sesión)*
 - [ ] Activar toggle actualiza a `visible=true`, sin duplicado *(la base lo permite desde 034; falta que el hook use la sesión)*
-- [ ] `search_catalog(term, household_id)` excluye precios de tienda oculta
+- [ ] `search_catalog(term, household_id)` excluye precios de tienda oculta *(hoy falla: con un `household_id` responde `42702`, "column reference household_id is ambiguous", el mismo bug que 030 arregló en `list_catalog_by_category`; ticket SCRUM-157)*
 - [ ] Doble click rápido no genera error de clave duplicada *(la base lo permite desde 034; falta que el hook use la sesión)*

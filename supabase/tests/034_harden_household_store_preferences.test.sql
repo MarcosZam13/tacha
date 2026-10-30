@@ -26,7 +26,8 @@
 --      con household_id sigue respondiendo (no da "permission denied").
 --      Se usa esa y no search_catalog porque search_catalog con household_id
 --      tiene un bug previo, ajeno a 034: "column reference household_id is
---      ambiguous" (42702), el mismo que 030 arregló en list_catalog_by_category.
+--      ambiguous" (42702), el mismo que 030 arregló en list_catalog_by_category
+--      (ticket SCRUM-157).
 --   6. Borrar el household borra sus preferencias (on delete cascade).
 -- ============================================================================
 
@@ -98,6 +99,12 @@ begin
     'anon no puede tener TRUNCATE';
   assert not has_table_privilege('authenticated', 'public.household_store_preferences', 'truncate'),
     'authenticated no puede tener TRUNCATE (RLS no lo controla)';
+  assert not has_table_privilege('anon', 'public.household_store_preferences', 'references')
+    and not has_table_privilege('authenticated', 'public.household_store_preferences', 'references'),
+    'ni anon ni authenticated pueden tener REFERENCES';
+  assert not has_table_privilege('anon', 'public.household_store_preferences', 'trigger')
+    and not has_table_privilege('authenticated', 'public.household_store_preferences', 'trigger'),
+    'ni anon ni authenticated pueden tener TRIGGER';
   assert not exists (
     select 1 from pg_policy
     where polrelid = 'public.household_store_preferences'::regclass
