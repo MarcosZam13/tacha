@@ -37,7 +37,7 @@ Confirmado directamente contra el proyecto de Supabase, no es una descripción d
 |---|---|---|---|
 | `categories` | ✅ con policy pública de lectura | 0 | Vacía — nadie ha insertado categorías todavía |
 | `stores` | ✅ con policy pública de lectura | 3 | Sembrada: maxipali, walmart, masxmenos |
-| `household_store_preferences` | ✅ con policies (lectura pública temporal; escritura cerrada desde la migración 009) | 0 | Ver sección 6 |
+| `household_store_preferences` | ✅ solo miembros del household leen y escriben (migración 034) | 0 | Ver sección 6 |
 | `product_catalog` | ✅ con policy pública de lectura | 0 | Vacía — ver sección 2 |
 | `product_catalog_variants` | ✅ con policy pública de lectura | 0 | Vacía |
 | `product_brands` | ✅ con policy pública de lectura | 0 | Vacía |
@@ -69,7 +69,7 @@ base_url      text   -- endpoint VTEX pub/products/search de esa tienda
 
 ### `household_store_preferences` (tabla puente)
 ```
-household_id  uuid   -- FK real cuando el módulo households exista en este proyecto
+household_id  uuid FK -> households(id) on delete cascade (migración 034)
 store_id      uuid FK -> stores(id)
 visible       boolean default true
 PK (household_id, store_id)
@@ -217,7 +217,7 @@ where coalesce(hsp.visible, true) = true;
 
 El `coalesce(..., true)` es la parte importante: sin fila explícita, la tienda se considera visible. Solo se necesita insertar una fila cuando el usuario decide **ocultar** una tienda (`visible = false`) — no hace falta poblar las 3 filas por household de antemano.
 
-Las policies de RLS de esta tabla son temporales. La lectura es pública (`using (true)`); la escritura abierta se borró en la migración 009 (SCRUM-123, 2026-10-02), así que hoy nadie escribe desde el cliente (`42501`). Falta la política de escritura por membresía en `household_members` (SCRUM-127). Está anotado como TODO en `schema.sql`.
+Acceso (migración 034, SCRUM-127): una sola política, `household member manages store preferences`, `for all to authenticated`, que exige que `household_id` sea el de quien llama en `household_members`, tanto para leer (`using`) como para escribir (`with check`). `anon` conserva solo `SELECT` (RLS le devuelve 0 filas) porque `search_catalog` y `list_catalog_by_category` son `security invoker` y hacen `left join` a esta tabla; sin el permiso, un visitante recibiría `permission denied` al buscar. Nadie del cliente tiene `TRUNCATE`. Consecuencia para quien consume: la consulta de arriba solo filtra si la corre un miembro del household con su sesión; para cualquier otro, todas las tiendas salen visibles.
 
 ## 7. Qué NO está construido — para no asumir que existe
 
