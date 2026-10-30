@@ -48,9 +48,12 @@ export const SHOPPING_LIST_DB = {
   },
 } as const;
 
-// id del bloque de avisos de una fila (SCRUM-114): el botón de tachar lo
-// referencia con aria-describedby. Lleva el id de la fila para ser único.
-export const SHORTFALL_NOTES_ID_PREFIX = "shortfall-notes-";
+// Prefijos de ids del DOM. SHORTFALL_NOTES: el bloque de avisos de una fila
+// (SCRUM-114), que el botón de tachar referencia con aria-describedby; lleva
+// el id de la fila para ser único.
+export const SHOPPING_LIST_DOM_ID_PREFIX = {
+  SHORTFALL_NOTES: "shortfall-notes-",
+} as const;
 
 // Acciones del reducer de la lista (utils/shopping-list.reducer.ts).
 export const SHOPPING_LIST_ACTION = {

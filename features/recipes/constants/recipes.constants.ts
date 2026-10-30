@@ -64,11 +64,9 @@ export const RECIPE_FORM_PATTERN = {
   SERVINGS: /^\d+$/,
 } as const;
 
-// DECIMAL_SEPARATOR y las etiquetas de unidad se promovieron a
+// DECIMAL_SEPARATOR y las etiquetas de unidad viven en
 // constants/recipe-quantity.constants.ts (SCRUM-114): la lista general
-// también escribe cantidades de receta. Se reexportan aquí para no tocar los
-// imports que ya existían en esta feature.
-export { DECIMAL_SEPARATOR, RECIPE_UNIT_LABEL, RECIPE_UNIT_SINGULAR_LABEL } from "@/constants";
+// también escribe cantidades de receta.
 
 // Opciones del selector de unidad. ml primero a propósito: es la unidad más
 // común en las recetas del catálogo actual (lácteos), así queda arriba.

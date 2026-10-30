@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui";
 import { QuantityStepper } from "@/components/quantity-stepper/QuantityStepper";
 import { BUTTON_VARIANT } from "@/constants";
-import { SHOPPING_LIST_TEXT, SHORTFALL_NOTES_ID_PREFIX } from "../constants/shopping-list.constants";
+import { SHOPPING_LIST_DOM_ID_PREFIX, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import type { ShoppingListRowProps } from "./models/ShoppingListRowProps.interface";
 import { ShoppingListShortfallNotes } from "./ShoppingListShortfallNotes";
 
@@ -31,7 +31,7 @@ export const ShoppingListRow = ({
   // El único indicador de tachado va sobre el texto (HU-36e CA-03).
   const checkedTextClass = row.isChecked ? "text-tacha-textsec line-through" : "text-tacha-text";
   const hasShortfallNotes = row.shortfallNotes.length > 0;
-  const shortfallNotesId = `${SHORTFALL_NOTES_ID_PREFIX}${row.item.id}`;
+  const shortfallNotesId = `${SHOPPING_LIST_DOM_ID_PREFIX.SHORTFALL_NOTES}${row.item.id}`;
 
   return (
     <li className="flex items-center gap-3 pr-3">
