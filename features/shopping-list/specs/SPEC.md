@@ -359,16 +359,16 @@ No hay estados nuevos. Los faltantes llegan con la carga de la lista (`loading` 
 
 ### 16.13 Casos de aceptación (HU-76, SCRUM-114)
 
-- [ ] CA-01: una fila con un faltante de receta muestra debajo del producto "+ 600 ml necesarios para Tres leches", en texto chico y secundario.
-- [ ] CA-02: el aviso no es un botón: tocarlo no tacha la fila ni abre nada, y no se enfoca con Tab.
-- [ ] CA-03: un ingrediente de conteo, un registro con faltante 0 y un producto añadido desde el buscador no muestran aviso.
-- [ ] Un faltante que viene de "Agregar semana a la lista" se muestra igual, con el nombre de la receta.
-- [ ] Dos recetas con faltante sobre el mismo producto: dos líneas, una por receta.
-- [ ] El aviso sigue en la fila al tacharla (sin tachar el texto del aviso) y al destacharla.
-- [ ] Cambiar la cantidad o volver a añadir el producto desde el buscador no quita el aviso.
-- [ ] Borrar la receta (SCRUM-96) y recargar: el aviso ya no está.
-- [ ] En la lista de la familia, otro miembro ve el aviso con el nombre de la receta, y esa receta no aparece en su `/recetas` ni en el planificador.
-- [ ] Otro usuario fuera de la familia no recibe faltantes de mi lista; sin sesión, `42501`; `anon` no puede llamar a la RPC.
-- [ ] Falla la RPC al cargar: "No se pudo cargar tu lista. Intenta de nuevo."
-- [ ] El lector de pantalla lee el aviso como descripción del botón de la fila.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+- [x] CA-01: una fila con un faltante de receta muestra debajo del producto "+ 600 ml necesarios para Tres leches", en texto chico y secundario.
+- [x] CA-02: el aviso no es un botón: tocarlo no tacha la fila ni abre nada, y no se enfoca con Tab.
+- [x] CA-03: un ingrediente de conteo, un registro con faltante 0 y un producto añadido desde el buscador no muestran aviso.
+- [x] Un faltante que viene de "Agregar semana a la lista" se muestra igual, con el nombre de la receta.
+- [x] Dos recetas con faltante sobre el mismo producto: dos líneas, una por receta.
+- [x] El aviso sigue en la fila al tacharla (sin tachar el texto del aviso) y al destacharla.
+- [x] Cambiar la cantidad o volver a añadir el producto desde el buscador no quita el aviso.
+- [x] Borrar la receta (SCRUM-96) y recargar: el aviso ya no está.
+- [x] En la lista de la familia, otro miembro ve el aviso con el nombre de la receta, y esa receta no aparece en su `/recetas` ni en el planificador. (prueba SQL de la `033`: B ve la receta de A por la RPC y `select` sobre `recipes` no se la devuelve; a mano con dos cuentas registradas queda para QA)
+- [x] Otro usuario fuera de la familia no recibe faltantes de mi lista; sin sesión, `42501`; `anon` no puede llamar a la RPC.
+- [x] Falla la RPC al cargar: "No se pudo cargar tu lista. Intenta de nuevo." (test del servicio, con la RPC simulada fallando)
+- [x] El lector de pantalla lee el aviso como descripción del botón de la fila.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
