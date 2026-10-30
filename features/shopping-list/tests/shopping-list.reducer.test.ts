@@ -279,6 +279,19 @@ describe("shoppingListReducer: checking off (moving rows between sections)", () 
 
     expect(state.items).toEqual([boughtLeche, mergedLeche]);
   });
+
+  it("does not overwrite another row when the database returns a pending row this screen has not loaded", () => {
+    // Otro miembro tachó la pendiente que se ve acá y la base creó otra.
+    const stalePendingLeche = createItem({ id: "item-leche-viejo", quantity: 2 });
+    const newPendingLeche = createItem({ id: "item-leche-nuevo", quantity: 1 });
+
+    const state = shoppingListReducer(createLoadedState([stalePendingLeche]), {
+      item: newPendingLeche,
+      type: SHOPPING_LIST_ACTION.ITEM_UPSERTED,
+    });
+
+    expect(state.items).toEqual([stalePendingLeche, newPendingLeche]);
+  });
 });
 
 describe("shoppingListReducer: unchecking into a pending row of the same variant (SCRUM-156)", () => {
@@ -305,6 +318,28 @@ describe("shoppingListReducer: unchecking into a pending row of the same variant
     expect(state.items.map((item) => item.id)).toEqual([arroz.id, pendingLeche.id]);
     expect(state.items[1]).toMatchObject({ checkedAt: null, quantity: 4 });
     expect(state.pendingItemIds).toEqual([]);
+  });
+
+  it("keeps the product on screen when the pending row it merged into is not loaded yet", () => {
+    // Sin tiempo real: otro miembro creó la pendiente después de cargar la lista.
+    const boughtLeche = createItem({ checkedAt: CHECKED_AT, purchaseSessionId: "session-1", quantity: 3, quantityBought: 3 });
+    const arroz = createItem({ id: "item-arroz", variantId: "variant-arroz" });
+
+    const state = shoppingListReducer(createLoadedState([boughtLeche, arroz]), {
+      itemId: boughtLeche.id,
+      mergedItemId: "item-leche-de-otro",
+      quantity: 4,
+      type: SHOPPING_LIST_ACTION.CHECK_MERGED,
+    });
+
+    expect(state.items.map((item) => item.id)).toEqual(["item-leche-de-otro", arroz.id]);
+    expect(state.items[0]).toMatchObject({
+      checkedAt: null,
+      productName: boughtLeche.productName,
+      purchaseSessionId: null,
+      quantity: 4,
+      quantityBought: null,
+    });
   });
 
   it("joins the recipe shortfalls of both rows, adding the same recipe into one line", () => {
