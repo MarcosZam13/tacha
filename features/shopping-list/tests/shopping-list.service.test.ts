@@ -41,6 +41,19 @@ const LIST_ITEM_ROW = {
   quantity_requested: 2,
 };
 
+// Una fila de get_general_list_shortfalls (033) sobre LIST_ITEM_ROW.
+const SHORTFALL_ROW = { list_item_id: "item-1", quantity_missing: 600, quantity_unit: "ml", recipe_name: "Tres leches" };
+
+// getGeneralList llama dos RPC en paralelo: cada una responde por su nombre.
+const mockGeneralListRpcs = (
+  generalListResponse: { data: string | null; error: unknown },
+  shortfallsResponse: { data: (typeof SHORTFALL_ROW)[] | null; error: unknown } = { data: [], error: null },
+): void => {
+  rpcMock.mockImplementation((rpcName: string) =>
+    Promise.resolve(rpcName === "get_general_list_shortfalls" ? shortfallsResponse : generalListResponse),
+  );
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
   for (const method of [query.eq, query.is, query.or, query.order, query.select]) {
@@ -50,7 +63,7 @@ beforeEach(() => {
 
 describe("getGeneralList", () => {
   it("asks the database which list to show and reads that one (CA-05)", async () => {
-    rpcMock.mockResolvedValue({ data: HOUSEHOLD_LIST_ID, error: null });
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null });
     maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
 
     const items = await getGeneralList();
@@ -59,12 +72,31 @@ describe("getGeneralList", () => {
     expect(rpcMock).toHaveBeenCalledWith("find_general_list_id");
     expect(eqMock).toHaveBeenCalledWith("id", HOUSEHOLD_LIST_ID);
     expect(items).toEqual([
-      expect.objectContaining({ id: "item-1", productName: "Leche", quantity: 2, variantId: "variant-1" }),
+      expect.objectContaining({ id: "item-1", productName: "Leche", quantity: 2, recipeShortfalls: [], variantId: "variant-1" }),
     ]);
   });
 
+  it("attaches the recipe shortfalls to their rows (SCRUM-114)", async () => {
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null }, { data: [SHORTFALL_ROW], error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
+
+    const [item] = await getGeneralList();
+
+    // Nombre literal a propósito: fija el contrato con la base (migración 033).
+    expect(rpcMock).toHaveBeenCalledWith("get_general_list_shortfalls");
+    expect(item.recipeShortfalls).toEqual([{ quantityMissing: 600, recipeName: "Tres leches", unit: "ml" }]);
+  });
+
+  it("fails the load when the shortfalls cannot be read, instead of showing a list without them", async () => {
+    const supabaseError = { code: "PGRST000", message: "error" };
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null }, { data: null, error: supabaseError });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
+
+    await expect(getGeneralList()).rejects.toBe(supabaseError);
+  });
+
   it("returns an empty list without reading when there is no list yet", async () => {
-    rpcMock.mockResolvedValue({ data: null, error: null });
+    mockGeneralListRpcs({ data: null, error: null });
 
     await expect(getGeneralList()).resolves.toEqual([]);
     expect(maybeSingleMock).not.toHaveBeenCalled();
@@ -72,7 +104,7 @@ describe("getGeneralList", () => {
 
   it("rethrows the Supabase error", async () => {
     const supabaseError = { code: "42501", message: "Se requiere una sesión para usar la lista" };
-    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+    mockGeneralListRpcs({ data: null, error: supabaseError });
 
     await expect(getGeneralList()).rejects.toBe(supabaseError);
   });
@@ -88,6 +120,9 @@ describe("getKeptPersonalList", () => {
     expect(eqMock).toHaveBeenCalledWith("owner_id", "user-ana");
     expect(isMock).toHaveBeenCalledWith("household_id", null);
     expect(items).toHaveLength(1);
+    // Sin avisos de faltante: no es la lista a la que se agregan recetas (SCRUM-114, regla 30).
+    expect(items[0].recipeShortfalls).toEqual([]);
+    expect(rpcMock).not.toHaveBeenCalledWith("get_general_list_shortfalls");
   });
 
   it("returns nothing without a household: the personal list is the main one", async () => {
