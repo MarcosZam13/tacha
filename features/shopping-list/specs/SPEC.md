@@ -396,6 +396,9 @@ No hay estados nuevos. Los faltantes llegan con la carga de la lista (`loading` 
 - `useShoppingListViewModel`: el buscador busca la fila **pendiente** de la variante; si solo hay una tachada, añade (la base crea la fila nueva).
 - Reducer `ITEM_UPSERTED`: reemplaza solo la pendiente de esa variante; si no hay, agrega al final.
 - `setItemChecked` devuelve `ItemCheckResult` (`check`, `itemId`, `quantity`). Si el id es otro, `useShoppingList` despacha `CHECK_MERGED`: sale la destachada y la pendiente toma la cantidad de la base y los avisos de las dos (`utils/mergeRecipeShortfalls.ts`, la misma suma que hace la base).
+- Sin tiempo real (SCRUM-155) la pantalla puede no tener la pendiente con la que se juntó (la creó otro miembro después de cargar): entonces la destachada toma su lugar con el id y la cantidad de la base. Por la misma razón `ITEM_UPSERTED` reemplaza por id, no por variante.
+- Destachar solo junta por la RPC: un PATCH directo de `checked_at = null` con una pendiente igual choca con el índice (`23505`). El cliente siempre usa la RPC.
+- Límite conocido: si hay un cambio de cantidad en vuelo sobre la pendiente justo cuando llega el merge, la pantalla puede quedar con un número viejo hasta recargar.
 
 ### 17.4 Casos de aceptación
 
