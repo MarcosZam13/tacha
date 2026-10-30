@@ -22,8 +22,11 @@
 --   3. Miembros: A guarda (upsert) y B, de la misma familia, lee y cambia.
 --   4. No miembros: C y D no leen las filas del household 1, no las cambian
 --      ni las borran, y no pueden insertar en un household ajeno (42501).
---   5. anon: no lee filas, no escribe, no hace TRUNCATE; search_catalog con
---      household_id sigue respondiendo (no da "permission denied").
+--   5. anon: no lee filas, no escribe, no hace TRUNCATE; list_catalog_by_category
+--      con household_id sigue respondiendo (no da "permission denied").
+--      Se usa esa y no search_catalog porque search_catalog con household_id
+--      tiene un bug previo, ajeno a 034: "column reference household_id is
+--      ambiguous" (42702), el mismo que 030 arregló en list_catalog_by_category.
 --   6. Borrar el household borra sus preferencias (on delete cascade).
 -- ============================================================================
 
@@ -263,8 +266,9 @@ begin
     when insufficient_privilege then null;
   end;
 
-  -- El catálogo con household_id sigue respondiendo para un visitante.
-  perform * from public.search_catalog('leche', current_setting('tacha_test.household_1')::uuid);
+  -- El catálogo con household_id sigue respondiendo para un visitante (la
+  -- función es security invoker y hace left join a la tabla).
+  perform * from public.list_catalog_by_category(null, current_setting('tacha_test.household_1')::uuid);
 end $$;
 
 -- ----------------------------------------------------------------------------
