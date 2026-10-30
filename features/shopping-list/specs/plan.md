@@ -381,7 +381,7 @@ types/database.types.ts                         Functions.get_general_list_short
 constants/recipe-quantity.constants.ts          (nuevo) DECIMAL_SEPARATOR, RECIPE_UNIT_LABEL, RECIPE_UNIT_SINGULAR_LABEL, movidos desde recetas
 constants/index.ts                              + barrel
 utils/formatRecipeQuantity.ts                   (git mv desde features/recipes/utils/) segundo consumidor
-features/recipes/constants/recipes.constants.ts reexporta las tres constantes movidas
+features/recipes/constants/recipes.constants.ts sin las tres constantes; recetas las importa de @/constants
 features/recipes/utils/*.ts                     import de formatRecipeQuantity desde @/utils
 
 features/shopping-list/
