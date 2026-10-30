@@ -25,7 +25,7 @@ npm run build
 
 Si la feature tiene pruebas de punta a punta, correr también las suyas (ver [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-Rutas útiles mientras no existan las pantallas reales: `/ui-kit` (componentes base) y `/debug` (demos del catálogo y el scraping).
+Rutas útiles mientras no existan las pantallas reales: `/ui-kit` (componentes base) y `/debug` (demos del catálogo y el scraping). Solo cargan con `npm run dev`: en un build de producción `proxy.ts` responde 404.
 
 La base de datos y las Edge Functions de scraping se despliegan aparte, ver [supabase/README.md](supabase/README.md).
 
