@@ -364,7 +364,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 5 — Pantalla (commit `feat`)
 
-- [x] 5.1 `HouseholdMembersSection` y sus props, con `toMemberInitials` para el avatar.
+- [x] 5.1 `HouseholdMembersSection` y sus props, con `toInitials` para el avatar.
 - [x] 5.2 Integración en `useHouseholdViewModel` y `Household.tsx`.
 - [x] 5.3 Page Object y tests (jsdom): `HouseholdMembers.page.ts`, `HouseholdMembers.test.tsx` y `toMemberInitials.test.ts`.
 - [x] 5.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-17): los cuatro sin errores; Vitest completo, 796 tests en 86 archivos.
