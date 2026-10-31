@@ -43,3 +43,11 @@ export const AUTOCOMPLETE = {
 } as const;
 
 export type AutocompleteType = (typeof AUTOCOMPLETE)[keyof typeof AUTOCOMPLETE];
+
+// Tamaños del avatar de perfil (foto o iniciales): el chico va en la navegación, el grande en la pantalla de perfil.
+export const AVATAR_SIZE = {
+  LARGE: "large",
+  SMALL: "small",
+} as const;
+
+export type AvatarSizeType = (typeof AVATAR_SIZE)[keyof typeof AVATAR_SIZE];

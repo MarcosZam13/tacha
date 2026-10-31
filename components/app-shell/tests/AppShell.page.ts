@@ -13,5 +13,16 @@ export const createAppShellPage = () => {
 
   const getMain = (): HTMLElement => screen.getByRole("main");
 
-  return { getCurrentLinks, getLink, getMain, getNavigations };
+  // El acceso al perfil está en el sidebar (con el nombre) y en la cabecera de mobile (solo el avatar).
+  const getProfileLinks = (): HTMLElement[] =>
+    screen.getAllByRole("link", { name: new RegExp(`^${APP_SHELL_TEXT.PROFILE_LINK_LABEL}`) });
+
+  const getSidebarProfileName = (): HTMLElement => within(screen.getByRole("complementary")).getByRole("link", {
+    name: new RegExp(`^${APP_SHELL_TEXT.PROFILE_LINK_LABEL}`),
+  });
+
+  const getTopBarProfileLink = (): HTMLElement =>
+    within(screen.getByRole("banner")).getByRole("link", { name: new RegExp(`^${APP_SHELL_TEXT.PROFILE_LINK_LABEL}`) });
+
+  return { getCurrentLinks, getLink, getMain, getNavigations, getProfileLinks, getSidebarProfileName, getTopBarProfileLink };
 };
