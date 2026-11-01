@@ -100,9 +100,9 @@ Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base
 - [x] 48. SPEC (§18; huecos de HU-77 decididos con el responsable entre el 2026-10-29 y el 2026-11-01), plan y tareas. Depende de SCRUM-156 (mergeada).
 - [x] 49. Migración `037_resolve_recipe_shortfalls.sql` (incluye la foto para deshacer y `undo_shortfall_resolution_and_uncheck`) y su prueba `supabase/tests/037_resolve_recipe_shortfalls.test.sql`.
 - [ ] 50. Aplicar la `037` (Roberto, SQL Editor: ensayo con la prueba y `rollback`, después con su fila `037`) y actualizar `types/database.types.ts`. Bloquea la validación en el navegador (55), no el código.
-- [ ] 51. Constantes, modelos, `shortfall-resolution.reducer`, `toPresentationOptions`, con tests primero.
-- [ ] 52. Servicios: `getGeneralListShortfalls(localDayStart)`, `resolveShortfall`, `getProductPresentations`, y la cobertura de recetas con la medianoche local; tests de servicio.
-- [ ] 53. Hooks: `reload` y el aviso de tachado confirmado en `useShoppingList`, `useShortfallResolution` (sigue abierto si falta), `useUncheckWithUndo` y su composición en el ViewModel; tests.
-- [ ] 54. Presentación: `ShortfallResolutionPanel`, `ShortfallPresentationList`, `UndoResolutionDialog`, montaje en `ShoppingListInner`; tests con Page Object.
+- [x] 51. Constantes, modelos, `shortfall-resolution.reducer`, `toPresentationOptions`, con tests primero.
+- [x] 52. Servicios: `getGeneralListShortfalls(localDayStart)`, `resolveShortfall`, `getProductPresentations`, y la cobertura de recetas con la medianoche local; tests de servicio.
+- [x] 53. Hooks: `reload` y el aviso de tachado confirmado en `useShoppingList`, `useShortfallResolution` (sigue abierto si falta), `useUncheckWithUndo` y su composición en el ViewModel; tests.
+- [x] 54. Presentación: `ShortfallResolutionPanel`, `ShortfallPresentationList`, `UndoResolutionDialog`, montaje en `ShoppingListInner`; tests con Page Object.
 - [ ] 55. `E2E.md` (E2E-LISTA-07) y su test; `docs/documento-proyecto.md`; `tsc`, lint, build, `npm test`, E2E; validar §18.13 en el navegador.
 - [ ] 56. Revisión con `code-reviewer` y `security-reviewer` (tres funciones `security definer`), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Marcos.

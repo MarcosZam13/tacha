@@ -487,6 +487,8 @@ features/shopping-list/
   utils/toPresentationOptions.ts                variantes + precios → opciones ordenadas por precio (puro, con test)
   hooks/useShortfallResolution.ts               abrir al tachar, elegir, cargar presentaciones, resolver, recargar; seguir abierto si falta
   hooks/useUncheckWithUndo.ts                   diálogo de destachar con deshacer: pedir, confirmar, cancelar, error
+  hooks/useShortfallFlowViewModel.ts            facade: une el panel y el diálogo y arma lo que dibujan (el ViewModel de la lista ya coordina mucho)
+utils/startOfLocalDay.ts                        (git mv desde la lista) la usa también la cobertura de recetas
   components/UndoResolutionDialog.tsx           Modal del diálogo
   hooks/useShoppingList.ts                      reload(); toggleChecked avisa cuando la base confirma un tachado
   hooks/useShoppingListViewModel.ts             compone useShortfallResolution
@@ -527,4 +529,6 @@ docs/documento-proyecto.md                      §4.9.1 y §6
 | Panel abierto mientras falte | Cerrarlo siempre | En el súper, si una unidad más no alcanzó, el usuario puede volver a elegir sin destachar y tachar otra vez (decidido con el responsable) |
 | Revertir con confirmación y foto de antes del panel | No revertir, o un historial de cada cambio | Decidido con el responsable: destachar es "no lo compré", y el diálogo resuelve la ambigüedad de los cambios manuales diciendo a qué vuelve |
 | Función nueva que revierte y llama a `set_list_item_checked` | Cambiar `set_list_item_checked` (035) | No toca la función de Marcos; la junta con una pendiente sigue siendo suya, en la misma transacción |
+| Volver a pedir solo los avisos después de cada cambio | Recargar la lista, o calcular en el cliente | El faltante es una cuenta de la base (regla 33): una RPC liviana lo mantiene al día sin repetir la regla en el cliente; recargar la lista en cada "+" sería más lento y movería el estado optimista |
+| Funciones con nombres nuevos y las viejas intactas | Cambiar la firma de las de la 033 y la 017 | La 037 se aplica antes del merge en la base compartida: cambiar las viejas rompería `/lista` y "Ver qué falta" en `develop` |
 | Foto en una tabla aparte | Columnas en `list_items` | `list_items` es de Marcos y su grant de columnas es estricto; la tabla aparte se borra en cascada con la fila |

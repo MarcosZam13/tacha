@@ -489,6 +489,7 @@ Lo que no incluye está en [18.11](#1811-casos-fuera-de-alcance).
     - Revertir y destachar son una sola operación: entra todo o nada. Si al destachar hay una pendiente de esa presentación, se junta con ella (§17) ya con los valores revertidos.
     - "Ya tenía suficiente" no pide confirmación: no cambió la fila, y destachar ya quita el descarte (regla 41).
 46. **Qué se guarda para revertir.** La primera vez que el panel cambia la fila ("Agregué otra igual" o "Cambié a otra presentación"), la base guarda su presentación y su cantidad pedida. Elegir otra vez en el mismo panel no lo reemplaza: se revierte a como estaba antes del panel. Se borra al revertir, y con la fila si se elimina. Lo comprado (`quantity_bought`) no se guarda: destachar lo borra igual (018).
+47. **La pantalla vuelve a pedir los avisos** después de cada cambio que puede moverlos: cambiar la cantidad o lo comprado, añadir, borrar, tachar o destachar (también al juntar). Pide solo los avisos, no la lista entera; si falla, se quedan los últimos que se vieron (la acción ya se guardó), y una respuesta vieja que llega después de una nueva se ignora.
 
 ### 18.6 Estados
 
@@ -522,7 +523,7 @@ Lo que no incluye está en [18.11](#1811-casos-fuera-de-alcance).
 - `Modal` compartido: `role="dialog"`, `aria-modal`, título, Escape y foco de vuelta a la fila al cerrar.
 - Los avisos del panel son una lista; las opciones son botones con texto completo.
 - Cada presentación es un botón cuyo nombre dice tamaño y precio ("3780 ml, ₡2 300 – ₡2 500").
-- El cambio de vista (opciones ↔ presentaciones) mueve el foco al primer botón de la vista nueva.
+- **Límite conocido:** al cambiar de vista (opciones ↔ presentaciones) el botón que tenía el foco desaparece y el foco pasa al diálogo, no al primer botón de la vista nueva. Moverlo exige refs en un componente de presentación o agregar `autoFocus` al `Button` compartido (que usan otras features); es el mismo límite que el planificador (SPEC de meal-planner §9). Con Tab se llega en un paso.
 - Errores con `role="alert"`.
 - Si el panel sigue abierto después de elegir, el resumen "Todavía falta…" está en una región `aria-live="polite"` para que el lector anuncie el cambio.
 - El diálogo de deshacer es el `Modal` compartido; "Cancelar" deja el foco en la fila.
