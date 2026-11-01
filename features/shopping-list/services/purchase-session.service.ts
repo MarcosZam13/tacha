@@ -4,7 +4,7 @@ import type { NullableRef } from "@/types/nullable.types";
 import { PURCHASE_SESSION_DB } from "../constants/purchase-session.constants";
 import type { PurchaseSession } from "../models/PurchaseSession.interface";
 import type { StoreOption } from "../models/StoreOption.interface";
-import { startOfLocalDay } from "../utils/startOfLocalDay";
+import { startOfLocalDay } from "@/utils/startOfLocalDay";
 
 /** Los supermercados para elegir al iniciar una compra. Catálogo público (lectura abierta). */
 export const getStores = async (): Promise<StoreOption[]> => {

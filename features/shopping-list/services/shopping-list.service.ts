@@ -4,6 +4,7 @@ import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
+import { startOfLocalDay } from "@/utils/startOfLocalDay";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
@@ -12,8 +13,9 @@ import type { ItemCheckResult } from "../models/ItemCheckResult.interface";
 import type { ItemDetail } from "../models/ItemDetail.interface";
 import type { RecipeShortfall } from "../models/RecipeShortfall.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
-import { startOfLocalDay } from "../utils/startOfLocalDay";
+import type { ShortfallSnapshot } from "../models/shortfall-resolution.types";
 import { toRecipeShortfalls } from "../utils/toRecipeShortfalls";
+import { toShortfallSnapshots } from "../utils/toShortfallSnapshots";
 
 /** Las columnas de tachado de una fila de list_items → su ItemCheck. */
 const toItemCheck = (listItem: {
@@ -45,12 +47,14 @@ const selectListWithTodayItems = () =>
 type ListWithTodayItemsRow = QueryData<ReturnType<typeof selectListWithTodayItems>>[number];
 
 /**
- * Las filas de una lista → ShoppingListItem. Los avisos de faltante vienen
- * aparte (la RPC de 033), por id de fila; una fila sin avisos lleva [].
+ * Las filas de una lista → ShoppingListItem. Los avisos de faltante y las
+ * fotos de "¿Qué hiciste?" vienen aparte (RPC de la 037), por id de fila;
+ * una fila sin avisos lleva [] y sin foto, null.
  */
 const toShoppingListItems = (
   list: ListWithTodayItemsRow,
   shortfallsByItemId: Map<string, RecipeShortfall[]> = new Map(),
+  snapshotsByItemId: Map<string, ShortfallSnapshot> = new Map(),
 ): ShoppingListItem[] =>
   list.list_items.map((listItem) => {
     const variant = listItem.product_catalog_variants;
@@ -60,6 +64,7 @@ const toShoppingListItems = (
       productName: variant.product_catalog.name,
       quantity: listItem.quantity_requested,
       recipeShortfalls: shortfallsByItemId.get(listItem.id) ?? [],
+      shortfallSnapshot: snapshotsByItemId.get(listItem.id) ?? null,
       // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
       sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
       variantId: variant.id,
@@ -77,37 +82,62 @@ const findGeneralListId = async (): Promise<NullableRef<string>> => {
 };
 
 /**
- * Los avisos de faltante de receta o plan de la lista general (SCRUM-114),
- * por id de fila. La RPC elige la lista igual que find_general_list_id y ya
- * filtra qué es un aviso (faltante mayor que 0, en ml o g); trae el nombre de
- * la receta aunque sea de otro miembro de la familia (SPEC §16, regla 29).
+ * Los avisos de faltante de receta o plan de la lista general, por id de
+ * fila. Desde SCRUM-115 la base los calcula en vivo (SPEC §18, regla 33): lo
+ * que hay del producto en la lista (pendiente y tachado hoy) contra lo que
+ * piden las recetas. La RPC elige la lista igual que find_general_list_id,
+ * ya filtra qué es un aviso y trae el nombre de la receta aunque sea de otro
+ * miembro de la familia (SPEC §16, regla 29). Se exporta para volver a
+ * pedirlos después de un cambio en la lista sin recargarla entera.
  */
-const getGeneralListShortfalls = async (): Promise<Map<string, RecipeShortfall[]>> => {
-  const { data: shortfallRows, error } = await getSupabaseClient().rpc(SHOPPING_LIST_DB.RPC.GET_GENERAL_LIST_SHORTFALLS);
+export const getGeneralListShortfalls = async (
+  localDayStart: string = startOfLocalDay(new Date()),
+): Promise<Map<string, RecipeShortfall[]>> => {
+  const { data: shortfallRows, error } = await getSupabaseClient().rpc(
+    SHOPPING_LIST_DB.RPC.GET_GENERAL_LIST_RECIPE_SHORTFALLS,
+    { local_day_start: localDayStart },
+  );
   if (error) throw error;
 
   return toRecipeShortfalls(shortfallRows);
+};
+
+// A qué vuelve cada fila resuelta en "¿Qué hiciste?" (SCRUM-115, regla 46).
+const getGeneralListShortfallSnapshots = async (localDayStart: string): Promise<Map<string, ShortfallSnapshot>> => {
+  const { data: snapshotRows, error } = await getSupabaseClient().rpc(
+    SHOPPING_LIST_DB.RPC.GET_GENERAL_LIST_SHORTFALL_SNAPSHOTS,
+    { local_day_start: localDayStart },
+  );
+  if (error) throw error;
+
+  return toShortfallSnapshots(snapshotRows);
 };
 
 /**
  * Trae la lista general con sus items de hoy: la de la familia si el usuario
  * es miembro de una, si no la personal. Si todavía no existe (nadie añadió
  * nada) devuelve [] — la lista se crea en la base al añadir el primer
- * producto, no al abrir la pantalla. Los avisos de faltante se piden en
- * paralelo; si fallan, falla la carga: sin ellos la pantalla diría que no
- * falta nada sin saberlo (SPEC §16.6).
+ * producto, no al abrir la pantalla. Los avisos de faltante y las fotos de
+ * "¿Qué hiciste?" se piden en paralelo; si fallan, falla la carga: sin ellos
+ * la pantalla diría que no falta nada sin saberlo (SPEC §16.6).
  */
 export const getGeneralList = async (): Promise<ShoppingListItem[]> => {
   await ensureSession();
 
-  const [generalListId, shortfallsByItemId] = await Promise.all([findGeneralListId(), getGeneralListShortfalls()]);
+  // La misma medianoche para las tres consultas: el mismo "hoy".
+  const localDayStart = startOfLocalDay(new Date());
+  const [generalListId, shortfallsByItemId, snapshotsByItemId] = await Promise.all([
+    findGeneralListId(),
+    getGeneralListShortfalls(localDayStart),
+    getGeneralListShortfallSnapshots(localDayStart),
+  ]);
   if (!generalListId) return [];
 
   const { data: generalList, error } = await selectListWithTodayItems().eq("id", generalListId).maybeSingle();
   if (error) throw error;
   if (!generalList) return [];
 
-  return toShoppingListItems(generalList, shortfallsByItemId);
+  return toShoppingListItems(generalList, shortfallsByItemId, snapshotsByItemId);
 };
 
 /**
@@ -152,6 +182,7 @@ export const addItemToGeneralList = async (
     quantityBought: listItem.quantityBought,
     // Añadir desde el buscador nunca deja aviso; si la fila ya tenía, el reducer los conserva.
     recipeShortfalls: [],
+    shortfallSnapshot: null,
     sizeLabel: searchResult.sizeLabel,
     variantId: listItem.variantId,
   };

@@ -35,6 +35,7 @@ const LECHE: ShoppingListItem = {
   quantity: 2,
   quantityBought: null,
   recipeShortfalls: [],
+  shortfallSnapshot: null,
   sizeLabel: "1000 ml",
   variantId: "variant-leche",
 };
