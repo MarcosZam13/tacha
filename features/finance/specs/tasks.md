@@ -132,21 +132,21 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 1 — Datos
 
-- [ ] 1.1 `PeriodPurchase`, constantes (`FINANCE_DB`, textos) y `getPeriodPurchases`, con sus tests.
+- [x] 1.1 `PeriodPurchase`, constantes (`FINANCE_DB`, textos) y `getPeriodPurchases`, con sus tests.
 
 ### Etapa 2 — Lógica
 
-- [ ] 2.1 Extraer `useFinanceAccess` de `useFinanceDashboardViewModel`, sin cambiar su comportamiento, con sus tests.
-- [ ] 2.2 `formatPurchaseDate`, `usePeriodPurchases` y `usePurchaseHistoryViewModel`, con sus tests.
+- [x] 2.1 Extraer `useFinanceAccess` de `useFinanceDashboardViewModel`, sin cambiar su comportamiento, con sus tests.
+- [x] 2.2 `formatPurchaseDate`, `usePeriodPurchases` y `usePurchaseHistoryViewModel`, con sus tests.
 
 ### Etapa 3 — Pantalla
 
-- [ ] 3.1 `FinanceTabs` y `APP_ROUTE.FINANCE_HISTORY`; la barra en `FinanceDashboard`.
-- [ ] 3.2 `PurchaseSessionRow`, `PurchaseHistory` (con `PriceDisclaimer`) y `app/(app)/finanzas/historial/page.tsx`, con Page Object y tests.
+- [x] 3.1 `FinanceTabs` y `APP_ROUTE.FINANCE_HISTORY`; la barra en `FinanceDashboard`.
+- [x] 3.2 `PurchaseSessionRow`, `PurchaseHistory` (con `PriceDisclaimer`) y `app/(app)/finanzas/historial/page.tsx`, con Page Object y tests.
 
 ### Etapa 4 — E2E
 
-- [ ] 4.1 `e2e/features/finance/purchase-history.spec.ts` y helpers (E2E-FIN-05 a 08), y ajustar E2E-FIN-01; correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+- [x] 4.1 `e2e/features/finance/purchase-history.spec.ts` y helpers (E2E-FIN-05 a 08), y ajustar E2E-FIN-01; correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
 
 ### Etapa 5 — QA y cierre
 
