@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { CATALOG_BASE_UNIT } from "@/constants";
 import { ITEM_QUANTITY, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import { useShoppingList } from "../hooks/useShoppingList";
 import type { ItemCheck } from "../models/ItemCheck.interface";
@@ -8,8 +9,10 @@ import type { ItemCheckResult } from "../models/ItemCheckResult.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import {
   changeItemBoughtQuantity,
+  changeItemQuantity,
   checkItemInSession,
   getGeneralList,
+  getGeneralListShortfalls,
   setItemChecked,
 } from "../services/shopping-list.service";
 
@@ -20,12 +23,16 @@ vi.mock("../services/shopping-list.service", () => ({
   checkItemInSession: vi.fn(),
   deleteListItem: vi.fn(),
   getGeneralList: vi.fn(),
+  // SCRUM-115: después de cada cambio se vuelven a pedir los avisos en vivo.
+  getGeneralListShortfalls: vi.fn(() => Promise.resolve(new Map())),
   setItemChecked: vi.fn(),
 }));
 const changeItemBoughtQuantityMock = vi.mocked(changeItemBoughtQuantity);
 const checkItemInSessionMock = vi.mocked(checkItemInSession);
 const getGeneralListMock = vi.mocked(getGeneralList);
 const setItemCheckedMock = vi.mocked(setItemChecked);
+const changeItemQuantityMock = vi.mocked(changeItemQuantity);
+const getGeneralListShortfallsMock = vi.mocked(getGeneralListShortfalls);
 
 const LECHE: ShoppingListItem = {
   checkedAt: null,
@@ -162,5 +169,66 @@ describe("useShoppingList: shopping mode (SCRUM-67)", () => {
 
     expect(changeItemBoughtQuantityMock).toHaveBeenCalledWith(LECHE.id, ITEM_QUANTITY.STEP.INCREASE);
     expect(result.current.state.items[0]).toMatchObject({ quantity: 2, quantityBought: 3 });
+  });
+});
+
+describe("useShoppingList: recipe shortfalls (SCRUM-115)", () => {
+  const SHORTFALL = { quantityMissing: 600, recipeName: "Tres leches", unit: CATALOG_BASE_UNIT.MILLILITERS };
+
+  it("tells the caller once the database confirms a check, to open \"¿Qué hiciste?\"", async () => {
+    setItemCheckedMock.mockResolvedValue(
+      toCheckResult({ checkedAt: SERVER_CHECKED_AT, purchaseSessionId: null, quantityBought: null }),
+    );
+    const onChecked = vi.fn();
+    const { result } = await renderLoadedList();
+
+    await act(async () => result.current.toggleChecked(LECHE.id, true, NO_SESSION, onChecked));
+
+    expect(onChecked).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not open the panel when the check fails", async () => {
+    setItemCheckedMock.mockRejectedValue(new Error("network"));
+    const onChecked = vi.fn();
+    const { result } = await renderLoadedList();
+
+    await act(async () => result.current.toggleChecked(LECHE.id, true, NO_SESSION, onChecked));
+
+    expect(onChecked).not.toHaveBeenCalled();
+  });
+
+  it("asks for the live shortfalls again after the quantity changes (rule 47)", async () => {
+    changeItemQuantityMock.mockResolvedValue(3);
+    getGeneralListShortfallsMock.mockResolvedValue(new Map([[LECHE.id, [SHORTFALL]]]));
+    const { result } = await renderLoadedList();
+
+    await act(async () => result.current.changeQuantity(LECHE.id, ITEM_QUANTITY.STEP.INCREASE));
+
+    await waitFor(() => expect(result.current.state.items[0].recipeShortfalls).toEqual([SHORTFALL]));
+  });
+
+  it("keeps the last shortfalls when asking for them again fails", async () => {
+    changeItemQuantityMock.mockResolvedValue(3);
+    getGeneralListShortfallsMock.mockRejectedValue(new Error("network"));
+    const { result } = await renderLoadedList([{ ...LECHE, recipeShortfalls: [SHORTFALL] }]);
+
+    await act(async () => result.current.changeQuantity(LECHE.id, ITEM_QUANTITY.STEP.INCREASE));
+
+    expect(result.current.state.items[0].recipeShortfalls).toEqual([SHORTFALL]);
+    expect(result.current.state.quantityErrorMessage).toBeNull();
+  });
+
+  it("reloads the whole list and returns what is on screen", async () => {
+    const { result } = await renderLoadedList();
+    const reloadedLeche = { ...LECHE, quantity: 5 };
+    getGeneralListMock.mockResolvedValue([reloadedLeche]);
+
+    let reloadedItems: ShoppingListItem[] | null = null;
+    await act(async () => {
+      reloadedItems = await result.current.reload();
+    });
+
+    expect(reloadedItems).toEqual([reloadedLeche]);
+    expect(result.current.state.items).toEqual([reloadedLeche]);
   });
 });
