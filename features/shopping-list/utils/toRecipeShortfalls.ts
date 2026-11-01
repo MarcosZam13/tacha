@@ -2,7 +2,7 @@ import type { CatalogBaseUnitType } from "@/constants";
 import type { RecipeShortfall, RecipeShortfallRow } from "../models/RecipeShortfall.interface";
 
 /**
- * Filas de get_general_list_shortfalls → los avisos de cada fila de la lista,
+ * Filas de get_general_list_recipe_shortfalls (037) → los avisos de cada fila de la lista,
  * por id. Conserva el orden de la base (una línea por receta, en el orden en
  * que se registraron). Qué es un aviso ya lo decidió la base: acá no se filtra.
  */

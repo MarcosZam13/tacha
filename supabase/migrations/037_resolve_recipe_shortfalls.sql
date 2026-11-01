@@ -392,6 +392,18 @@ begin
   from public.list_item_shortfall_snapshots s
   where s.list_item_id = target_item_id;
 
+  -- Una compra cerrada no se reescribe (018): no se revierte la presentación
+  -- ni la cantidad, solo se destacha, como destachar sin panel (que 018 sí
+  -- permite). Fallar dejaría la fila imposible de destachar desde la pantalla.
+  if snapshot.list_item_id is not null
+    and target_item.purchase_session_id is not null
+    and exists (
+      select 1 from public.purchase_sessions s
+      where s.id = target_item.purchase_session_id and s.closed_at is not null
+    ) then
+    snapshot := null;
+  end if;
+
   if snapshot.list_item_id is not null then
     update public.list_items
     set

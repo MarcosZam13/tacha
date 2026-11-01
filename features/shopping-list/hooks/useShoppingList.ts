@@ -109,6 +109,9 @@ export const useShoppingList = (): UseShoppingListReturn => {
   };
 
   const reload = async (): Promise<NullableRef<ShoppingListItem[]>> => {
+    // La recarga trae avisos nuevos: un refresco de avisos que salió antes y
+    // responde después ya no tiene que pisarlos.
+    latestShortfallsRequestRef.current += 1;
     try {
       const items = await getGeneralList();
       dispatch({ items, type: SHOPPING_LIST_ACTION.LOADED });

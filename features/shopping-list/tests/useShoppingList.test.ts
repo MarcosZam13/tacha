@@ -231,4 +231,24 @@ describe("useShoppingList: recipe shortfalls (SCRUM-115)", () => {
     expect(reloadedItems).toEqual([reloadedLeche]);
     expect(result.current.state.items).toEqual([reloadedLeche]);
   });
+
+  it("does not let an older shortfall refresh overwrite a newer reload", async () => {
+    changeItemQuantityMock.mockResolvedValue(3);
+    const staleShortfalls = createPendingResponse<Map<string, (typeof SHORTFALL)[]>>();
+    getGeneralListShortfallsMock.mockReturnValue(staleShortfalls.promise);
+    const { result } = await renderLoadedList();
+
+    // Sale un refresco de avisos que todavía no responde...
+    await act(async () => result.current.changeQuantity(LECHE.id, ITEM_QUANTITY.STEP.INCREASE));
+    // ...y una recarga trae la lista con su aviso.
+    getGeneralListMock.mockResolvedValue([{ ...LECHE, recipeShortfalls: [SHORTFALL] }]);
+    await act(async () => {
+      await result.current.reload();
+    });
+    // El refresco viejo responde después, sin avisos: no pisa la recarga.
+    await act(async () => staleShortfalls.resolve(new Map()));
+
+    expect(result.current.state.items[0].recipeShortfalls).toEqual([SHORTFALL]);
+  });
 });
+
