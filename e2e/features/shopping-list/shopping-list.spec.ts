@@ -13,6 +13,8 @@ import {
   getListSection,
   getShoppingModeBar,
   getShortfallNote,
+  getShortfallPanel,
+  getUndoDialog,
   startPurchaseAt,
 } from "./shopping-list.helpers";
 
@@ -157,5 +159,69 @@ test.describe("Lista general: aviso de faltante de receta", () => {
     await expect(getShortfallNote(getListSection(page, PENDING_SECTION), recipeName)).toBeVisible();
     await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
+  // El máximo que acepta una receta: una unidad más nunca cubre el faltante.
+  const INGREDIENT_MILLILITERS = 100_000;
+  const RECIPE_BASE_SERVINGS = 2;
+  // El botón de tachar de la fila es el único con aria-pressed; pressed: false
+  // de getByRole también encuentra los botones sin ese atributo (cantidad, detalle).
+  const CHECK_BUTTON = "button[aria-pressed]";
+
+  test.afterEach(async ({ page, request }) => {
+    await deleteOwnListItems(page, request);
+    await deleteOwnRecipes(page, request);
+  });
+
+  test("E2E-LISTA-07 — ¿Qué hiciste? al tachar y deshacer al destachar", async ({ page, request }) => {
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    const pendingRow = pendingSection.getByRole("listitem").filter({ has: getShortfallNote(pendingSection, recipeName) });
+    await expect(pendingRow).toBeVisible();
+
+    // 1. Tachar abre el panel con el aviso.
+    await pendingRow.locator(CHECK_BUTTON).click();
+    const panel = getShortfallPanel(page);
+    await expect(panel).toBeVisible();
+    await expect(getShortfallNote(panel, recipeName)).toBeVisible();
+
+    // 2. Una unidad más no alcanza: el panel sigue abierto.
+    await panel.getByRole("button", { name: "Agregué otra igual" }).click();
+    await expect(panel.getByText("Todavía falta:")).toBeVisible();
+
+    // 3. Cerrar: la fila tachada quedó con 2 y su aviso.
+    await panel.getByRole("button", { name: "Ahora no" }).click();
+    await expect(panel).toHaveCount(0);
+    const checkedSection = getListSection(page, CHECKED_SECTION);
+    const checkedRow = checkedSection.getByRole("listitem").filter({ has: getShortfallNote(checkedSection, recipeName) });
+    await expect(checkedRow.getByText("2", { exact: true })).toBeVisible();
+
+    // 4. Destachar pide confirmar y deshace: vuelve a 1 en Pendientes, con aviso.
+    await checkedRow.locator(CHECK_BUTTON).click();
+    const undoDialog = getUndoDialog(page);
+    await expect(undoDialog).toContainText("La fila vuelve a 1 ×");
+    await undoDialog.getByRole("button", { name: "Destachar y deshacer" }).click();
+    await expect(undoDialog).toHaveCount(0);
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    const undoneRow = pendingSection.getByRole("listitem").filter({ has: getShortfallNote(pendingSection, recipeName) });
+    await expect(undoneRow.getByText("1", { exact: true })).toBeVisible();
+
+    // 5. Tachar otra vez y descartar: el aviso desaparece.
+    await undoneRow.locator(CHECK_BUTTON).click();
+    await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Ya tenía suficiente" }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(getShortfallNote(page.locator("main"), recipeName)).toHaveCount(0);
   });
 });
