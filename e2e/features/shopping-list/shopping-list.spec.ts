@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Locator } from "@playwright/test";
 import { createOwnRecipe, deleteOwnListItems, deleteOwnRecipes } from "../../support/supabase";
 import {
   LIST_PATH,
@@ -169,6 +170,10 @@ test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
   // El botón de tachar de la fila es el único con aria-pressed; pressed: false
   // de getByRole también encuentra los botones sin ese atributo (cantidad, detalle).
   const CHECK_BUTTON = "button[aria-pressed]";
+  // La fila de la receta, por el texto de su aviso. first(): los avisos también
+  // son <li> dentro de la fila, y la fila va primero en el orden del DOM.
+  const getRowWithShortfall = (section: Locator, recipeName: string): Locator =>
+    section.getByRole("listitem").filter({ hasText: `necesarios para ${recipeName}` }).first();
 
   test.afterEach(async ({ page, request }) => {
     await deleteOwnListItems(page, request);
@@ -187,7 +192,7 @@ test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
 
     await page.goto(LIST_PATH);
     const pendingSection = getListSection(page, PENDING_SECTION);
-    const pendingRow = pendingSection.getByRole("listitem").filter({ has: getShortfallNote(pendingSection, recipeName) });
+    const pendingRow = getRowWithShortfall(pendingSection, recipeName);
     await expect(pendingRow).toBeVisible();
 
     // 1. Tachar abre el panel con el aviso.
@@ -204,7 +209,7 @@ test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
     await panel.getByRole("button", { name: "Ahora no" }).click();
     await expect(panel).toHaveCount(0);
     const checkedSection = getListSection(page, CHECKED_SECTION);
-    const checkedRow = checkedSection.getByRole("listitem").filter({ has: getShortfallNote(checkedSection, recipeName) });
+    const checkedRow = getRowWithShortfall(checkedSection, recipeName);
     await expect(checkedRow.getByText("2", { exact: true })).toBeVisible();
 
     // 4. Destachar pide confirmar y deshace: vuelve a 1 en Pendientes, con aviso.
@@ -214,7 +219,7 @@ test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
     await undoDialog.getByRole("button", { name: "Destachar y deshacer" }).click();
     await expect(undoDialog).toHaveCount(0);
     await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
-    const undoneRow = pendingSection.getByRole("listitem").filter({ has: getShortfallNote(pendingSection, recipeName) });
+    const undoneRow = getRowWithShortfall(pendingSection, recipeName);
     await expect(undoneRow.getByText("1", { exact: true })).toBeVisible();
 
     // 5. Tachar otra vez y descartar: el aviso desaparece.

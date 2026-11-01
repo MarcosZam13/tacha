@@ -565,25 +565,25 @@ Migración **`037_resolve_recipe_shortfalls.sql`** (la `034` es de la PR #84 y l
 
 ### 18.13 Casos de aceptación (HU-77, SCRUM-115)
 
-- [ ] CA-01: tachar una fila con aviso abre el panel "¿Qué hiciste?" con sus avisos; tachar una fila sin aviso no lo abre.
-- [ ] CA-02: el panel tiene "Agregué otra igual", "Cambié a otra presentación" (con las presentaciones y su precio aproximado) y "Ya tenía suficiente", y cada una hace lo de la regla 36.
-- [ ] CA-03: ninguna presentación aparece marcada, preseleccionada ni recomendada; el orden es por precio y lo dice el panel.
-- [ ] CA-04: todo pasa en el panel, sin cambiar de pantalla; "Volver" regresa a las opciones.
-- [ ] Cuenta en vivo: 3 × 1 L tachados con recetas de 2 L y 2 L → un solo aviso, "+ 1000 ml necesarios" para la segunda receta.
-- [ ] "Agregué otra igual" con 1 L para 1600 ml → la fila pasa a 2 y el aviso desaparece; con 1 L para 3000 ml → queda "+ 1000 ml".
-- [ ] En modo compra, "Agregué otra igual" suma a lo comprado ("Pedido 1" bajo la fila).
-- [ ] "Cambié a otra presentación" de 1 L a 3,78 L con 1 unidad → la fila muestra 3780 ml y el aviso se recalcula.
-- [ ] "Ya tenía suficiente" quita los avisos de la fila; destacharla los devuelve, sin diálogo.
-- [ ] "Agregué otra igual" con 1 L para 3000 ml: el panel sigue abierto con "Todavía falta" 1000 ml; elegirla otra vez lo cubre y el panel se cierra.
-- [ ] Destachar una fila resuelta con "Agregué otra igual" (1 → 2) abre el diálogo; "Destachar y deshacer" la deja en Pendientes con 1 y el aviso de vuelta; "Cancelar" no cambia nada.
-- [ ] Destachar una fila resuelta con "Cambié a otra presentación" (1 L → 3,78 L) vuelve a 1 L.
-- [ ] Deshacer con una pendiente de la misma presentación: se junta con ella ya revertida (una sola pendiente).
-- [ ] Falla al destachar y deshacer: la fila sigue tachada y sin cambios.
-- [ ] Cerrar el panel sin elegir no cambia nada.
-- [ ] Una fila con avisos de dos recetas: un solo panel y la opción vale para las dos.
-- [ ] Un producto tachado ayer no cuenta para las recetas de hoy, ni sus pedidos.
-- [ ] "Ver qué falta" (SCRUM-98) dice el mismo faltante que la lista.
-- [ ] En la familia, B resuelve el aviso de una receta de A en la lista compartida.
-- [ ] La base rechaza: sin sesión (`42501`), fila ajena (`P0002`), fila pendiente o presentación de otro producto (`22023`); `anon` sin `execute`.
-- [ ] Falla al resolver: mensaje en el panel, que sigue abierto; reintentar funciona.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+- [x] CA-01: tachar una fila con aviso abre el panel "¿Qué hiciste?" con sus avisos; tachar una fila sin aviso no lo abre.
+- [x] CA-02: el panel tiene "Agregué otra igual", "Cambié a otra presentación" (con las presentaciones y su precio aproximado) y "Ya tenía suficiente", y cada una hace lo de la regla 36.
+- [x] CA-03: ninguna presentación aparece marcada, preseleccionada ni recomendada; el orden es por precio y lo dice el panel.
+- [x] CA-04: todo pasa en el panel, sin cambiar de pantalla; "Volver" regresa a las opciones.
+- [x] Cuenta en vivo: 3 × 1 L tachados con recetas de 2 L y 2 L → un solo aviso, "+ 1000 ml necesarios" para la segunda receta.
+- [x] "Agregué otra igual" con 1 L para 1600 ml → la fila pasa a 2 y el aviso desaparece; con 1 L para 3000 ml → queda "+ 1000 ml".
+- [x] En modo compra, "Agregué otra igual" suma a lo comprado ("Pedido 1" bajo la fila). (prueba SQL de la `037`, paso 7)
+- [x] "Cambié a otra presentación" de 1 L a 3,78 L con 1 unidad → la fila muestra 3780 ml y el aviso se recalcula. (prueba SQL de la `037`, paso 6, y el panel en el navegador)
+- [x] "Ya tenía suficiente" quita los avisos de la fila; destacharla los devuelve, sin diálogo.
+- [x] "Agregué otra igual" con 1 L para 3000 ml: el panel sigue abierto con "Todavía falta" 1000 ml; elegirla otra vez lo cubre y el panel se cierra.
+- [x] Destachar una fila resuelta con "Agregué otra igual" (1 → 2) abre el diálogo; "Destachar y deshacer" la deja en Pendientes con 1 y el aviso de vuelta; "Cancelar" no cambia nada.
+- [x] Destachar una fila resuelta con "Cambié a otra presentación" (1 L → 3,78 L) vuelve a 1 L.
+- [x] Deshacer con una pendiente de la misma presentación: se junta con ella ya revertida (una sola pendiente).
+- [x] Falla al destachar y deshacer: la fila sigue tachada y sin cambios.
+- [x] Cerrar el panel sin elegir no cambia nada.
+- [x] Una fila con avisos de dos recetas: un solo panel y la opción vale para las dos.
+- [x] Un producto tachado ayer no cuenta para las recetas de hoy, ni sus pedidos.
+- [x] "Ver qué falta" (SCRUM-98) dice el mismo faltante que la lista.
+- [x] En la familia, B resuelve el aviso de una receta de A en la lista compartida. (prueba SQL de la `037`, pasos 5 y 6; a mano con dos cuentas registradas queda para QA)
+- [x] La base rechaza: sin sesión (`42501`), fila ajena (`P0002`), fila pendiente o presentación de otro producto (`22023`); `anon` sin `execute`.
+- [x] Falla al resolver: mensaje en el panel, que sigue abierto; reintentar funciona.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
