@@ -440,3 +440,82 @@ docs/documento-proyecto.md                      §4.9.1 y §6
 | Juntar al destachar | Rechazar el destachado si hay pendiente | Destachar es corregir un error: rechazarlo deja a la persona sin salida |
 | `CHECK_MERGED` en el reducer | Recargar la lista entera | Es raro pero se ve: recargar parpadea y descarta otros cambios en curso; la acción es pura y se prueba sola |
 | `set_list_item_checked` `security definer` | Seguir `invoker` | Al juntar se mueven pedidos de recetas de otro miembro y la RLS no lo deja; el acceso se comprueba a mano igual que la política de `lists` |
+
+## SCRUM-115: resolver el faltante al tachar
+
+Deriva de [SPEC.md §18](SPEC.md#18-scrum-115-resolver-el-faltante-al-tachar-qué-hiciste).
+
+### Datos: migración `037_resolve_recipe_shortfalls.sql`
+
+1. `alter table list_item_recipe_requirements add column dismissed_at timestamptz` (nullable, sin grant de columna).
+2. `drop function get_general_list_shortfalls()` y `create function get_general_list_shortfalls(local_day_start timestamptz)`, `security definer`, `stable`:
+   - `general_list_id := find_general_list_id()`; sin lista, 0 filas.
+   - CTE `cycle_items`: filas de la lista con `checked_at is null or checked_at >= local_day_start`, con su `product_catalog_id`, `base_quantity`, `base_unit` y `coalesce(quantity_bought, quantity_requested)`.
+   - CTE `available`: por producto y unidad, `sum(units * base_quantity)`.
+   - CTE `requests`: registros de esas filas en `ml`/`g`, sin `dismissed_at`, con `sum(quantity_needed) over (partition by producto, unidad order by req.created_at, req.id)` como acumulado.
+   - Faltante de cada registro: `least(quantity_needed, greatest(0, acumulado − disponible))`; se devuelven los > 0 con `list_item_id`, `recipe_id`, `recipe_name`, `quantity_missing`, `quantity_unit`.
+   - `local_day_start` fuera de `[now() − 36 h, now()]` → `22023`.
+3. `resolve_list_item_shortfall(target_item_id, resolution, target_variant_id)`, `security definer`:
+   - acceso con la misma consulta que `set_list_item_checked` (035) y `for update`;
+   - fila pendiente → `22023`;
+   - `sameAgain`: si `purchase_session_id` no es nulo, `quantity_bought + 1` (el trigger de la 018 rechaza una compra cerrada); si no, `quantity_requested + 1` (tope de `integer`);
+   - `otherPresentation`: la variante tiene que ser del mismo `product_catalog_id` y distinta de la actual → `update product_catalog_variant_id`;
+   - `hadEnough`: `update ... set dismissed_at = now() where list_item_id = target_item_id`;
+   - devuelve la fila.
+4. Trigger `list_items_clear_dismissed_on_uncheck` (`after update of checked_at`, `when (old.checked_at is not null and new.checked_at is null)`), función `security definer`: `update list_item_recipe_requirements set dismissed_at = null where list_item_id = new.id`.
+5. `drop function get_recipe_coverage(uuid)` y `create function get_recipe_coverage(target_recipe_id, local_day_start)`: el cuerpo de la 017, con `short` y `missing_quantity` tomados de `get_general_list_shortfalls(local_day_start)` filtrado por `recipe_id` y producto.
+6. Permisos: `revoke ... from public, anon`, `grant execute ... to authenticated` en las tres funciones públicas; la del trigger sin `execute` para nadie.
+7. Prueba `supabase/tests/037_resolve_recipe_shortfalls.test.sql` (begin/rollback): cuenta en vivo (3 × 1 L y 2 + 2 L), unidad distinta, tachado ayer no cuenta, las tres resoluciones, destachar quita el descarte, fila pendiente / ajena / otra presentación rechazadas, familia (B resuelve receta de A), cobertura igual a la lista, `anon` sin `execute`.
+
+### Archivos
+
+```
+supabase/migrations/037_resolve_recipe_shortfalls.sql
+supabase/tests/037_resolve_recipe_shortfalls.test.sql
+types/database.types.ts                         dismissed_at, resolve_list_item_shortfall, firmas nuevas
+
+features/shopping-list/
+  constants/shopping-list.constants.ts          RPC, SHORTFALL_RESOLUTION (sameAgain / otherPresentation / hadEnough), textos del panel
+  constants/shortfall-resolution.constants.ts   estados y acciones del panel
+  models/ShortfallResolution.types.ts           estado del panel, opción, presentación con precio
+  models/ShortfallResolutionViewModel.interface.ts
+  services/shopping-list.service.ts             getGeneralListShortfalls(localDayStart)
+  services/shortfall-resolution.service.ts      resolveShortfall(), getProductPresentations(variantId)
+  utils/shortfall-resolution.reducer.ts         estados del panel (puro, con test)
+  utils/toPresentationOptions.ts                variantes + precios → opciones ordenadas por precio (puro, con test)
+  hooks/useShortfallResolution.ts               abrir al tachar, elegir, cargar presentaciones, resolver, recargar
+  hooks/useShoppingList.ts                      reload(); toggleChecked avisa cuando la base confirma un tachado
+  hooks/useShoppingListViewModel.ts             compone useShortfallResolution
+  components/ShortfallResolutionPanel.tsx       Modal: avisos + opciones
+  components/ShortfallPresentationList.tsx      vista de presentaciones
+  components/models/*Props.interface.ts
+  ShoppingListInner.tsx                         monta el panel
+  tests/                                        reducer, toPresentationOptions, servicio, hook, panel con Page Object
+  specs/E2E.md                                  E2E-LISTA-07
+features/recipes/services/recipe-coverage.service.ts   pasa la medianoche local
+e2e/features/shopping-list/                     E2E-LISTA-07
+docs/documento-proyecto.md                      §4.9.1 y §6
+```
+
+### Flujo
+
+1. Tocar una fila pendiente con avisos → `onToggleChecked` → `toggleChecked` (optimista, sin cambios) → la base confirma → `useShortfallResolution.openFor(item)` si `item.recipeShortfalls.length > 0`.
+2. "Agregué otra igual" / "Ya tenía suficiente" → `RESOLVE_STARTED` → `resolveShortfall({ itemId, resolution })` → `reload()` de la lista → `CLOSED`.
+3. "Cambié a otra presentación" → `PRESENTATIONS_REQUESTED` → `getProductPresentations(variantId)` → `toPresentationOptions` → `PRESENTATIONS_LOADED` → elegir → `resolveShortfall({ itemId, resolution, variantId })` → `reload()` → `CLOSED`.
+4. Error → `FAILED` (o `PRESENTATIONS_FAILED`), el panel sigue abierto. `P0002` / `22023` de una fila que ya no está tachada → `CLOSED` + `reload()`.
+5. Destachar → el trigger quita el descarte → la lista se recarga como hoy y el aviso vuelve si sigue faltando.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Faltante en vivo en la RPC | Guardarlo al agregar y actualizarlo en cada cambio | Un valor guardado hay que mantenerlo en cada función que cambia la lista (añadir, cantidad, tachar, juntar, borrar); una cuenta no se desincroniza |
+| Ciclo = pendiente o tachado hoy | Todo lo de la lista | Lo de otros días es una compra pasada (HU-36e CA-05); sin corte, los pedidos de recetas viejas sumarían para siempre |
+| Lo comprado si la fila está en una compra | Siempre lo pedido | En el súper lo comprado es lo real; "Pedido N" ya distingue los dos |
+| Descarte con `dismissed_at` | Borrar los registros | Destachar lo tiene que poder devolver (regla 41) y "Ver qué falta" sigue sabiendo qué pidió la receta |
+| Trigger para quitar el descarte | Cambiar `set_list_item_checked` | No toca la función de Marcos (035); cubre también destachar por la RPC y el juntar |
+| Una RPC con `resolution` | Tres RPC | Las tres comparten el acceso, el bloqueo y la regla de "solo tachadas" |
+| Recargar la lista después de resolver | Actualizar el estado a mano | La presentación cambia nombre y tamaño, y los avisos de otras filas del producto también cambian; una recarga los trae todos de la base |
+| Presentaciones por lectura directa | RPC | Es catálogo público, igual que el detalle (SCRUM-64) |
+| Ordenar por precio, sin marcar ninguna | Por tamaño | documento-proyecto §4.9.1 lo pide; ordenar no es elegir (CA-03) |
+| Cobertura con la misma cuenta | Dejarla con `quantity_missing` | "Ver qué falta" y la lista dirían faltantes distintos |
