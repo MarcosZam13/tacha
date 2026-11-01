@@ -412,6 +412,10 @@ begin
   changed := public.resolve_list_item_shortfall(current_setting('tacha_test.item_6')::uuid, 'sameAgain');
   assert changed.quantity_bought = 2 and changed.quantity_requested = 1,
     'en una compra abierta suma a lo comprado y no a lo pedido';
+  assert exists (
+    select 1 from public.get_general_list_shortfall_snapshots(date_trunc('day', now())) s
+    where s.list_item_id = current_setting('tacha_test.item_6')::uuid
+  ), 'el panel también guarda la foto en modo compra';
 
   begin
     perform public.resolve_list_item_shortfall(current_setting('tacha_test.item_5')::uuid, 'sameAgain');
@@ -462,8 +466,10 @@ begin
   assert returned.product_catalog_variant_id = current_setting('tacha_test.variant_small')::uuid,
     'vuelve a la presentación de antes del panel';
 
+  -- Solo la de item1: item6 sigue tachado con su propia foto (paso 7).
   assert not exists (
-    select 1 from public.get_general_list_shortfall_snapshots(date_trunc('day', now()))
+    select 1 from public.get_general_list_shortfall_snapshots(date_trunc('day', now())) s
+    where s.list_item_id = current_setting('tacha_test.item_1')::uuid
   ), 'deshacer borra la foto';
 
   assert (
@@ -495,7 +501,8 @@ begin
   ) = 0, 'descartar quita los avisos de la fila';
 
   assert not exists (
-    select 1 from public.get_general_list_shortfall_snapshots(date_trunc('day', now()))
+    select 1 from public.get_general_list_shortfall_snapshots(date_trunc('day', now())) s
+    where s.list_item_id = current_setting('tacha_test.item_1')::uuid
   ), 'descartar no guarda foto (no cambia la fila)';
 
   perform public.set_list_item_checked(current_setting('tacha_test.item_1')::uuid, false);
