@@ -8,6 +8,7 @@ import {
   fixClock,
   getClosedAtFilters,
   getExactText,
+  getFinanceTab,
   getPeriodButton,
   getPeriodGroup,
   getSelect,
@@ -54,7 +55,8 @@ test.describe("Finanzas", () => {
 
     await expect(page).toHaveURL(FINANCE_PATH);
     await expect(page.getByRole("heading", { level: 1, name: "Finanzas" })).toBeVisible();
-    await expect(page.getByRole("tablist")).toHaveCount(0);
+    await expect(getFinanceTab(page, "Dashboard")).toHaveAttribute("aria-current", "page");
+    await expect(getFinanceTab(page, "Historial")).not.toHaveAttribute("aria-current");
     await expect(getPeriodButton(page, "Día")).toHaveAttribute("aria-pressed", "false");
     await expect(getPeriodButton(page, "Semana")).toHaveAttribute("aria-pressed", "true");
     await expect(getPeriodButton(page, "Mes")).toHaveAttribute("aria-pressed", "false");
