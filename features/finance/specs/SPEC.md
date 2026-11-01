@@ -3,7 +3,7 @@
 Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.md); Jira es la fuente de verdad):
 
 - [SCRUM-69 / HU-37](https://tacha.atlassian.net/browse/SCRUM-69): ver gasto total por periodo. Sprint 3, en planificación.
-- [SCRUM-90 / HU-59](https://tacha.atlassian.net/browse/SCRUM-90): ver historial de sesiones de compra. En planificación.
+- [SCRUM-90 / HU-59](https://tacha.atlassian.net/browse/SCRUM-90): ver historial de sesiones de compra. Implementada, con QA manual parcial (§13).
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md). Producto: [documento-proyecto.md §4.2.1 y §4.6](../../../docs/documento-proyecto.md#42-lista-general-y-dashboard-financiero); diseño: [DESIGN.md §7.9 y §7.11](../../../docs/DESIGN.md).
 
@@ -471,40 +471,42 @@ Casos de cada flujo:
 
 ### HU-59 (SCRUM-90)
 
-Ninguno validado todavía.
+Estado al 2026-11-01, sobre `206df86`. Una casilla marcada indica la evidencia que tiene: **manual** es lo que informó la dueña de la historia; **automático** son tests con sesión y respuestas simuladas, que no prueban la base ni la autenticación real. Sin marcar, está pendiente.
 
 Criterios de la historia, con cómo se verifica cada uno (con una cuenta registrada):
 
-- [ ] **CA-01:** el sub-tab "Historial" dentro de "Finanzas" muestra una lista de sesiones de compra con fecha, supermercado y monto.
-  - Desde `/finanzas`, "Historial" lleva a `/finanzas/historial`, queda activo y "Finanzas" sigue marcada en la navegación privada.
-  - Cada compra cerrada del periodo se ve con su fecha, su supermercado y su monto, de la más reciente a la más antigua.
-  - Las compras abiertas no aparecen.
-- [ ] **CA-02:** un selector de periodo Día / Semana / Mes filtra las sesiones y destaca el total del periodo.
-  - Arranca en **Semana** (`aria-pressed="true"`).
-  - Cambiar de periodo cambia la lista y el total sin navegar ni recargar, y el total nuevo se anuncia en `role="status"`.
-  - La lista y el total coinciden (regla 25).
-  - Una respuesta de un periodo anterior que llega tarde no reemplaza al elegido.
+- [x] **CA-01:** el sub-tab "Historial" dentro de "Finanzas" muestra una lista de sesiones de compra con fecha, supermercado y monto. Manual y automático.
+  - Desde `/finanzas`, "Historial" lleva a `/finanzas/historial`, queda activo y "Finanzas" sigue marcada en la navegación privada. Automático (E2E-FIN-05).
+  - Cada compra cerrada del periodo se ve con su fecha, su supermercado y su monto, de la más reciente a la más antigua. Manual y automático.
+  - Las compras abiertas no aparecen. Automático: el test del servicio fija el filtro por `closed_at`; sin comprobación manual.
+- [x] **CA-02:** un selector de periodo Día / Semana / Mes filtra las sesiones y destaca el total del periodo. Manual y automático.
+  - Arranca en **Semana** (`aria-pressed="true"`). Automático.
+  - Cambiar de periodo cambia la lista y el total sin navegar ni recargar, y el total nuevo se anuncia en `role="status"`. El filtro y el total: manual y automático; el anuncio y que la URL no cambie: automático.
+  - La lista y el total coinciden (regla 25). Manual y automático.
+  - Una respuesta de un periodo anterior que llega tarde no reemplaza al elegido. Automático.
 
 Casos de cada flujo:
 
-- [ ] **Sin total (D8):** total nulo → "Sin total", no suma y cuenta en "Sin total"; total 0 → ₡0 y cuenta en "Compras". "Compras" más "Sin total" da el número de filas.
-- [ ] **Supermercado no disponible (regla 29):** nombre nulo o en blanco → la fila se ve con su fecha y su monto, "Supermercado no disponible" y el total sin cambios.
-- [ ] **Resultado incompleto (regla 30):** conteo nulo o distinto de las filas recibidas → error, sin lista ni total.
-- [ ] **Tabs (D9):** cambiar a Mes, ir al otro tab y volver: cada pantalla arranca en Semana.
-- [ ] **Acceso (D6):** sin sesión y con una sesión anónima, `/finanzas/historial` muestra el aviso, sin barra de sub-tabs y sin pedir `purchase_sessions`.
-- [ ] **Solo lo propio (D4):** una compra de otro integrante de la familia no aparece (prueba manual con dos cuentas registradas).
-- [ ] **Vacío:** ₡0 y el mensaje de vacío, sin lista.
-- [ ] **Errores:** falla de la consulta → error, sin lista; "Reintentar" pide el mismo periodo.
-- [ ] **Aviso:** `PriceDisclaimer` aparece una sola vez, debajo del total, también en carga, vacío y error.
-- [ ] **Dashboard sin cambios:** los tests y E2E de SCRUM-69 siguen pasando; solo cambia la barra de sub-tabs.
-- [ ] **E2E (interfaz):** E2E-FIN-05 a 08 pasan en `chromium` y `mobile-chrome`. Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
-- [ ] **Manual (acceso real):**
-  - CA-01 y CA-02 con una cuenta registrada contra la base compartida, comprobando el nombre real del supermercado;
-  - con una sesión anónima real, sin llamadas a `purchase_sessions` en la pestaña de red;
-  - D4 con dos cuentas de la misma familia;
-  - mobile, con capturas sin correos.
-- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
+- [x] **Sin total (D8):** total nulo → "Sin total", no suma y cuenta en "Sin total"; total 0 → ₡0 y cuenta en "Compras". "Compras" más "Sin total" da el número de filas. Automático (E2E-FIN-06).
+- [x] **Supermercado no disponible (regla 29):** nombre nulo o en blanco → la fila se ve con su fecha y su monto, "Supermercado no disponible" y el total sin cambios. Automático (E2E-FIN-06).
+- [x] **Resultado incompleto (regla 30):** conteo nulo o distinto de las filas recibidas → error, sin lista ni total. Automático (test del servicio).
+- [x] **Tabs (D9):** cambiar a Mes, ir al otro tab y volver: cada pantalla arranca en Semana. Automático (E2E-FIN-05).
+- [x] **Acceso (D6):** sin sesión y con una sesión anónima, `/finanzas/historial` muestra el aviso, sin barra de sub-tabs y sin pedir `purchase_sessions`. Automático, solo la interfaz (E2E-FIN-08); la prueba real sigue pendiente abajo.
+- [ ] **Solo lo propio (D4):** una compra de otro integrante de la familia no aparece (prueba manual con dos cuentas registradas). No ejecutada.
+- [x] **Vacío:** ₡0 y el mensaje de vacío, sin lista. Automático (E2E-FIN-07).
+- [x] **Errores:** falla de la consulta → error, sin lista; "Reintentar" pide el mismo periodo. Automático (E2E-FIN-07).
+- [x] **Aviso:** `PriceDisclaimer` aparece una sola vez, debajo del total, también en carga, vacío y error. Automático.
+- [x] **Dashboard sin cambios:** los tests y E2E de SCRUM-69 siguen pasando; solo cambia la barra de sub-tabs. Automático.
+- [x] **E2E (interfaz):** E2E-FIN-05 a 08 pasan en `chromium` y `mobile-chrome`. Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
+- [ ] **Manual (acceso real):** parcial.
+  - [x] CA-01 y CA-02 con la pantalla real, informados por la dueña de la historia: fecha, supermercado y monto; orden de más reciente a más antigua; Día, Semana y Mes filtran y actualizan el total; el total coincide con los montos.
+  - [ ] Sin sesión y con una sesión anónima real, sin llamadas a `purchase_sessions` en la pestaña de red.
+  - [ ] D4 con dos cuentas de la misma familia.
+  - [ ] Mobile y teclado.
+  - [ ] Capturas sin correos.
+  - [ ] Con datos reales: total nulo y ₡0, carga, vacío, error y reintento.
+- [x] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan. Detalle en [tasks.md](tasks.md), tarea 5.1.
 
 ## 14. Casos fuera de alcance
 

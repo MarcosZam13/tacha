@@ -128,7 +128,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [x] 0.1 Decisiones de la dueña de la historia (2026-10-31): D7, solo el periodo en curso; D8, "Sin total" y ₡0 distintos; D9, cada tab arranca en Semana. SPEC §5.
 - [x] 0.2 `SPEC.md`, `plan.md`, `tasks.md` y `E2E.md`, sección SCRUM-90.
 - [x] 0.3 Revisión y aprobación de la documentación: aprobada por la dueña de la historia (2026-10-31).
-- [ ] 0.4 Commit `docs(SCRUM-90): add purchase history planning`, push y abrir el PR hacia `develop` con label `in progress`; SCRUM-90 a In Progress en Jira.
+- [ ] 0.4 Commit `docs(SCRUM-90): add purchase history planning`, push y abrir el PR hacia `develop` con label `in progress`; SCRUM-90 a In Progress en Jira. Hecho: commit `cab8019` y PR #87 con `in progress`. Falta confirmar la tarjeta en Jira.
 
 ### Etapa 1 — Datos
 
@@ -150,10 +150,15 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 5 — QA y cierre
 
-- [ ] 5.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`.
-- [ ] 5.2 Pruebas manuales de SPEC §13, con capturas sin correos.
-- [ ] 5.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
-- [ ] 5.4 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [x] 5.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`. Sobre `206df86` (2026-11-01):
+  - `tsc` y lint sin errores; Vitest, 1290 tests en 137 archivos;
+  - E2E de Finanzas, 26 de 26 en `chromium` y `mobile-chrome`;
+  - el build pasó en el check `lint-and-build` del CI.
+- [ ] 5.2 Pruebas manuales de SPEC §13, con capturas sin correos. Parcial.
+  - Informado por la dueña de la historia: CA-01 (fecha, supermercado y monto), orden, CA-02 (Día, Semana y Mes filtran y actualizan el total) y el total coincide con los montos.
+  - No ejecutado: total nulo y ₡0 con datos reales, carga, vacío, error y reintento, sin sesión, sesión anónima real, D4 con dos cuentas, mobile, teclado, diseño en desktop y capturas.
+- [x] 5.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
+- [x] 5.4 `code-reviewer`, `security-reviewer` y `qa-checker` (2026-11-01), sobre `206df86`: sin defectos de código ni hallazgos críticos, altos o medios de seguridad. `qa-checker` señala como pendientes de evidencia manual D4 (alta), la sesión anónima real (media), y teclado y mobile (media).
 - [ ] 5.5 Descripción del PR con la evidencia, `waiting qa` y Jira.
 
 ### Fuera de esta historia
