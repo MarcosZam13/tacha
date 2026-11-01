@@ -15,8 +15,9 @@
 --   familia 2: C (admin, único miembro), con su lista y un aviso propio
 --   ("Receta C", 50 ml de Q): la familia 1 no lo ve y C no ve nada de la 1.
 --   E: usuario sin familia (no ve nada de la familia 1).
---   P: un producto con al menos dos presentaciones en ml: chica (s ml) y
---   grande (b ml). Q: una variante de otro producto.
+--   P: un producto de prueba con dos presentaciones en ml: chica (1000 ml) y
+--   grande (3780 ml). Q: otro producto de prueba con una de 500 ml. Se crean
+--   acá (y se van con el rollback) para no depender del catálogo compartido.
 --   item1: 3 × chica de P, tachada hoy, sin compra.
 --     Receta A pide 2s ml (primero), Receta B pide 2s ml (después),
 --     Receta A pide 100 g (P no se vende en g) y Receta B pide 2 unidad.
@@ -63,41 +64,30 @@ declare
   small_quantity numeric;
   big_quantity numeric;
   variant_q uuid;
+  product_q uuid;
   store_id uuid := (select s.id from public.stores s order by s.slug limit 1);
 begin
-  select v.product_catalog_id into product_p
-  from public.product_catalog_variants v
-  group by v.product_catalog_id
-  having count(*) >= 2
-    and bool_and(v.base_unit = 'ml')
-    and max(v.base_quantity) > min(v.base_quantity)
-    and max(v.base_quantity) <= 50000
-  order by v.product_catalog_id
-  limit 1;
+  -- Productos propios de la prueba (se van con el rollback): así no depende de
+  -- lo que tenga el catálogo compartido. Nombres con sufijo único por el índice
+  -- de nombres del catálogo global (031).
+  product_p := gen_random_uuid();
+  product_q := gen_random_uuid();
+  variant_small := gen_random_uuid();
+  variant_big := gen_random_uuid();
+  variant_q := gen_random_uuid();
+  small_quantity := 1000;
+  big_quantity := 3780;
 
-  if product_p is null then
-    raise exception 'Hace falta un producto con al menos dos presentaciones en ml para esta prueba';
-  end if;
+  insert into public.product_catalog (id, name, source)
+  values
+    (product_p, 'P115 leche ' || product_p, 'manual'),
+    (product_q, 'P115 crema ' || product_q, 'manual');
 
-  select v.id, v.base_quantity into variant_small, small_quantity
-  from public.product_catalog_variants v
-  where v.product_catalog_id = product_p
-  order by v.base_quantity, v.id
-  limit 1;
-
-  select v.id, v.base_quantity into variant_big, big_quantity
-  from public.product_catalog_variants v
-  where v.product_catalog_id = product_p
-  order by v.base_quantity desc, v.id
-  limit 1;
-
-  -- Q en ml o g: el aviso de C se mide en la unidad de Q.
-  select v.id into variant_q
-  from public.product_catalog_variants v
-  where v.product_catalog_id <> product_p
-    and v.base_unit in ('ml', 'g')
-  order by v.id
-  limit 1;
+  insert into public.product_catalog_variants (id, product_catalog_id, name, base_unit, base_quantity)
+  values
+    (variant_small, product_p, 'P115 leche 1000 ml', 'ml', small_quantity),
+    (variant_big, product_p, 'P115 leche 3780 ml', 'ml', big_quantity),
+    (variant_q, product_q, 'P115 crema 500 ml', 'ml', 500);
 
   if store_id is null then
     raise exception 'No hay tiendas en public.stores: aplicar schema.sql antes de esta prueba';
@@ -139,16 +129,13 @@ begin
     (item_1, recipe_a, 100, 100, 'g', now() - interval '2 minutes'),
     (item_1, recipe_b, 2, 2, 'unidad', now() - interval '1 minute');
 
-  -- C: una fila pendiente de Q con un pedido que no alcanza (50 ml de una
-  -- receta que pide la cantidad de Q + 50).
+  -- C: una fila pendiente de Q (500 ml) con un pedido de 550 ml: faltan 50 ml.
   insert into public.list_items (id, list_id, product_catalog_variant_id, quantity_requested)
   values (item_c, list_c, variant_q, 1);
   insert into public.list_item_recipe_requirements (
     list_item_id, recipe_id, quantity_needed, quantity_missing, quantity_unit
   )
-  select item_c, recipe_c, v.base_quantity + 50, 50, v.base_unit
-  from public.product_catalog_variants v
-  where v.id = variant_q and v.base_unit in ('ml', 'g');
+  values (item_c, recipe_c, 550, 50, 'ml');
 
   -- Compras de A: el trigger de 016/018 exige que la compra sea de quien
   -- llama, así que estas filas se insertan con los claims de A.
