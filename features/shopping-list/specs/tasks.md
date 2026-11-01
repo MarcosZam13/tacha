@@ -98,7 +98,7 @@ Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base
 ## SCRUM-115: resolver el faltante al tachar
 
 - [x] 48. SPEC (§18; huecos de HU-77 decididos con el responsable entre el 2026-10-29 y el 2026-11-01), plan y tareas. Depende de SCRUM-156 (mergeada).
-- [ ] 49. Migración `037_resolve_recipe_shortfalls.sql` (incluye la foto para deshacer y `undo_shortfall_resolution_and_uncheck`) y su prueba `supabase/tests/037_resolve_recipe_shortfalls.test.sql`.
+- [x] 49. Migración `037_resolve_recipe_shortfalls.sql` (incluye la foto para deshacer y `undo_shortfall_resolution_and_uncheck`) y su prueba `supabase/tests/037_resolve_recipe_shortfalls.test.sql`.
 - [ ] 50. Aplicar la `037` (Roberto, SQL Editor: ensayo con la prueba y `rollback`, después con su fila `037`) y actualizar `types/database.types.ts`. Bloquea la validación en el navegador (55), no el código.
 - [ ] 51. Constantes, modelos, `shortfall-resolution.reducer`, `toPresentationOptions`, con tests primero.
 - [ ] 52. Servicios: `getGeneralListShortfalls(localDayStart)`, `resolveShortfall`, `getProductPresentations`, y la cobertura de recetas con la medianoche local; tests de servicio.

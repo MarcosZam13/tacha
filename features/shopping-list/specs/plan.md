@@ -448,7 +448,7 @@ Deriva de [SPEC.md §18](SPEC.md#18-scrum-115-resolver-el-faltante-al-tachar-qu�
 ### Datos: migración `037_resolve_recipe_shortfalls.sql`
 
 1. `alter table list_item_recipe_requirements add column dismissed_at timestamptz` (nullable, sin grant de columna).
-2. `drop function get_general_list_shortfalls()` y `create function get_general_list_shortfalls(local_day_start timestamptz)`, `security definer`, `stable`:
+2. `get_general_list_recipe_shortfalls(local_day_start timestamptz)`, `security definer`, `stable` (nombre nuevo: la de la 033 se queda para `develop`, ver SPEC §18.10):
    - `general_list_id := find_general_list_id()`; sin lista, 0 filas.
    - CTE `cycle_items`: filas de la lista con `checked_at is null or checked_at >= local_day_start`, con su `product_catalog_id`, `base_quantity`, `base_unit` y `coalesce(quantity_bought, quantity_requested)`.
    - CTE `available`: por producto y unidad, `sum(units * base_quantity)`.
@@ -464,8 +464,8 @@ Deriva de [SPEC.md §18](SPEC.md#18-scrum-115-resolver-el-faltante-al-tachar-qu�
    - devuelve la fila.
 4. Trigger `list_items_clear_dismissed_on_uncheck` (`after update of checked_at`, `when (old.checked_at is not null and new.checked_at is null)`), función `security definer`: `update list_item_recipe_requirements set dismissed_at = null where list_item_id = new.id`.
 4b. Tabla `list_item_shortfall_snapshots` (RLS sin políticas, sin permisos a `authenticated`). `resolve_list_item_shortfall` hace `insert ... on conflict (list_item_id) do nothing` antes del primer cambio (así guarda la foto de antes del panel). `undo_shortfall_resolution_and_uncheck(target_item_id)`: acceso, foto → `update` de variante y cantidad → `delete` de la foto → `return public.set_list_item_checked(target_item_id, false)`. Como la variante revertida puede chocar con una pendiente solo después de destachar, el `update` se hace mientras la fila sigue tachada (el índice parcial no aplica) y la junta la resuelve `set_list_item_checked`.
-4c. La pantalla necesita saber qué filas tienen foto y a qué vuelven: `get_general_list_shortfalls` no sirve (una fila resuelta puede no tener avisos). Se agrega `get_general_list_snapshots(local_day_start)`, `security definer`, que devuelve `list_item_id`, nombre y tamaño de la presentación de antes y la cantidad, solo de filas del ciclo de la lista general de quien llama; se pide en paralelo con la lista, como los avisos.
-5. `drop function get_recipe_coverage(uuid)` y `create function get_recipe_coverage(target_recipe_id, local_day_start)`: el cuerpo de la 017, con `short` y `missing_quantity` tomados de `get_general_list_shortfalls(local_day_start)` filtrado por `recipe_id` y producto.
+4c. La pantalla necesita saber qué filas tienen foto y a qué vuelven: la función de avisos no sirve (una fila resuelta puede no tener avisos). Se agrega `get_general_list_shortfall_snapshots(local_day_start)`, `security definer`, que devuelve `list_item_id`, nombre y tamaño de la presentación de antes y la cantidad, solo de filas del ciclo de la lista general de quien llama; se pide en paralelo con la lista, como los avisos.
+5. `get_recipe_coverage_today(target_recipe_id, local_day_start)`: el cuerpo de la 024, con las filas del ciclo y `short` / `missing_quantity` tomados de `get_general_list_recipe_shortfalls(local_day_start)` filtrado por `recipe_id` y producto. La de la 024 se queda para `develop`.
 6. Permisos: `revoke ... from public, anon`, `grant execute ... to authenticated` en las tres funciones públicas; la del trigger sin `execute` para nadie.
 7. Prueba `supabase/tests/037_resolve_recipe_shortfalls.test.sql` (begin/rollback): cuenta en vivo (3 × 1 L y 2 + 2 L), unidad distinta, tachado ayer no cuenta, las tres resoluciones, destachar quita el descarte, fila pendiente / ajena / otra presentación rechazadas, familia (B resuelve receta de A), cobertura igual a la lista, `anon` sin `execute`.
 
