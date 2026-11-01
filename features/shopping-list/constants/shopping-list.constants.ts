@@ -59,6 +59,8 @@ export const SHOPPING_LIST_DOM_ID_PREFIX = {
 export const SHOPPING_LIST_ACTION = {
   ADD_FAILED: "addFailed",
   BOUGHT_QUANTITY_CHANGED: "boughtQuantityChanged",
+  // Destachar juntó la fila con la pendiente de la misma presentación (SCRUM-156).
+  CHECK_MERGED: "checkMerged",
   CHECK_TOGGLED: "checkToggled",
   CHECK_TOGGLE_FAILED: "checkToggleFailed",
   CHECK_TOGGLE_STARTED: "checkToggleStarted",

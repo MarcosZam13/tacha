@@ -326,7 +326,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 - [ ] Conservar la lista de una sesión anónima al registrarse (ticket aparte, SCRUM-49).
 - [ ] Tarea técnica: que borrar la cuenta de quien creó la lista de la familia no la borre para todos ([plan.md](plan.md#riesgos)).
-- [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`).
+- [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`). *Lo de no reabrir quedó resuelto en SCRUM-156 (035): agregar algo tachado crea otra fila.*
 - [ ] Sublistas por fecha y listas privadas.
 - [ ] HU-35, HU-36 y HU-38.
 

@@ -29,6 +29,7 @@ declare
   closed_session public.purchase_sessions;
   other_session public.purchase_sessions;
   item public.list_items;
+  bought_item_id uuid;
 begin
   -- 2. closed_at lo pone la base aunque un PATCH mande otra fecha.
   open_session := public.start_purchase_session(store_id, now() - interval '1 hour');
@@ -62,10 +63,14 @@ begin
   exception when insufficient_privilege then null;
   end;
 
-  -- ...pero volver a añadirla la reabre (regla 8 de SCRUM-66) y la saca de la compra.
+  -- ...y volver a añadirla crea una fila pendiente nueva sin tocar la comprada
+  -- (035, SCRUM-156; hasta ahí la reabría y la sacaba de la compra).
+  bought_item_id := item.id;
   item := public.add_item_to_general_list(current_setting('tacha_test.variant_id')::uuid);
-  assert item.checked_at is null and item.purchase_session_id is null and item.quantity_bought is null,
-    'volver a añadir lo comprado en una compra cerrada sigue funcionando';
+  assert item.id <> bought_item_id and item.checked_at is null and item.purchase_session_id is null,
+    'volver a añadir lo comprado en una compra cerrada crea otra fila pendiente';
+  assert (select li.purchase_session_id from public.list_items li where li.id = bought_item_id) = other_session.id,
+    'la fila comprada sigue en su compra cerrada';
 
   -- Queda tachada en la compra abierta para el paso 1.
   item := public.check_list_item_in_session(item.id, open_session.id);
