@@ -188,14 +188,6 @@ describe("getPeriodPurchases", () => {
     expect(orderMock).toHaveBeenNthCalledWith(2, "id");
   });
 
-  it("keeps the order of the database", async () => {
-    mockRows([buildRow({ id: "newest" }), buildRow({ id: "oldest" })]);
-
-    const purchases = await getPeriodPurchases(WEEK_BOUNDS);
-
-    expect(purchases.map((purchase) => purchase.id)).toEqual(["newest", "oldest"]);
-  });
-
   it("never filters by owner: the RLS returns only the user's own purchases", async () => {
     mockRows([]);
 

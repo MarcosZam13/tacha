@@ -369,11 +369,11 @@ features/finance/
   models/PeriodPurchase.interface.ts               nuevo
   services/finance.service.ts                      + getPeriodPurchases
   utils/
-    formatPeriodRange.ts                           exporta el formato de un día, sin cambiar su salida
-    formatPurchaseDate.ts                          nuevo: closedAt → "Domingo 18 de octubre"
+    formatPeriodRange.ts                           exporta formatDay ("Domingo 18 de octubre"), sin cambiar su salida
   tests/
     finance.service.test.ts                        + getPeriodPurchases
-    formatPurchaseDate.test.ts, useFinanceAccess.test.ts, usePeriodPurchases.test.ts,
+    formatPeriodRange.test.ts                      + formatDay
+    useFinanceAccess.test.ts, usePeriodPurchases.test.ts,
     usePurchaseHistoryViewModel.test.ts, PurchaseHistory.page.ts, PurchaseHistory.test.tsx   nuevos
 
 e2e/features/finance/
@@ -427,7 +427,7 @@ getSupabaseClient()
 | Unidad | Casos |
 |---|---|
 | `finance.service` | Tabla, `select`, `count: "exact"`, filtros y orden exactos; mapeo; total nulo y total 0; supermercado nulo o en blanco sin error; conteo nulo o distinto de las filas → error; límites inválidos; errores que se propagan |
-| `formatPurchaseDate` | Un día con hora local fija; cierre cerca de la medianoche, con fechas construidas en hora local |
+| `formatDay` | Un día con hora local fija; cierre cerca de la medianoche, con fechas construidas en hora local |
 | `useFinanceAccess` | `checking`; registrada; anónima y sin sesión; error al leer la sesión; reintento con la sesión vencida |
 | `usePeriodPurchases` | No pide sin cuenta; `loading`/`ready`/`empty`/`failed`; cambio de periodo; respuesta vieja descartada; reintento; desmontaje |
 | `usePurchaseHistoryViewModel` | Arranca en Semana; textos de cada fila ("Sin total", ₡0 y "Supermercado no disponible"); total desde las mismas filas; mensaje de `status` |

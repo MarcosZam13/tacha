@@ -7,6 +7,27 @@ import { usePeriodPurchases } from "../hooks/usePeriodPurchases";
 import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import { getPeriodPurchases } from "../services/finance.service";
 
+// Después de desmontar, guardar el estado no cambia nada que se pueda observar
+// en result.current. Por eso se registra cada llamada a un setter de useState:
+// así el test de desmontaje falla si el hook intenta guardar la respuesta.
+const { stateSetterSpy } = vi.hoisted(() => ({ stateSetterSpy: vi.fn() }));
+vi.mock("react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react")>();
+  return {
+    ...actual,
+    useState: (initialState: unknown) => {
+      const [state, setState] = actual.useState(initialState);
+      return [
+        state,
+        (nextState: unknown) => {
+          stateSetterSpy(nextState);
+          setState(nextState);
+        },
+      ];
+    },
+  };
+});
+
 vi.mock("../services/finance.service", () => ({
   getPeriodPurchases: vi.fn(),
 }));
@@ -138,14 +159,29 @@ describe("usePeriodPurchases", () => {
     expect(purchasesMock).toHaveBeenLastCalledWith(WEEK_BOUNDS);
   });
 
-  it("ignores the answer if the screen closes while loading", async () => {
+  it("does not save the answer if the screen closes while loading", async () => {
     const weekAnswer = createPending<PeriodPurchase[]>();
     purchasesMock.mockReturnValueOnce(weekAnswer.promise);
-    const { result, unmount } = renderPurchases();
+    const { unmount } = renderPurchases();
 
     unmount();
     await act(async () => weekAnswer.resolve(WEEK_PURCHASES));
 
-    expect(result.current.status).toBe(SPENDING_STATUS.LOADING);
+    expect(stateSetterSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not save the failure if the screen closes while loading", async () => {
+    let rejectAnswer: (reason: Error) => void = () => undefined;
+    purchasesMock.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectAnswer = reject;
+      }),
+    );
+    const { unmount } = renderPurchases();
+
+    unmount();
+    await act(async () => rejectAnswer(new Error("network")));
+
+    expect(stateSetterSpy).not.toHaveBeenCalled();
   });
 });

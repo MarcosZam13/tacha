@@ -14,8 +14,7 @@ import type { SpendingTotalProps } from "../components/models/SpendingTotalProps
 import type { FinanceAccessStatusType, SpendingPeriodType } from "../constants/finance.constants";
 import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import { formatColones } from "../utils/formatColones";
-import { formatPeriodRange } from "../utils/formatPeriodRange";
-import { formatPurchaseDate } from "../utils/formatPurchaseDate";
+import { formatDay, formatPeriodRange } from "../utils/formatPeriodRange";
 import { useFinanceAccess } from "./useFinanceAccess";
 import { usePeriodPurchases } from "./usePeriodPurchases";
 
@@ -32,7 +31,7 @@ interface UsePurchaseHistoryViewModelReturn {
 // Un total nulo es "Sin total", nunca ₡0; un total de 0 sí es ₡0 (D8).
 const toPurchaseRow = ({ closedAt, id, storeName, totalAmount }: PeriodPurchase): PurchaseSessionRowProps => ({
   amountText: totalAmount === null ? FINANCE_TEXT.WITHOUT_TOTAL : formatColones(totalAmount),
-  dateText: formatPurchaseDate(closedAt),
+  dateText: formatDay(new Date(closedAt)),
   id,
   storeText: storeName ?? FINANCE_TEXT.STORE_UNAVAILABLE,
 });

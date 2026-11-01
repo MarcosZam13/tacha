@@ -68,18 +68,6 @@ describe("usePurchaseHistoryViewModel: access (D6)", () => {
     expect(purchasesMock).not.toHaveBeenCalled();
     expect(result.current.purchaseRows).toEqual([]);
   });
-
-  it("goes to no account instead of retrying when the session is no longer registered", async () => {
-    purchasesMock.mockRejectedValueOnce(new Error("401"));
-    const { result } = renderHook(() => usePurchaseHistoryViewModel());
-    await waitFor(() => expect(result.current.spending.status).toBe(SPENDING_STATUS.FAILED));
-    sessionMock.mockResolvedValue(false);
-
-    await act(async () => result.current.spending.onRetry());
-
-    expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.NO_ACCOUNT);
-    expect(purchasesMock).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe("usePurchaseHistoryViewModel: rows", () => {

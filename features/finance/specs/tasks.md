@@ -137,7 +137,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 ### Etapa 2 — Lógica
 
 - [x] 2.1 Extraer `useFinanceAccess` de `useFinanceDashboardViewModel`, sin cambiar su comportamiento, con sus tests.
-- [x] 2.2 `formatPurchaseDate`, `usePeriodPurchases` y `usePurchaseHistoryViewModel`, con sus tests.
+- [x] 2.2 `formatDay`, `usePeriodPurchases` y `usePurchaseHistoryViewModel`, con sus tests.
 
 ### Etapa 3 — Pantalla
 
