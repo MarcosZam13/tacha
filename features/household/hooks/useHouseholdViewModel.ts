@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
+import { toInitials } from "@/utils/toInitials";
 import type { HouseholdInviteLinkCardProps } from "../components/models/HouseholdInviteLinkCardProps.interface";
 import type { HouseholdJoinFormProps } from "../components/models/HouseholdJoinFormProps.interface";
 import type { HouseholdLeaveDialogProps } from "../components/models/HouseholdLeaveDialogProps.interface";
@@ -23,7 +24,6 @@ import type { HouseholdMember } from "../models/HouseholdMember.interface";
 import { createHousehold, getHouseholdMembership, hasRegisteredSession } from "../services/household.service";
 import { useHouseholdInvite } from "./useHouseholdInvite";
 import { useHouseholdJoinForm } from "./useHouseholdJoinForm";
-import { toMemberInitials } from "../utils/toMemberInitials";
 import { toMemberLabel } from "../utils/toMemberLabel";
 import { useHouseholdLeave } from "./useHouseholdLeave";
 import { useHouseholdMemberRemoval } from "./useHouseholdMemberRemoval";
@@ -106,7 +106,7 @@ const toMemberRow = (
   const canBeRemoved = onRemoveRequest !== null && !member.isCurrentUser && member.role !== HOUSEHOLD_ROLE.ADMIN;
 
   return {
-    initials: toMemberInitials(member.displayName),
+    initials: toInitials(member.displayName),
     isAdmin: member.role === HOUSEHOLD_ROLE.ADMIN,
     isCurrentUser: member.isCurrentUser,
     label: toMemberLabel(member.displayName),

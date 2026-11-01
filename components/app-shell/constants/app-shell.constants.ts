@@ -4,6 +4,7 @@ import type { AppNavItem } from "../models/AppNavItem.interface";
 export const APP_SHELL_TEXT = {
   BRAND: "Tacha",
   NAV_LABEL: "Secciones de la app",
+  PROFILE_LINK_LABEL: "Mi perfil",
 } as const;
 
 // Orden de DESIGN.md §3.1, solo con las secciones que ya existen: Fechas y
