@@ -4,6 +4,7 @@ export const APP_ROUTE = {
   CATALOG: "/catalogo",
   CATALOG_MY_PRODUCTS: "/catalogo/mis-productos",
   FINANCE: "/finanzas",
+  FINANCE_HISTORY: "/finanzas/historial",
   HOUSEHOLD: "/household",
   LIST: "/lista",
   MEAL_PLANNER: "/recetas/planificador",
