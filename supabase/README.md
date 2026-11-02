@@ -97,6 +97,8 @@ supabase functions deploy submit-contact-message
 
 Desde SCRUM-130, `ingest-maxipali`, `ingest-walmart` e `ingest-masxmenos` solo aceptan la **service role key** en `Authorization` — una llamada con la anon key (o sin header) devuelve `403 { "error": "forbidden" }` antes de tocar VTEX o la base. El único consumidor legítimo es un script de servidor (script de ingesta mensual, SCRUM-132); nada en la app de producción las llama.
 
+**Nota:** Supabase está deprecando las keys legacy `anon`/`service_role` (JWT, fin de vida planeado para fines de 2026) en favor de las **publishable/secret keys** — los proyectos nuevos o restaurados desde nov. 2025 ya no las reciben. Usar la **secret key** (`sb_secret_...`, Dashboard → API Keys → Secret keys → default → Reveal) como `SUPABASE_SERVICE_ROLE_KEY`, no el JWT legacy (`eyJ...`): el legacy da 403 aunque "se vea válido" por otro lado. [Detalle](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys).
+
 ```
 POST https://<project-ref>.supabase.co/functions/v1/ingest-maxipali
 Headers: Authorization: Bearer <service-role-key>
