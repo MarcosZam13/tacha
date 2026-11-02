@@ -482,9 +482,10 @@ end $$;
 -- 7. B decide "compartir": sus pendientes pasan a la lista de la familia sin
 --    duplicar variantes, con su requisito de receta; lo tachado se queda en
 --    su lista personal (CA-04, T1). v3 suma hasta el tope de integer sin
---    desbordar. v4 ya lo compró A: no se toca su compra y el pendiente de B se
---    queda en su lista personal ('shared_partially'). Una opción inválida se
---    rechaza.
+--    desbordar. v4 ya lo compró A: no se toca su compra y, desde 035
+--    (SCRUM-156), el pendiente de B entra como fila pendiente nueva (antes se
+--    quedaba en su lista personal y devolvía 'shared_partially'). Una opción
+--    inválida se rechaza.
 -- ----------------------------------------------------------------------------
 
 select set_config(
@@ -509,8 +510,8 @@ begin
     5
   );
 
-  assert public.decide_personal_lists('share') = 'shared_partially',
-    'B comparte, pero v4 (comprado por A) se queda en su lista personal';
+  assert public.decide_personal_lists('share') = 'shared',
+    'B comparte todo, también v4 aunque A lo tenga comprado (035)';
 
   assert (select count(*) from public.list_items li
           where li.list_id = current_setting('tacha_test.household_list_1')::uuid
@@ -544,10 +545,18 @@ begin
             and r.quantity_missing = 1) = 1,
     'el requisito de la receta de B pasa a la fila de la familia';
 
-  assert (select array_agg(li.product_catalog_variant_id) from public.list_items li
-          where li.list_id = current_setting('tacha_test.list_b')::uuid
-            and li.checked_at is null) = array[current_setting('tacha_test.v4')::uuid],
-    'a B solo le queda pendiente v4 en su lista personal';
+  assert (select count(*) from public.list_items li
+          where li.list_id = current_setting('tacha_test.household_list_1')::uuid
+            and li.product_catalog_variant_id = current_setting('tacha_test.v4')::uuid
+            and li.checked_at is null
+            and li.quantity_requested = 1) = 1,
+    'v4 de B entra como pendiente nueva junto a la compra de A (035)';
+
+  assert not exists (
+    select 1 from public.list_items li
+    where li.list_id = current_setting('tacha_test.list_b')::uuid
+      and li.checked_at is null
+  ), 'a B no le queda nada pendiente en su lista personal';
   assert (select count(*) from public.list_items li
           where li.list_id = current_setting('tacha_test.list_b')::uuid
             and li.product_catalog_variant_id = current_setting('tacha_test.v2')::uuid
@@ -577,9 +586,9 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
--- 7b. D decide "compartir", pero su único pendiente (v4) ya lo compró A: no
---     pasa nada ('nothing_shared'), la compra de A sigue intacta y v4 se queda
---     en la lista personal de D. La decisión queda guardada igual.
+-- 7b. D decide "compartir" su único pendiente (v4), que A ya compró. Desde 035
+--     (SCRUM-156) se suma a la pendiente de v4 que dejó B y la compra de A
+--     sigue intacta (antes no pasaba nada y devolvía 'nothing_shared').
 -- ----------------------------------------------------------------------------
 
 select set_config(
@@ -590,15 +599,19 @@ select set_config(
 
 do $$
 begin
-  assert public.decide_personal_lists('share') = 'nothing_shared',
-    'D no pasa ningún producto: todos ya estaban comprados por la familia';
+  assert public.decide_personal_lists('share') = 'shared',
+    'D comparte su v4 aunque A ya lo haya comprado (035)';
 
-  assert (select count(*) from public.list_items li
-          where li.list_id = current_setting('tacha_test.list_d')::uuid
+  assert (select li.quantity_requested from public.list_items li
+          where li.list_id = current_setting('tacha_test.household_list_1')::uuid
             and li.product_catalog_variant_id = current_setting('tacha_test.v4')::uuid
-            and li.quantity_requested = 2
-            and li.checked_at is null) = 1,
-    'v4 x2 se queda pendiente en la lista personal de D';
+            and li.checked_at is null) = 3,
+    'v4: la pendiente que dejó B (1) + 2 de D';
+  assert not exists (
+    select 1 from public.list_items li
+    where li.list_id = current_setting('tacha_test.list_d')::uuid
+      and li.checked_at is null
+  ), 'a D no le queda nada pendiente en su lista personal';
   assert (select count(*) from public.list_items li
           where li.list_id = current_setting('tacha_test.household_list_1')::uuid
             and li.product_catalog_variant_id = current_setting('tacha_test.v4')::uuid
@@ -670,8 +683,8 @@ reset role;
 do $$
 begin
   assert (select count(*) from public.list_items li
-          where li.list_id = current_setting('tacha_test.household_list_1')::uuid) = 4,
-    'la lista de la familia sigue con sus productos (v1, v2 y v4 de A, y v3)';
+          where li.list_id = current_setting('tacha_test.household_list_1')::uuid) = 5,
+    'la lista de la familia sigue con sus productos (v1, v2 y v4 comprado de A, v3, y v4 pendiente de B y D desde 035)';
 end $$;
 
 -- ----------------------------------------------------------------------------

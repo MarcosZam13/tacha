@@ -8,6 +8,7 @@ import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constant
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
 import type { ItemCheck } from "../models/ItemCheck.interface";
+import type { ItemCheckResult } from "../models/ItemCheckResult.interface";
 import type { ItemDetail } from "../models/ItemDetail.interface";
 import type { RecipeShortfall } from "../models/RecipeShortfall.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
@@ -168,10 +169,11 @@ export const changeItemQuantity: (itemId: string, quantityStep: ItemQuantityStep
  * Tacha o destacha un item. Se manda el estado deseado, no "invertir": si dos
  * pestañas mandan "tachar", el resultado es el mismo. La hora y el usuario los
  * pone la base (trigger de la migración 015). Destachar también borra la
- * compra y lo comprado (trigger extendido en 016). Devuelve el tachado que
- * quedó en la base.
+ * compra y lo comprado (trigger extendido en 016). Si al destachar ya hay una
+ * pendiente de la misma presentación, la base las junta y devuelve la
+ * pendiente (035, SCRUM-156): por eso devuelve también el id y la cantidad.
  */
-export const setItemChecked = async (itemId: string, isChecked: boolean): Promise<ItemCheck> => {
+export const setItemChecked = async (itemId: string, isChecked: boolean): Promise<ItemCheckResult> => {
   await ensureSession();
 
   const { data: listItem, error } = await getSupabaseClient().rpc(
@@ -180,7 +182,7 @@ export const setItemChecked = async (itemId: string, isChecked: boolean): Promis
   );
   if (error) throw error;
 
-  return toItemCheck(listItem);
+  return { check: toItemCheck(listItem), itemId: listItem.id, quantity: listItem.quantity_requested };
 };
 
 /**

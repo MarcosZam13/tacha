@@ -9,6 +9,7 @@ import type { ShoppingListItem } from "./ShoppingListItem.interface";
 export type ShoppingListAction =
   | { type: typeof SHOPPING_LIST_ACTION.ADD_FAILED; errorMessage: string }
   | { type: typeof SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED; itemId: string; quantityBought: number }
+  | { type: typeof SHOPPING_LIST_ACTION.CHECK_MERGED; itemId: string; mergedItemId: string; quantity: number }
   | { type: typeof SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED; itemId: string }
   | { type: typeof SHOPPING_LIST_ACTION.CHECK_TOGGLED; check: ItemCheck; itemId: string }
   | { type: typeof SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED; errorMessage: string; itemId: string }

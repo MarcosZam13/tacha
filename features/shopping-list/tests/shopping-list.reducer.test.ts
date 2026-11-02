@@ -254,17 +254,109 @@ describe("shoppingListReducer: checking off (moving rows between sections)", () 
     expect(state.checkErrorMessage).toBeNull();
   });
 
-  it("reopens a checked row when the database returns it pending after adding it again", () => {
-    const leche = createItem({ checkedAt: CHECKED_AT, quantity: 3 });
-    // add_item_to_general_list (015) reabre la fila tachada con cantidad 1.
-    const reopenedLeche = createItem({ checkedAt: null, quantity: 1 });
+  it("keeps a checked row and appends the new pending one when the same variant is added again (SCRUM-156)", () => {
+    const boughtLeche = createItem({ checkedAt: CHECKED_AT, quantity: 3 });
+    // add_item_to_general_list (035) ya no reabre la tachada: crea otra fila.
+    const newLeche = createItem({ checkedAt: null, id: "item-leche-2", quantity: 1 });
 
-    const state = shoppingListReducer(createLoadedState([leche]), {
-      item: reopenedLeche,
+    const state = shoppingListReducer(createLoadedState([boughtLeche]), {
+      item: newLeche,
       type: SHOPPING_LIST_ACTION.ITEM_UPSERTED,
     });
 
-    expect(state.items).toEqual([reopenedLeche]);
+    expect(state.items).toEqual([boughtLeche, newLeche]);
+  });
+
+  it("adds to the pending row, not to the checked one, when both rows of a variant are listed", () => {
+    const boughtLeche = createItem({ checkedAt: CHECKED_AT, quantity: 3 });
+    const pendingLeche = createItem({ id: "item-leche-2", quantity: 1 });
+    const mergedLeche = createItem({ id: "item-leche-2", quantity: 2 });
+
+    const state = shoppingListReducer(createLoadedState([boughtLeche, pendingLeche]), {
+      item: mergedLeche,
+      type: SHOPPING_LIST_ACTION.ITEM_UPSERTED,
+    });
+
+    expect(state.items).toEqual([boughtLeche, mergedLeche]);
+  });
+
+  it("does not overwrite another row when the database returns a pending row this screen has not loaded", () => {
+    // Otro miembro tachó la pendiente que se ve acá y la base creó otra.
+    const stalePendingLeche = createItem({ id: "item-leche-viejo", quantity: 2 });
+    const newPendingLeche = createItem({ id: "item-leche-nuevo", quantity: 1 });
+
+    const state = shoppingListReducer(createLoadedState([stalePendingLeche]), {
+      item: newPendingLeche,
+      type: SHOPPING_LIST_ACTION.ITEM_UPSERTED,
+    });
+
+    expect(state.items).toEqual([stalePendingLeche, newPendingLeche]);
+  });
+});
+
+describe("shoppingListReducer: unchecking into a pending row of the same variant (SCRUM-156)", () => {
+  const CHECKED_AT = "2026-10-30T15:30:00.000Z";
+  const TRES_LECHES = { quantityMissing: 600, recipeName: "Tres leches", unit: CATALOG_BASE_UNIT.MILLILITERS };
+  const FLAN = { quantityMissing: 200, recipeName: "Flan", unit: CATALOG_BASE_UNIT.MILLILITERS };
+
+  it("drops the unchecked row and shows the merged quantity on the pending one", () => {
+    const boughtLeche = createItem({ checkedAt: CHECKED_AT, quantity: 3 });
+    const pendingLeche = createItem({ id: "item-leche-2", quantity: 1 });
+    const arroz = createItem({ id: "item-arroz", variantId: "variant-arroz" });
+    const pendingState = shoppingListReducer(createLoadedState([boughtLeche, arroz, pendingLeche]), {
+      itemId: boughtLeche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED,
+    });
+
+    const state = shoppingListReducer(pendingState, {
+      itemId: boughtLeche.id,
+      mergedItemId: pendingLeche.id,
+      quantity: 4,
+      type: SHOPPING_LIST_ACTION.CHECK_MERGED,
+    });
+
+    expect(state.items.map((item) => item.id)).toEqual([arroz.id, pendingLeche.id]);
+    expect(state.items[1]).toMatchObject({ checkedAt: null, quantity: 4 });
+    expect(state.pendingItemIds).toEqual([]);
+  });
+
+  it("keeps the product on screen when the pending row it merged into is not loaded yet", () => {
+    // Sin tiempo real: otro miembro creó la pendiente después de cargar la lista.
+    const boughtLeche = createItem({ checkedAt: CHECKED_AT, purchaseSessionId: "session-1", quantity: 3, quantityBought: 3 });
+    const arroz = createItem({ id: "item-arroz", variantId: "variant-arroz" });
+
+    const state = shoppingListReducer(createLoadedState([boughtLeche, arroz]), {
+      itemId: boughtLeche.id,
+      mergedItemId: "item-leche-de-otro",
+      quantity: 4,
+      type: SHOPPING_LIST_ACTION.CHECK_MERGED,
+    });
+
+    expect(state.items.map((item) => item.id)).toEqual(["item-leche-de-otro", arroz.id]);
+    expect(state.items[0]).toMatchObject({
+      checkedAt: null,
+      productName: boughtLeche.productName,
+      purchaseSessionId: null,
+      quantity: 4,
+      quantityBought: null,
+    });
+  });
+
+  it("joins the recipe shortfalls of both rows, adding the same recipe into one line", () => {
+    const boughtLeche = createItem({
+      checkedAt: CHECKED_AT,
+      recipeShortfalls: [{ ...TRES_LECHES, quantityMissing: 100 }, FLAN],
+    });
+    const pendingLeche = createItem({ id: "item-leche-2", recipeShortfalls: [TRES_LECHES] });
+
+    const state = shoppingListReducer(createLoadedState([boughtLeche, pendingLeche]), {
+      itemId: boughtLeche.id,
+      mergedItemId: pendingLeche.id,
+      quantity: 2,
+      type: SHOPPING_LIST_ACTION.CHECK_MERGED,
+    });
+
+    expect(state.items[0].recipeShortfalls).toEqual([{ ...TRES_LECHES, quantityMissing: 700 }, FLAN]);
   });
 });
 

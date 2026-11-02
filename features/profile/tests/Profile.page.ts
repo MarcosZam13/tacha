@@ -15,6 +15,8 @@ export const createProfilePage = () => {
   const getSignOutButton = (): HTMLElement => screen.getByRole("button", { name: "Cerrar sesión" });
   const queryConfirmDialog = (): HTMLElement | null => screen.queryByRole("dialog", { name: "¿Cerrar sesión?" });
   const getHeading = (): HTMLElement => screen.getByRole("heading", { name: PROFILE_TEXT.TITLE });
+  const getChangePasswordLink = (): HTMLElement =>
+    screen.getByRole("link", { name: PROFILE_TEXT.CHANGE_PASSWORD });
 
   const replaceName = async (name: string): Promise<void> => {
     await user.clear(getNameInput());
@@ -40,6 +42,7 @@ export const createProfilePage = () => {
   return {
     choosePhoto,
     clickSignOut,
+    getChangePasswordLink,
     getHeading,
     getNameInput,
     getSaveButton,

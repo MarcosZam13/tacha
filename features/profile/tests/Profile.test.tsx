@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { APP_ROUTE } from "@/constants";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Profile } from "../Profile";
 import { PROFILE_ERROR_MESSAGE, SAVE_PROFILE_RESULT } from "../constants/profile.constants";
@@ -91,6 +92,13 @@ describe("Profile", () => {
     const page = renderProfile();
 
     expect(page.queryRemovePhotoButton()).toBeInTheDocument();
+  });
+
+  // SCRUM-54, CA-01
+  it("links to the change-password screen", () => {
+    const page = renderProfile();
+
+    expect(page.getChangePasswordLink()).toHaveAttribute("href", APP_ROUTE.CHANGE_PASSWORD);
   });
 
   it("shows a spinner while the session loads, not an empty form", () => {

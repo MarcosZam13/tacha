@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ITEM_QUANTITY, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import { useShoppingList } from "../hooks/useShoppingList";
 import type { ItemCheck } from "../models/ItemCheck.interface";
+import type { ItemCheckResult } from "../models/ItemCheckResult.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import {
   changeItemBoughtQuantity,
@@ -43,15 +44,22 @@ const SESSION_ID = "session-maxipali";
 const NO_SESSION = null;
 
 /** Una respuesta de la base que el test decide cuándo llega y cómo termina. */
-const createPendingResponse = () => {
-  let resolve: (check: ItemCheck) => void = () => undefined;
+const createPendingResponse = <Response>() => {
+  let resolve: (response: Response) => void = () => undefined;
   let reject: (error: Error) => void = () => undefined;
-  const promise = new Promise<ItemCheck>((onResolve, onReject) => {
+  const promise = new Promise<Response>((onResolve, onReject) => {
     resolve = onResolve;
     reject = onReject;
   });
   return { promise, reject, resolve };
 };
+
+/** Lo que devuelve set_list_item_checked: la fila que quedó (la misma, o la pendiente si se juntaron). */
+const toCheckResult = (check: ItemCheck, item: ShoppingListItem = LECHE): ItemCheckResult => ({
+  check,
+  itemId: item.id,
+  quantity: item.quantity,
+});
 
 const renderLoadedList = async (items: ShoppingListItem[] = [LECHE]) => {
   getGeneralListMock.mockResolvedValue(items);
@@ -62,7 +70,7 @@ const renderLoadedList = async (items: ShoppingListItem[] = [LECHE]) => {
 
 describe("useShoppingList: optimistic check-off", () => {
   it("shows the row as checked before the database answers, then keeps the database time", async () => {
-    const response = createPendingResponse();
+    const response = createPendingResponse<ItemCheckResult>();
     setItemCheckedMock.mockReturnValue(response.promise);
     const { result } = await renderLoadedList();
 
@@ -73,7 +81,7 @@ describe("useShoppingList: optimistic check-off", () => {
     expect(result.current.state.pendingItemIds).toEqual([LECHE.id]);
 
     await act(async () =>
-      response.resolve({ checkedAt: SERVER_CHECKED_AT, purchaseSessionId: null, quantityBought: null }),
+      response.resolve(toCheckResult({ checkedAt: SERVER_CHECKED_AT, purchaseSessionId: null, quantityBought: null })),
     );
 
     expect(result.current.state.items[0].checkedAt).toBe(SERVER_CHECKED_AT);
@@ -81,7 +89,7 @@ describe("useShoppingList: optimistic check-off", () => {
   });
 
   it("puts the row back where it was and shows the error when the database rejects the check", async () => {
-    const response = createPendingResponse();
+    const response = createPendingResponse<ItemCheckResult>();
     setItemCheckedMock.mockReturnValue(response.promise);
     const { result } = await renderLoadedList();
 
@@ -95,11 +103,27 @@ describe("useShoppingList: optimistic check-off", () => {
     expect(result.current.state.checkErrorMessage).toBe(SHOPPING_LIST_TEXT.CHECK_ERROR);
     expect(result.current.state.pendingItemIds).toEqual([]);
   });
+
+  it("drops the unchecked row when the database merges it into the pending row of the same variant (SCRUM-156)", async () => {
+    const boughtLeche = { ...LECHE, checkedAt: SERVER_CHECKED_AT, quantity: 3 };
+    const pendingLeche = { ...LECHE, id: "item-leche-2", quantity: 1 };
+    // La base devuelve la pendiente (otro id) con la suma.
+    setItemCheckedMock.mockResolvedValue(
+      toCheckResult({ checkedAt: null, purchaseSessionId: null, quantityBought: null }, { ...pendingLeche, quantity: 4 }),
+    );
+    const { result } = await renderLoadedList([boughtLeche, pendingLeche]);
+
+    await act(async () => result.current.toggleChecked(boughtLeche.id, false, NO_SESSION));
+
+    expect(result.current.state.items).toHaveLength(1);
+    expect(result.current.state.items[0]).toMatchObject({ checkedAt: null, id: pendingLeche.id, quantity: 4 });
+    expect(result.current.state.pendingItemIds).toEqual([]);
+  });
 });
 
 describe("useShoppingList: shopping mode (SCRUM-67)", () => {
   it("checks off inside the purchase, showing it bought as requested before the database answers", async () => {
-    const response = createPendingResponse();
+    const response = createPendingResponse<ItemCheck>();
     checkItemInSessionMock.mockReturnValue(response.promise);
     const { result } = await renderLoadedList();
 
@@ -116,7 +140,9 @@ describe("useShoppingList: shopping mode (SCRUM-67)", () => {
   });
 
   it("unchecks with the plain RPC even in shopping mode: the database clears the purchase", async () => {
-    setItemCheckedMock.mockResolvedValue({ checkedAt: null, purchaseSessionId: null, quantityBought: null });
+    setItemCheckedMock.mockResolvedValue(
+      toCheckResult({ checkedAt: null, purchaseSessionId: null, quantityBought: null }),
+    );
     const bought = { ...LECHE, checkedAt: SERVER_CHECKED_AT, purchaseSessionId: SESSION_ID, quantityBought: 2 };
     const { result } = await renderLoadedList([bought]);
 
