@@ -13,6 +13,7 @@ import {
   setSpendingBudget,
 } from "../services/finance.service";
 import { createFinanceDashboardPage } from "./FinanceDashboard.page";
+import { createPurchaseHistoryPage } from "./PurchaseHistory.page";
 
 // La pantalla con el servicio falso: sin Supabase ni sesión real.
 vi.mock("../services/finance.service", () => ({
@@ -52,6 +53,30 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+});
+
+describe("FinanceDashboard: sub-tabs (SCRUM-90)", () => {
+  it("marks Dashboard as the current tab and links to Historial", async () => {
+    render(<FinanceDashboard />);
+    const page = createPurchaseHistoryPage();
+
+    await page.findTabsNavigation();
+
+    expect(page.getDashboardTab()).toHaveAttribute("aria-current", "page");
+    expect(page.getHistoryTab()).not.toHaveAttribute("aria-current");
+    expect(page.getHistoryTab()).toHaveAttribute("href", APP_ROUTE.FINANCE_HISTORY);
+    expect(await page.findText("Gastado esta semana")).toBeInTheDocument();
+  });
+
+  it("shows no tabs without a registered account", async () => {
+    sessionMock.mockResolvedValue(false);
+    render(<FinanceDashboard />);
+    const page = createPurchaseHistoryPage();
+
+    await page.findNoAccountNotice();
+
+    expect(page.queryTabsNavigation()).not.toBeInTheDocument();
+  });
 });
 
 describe("FinanceDashboard: access (D6)", () => {

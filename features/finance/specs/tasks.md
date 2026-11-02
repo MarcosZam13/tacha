@@ -1,4 +1,4 @@
-# Tasks: Finanzas — dashboard de gasto por periodo
+# Tasks: Finanzas — dashboard de gasto por periodo e historial de compras
 
 El qué está en [SPEC.md](SPEC.md) y el cómo en [plan.md](plan.md).
 
@@ -118,3 +118,53 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] E2E en CI (decisión del equipo sobre una base de pruebas).
 - [ ] Mejora futura: E2E con autenticación real (cuentas de prueba, credenciales solo en `.env.local`, verificar la protección con captcha de Auth y un helper de sesión en `e2e/support/`).
 - [ ] Cualquier refactor de `features/shopping-list/`.
+
+## SCRUM-90: ver historial de sesiones de compra
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir.
+
+### Etapa 0 — Decisiones y specs
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-10-31): D7, solo el periodo en curso; D8, "Sin total" y ₡0 distintos; D9, cada tab arranca en Semana. SPEC §5.
+- [x] 0.2 `SPEC.md`, `plan.md`, `tasks.md` y `E2E.md`, sección SCRUM-90.
+- [x] 0.3 Revisión y aprobación de la documentación: aprobada por la dueña de la historia (2026-10-31).
+- [ ] 0.4 Commit `docs(SCRUM-90): add purchase history planning`, push y abrir el PR hacia `develop` con label `in progress`; SCRUM-90 a In Progress en Jira. Hecho: commit `cab8019` y PR #87 con `in progress`. Falta confirmar la tarjeta en Jira.
+
+### Etapa 1 — Datos
+
+- [x] 1.1 `PeriodPurchase`, constantes (`FINANCE_DB`, textos) y `getPeriodPurchases`, con sus tests.
+
+### Etapa 2 — Lógica
+
+- [x] 2.1 Extraer `useFinanceAccess` de `useFinanceDashboardViewModel`, sin cambiar su comportamiento, con sus tests.
+- [x] 2.2 `formatDay`, `usePeriodPurchases` y `usePurchaseHistoryViewModel`, con sus tests.
+
+### Etapa 3 — Pantalla
+
+- [x] 3.1 `FinanceTabs` y `APP_ROUTE.FINANCE_HISTORY`; la barra en `FinanceDashboard`.
+- [x] 3.2 `PurchaseSessionRow`, `PurchaseHistory` (con `PriceDisclaimer`) y `app/(app)/finanzas/historial/page.tsx`, con Page Object y tests.
+
+### Etapa 4 — E2E
+
+- [x] 4.1 `e2e/features/finance/purchase-history.spec.ts` y helpers (E2E-FIN-05 a 08), y ajustar E2E-FIN-01; correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+
+### Etapa 5 — QA y cierre
+
+- [x] 5.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`. Sobre `206df86` (2026-11-01):
+  - `tsc` y lint sin errores; Vitest, 1290 tests en 137 archivos;
+  - E2E de Finanzas, 26 de 26 en `chromium` y `mobile-chrome`;
+  - el build pasó en el check `lint-and-build` del CI.
+- [ ] 5.2 Pruebas manuales de SPEC §13, con capturas sin correos. Parcial.
+  - Informado por la dueña de la historia: CA-01 (fecha, supermercado y monto), orden, CA-02 (Día, Semana y Mes filtran y actualizan el total) y el total coincide con los montos.
+  - No ejecutado: total nulo y ₡0 con datos reales, carga, vacío, error y reintento, sin sesión, sesión anónima real, D4 con dos cuentas, mobile, teclado, diseño en desktop y capturas.
+- [x] 5.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
+- [x] 5.4 `code-reviewer`, `security-reviewer` y `qa-checker` (2026-11-01), sobre `206df86`: sin defectos de código ni hallazgos críticos, altos o medios de seguridad. `qa-checker` señala como pendientes de evidencia manual D4 (alta), la sesión anónima real (media), y teclado y mobile (media).
+- [ ] 5.5 Descripción del PR con la evidencia, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] El aviso de precios en el Dashboard (tarea 4.1 de SCRUM-75).
+- [ ] Periodos anteriores.
+- [ ] Productos de cada compra.
+- [ ] Editar totales (HU-60), badge y recordatorio (HU-61) y filtros (HU-62).
+- [ ] Deuda de SCRUM-69: `getPeriodSpending` puede sumar un resultado cortado por el servidor, sin avisar (plan, "Deuda de SCRUM-69").

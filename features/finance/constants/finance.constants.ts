@@ -1,3 +1,5 @@
+import { APP_ROUTE } from "@/constants";
+
 // Tipos de periodo del dashboard de Finanzas (SPEC §5, D2). Los mismos valores
 // que acepta spending_budgets.period y set_spending_budget (migración 027).
 export const SPENDING_PERIOD = {
@@ -36,12 +38,14 @@ export const BUDGET_AMOUNT = {
 export const FINANCE_DB = {
   COLUMN: {
     CLOSED_AT: "closed_at",
+    ID: "id",
   },
   RPC: {
     SET_SPENDING_BUDGET: "set_spending_budget",
   },
   SELECT: {
     BUDGETS: "period, amount",
+    PURCHASES: "id, closed_at, total_amount, stores(display_name)",
     SPENDING: "total_amount",
   },
   TABLE: {
@@ -109,17 +113,34 @@ export const FINANCE_TEXT = {
   OVER_BUDGET_PREFIX: "Te pasaste por ",
   PERIOD_GROUP_LABEL: "Periodo",
   PURCHASES: "Compras",
+  PURCHASES_LIST_LABEL: "Compras del periodo",
   REMAINING_PREFIX: "Te quedan ",
   RETRY: "Reintentar",
   SAVE: "Guardar",
   SAVING: "Guardando…",
   SPENDING_EMPTY: "Todavía no tienes compras cerradas en este periodo.",
   SPENDING_LOAD_ERROR: "No se pudo cargar tu gasto. Intenta de nuevo.",
+  STORE_UNAVAILABLE: "Supermercado no disponible",
+  TABS_NAV_LABEL: "Secciones de finanzas",
   TITLE: "Finanzas",
   WITHOUT_TOTAL: "Sin total",
   WITHOUT_TOTAL_PLURAL: "compras sin total",
   WITHOUT_TOTAL_SINGULAR: "compra sin total",
 } as const;
+
+// Sub-tabs de Finanzas (DESIGN.md §3.1; SPEC regla 31).
+export const FINANCE_TAB = {
+  DASHBOARD: "dashboard",
+  HISTORY: "history",
+} as const;
+
+export type FinanceTabType = (typeof FINANCE_TAB)[keyof typeof FINANCE_TAB];
+
+// Orden en que se dibujan los tabs. Cada uno es un link a su pantalla.
+export const FINANCE_TABS = [
+  { href: APP_ROUTE.FINANCE, id: FINANCE_TAB.DASHBOARD, label: "Dashboard" },
+  { href: APP_ROUTE.FINANCE_HISTORY, id: FINANCE_TAB.HISTORY, label: "Historial" },
+] as const satisfies ReadonlyArray<{ href: string; id: FinanceTabType; label: string }>;
 
 // Textos que dependen del tipo de periodo. satisfies obliga a tener los tres.
 export const SPENDING_PERIOD_LABEL = {

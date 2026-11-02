@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
 import {
   BUDGET_INPUT_LABEL,
   BUDGET_LABEL,
   BUDGET_STATUS,
   DEFAULT_SPENDING_PERIOD,
-  FINANCE_ACCESS_STATUS,
   FINANCE_TEXT,
   NO_BUDGET_LABEL,
   SPENDING_PERIOD_LABEL,
@@ -18,9 +17,9 @@ import type { SpendingPeriodOption } from "../components/models/SpendingPeriodSe
 import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
 import type { FinanceAccessStatusType, SpendingPeriodType } from "../constants/finance.constants";
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
-import { hasRegisteredSession } from "../services/finance.service";
 import { formatColones } from "../utils/formatColones";
 import { formatPeriodRange } from "../utils/formatPeriodRange";
+import { useFinanceAccess } from "./useFinanceAccess";
 import { usePeriodSpending } from "./usePeriodSpending";
 import { useSpendingBudgets } from "./useSpendingBudgets";
 
@@ -56,46 +55,11 @@ const toDifferenceText = (budgetAmount: number, spending: PeriodSpending): strin
  * entrega a la pantalla exactamente lo que dibuja.
  */
 export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelReturn => {
-  // Arranca en "checking": el efecto nunca hace un setState síncrono para empezar.
-  const [accessStatus, setAccessStatus] = useState<FinanceAccessStatusType>(FINANCE_ACCESS_STATUS.CHECKING);
+  const { accessStatus, isRegistered, retryIfRegistered } = useFinanceAccess();
   const [period, setPeriod] = useState<SpendingPeriodType>(DEFAULT_SPENDING_PERIOD);
-  const isMountedRef = useRef<boolean>(true);
 
-  const isRegistered = accessStatus === FINANCE_ACCESS_STATUS.REGISTERED;
   const periodSpending = usePeriodSpending(period, isRegistered);
   const spendingBudgets = useSpendingBudgets(period, isRegistered);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    let isCancelled = false;
-
-    // Si no se puede leer la sesión, se trata como "sin cuenta": nunca se
-    // piden datos sin saber que la sesión es registrada.
-    hasRegisteredSession()
-      .catch(() => false)
-      .then((isRegisteredSession) => {
-        if (!isCancelled) {
-          setAccessStatus(isRegisteredSession ? FINANCE_ACCESS_STATUS.REGISTERED : FINANCE_ACCESS_STATUS.NO_ACCOUNT);
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Antes de reintentar se vuelve a leer la sesión: si venció o ya no es
-  // registrada, se pasa a "sin cuenta" en vez de volver a pedir datos (SPEC §7).
-  const retryIfRegistered = async (retry: () => void): Promise<void> => {
-    const isRegisteredSession = await hasRegisteredSession().catch(() => false);
-    if (!isMountedRef.current) return;
-    if (!isRegisteredSession) {
-      setAccessStatus(FINANCE_ACCESS_STATUS.NO_ACCOUNT);
-      return;
-    }
-    retry();
-  };
 
   const { spending } = periodSpending;
   const hasSpending = spending !== null;

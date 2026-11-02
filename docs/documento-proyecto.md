@@ -176,6 +176,7 @@ Ya existía la idea de "producto propio por household" (primer bullet de esta se
 - **Filtrado de compra (agregado 2026-08-18):** además del filtro por periodo (día/semana/mes), el historial se puede filtrar por supermercado y por categoría de producto.
 - **Aviso obligatorio y siempre visible al usuario:** los precios no son fijos ni garantizados — Tacha no está asociado a ningún supermercado, los precios del catálogo vienen de scraping y pueden no coincidir con lo que se cobra en caja. Debe quedar claro en el dashboard y cerca de cualquier precio sugerido.
 - Alimenta directamente el dashboard financiero de la [sección 4.2](#42-lista-general-y-dashboard-financiero).
+- **Implementado (SCRUM-90 / HU-59):** el sub-tab "Historial" de Finanzas (`/finanzas/historial`), solo para cuentas registradas, lista las compras cerradas propias con fecha, supermercado y monto, de la más reciente a la más antigua. Tiene selector de Día, Semana (por defecto) o Mes, siempre del periodo en curso, con el total destacado. Una compra sin total dice "Sin total" y no suma; un total real de cero se muestra como ₡0. La lista es de solo lectura y muestra el aviso de precios. Lo demás de esta sección sigue pendiente: editar totales (HU-60), recordatorio (HU-61), filtros por supermercado y categoría (HU-62) y el aviso en el Dashboard (SCRUM-75). Como cada persona ve solo sus compras, el historial todavía no agrupa por household. Detalle en [features/finance/specs/SPEC.md](../features/finance/specs/SPEC.md).
 
 ### 4.7 Web scraping — motor de datos (prioridad alta del proyecto)
 

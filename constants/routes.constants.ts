@@ -5,6 +5,7 @@ export const APP_ROUTE = {
   CATALOG_MY_PRODUCTS: "/catalogo/mis-productos",
   CHANGE_PASSWORD: "/perfil/contrasena",
   FINANCE: "/finanzas",
+  FINANCE_HISTORY: "/finanzas/historial",
   HOUSEHOLD: "/household",
   LIST: "/lista",
   MEAL_PLANNER: "/recetas/planificador",

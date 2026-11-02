@@ -1,4 +1,4 @@
-# Plan: Finanzas — dashboard de gasto por periodo
+# Plan: Finanzas — dashboard de gasto por periodo e historial de compras
 
 El qué está en [SPEC.md](SPEC.md) y los pasos en [tasks.md](tasks.md).
 
@@ -321,3 +321,148 @@ Staging explícito, nunca `git add .`.
 - **Hora del dispositivo:** si el reloj está mal, el periodo también; es el mismo supuesto que el modo compra.
 - **Compras sin total:** se muestran aparte; el total puede verse bajo hasta que HU-60/61 permitan completarlas.
 - **Reglas de monto repetidas** con "Total gastado" del modo compra (SPEC §15).
+
+## SCRUM-90: ver historial de sesiones de compra
+
+> **Verificado el 2026-10-31** contra `develop` en `af38bd5`:
+>
+> - `/finanzas` solo tiene el Dashboard, sin sub-tabs (D5).
+> - `purchase_sessions` ya tiene lo necesario y `types/database.types.ts` ya incluye su FK a `stores`. No hace falta migración.
+> - `stores` tiene lectura abierta. `getStores` (shopping-list) ya la lee.
+> - `isRouteActive` acepta subrutas: "Finanzas" sigue activa en `/finanzas/historial`.
+
+### Qué se reutiliza
+
+| Pieza | Uso en SCRUM-90 |
+|---|---|
+| `SpendingPeriodSelector`, `SPENDING_PERIOD*`, `DEFAULT_SPENDING_PERIOD` | Selector, sin cambios |
+| `SpendingTotal`, `SPENDING_STATUS`, `SPENT_LABEL` | Total, contadores, vacío, error y reintento, sin cambios |
+| `FinanceNoAccount`, `hasRegisteredSession` | Acceso, sin cambios |
+| `getPeriodBounds`, `summarizeSpending`, `formatColones`, `formatPeriodRange` | Límites, total y formatos |
+| `PriceDisclaimer` | Aviso debajo del total |
+| `RecipesTabs` | Solo como patrón de `FinanceTabs` |
+| `signInAsFakeUser` y `finance.helpers.ts` | E2E |
+
+**Único refactor:** el acceso y `retryIfRegistered` de `useFinanceDashboardViewModel` pasan a `useFinanceAccess`, para que los dos ViewModels no los repitan. No cambia el comportamiento; lo protegen los tests actuales.
+
+### Archivos
+
+```
+constants/routes.constants.ts                      + APP_ROUTE.FINANCE_HISTORY ("/finanzas/historial")
+app/(app)/finanzas/historial/page.tsx              nuevo: solo compone <PurchaseHistory />
+
+features/finance/
+  PurchaseHistory.tsx                              nuevo: "use client"; sin cuenta → aviso; con cuenta → Historial
+  FinanceDashboard.tsx                             + <FinanceTabs /> con cuenta registrada; comentario de D5
+  components/
+    FinanceTabs.tsx                                nuevo: Dashboard / Historial (links, aria-current)
+    PurchaseSessionRow.tsx                         nuevo: fecha, supermercado y monto
+    models/FinanceTabsProps.interface.ts           nuevo
+    models/PurchaseSessionRowProps.interface.ts    nuevo
+  constants/finance.constants.ts                   + FINANCE_TAB (+ tipo), FINANCE_TABS, FINANCE_DB.SELECT.PURCHASES,
+                                                   columna id y textos
+  hooks/
+    useFinanceAccess.ts                            nuevo: extraído de useFinanceDashboardViewModel
+    useFinanceDashboardViewModel.ts                usa useFinanceAccess
+    usePeriodPurchases.ts                          nuevo: carga por periodo, respuesta vieja, reintento
+    usePurchaseHistoryViewModel.ts                 nuevo: Facade; acceso, periodo y props de la pantalla
+  models/PeriodPurchase.interface.ts               nuevo
+  services/finance.service.ts                      + getPeriodPurchases
+  utils/
+    formatPeriodRange.ts                           exporta formatDay ("Domingo 18 de octubre"), sin cambiar su salida
+  tests/
+    finance.service.test.ts                        + getPeriodPurchases
+    formatPeriodRange.test.ts                      + formatDay
+    useFinanceAccess.test.ts, usePeriodPurchases.test.ts,
+    usePurchaseHistoryViewModel.test.ts, PurchaseHistory.page.ts, PurchaseHistory.test.tsx   nuevos
+
+e2e/features/finance/
+  purchase-history.spec.ts                         nuevo
+  finance.helpers.ts                               + respuestas del Historial
+  finance.spec.ts                                  E2E-FIN-01 ya no exige "sin sub-tabs"
+
+docs/documento-proyecto.md                         §4.6, al cerrar
+```
+
+### Datos
+
+```ts
+getSupabaseClient()
+  .from("purchase_sessions")
+  .select("id, closed_at, total_amount, stores(display_name)", { count: "exact" })
+  .gte("closed_at", bounds.start.toISOString())
+  .lt("closed_at", bounds.end.toISOString())
+  .order("closed_at", { ascending: false })
+  .order("id")
+```
+
+- `getPeriodPurchases(bounds)` valida los límites igual que `getPeriodSpending` y comparte con ella esa validación.
+- **Resultados completos (SPEC regla 30):** si `count` es nulo o distinto de las filas recibidas, lanza un error y la pantalla pasa a `failed`. La consulta no usa `.limit()` ni `.range()`, pero el servidor puede cortar la respuesta sin avisar, y el repo no tiene `supabase/config.toml` para ver ese valor. Se confirma en el panel de Supabase, sin depender solo de eso.
+- Mapea cada fila a `PeriodPurchase`. Un nombre nulo o en blanco no es un error: la fila muestra "Supermercado no disponible" (SPEC regla 29). Se comprueba en ejecución, porque los tipos generados no lo avisan. Un error real de la consulta sigue yendo a `failed`.
+- El total sale de `summarizeSpending(purchases.map(...))`, sin otra consulta.
+- `closed_at` nulo no cumple `>=`, así que las abiertas quedan fuera. La RLS deja solo las propias.
+- Índice: el mismo criterio de SCRUM-69; con este volumen no hace falta otro.
+
+### Flujo
+
+1. `/finanzas/historial` monta `PurchaseHistory`. `useFinanceAccess` lee la sesión: sin cuenta, `noAccount` y ninguna consulta.
+2. Con cuenta, arranca en `week` y `usePeriodPurchases` pide las compras.
+3. Cada respuesta se guarda con la clave `periodo:reintentos`; solo se muestra si coincide con la actual.
+4. El ViewModel arma las props de `SpendingPeriodSelector`, `SpendingTotal` y las filas.
+5. Cambiar de periodo vuelve al paso 2 sin navegar. "Reintentar" relee la sesión y pide el mismo periodo.
+6. Los tabs son links: cada pantalla se monta de nuevo y arranca en Semana (D9).
+
+### Seguridad
+
+- Solo lectura, con la RLS existente: no se agregan permisos ni se manda `owner_id`.
+- Solo se piden las columnas que se muestran, más `id` para la `key` y el orden.
+- `getSession`, nunca `ensureSession`.
+- Los datos vienen de la base y se dibujan como texto, sin HTML.
+- `security-reviewer` sobre el cambio antes de `waiting qa`.
+
+### Pruebas
+
+**Vitest:**
+
+| Unidad | Casos |
+|---|---|
+| `finance.service` | Tabla, `select`, `count: "exact"`, filtros y orden exactos; mapeo; total nulo y total 0; supermercado nulo o en blanco sin error; conteo nulo o distinto de las filas → error; límites inválidos; errores que se propagan |
+| `formatDay` | Un día con hora local fija; cierre cerca de la medianoche, con fechas construidas en hora local |
+| `useFinanceAccess` | `checking`; registrada; anónima y sin sesión; error al leer la sesión; reintento con la sesión vencida |
+| `usePeriodPurchases` | No pide sin cuenta; `loading`/`ready`/`empty`/`failed`; cambio de periodo; respuesta vieja descartada; reintento; desmontaje |
+| `usePurchaseHistoryViewModel` | Arranca en Semana; textos de cada fila ("Sin total", ₡0 y "Supermercado no disponible"); total desde las mismas filas; mensaje de `status` |
+| Pantalla (jsdom, Page Object) | Sin cuenta, sin tabs y sin consultas; tab activo; fila completa; supermercado no disponible; cambio de periodo; vacío y error sin lista; `PriceDisclaimer` una vez en carga, listo, vacío y error |
+| `FinanceDashboard` | Se agrega la barra con "Dashboard" activo; lo demás no cambia |
+
+**SQL:** no hay prueba nueva, porque no hay migración.
+
+**E2E:** E2E-FIN-05 a 08, en [E2E.md](E2E.md). Sesión y respuestas simuladas, como en SCRUM-69. El helper responde con `Content-Range`, porque sin ese header `count` llega nulo.
+
+**Manual:** los de SPEC §13, contra la base compartida, porque el E2E no comprueba la consulta real a `stores`.
+
+### Commits y PR
+
+El PR se abre con el commit 1, hacia `develop`, con label `in progress`, si no hay otro PR propio en ese estado (gitflow).
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-90): add purchase history planning` | `features/finance/specs/SPEC.md`, `plan.md`, `tasks.md`, `E2E.md` |
+| 2 | `feat(SCRUM-90): add period purchases service` | constantes, modelo, servicio y su test |
+| 3 | `refactor(SCRUM-90): extract finance access hook` | `useFinanceAccess`, `useFinanceDashboardViewModel` y sus tests |
+| 4 | `feat(SCRUM-90): add purchase history view model` | `usePeriodPurchases`, `usePurchaseHistoryViewModel`, formato de fecha y sus tests |
+| 5 | `feat(SCRUM-90): show purchase history in Finanzas` | componentes, pantallas, ruta, Page Object y tests |
+| 6 | `test(SCRUM-90): add purchase history E2E` | `e2e/features/finance/` |
+| 7 | `docs(SCRUM-90): record validation` | `tasks.md`, SPEC §13, `documento-proyecto.md` §4.6 |
+
+Staging explícito, nunca `git add .`.
+
+### Riesgos
+
+- **Historial limitado:** al empezar un mes o una semana no se ven los anteriores (D7). Queda como limitación conocida.
+- **Contrato simulado:** el E2E no llega a la base; lo mitigan los tests del servicio y la prueba manual con `stores` real.
+- **Compras sin total:** el total puede verse bajo hasta HU-60 y HU-61.
+- **Redondeo:** el total puede diferir ₡1 de la suma visible (SPEC regla 28).
+
+### Deuda de SCRUM-69
+
+`getPeriodSpending` del Dashboard tiene el mismo riesgo de corte silencioso y no ordena sus filas. Con más filas que el límite del servidor, el Dashboard podría mostrar un total incompleto o distinto al del Historial. No se cambia en esta historia.
