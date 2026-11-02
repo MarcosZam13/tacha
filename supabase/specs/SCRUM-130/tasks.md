@@ -12,7 +12,7 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
 - [x] **5. Probar la migración con `begin...rollback`** contra la base real, confirmando que nada más depende de `get_recent_staging` antes de aplicarla en serio — hecha por Daniel junto con el paso 6.
 - [x] **6. Aplicar la migración en serio** — autorización explícita de Daniel y aviso al grupo antes de correrla.
   - Validación: `select version, name from supabase_migrations.schema_migrations order by version;` incluye la fila nueva.
-- [ ] **7. Borrar `search-products` v3 del proyecto de Supabase** — autorización explícita de Daniel. **Pendiente**: sin tool de borrado de Edge Functions en el MCP de Supabase ni CLI instalada; Daniel lo corre a mano (`supabase functions delete search-products --project-ref ifvwumejbfpowxlkjfiu` o desde el dashboard).
+- [x] **7. Borrar `search-products` v3 del proyecto de Supabase** — autorización explícita de Daniel. Borrada por Daniel (confirmado: ya no aparece en `list_edge_functions`).
   - Validación: no aparece en `supabase functions list`.
 - [x] **8. Eliminar `app/(debug)/debug/scraping-demo/` y `features/scraping-demo/`** completos (plan.md §5) — incluida la tarjeta "Spec 1" en `app/(debug)/debug/page.tsx` que enlazaba a la demo.
   - Validación: `grep -rn "scraping-demo" app/ features/ components/` sin resultados; `npx tsc --noEmit` sin errores de import roto.
