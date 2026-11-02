@@ -57,7 +57,7 @@ Tacha habla con Supabase directo desde el cliente (PostgREST/RPC con la anon key
 | Exposición de datos | Sin secretos en `NEXT_PUBLIC_`, sin tokens ni datos personales en logs (§5, §2) |
 | Abuso de formularios | reCAPTCHA verificado en servidor en login y contacto (§2) |
 | Dependencias vulnerables | `npm audit` sin altas/críticas nuevas antes de cada entregable |
-| Configuración insegura | Sin páginas `(debug)` expuestas en producción, sin stack traces en respuestas de error |
+| Configuración insegura | Sin páginas `(debug)` ni `(demo)` expuestas en producción: `proxy.ts` responde 404 antes de renderizar y los layouts llaman a `notFound()` como segunda capa. Una ruta de herramienta nueva fuera de `/debug` o `/ui-kit` se agrega al `matcher`. Sin stack traces en respuestas de error |
 | Fuerza bruta | Login, recuperación y endpoints caros con límite de intentos (Supabase Auth ya limita; Edge Functions propias no) |
 
 ## 7. En la práctica
