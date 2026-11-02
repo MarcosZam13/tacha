@@ -2,6 +2,7 @@
 // solo su aviso al guardarse o al desmontarse, sin borrar el de otra. Se suma una clave por pantalla.
 export const UNSAVED_CHANGES_SOURCE = {
   PROFILE: "profile",
+  RECIPE_EDITOR: "recipe-editor",
 } as const;
 
 export type UnsavedChangesSourceType =
