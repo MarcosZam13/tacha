@@ -3,6 +3,7 @@
 export const APP_ROUTE = {
   CATALOG: "/catalogo",
   CATALOG_MY_PRODUCTS: "/catalogo/mis-productos",
+  CHANGE_PASSWORD: "/perfil/contrasena",
   FINANCE: "/finanzas",
   HOUSEHOLD: "/household",
   LIST: "/lista",

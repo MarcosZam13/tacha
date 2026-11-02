@@ -3,6 +3,7 @@
 import { ProfileAvatar } from "@/components/profile-avatar/ProfileAvatar";
 import { Spinner } from "@/components/ui";
 import { AVATAR_SIZE } from "@/constants";
+import { ProfileChangePasswordLink } from "./components/ProfileChangePasswordLink";
 import { ProfileForm } from "./components/ProfileForm";
 import { PROFILE_TEXT } from "./constants/profile.constants";
 import { useProfileViewModel } from "./hooks/useProfileViewModel";
@@ -28,6 +29,7 @@ export const Profile = (): React.JSX.Element => {
         </div>
       </header>
       {isLoading ? <Spinner /> : <ProfileForm {...formViewModel} />}
+      <ProfileChangePasswordLink />
     </div>
   );
 };
