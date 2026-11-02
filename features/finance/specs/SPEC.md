@@ -4,6 +4,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 
 - [SCRUM-69 / HU-37](https://tacha.atlassian.net/browse/SCRUM-69): ver gasto total por periodo. Sprint 3, en planificación.
 - [SCRUM-90 / HU-59](https://tacha.atlassian.net/browse/SCRUM-90): ver historial de sesiones de compra. Implementada, con QA manual parcial (§13).
+- [SCRUM-91 / HU-60](https://tacha.atlassian.net/browse/SCRUM-91): editar el total de una sesión o periodo. En planificación.
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md). Producto: [documento-proyecto.md §4.2.1 y §4.6](../../../docs/documento-proyecto.md#42-lista-general-y-dashboard-financiero); diseño: [DESIGN.md §7.9 y §7.11](../../../docs/DESIGN.md).
 
@@ -16,6 +17,10 @@ Que una persona con cuenta vea cuánto gastó en el día, la semana o el mes en 
 ### SCRUM-90
 
 Que una persona con cuenta revise las compras que cerró en el día, la semana o el mes en curso: cuándo, en qué supermercado y por cuánto, con el total del periodo destacado.
+
+### SCRUM-91
+
+Que una persona con cuenta corrija el total de una compra o del periodo en curso, sin ingresar precio por producto, para que Finanzas refleje lo que gastó de verdad.
 
 ## 2. Alcance
 
@@ -47,6 +52,20 @@ Incluye:
 
 No incluye ([§14](#14-casos-fuera-de-alcance)): periodos anteriores, productos de cada compra, editar totales (HU-60), badge y recordatorio de "Sin total" (HU-61), filtros (HU-62) ni el aviso en el Dashboard (SCRUM-75).
 
+### SCRUM-91
+
+Incluye:
+
+- Un **lápiz junto al total de cada compra** del Historial, con edición inline (CA-01), también en las compras "Sin total" (D12).
+- Un **lápiz junto al total del periodo** elegido en el Historial (CA-02, D11), solo para el periodo en curso (D15).
+- **Ajustes manuales:** editar el total de un periodo no cambia ninguna compra. La diferencia se guarda como un ajuste (D10), que se ve como una fila **"Ajuste manual"** y no cuenta en "Compras" (D16).
+- **Reflejo en el Dashboard** en la misma pestaña (CA-03): las dos pantallas calculan el total con las mismas compras y los mismos ajustes.
+- Una **indicación discreta en el Dashboard** cuando el total del periodo incluye ajustes manuales, sin cambiar el conteo de compras.
+- La corrección de `getPeriodSpending` para que el Dashboard y el Historial no den totales distintos (D19).
+- Una migración con dos RPC, la tabla de ajustes y la corrección del trigger de cierre.
+
+No incluye ([§14](#14-casos-fuera-de-alcance)): editar desde el Dashboard, periodos anteriores, volver una compra a "Sin total", decimales, actualizar otra pestaña abierta, ni el badge y el recordatorio de HU-61.
+
 ## 3. Entradas
 
 ### SCRUM-69
@@ -73,6 +92,20 @@ No incluye ([§14](#14-casos-fuera-de-alcance)): periodos anteriores, productos 
 | Compras del periodo | `PeriodPurchase[]` (`id`, `closedAt`, `storeName`, `totalAmount: number \| null`) | `purchase_sessions` cerradas del usuario, con el nombre de `stores` ([§12](#12-contratos-externos)) |
 | `onSelect` de cada periodo y `onRetry` | `() => void` | Selector y botón "Reintentar" |
 
+### SCRUM-91
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Sesión | la de Supabase, si existe | `hasRegisteredSession()`, como en SCRUM-69 |
+| Compra a editar | `id: string` | La fila del Historial |
+| Periodo a editar | `SpendingPeriodType` | El periodo elegido en el selector |
+| Texto del total | `string` | Campo de edición; se valida con las reglas de la regla 15 |
+| Zona horaria | `string` (IANA) | `Intl.DateTimeFormat().resolvedOptions().timeZone`; solo sirve para interpretar los límites de los periodos (regla 58) |
+| Ajustes del periodo | `PeriodAdjustment[]` (`id`, `amount`, `effectiveAt`, `scope`) | `spending_adjustments` del usuario ([§12](#12-contratos-externos)) |
+| `onEdit`, `onSave`, `onCancel`, `onTextChange` | funciones del ViewModel | Lápiz y campo de edición |
+
+El cliente nunca manda `owner_id`, el monto del ajuste ni los límites del periodo.
+
 ## 4. Salidas
 
 ### SCRUM-69
@@ -95,6 +128,15 @@ No incluye ([§14](#14-casos-fuera-de-alcance)): periodos anteriores, productos 
   - la lista de compras del periodo, de la más reciente a la más antigua.
 - **Al cambiar el periodo:** vuelve a pedir las compras y actualiza la pantalla sin navegar ni recargar.
 - No escribe nada en la base.
+
+### SCRUM-91
+
+- **Sin cuenta registrada:** el mismo aviso, sin lápices y sin ninguna llamada de lectura o escritura.
+- **Al guardar una compra:** cambia solo su `total_amount`, y la fila, el total y los contadores se actualizan sin recargar la lista.
+- **Al guardar un periodo:** ninguna compra cambia. Se crea, reemplaza o quita el ajuste de ese periodo, y el total muestra lo escrito.
+- **Al volver al Dashboard:** el gasto, los contadores y la diferencia con el presupuesto ya incluyen el cambio (CA-03). Si el total del periodo incluye ajustes, se indica debajo del monto; "Compras" no cambia por eso.
+- **Si no se puede guardar:** no cambia nada y lo escrito se conserva.
+- El Historial sigue sin mostrar periodos anteriores.
 
 ## 5. Reglas de negocio
 
@@ -175,6 +217,73 @@ No incluye ([§14](#14-casos-fuera-de-alcance)): periodos anteriores, productos 
 30. **Sin paginación, pero sin resultados incompletos:** son compras personales de un periodo, pocas filas. El servidor puede limitar las filas sin avisar, así que la consulta pide el conteo exacto. Si el conteo es nulo o distinto de las filas recibidas, la carga falla: es mejor un error visible que un total falso.
 31. **Barra de sub-tabs:** son links a pantallas distintas, solo con cuenta registrada.
 
+### SCRUM-91
+
+**Decididas por la dueña de la historia** (2026-11-02):
+
+32. **D10. Total del periodo:** editarlo guarda una **fila de ajuste**, con la diferencia entre lo escrito y el total calculado. No reparte ni cambia montos de compras.
+33. **D11. Dónde se edita el periodo:** solo en el Historial. El Dashboard refleja el cambio y no tiene lápiz.
+34. **D12. Compras "Sin total":** tienen lápiz. Completarlas adelanta HU-61 CA-03; el badge y el recordatorio siguen en HU-61.
+35. **D13. Volver a "Sin total":** no se permite en esta historia. El campo vacío es inválido; ₡0 es válido.
+36. **D14. Decimales:** no se aceptan. Solo colones enteros, como al cerrar una compra.
+37. **D15. Periodos editables:** solo el periodo en curso, como D7. Esta decisión restringe la edición del **total del periodo**, no la de las compras individuales (regla 48).
+38. **D16. Cómo se ve un ajuste:** una fila **"Ajuste manual"** en la lista, sin lápiz, que no cuenta en "Compras" ni en "Sin total".
+39. **D17. Periodo sin compras:** se puede editar. El ajuste es lo que da el total.
+40. **D18. Periodo contenedor negativo:** la RPC rechaza un ajuste que deje negativo a un periodo que lo contiene, con un mensaje claro. No se guarda nada.
+41. **D19. Totales coincidentes:** `getPeriodSpending` se corrige en esta historia: conteo exacto como la regla 30 y la misma suma con ajustes que el Historial.
+42. **D20. Otra pestaña abierta:** **no se actualiza automáticamente y queda fuera de alcance.** Muestra el dato nuevo cuando se recarga o se vuelve a entrar. Es un límite declarado.
+43. **D21. Edición simultánea:** un solo campo abierto a la vez en el Historial. Abrir otro lápiz cancela el anterior, si no está guardando; mientras guarda, los demás lápices quedan deshabilitados.
+44. **D22. Decimales antiguos:** una compra guardada con decimales abre el campo con el valor redondeado que se ve. Solo se guarda si la persona confirma con "Guardar".
+
+**Heredadas, sin cambios:**
+
+45. D3, D4, D6, D7, D8 y D9, y las reglas 8, 9, 13, 26, 27, 28, 29 y 30. El total de la regla 25 sigue saliendo de una sola respuesta, ahora con compras y ajustes (regla 49).
+
+**Monto:**
+
+46. **Monto válido:** el de la regla 15, colones enteros de 0 a 9 999 999 999 con separadores de miles en grupos de 3. Se valida en el cliente y otra vez en la RPC.
+47. **₡0:** es un total real en una compra y en un periodo. Una compra en ₡0 cuenta en "Compras". Un periodo puede quedar en ₡0 con un ajuste negativo.
+
+**Compra:**
+
+48. **Qué se puede editar:** solo una compra **cerrada y propia**. Se cambia únicamente `total_amount`: `closed_at` no cambia, así que la compra sigue en el mismo día, semana y mes. Una compra "Sin total" pasa de "Sin total" a "Compras" al guardarla.
+    - **Compras históricas:** sí se pueden editar. Cualquier compra cerrada propia que el Historial muestre se puede editar, también si se cerró en un día, una semana o un mes ya terminados, siempre que supere las validaciones de esta sección. La RPC no pone un límite de fecha.
+    - Hoy el Historial solo muestra el periodo en curso (D7), así que el lápiz solo aparece en las compras de ese periodo. Por ejemplo, en la vista Mes se puede editar una compra de una semana anterior del mismo mes.
+
+**Ajustes:**
+
+49. **Total de un periodo** = compras con total + ajustes que cuentan en ese periodo. Las compras "Sin total" siguen sin sumar y un ajuste no las completa.
+50. **Uno por periodo:** hay como máximo un ajuste por dueño, nivel y periodo. Volver a editar lo reemplaza, y si la diferencia da 0 se quita y su fila desaparece.
+51. **Lo calcula la base:** el cliente manda el total deseado. La diferencia se calcula en la base con los datos de ese momento, así que un dato viejo en pantalla no altera el resultado.
+52. **Dónde cuenta:** un ajuste lleva como fecha el momento de guardarlo y cuenta en su nivel y en los mayores que contienen esa fecha, nunca en los menores.
+
+    | Nivel del ajuste | Día | Semana | Mes |
+    |---|---|---|---|
+    | Día | Sí | Sí | Sí |
+    | Semana | No | Sí | Sí |
+    | Mes | No | No | Sí |
+
+    Por eso la suma de los días puede no dar la semana. Es intencional: la fila "Ajuste manual" explica la diferencia.
+53. **Editar una compra con un ajuste existente:** el ajuste no se recalcula. El total del periodo se mueve con la diferencia de esa compra.
+54. **Sin negativos (D18):** si cualquier periodo afectado queda negativo, se rechaza **toda** la operación y no se guarda nada.
+    - **Al guardar un ajuste:** se revisa el periodo editado y los periodos que lo contienen, en la fecha del ajuste. Ejemplo de semana que cruza meses: en el domingo 1 de noviembre, un ajuste de −₡5 000 a la semana del 26 de octubre cuenta en noviembre. Si noviembre no tiene otro gasto, quedaría en −₡5 000, así que se rechaza.
+    - **Al editar una compra:** se revisan **todos los periodos contenedores afectados que tengan ajustes manuales**: el día, la semana y el mes que contienen su `closed_at`, también si es una compra histórica. Un periodo sin ajustes no se revisa, porque sus totales nunca son negativos.
+    - **Dentro de la transacción de la RPC:** la revisión se hace después de escribir y antes de confirmar, de modo que un rechazo deshace también la escritura.
+    - **Sin condiciones de carrera:** la RPC toma el bloqueo por usuario antes de leer o escribir, y lo conserva hasta terminar la transacción. Las dos RPC usan el mismo bloqueo, así que una no puede cambiar un total mientras la otra lo revisa. La compra se lee además con `for update`.
+
+**Edición:**
+
+55. "Cancelar", Escape o cambiar de periodo descartan lo escrito. Un guardado en curso no se descarta: su respuesta se aplica si la fila o el periodo siguen visibles.
+56. Mientras guarda, el campo y los botones quedan deshabilitados; un segundo "Guardar" no manda otra llamada.
+57. Dos escrituras sobre el mismo dato desde dos pestañas: gana la última. Son datos propios, sin bloqueo optimista. La base ordena por usuario las escrituras de esta historia, para que cada cálculo vea el resultado de la anterior.
+
+**Zona horaria:**
+
+58. **Solo interpreta límites:** la zona horaria que manda el navegador sirve únicamente para saber dónde empieza y termina cada periodo.
+    - **Tiene que reconocerla PostgreSQL** (`pg_timezone_names`). Si no la reconoce, la RPC responde `22023` y no guarda nada.
+    - **No autoriza nada:** quién es el dueño y qué compras puede tocar salen siempre de `auth.uid()`. Mandar otra zona no da acceso a más datos ni se usa en ninguna comprobación de permisos.
+    - **Mismos límites en todo:** el Dashboard, el Historial y las RPC aplican las definiciones de la regla 8 (inicio incluido, fin excluido; semana de lunes a lunes; mes del día 1 al día 1 siguiente) con la misma zona del navegador. Las pruebas lo fijan con las mismas fechas en los dos lados.
+
 ## 6. Estados
 
 ### SCRUM-69
@@ -222,6 +331,28 @@ No incluye ([§14](#14-casos-fuera-de-alcance)): periodos anteriores, productos 
 
 El aviso de precios se ve en los cuatro estados, siempre con cuenta registrada.
 
+### SCRUM-91
+
+**Compras y gasto:** `SPENDING_STATUS`, con un cambio: `empty` exige que tampoco haya ajustes. Un periodo solo con ajuste está en `ready`.
+
+**Edición** (`TOTAL_EDIT_STATUS`), una unión, para un solo campo a la vez (D21):
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| `viewing` | Sin campo abierto | Montos y lápices |
+| `editing` | Abrió un lápiz | Campo con el valor actual, "Guardar" y "Cancelar"; una compra "Sin total" lo abre vacío |
+| `saving` | Esperando la RPC | Campo y botones deshabilitados, "Guardando…"; los demás lápices deshabilitados |
+| `saveFailed` | Falló el guardado | El campo con lo escrito, el error y los mismos botones |
+
+**Cuándo hay lápiz:**
+
+| Situación | Lápiz del periodo | Lápiz de las compras |
+|---|---|---|
+| `loading` o `failed` | No | No hay lista |
+| `empty` | Sí (D17) | No hay lista |
+| `ready` | Sí | Sí |
+| Fila "Ajuste manual" | No aplica | Sin lápiz (D16) |
+
 ## 7. Errores
 
 ### SCRUM-69
@@ -252,6 +383,22 @@ Reutiliza los textos de SCRUM-69:
 | La sesión venció o dejó de ser válida | El mismo error; al reintentar se vuelve a leer la sesión y, si ya no es registrada, se pasa a `noAccount` | Ídem |
 
 Los errores de Supabase no se muestran crudos.
+
+### SCRUM-91
+
+Textos propuestos (se confirman al escribir las constantes):
+
+| Situación | Mensaje visible | Dónde |
+|---|---|---|
+| Vacío, inválido, con decimales o mayor al tope | "Escribe el monto en colones, solo números (ej. 50000)." | Debajo del campo, con `aria-describedby`; sin llamar a la base |
+| No se pudo guardar (red o servidor) | "No se pudo guardar el total. Intenta de nuevo." | Debajo del campo, `role="alert"`; lo escrito se conserva |
+| Dejaría un periodo en negativo, código `23514` (regla 54) | "Ese monto dejaría un periodo en negativo. Revisa el total del día, la semana y el mes." | Ídem |
+| La compra ya no se puede editar, `P0002` | "Esa compra ya no está disponible. Recarga la lista." | Ídem |
+| La sesión venció, `42501` o `401` | El error de guardado; al volver a leer la sesión, si ya no es registrada, se pasa a `noAccount` | Ídem |
+
+Los errores de Supabase no se muestran crudos. Un error de guardado no cambia los montos en pantalla.
+
+**Código `23514`:** la aplicación identifica específicamente este código para mostrar el mensaje de arriba. Nunca lee ni compara el texto interno de PostgreSQL, que puede cambiar. Las RPC validan los montos antes de escribir, así que en esta operación el código solo llega por la regla 54. Cualquier otro código desconocido muestra el error general de guardado.
 
 ## 8. UI esperada
 
@@ -284,6 +431,19 @@ Según DESIGN.md §7.9, sin lo que es de HU-60 y HU-61 (lápiz de edición y bad
 - Debajo del total, `PriceDisclaimer`, una sola vez.
 - Lista: una fila por compra con fecha, supermercado y monto. **"Sin total"** va como texto neutro, sin color de error.
 
+### SCRUM-91
+
+Según DESIGN.md §7.9. Textos propuestos:
+
+- **Periodo:** un lápiz pequeño al lado del monto en Fraunces. El campo se llama "Total de hoy (₡)", "Total de esta semana (₡)" o "Total de este mes (₡)".
+- **Compra:** un lápiz al lado de su monto o de "Sin total". El campo se llama "Total de la compra (₡)".
+- **Campo:** "Guardar" y "Cancelar", como en el presupuesto, dentro de la misma fila o del bloque del total.
+- **Fila de ajuste:** fecha, "Ajuste manual" y el monto con signo ("+₡5 000", "−₡5 000"), sin lápiz. Va en la misma lista, ordenada por fecha con las compras.
+- **Contadores:** "Compras" y "Sin total" no cambian por un ajuste.
+- **Dashboard:** sin lápices. Si el total del periodo incluye algún ajuste, debajo del monto va una indicación discreta en texto secundario: **"Incluye ajustes manuales"**. Sin ajustes no se muestra. "Compras" y "Sin total" no cambian.
+
+Ícono: `Pencil` de `lucide-react`, con `Icon` de `@/components/ui`.
+
 ## 9. Accesibilidad
 
 ### SCRUM-69
@@ -302,6 +462,15 @@ Según DESIGN.md §7.9, sin lo que es de HU-60 y HU-61 (lápiz de edición y bad
 - El selector, la zona `role="status"` y los errores funcionan como en SCRUM-69.
 - La lista es un `<ul>` con nombre ("Compras del periodo"), con un `<li>` por compra.
 - "Sin total" se dice en palabras, no solo con color.
+- Todo se puede hacer solo con teclado, en desktop y en mobile.
+
+### SCRUM-91
+
+- Cada lápiz es un `<button>` con nombre propio: "Editar total del domingo 18 de octubre, MaxiPali" y "Editar total de esta semana". El ícono es decorativo.
+- El campo tiene `label`; su error usa `aria-describedby` y `aria-invalid`.
+- **Foco:** al abrir, va al campo; al guardar o cancelar, vuelve a su lápiz; si el guardado falla, vuelve al campo. Escape cancela.
+- La zona `role="status"` anuncia "Total guardado" y el total nuevo. Los errores de guardado van en `role="alert"`.
+- "Ajuste manual" y el signo del monto se dicen en texto, no solo con color. "Incluye ajustes manuales" también es texto, cerca del total.
 - Todo se puede hacer solo con teclado, en desktop y en mobile.
 
 ## 10. Restricciones técnicas
@@ -325,6 +494,17 @@ Según DESIGN.md §7.9, sin lo que es de HU-60 y HU-61 (lápiz de edición y bad
 - Sin duplicar SCRUM-69: se reutilizan selector, total, utils y constantes. El acceso se extrae a `useFinanceAccess`, sin cambiar su comportamiento.
 - Siempre `getSession`, nunca `ensureSession`: abrir el Historial no crea un usuario anónimo.
 - Tests automáticos obligatorios y E2E según [plan.md](plan.md#scrum-90-ver-historial-de-sesiones-de-compra).
+
+### SCRUM-91
+
+- Mismas reglas de SCRUM-69 y SCRUM-90. Todo lo nuevo de interfaz vive en `features/finance/`.
+- **No se amplían los permisos de update sobre compras cerradas:** ni política nueva, ni `grant` nuevo sobre `purchase_sessions`. Un PATCH directo sobre una compra cerrada sigue bloqueado. La única vía son las RPC.
+- **Trigger:** `stamp_purchase_session_close` (`018`) pone `now()` en todo update con `closed_at` no nulo. Sin corregirlo, editar un total movería la compra a hoy. La migración lo corrige sin cambiar el cierre normal.
+- **RPC `security definer`:** `set search_path = ''`, dueño tomado de `auth.uid()`, rechazo de sesiones anónimas y `execute` solo para `authenticated`. Migración con el procedimiento de `supabase/README.md`, prueba SQL y `security-reviewer` antes de aplicarla.
+- No se editan migraciones aplicadas ni `features/shopping-list/`.
+- Estado con servicios y `useEffect`, sin TanStack Query ni Realtime. Lógica en ViewModels y hooks; los `.tsx` solo presentan.
+- Textos, RPC, códigos de error y estados en `finance.constants.ts`, sin strings sueltos.
+- Tests automáticos obligatorios y E2E según [plan.md](plan.md#scrum-91-editar-el-total-de-una-sesión-o-periodo).
 
 ## 11. Dependencias
 
@@ -350,6 +530,18 @@ No depende de ningún PR sin mergear.
 | SCRUM-67 (HU-36f): `purchase_sessions` (`016`, `018`) y `stores` | En `develop` | Fuente de los datos, sin cambios |
 | SCRUM-75 (HU-43): `PriceDisclaimer` | En `develop` | Se reutiliza en el Historial; su integración en el Dashboard sigue en SCRUM-75 |
 | HU-60, HU-61 y HU-62 | Sin empezar | Se suman al Historial después |
+
+No depende de ningún PR sin mergear.
+
+### SCRUM-91
+
+| Dependencia | Estado (2026-11-02) | Efecto |
+|---|---|---|
+| SCRUM-90 (HU-59): Historial, `usePeriodPurchases`, `PurchaseSessionRow` | En `develop` (#87, `9a6ec22`) | Se extiende |
+| SCRUM-69 (HU-37): Dashboard, `SpendingTotal`, `getPeriodSpending`, `parseBudgetAmount` | En `develop` | Se extiende |
+| SCRUM-67 (HU-36f): `purchase_sessions` y su trigger (`016`, `018`) | En `develop` | Solo cambia el trigger |
+| `Icon` y `lucide-react` | En `develop` | Ícono del lápiz |
+| HU-61 | Sin empezar | Toma el badge y el recordatorio; CA-03 queda adelantado por D12 |
 
 No depende de ningún PR sin mergear.
 
@@ -408,6 +600,58 @@ purchase_sessions  select id, closed_at, total_amount, stores(display_name)
 La consulta se hace con `count: "exact"` (regla 30).
 
 No se pide `owner_id` ni se manda ningún id de usuario.
+
+### SCRUM-91
+
+Migración nueva; número previsto `040` ([plan.md](plan.md#número-de-la-migración-1)).
+
+**Tabla `public.spending_adjustments`:**
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id` | `uuid` | `primary key default gen_random_uuid()` |
+| `owner_id` | `uuid` | `not null`, FK a `auth.users` con `on delete cascade` |
+| `scope` | `text` | `not null`, `check (scope in ('day', 'week', 'month'))` |
+| `period_start` | `timestamptz` | `not null`; lo calcula la base |
+| `effective_at` | `timestamptz` | `not null`; la hora de la base al guardar (regla 52) |
+| `amount` | `numeric(14, 2)` | `not null`, `check (amount <> 'NaN' and amount <> 0)`; con signo. Lleva centavos porque una compra antigua puede tenerlos |
+| | | `unique (owner_id, scope, period_start)` |
+
+**Permisos:** RLS activada; `revoke all` de `public`, `anon` y `authenticated`; solo `grant select` a `authenticated`, con política de dueño registrado (el mismo criterio de `027`). El cliente no escribe la tabla.
+
+**`set_purchase_session_total(target_session_id uuid, new_total numeric, client_time_zone text) returns public.purchase_sessions`:**
+
+- Sin `auth.uid()` o con sesión anónima: `42501`.
+- Total nulo, negativo, con decimales, `NaN` o sobre el tope, o zona horaria desconocida: `22023`.
+- Compra inexistente, ajena o abierta: `P0002`, con el mismo mensaje en los tres casos.
+- Sin límite de fecha: acepta cualquier compra cerrada propia (regla 48).
+- Dejaría un periodo negativo: `23514`, sin guardar nada.
+- Devuelve la fila actualizada.
+
+**`set_period_total(target_scope text, target_total numeric, client_time_zone text) returns setof public.spending_adjustments`:**
+
+- Sin `auth.uid()` o con sesión anónima: `42501`.
+- Nivel, total o zona horaria inválidos: `22023`.
+- Calcula con la hora de la base el periodo en curso (D15), y ajusta según las reglas 50 a 52.
+- Dejaría un periodo negativo: `23514`, sin guardar nada.
+- Devuelve el ajuste guardado, o ninguna fila si se quitó.
+
+Las dos RPC son `security definer`, `set search_path = ''`, con `revoke execute … from public, anon` y `grant … to authenticated`.
+
+**Lecturas** (solo con sesión registrada):
+
+```
+spending_adjustments  select id, scope, effective_at, amount
+                      where effective_at >= <inicio> and effective_at < <fin>
+                        and scope in (<niveles que cuentan, regla 52>)
+
+purchase_sessions     select total_amount
+                      where closed_at >= <inicio> and closed_at < <fin>     con count: "exact" (D19)
+```
+
+La lectura del Historial no cambia. Las compras y los ajustes se piden juntos, y si falla cualquiera de las dos la carga falla.
+
+**`stamp_purchase_session_close`:** si `old.closed_at` no es nulo, conserva ese valor; si la compra se está cerrando, pone `now()`, como hasta ahora.
 
 ## 13. Casos de aceptación
 
@@ -508,6 +752,52 @@ Casos de cada flujo:
 - [x] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan. Detalle en [tasks.md](tasks.md), tarea 5.1.
 
+### HU-60 (SCRUM-91)
+
+Ninguno validado todavía.
+
+Criterios de la historia, con cómo se verifica cada uno (con una cuenta registrada):
+
+- [ ] **CA-01:** cada sesión de compra tiene un ícono de lápiz junto a su total para editarlo inline.
+  - El lápiz abre el campo en la misma fila, sin navegar.
+  - Guardar ₡12 000 cambia la fila, el total y los contadores sin recargar la lista.
+  - La compra sigue con la misma fecha y en el mismo periodo (`closed_at` no cambia).
+  - Una compra de un periodo ya terminado que el Historial muestre también se puede editar (regla 48); D15 no lo impide.
+- [ ] **CA-02:** el total del periodo seleccionado también es editable directamente, sin entrar sesión por sesión.
+  - Con ₡15 000 en compras, guardar ₡20 000 deja el total en ₡20 000 y agrega "Ajuste manual +₡5 000".
+  - Las compras conservan sus montos, y "Compras" y "Sin total" no cambian.
+  - Volver a editar reemplaza el ajuste; volver a ₡15 000 lo quita.
+- [ ] **CA-03:** al guardar, el cambio se refleja de inmediato en el dashboard financiero (HU-37).
+  - En la misma pestaña, al abrir "Dashboard" después de guardar, se ven el total nuevo y la diferencia con el presupuesto, sin recargar.
+  - El Dashboard y el Historial muestran el mismo total en los tres periodos (D19).
+  - Con ajustes, el Dashboard muestra "Incluye ajustes manuales" y "Compras" no cambia; sin ajustes, no lo muestra.
+
+Casos de cada flujo:
+
+- [ ] **Sin total (D12):** el lápiz abre vacío; guardar pasa la compra a "Compras" y baja "Sin total".
+- [ ] **₡0 (regla 47):** guardar 0 muestra ₡0 y cuenta en "Compras"; el total del periodo también acepta 0.
+- [ ] **Totales nulos con ajuste (regla 49):** las compras "Sin total" siguen contadas aparte y un ajuste no las completa.
+- [ ] **Vacío (D17):** sin compras, el lápiz sigue disponible; guardar ₡5 000 muestra el total y la fila de ajuste, sin mensaje de vacío.
+- [ ] **Contenedor negativo (D18, regla 54):** un ajuste o una compra que dejaría negativo el día, la semana o el mes se rechaza entero, sin cambios, también en una compra histórica. Se muestra el mensaje del código `23514`.
+- [ ] **Zona horaria (regla 58):** una zona que PostgreSQL no reconoce da `22023`; otra zona no da acceso a compras ajenas; el Dashboard, el Historial y las RPC usan los mismos límites.
+- [ ] **Dónde cuenta (regla 52):** un ajuste de semana no cambia Día y sí Mes; uno de mes solo cambia Mes; uno de día cambia los tres.
+- [ ] **Validación (D13, D14):** vacío, letras, negativo, decimales, separadores mal agrupados y más del tope se rechazan sin llamar a la base; "50000", "50 000", "50.000" y "0" se aceptan.
+- [ ] **Decimales antiguos (D22):** abre redondeado; "Cancelar" no cambia nada; "Guardar" guarda el entero.
+- [ ] **Edición (D21):** abrir otro lápiz cancela el anterior; mientras guarda, los demás quedan deshabilitados; doble clic hace una sola llamada; cambiar de periodo y Escape descartan; el foco vuelve al lápiz.
+- [ ] **Errores:** una falla conserva lo escrito y permite reintentar o cancelar; con la sesión vencida se pasa a `noAccount`.
+- [ ] **Dashboard (D11):** no tiene lápices.
+- [ ] **Otra pestaña (D20):** no se actualiza sola; límite declarado, sin test que lo exija.
+- [ ] **Base (prueba SQL):** los casos de [plan.md](plan.md#pruebas-2).
+- [ ] **E2E (interfaz):** E2E-FIN-09 a 13 pasan en `chromium` y `mobile-chrome`. Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
+- [ ] **Manual (acceso real):**
+  - [ ] CA-01, CA-02 y CA-03 contra la base compartida, comprobando que la compra conserva su fecha.
+  - [ ] Una cuenta registrada no puede editar la compra de otra, ni desde la consola con un PATCH o la RPC.
+  - [ ] Una sesión anónima real no ve lápices y la RPC le responde `42501`.
+  - [ ] D4 con dos cuentas de la misma familia: los ajustes y las ediciones de una no aparecen en la otra.
+  - [ ] Mobile y teclado, con capturas sin correos.
+- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-69
@@ -538,6 +828,19 @@ Casos de cada flujo:
 - Compras de otros integrantes de la familia (D4) y cambios en la RLS de `purchase_sessions`.
 - Paginación (regla 30).
 
+### SCRUM-91
+
+- Editar totales desde el Dashboard (D11).
+- Editar el total de periodos anteriores (D15), o ir a verlos. Editar una compra histórica sí está dentro del alcance (regla 48).
+- Volver una compra a "Sin total" (D13) y aceptar decimales (D14).
+- Actualizar otra pestaña abierta, con Realtime, foco o eventos entre pestañas (D20).
+- Bloqueo optimista entre pestañas (regla 57).
+- Badge terracota y recordatorio de "Sin total" (HU-61 CA-01 y CA-02).
+- Filtros (HU-62). Un ajuste no tiene supermercado ni categoría; cómo se filtra se decide en esa historia.
+- Historial de cambios de un total o de ajustes anteriores.
+- Ajustes o totales compartidos con la familia (D4).
+- Ampliar la RLS o los permisos de `purchase_sessions`.
+
 ## 15. Notas de implementación
 
 ### SCRUM-69
@@ -552,4 +855,10 @@ Casos de cada flujo:
 - **`SpendingTotal` se reutiliza entero:** ya resuelve total, fechas, contadores, vacío, error y reintento. Por eso el error dice "tu gasto" también en el Historial.
 - **Dos hooks parecidos, a propósito:** `usePeriodPurchases` repite el patrón de respuesta vieja de `usePeriodSpending`, porque pide y devuelve datos distintos. El Dashboard sigue pidiendo solo `total_amount`.
 - **Sesión anónima:** la limitación de la regla 7 sigue igual. Por la API solo podría leer sus propias compras.
+- **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.
+
+### SCRUM-91
+
+- **Por qué RPC y no una política:** la política de `016` solo deja actualizar compras abiertas. Abrirla junto con el permiso de columna existente permitiría cambiar `closed_at` o vaciar el total por API.
+- **La base calcula los límites:** recibe la zona horaria en lugar de instantes, para que el cliente no pueda elegir otro periodo. La zona no autoriza nada (regla 58). El cliente sigue usando `getPeriodBounds` para leer; los dos cálculos se comparan en pruebas.
 - **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.

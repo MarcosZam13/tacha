@@ -216,3 +216,106 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
 | Carga, vacío, error y aviso del Historial | E2E-FIN-07 | `usePeriodPurchases.test.ts`, `PurchaseHistory.test.tsx` |
 | D6 en el Historial | E2E-FIN-08 (interfaz) | `useFinanceAccess.test.ts`, prueba manual (sesión anónima real) |
 | D4 en el Historial | — (lo decide la RLS de `purchase_sessions`) | Prueba manual con dos cuentas de la misma familia |
+
+## SCRUM-91: editar el total de una sesión o periodo
+
+Los tests van en `e2e/features/finance/edit-totals.spec.ts`. Igual que los anteriores, usan una **sesión registrada simulada** y **respuestas de Supabase simuladas**, y validan **solo la interfaz**: ni la autenticación real, ni la RLS, ni las RPC, ni el trigger. Lo real lo cubren la prueba SQL `supabase/tests/040_edit_purchase_totals.test.sql` y el QA manual de SPEC §13.
+
+Las combinaciones de validación, de niveles de ajuste y de códigos de error se prueban en niveles más bajos (plan, "Pruebas"). Acá van casos representativos.
+
+### Datos y entorno
+
+Mismos reloj, zona horaria y compras del Historial de E2E-FIN-05, con estos cambios en `finance.helpers.ts`:
+
+| Petición | Respuesta simulada |
+|---|---|
+| `GET /rest/v1/purchase_sessions?select=total_amount…` | Las compras del periodo, ahora con `Content-Range`, por D19. También cambia lo que necesitan E2E-FIN-01 a 04 |
+| `GET /rest/v1/spending_adjustments?…` | Los ajustes que recuerda el escenario y que cuentan en el periodo; empieza sin ninguno |
+| `POST /rest/v1/rpc/set_purchase_session_total` | La compra con el total nuevo; el helper la recuerda para la siguiente lectura |
+| `POST /rest/v1/rpc/set_period_total` | El ajuste calculado por el helper, o ninguna fila si se quitó |
+
+Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados esperados no cambian.
+
+### E2E-FIN-09: editar el total de una compra (SCRUM-91)
+
+- **Cubre:** CA-01; D12, D21 y reglas 47 y 48.
+- **Precondición:** sesión registrada simulada; compras de la semana de E2E-FIN-05. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial`.
+  2. Tocar el lápiz de MaxiPali, escribir `12000` y tocar «Guardar».
+  3. Tocar el lápiz de Walmart («Sin total»), escribir `0` y tocar «Guardar».
+  4. Abrir un lápiz y, sin guardar, abrir otro.
+- **Resultado esperado:**
+  - La petición a `rpc/set_purchase_session_total` lleva la compra, el total y la zona horaria, sin dueño.
+  - **MaxiPali:** ₡12 000, el total del periodo pasa a ₡17 000 y conserva su fecha, sin recargar. `role="status"` anuncia «Total guardado».
+  - **Walmart:** ₡0; «Compras» pasa de 2 a 3 y «Sin total» de 1 a 0.
+  - **Dos lápices:** solo queda abierto el último y el primero no se guardó.
+
+### E2E-FIN-10: editar el total del periodo (SCRUM-91)
+
+- **Cubre:** CA-02; D10, D16 y regla 50.
+- **Precondición:** la misma. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial` (₡15 000).
+  2. Tocar «Editar total de esta semana», escribir `20000` y tocar «Guardar».
+  3. Editar otra vez a `18000`.
+  4. Editar otra vez a `15000`.
+- **Resultado esperado:**
+  - La petición a `rpc/set_period_total` lleva el periodo, el total deseado y la zona horaria, sin dueño ni diferencia.
+  - **₡20 000:** aparece «Ajuste manual» con «+₡5 000» y sin lápiz. Las compras conservan sus montos; «Compras» sigue en 2 y «Sin total» en 1.
+  - **₡18 000:** una sola fila de ajuste, con «+₡3 000».
+  - **₡15 000:** la fila de ajuste desaparece.
+
+### E2E-FIN-11: el Dashboard refleja el cambio (SCRUM-91)
+
+- **Cubre:** CA-03; D11 y D19.
+- **Precondición:** la misma, con presupuesto semanal de ₡30 000. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. En el Historial, editar la semana a `20000`.
+  2. Tocar «Dashboard», sin recargar.
+- **Resultado esperado:**
+  - El Dashboard dice ₡20 000, «Incluye ajustes manuales» y «Te quedan ₡10 000»; «Compras» sigue en 2.
+  - La petición de gasto lleva `count=exact` y también se pidieron los ajustes.
+  - No hay ningún lápiz de total.
+
+### E2E-FIN-12: validación y errores al guardar (SCRUM-91)
+
+- **Cubre:** D13, D14, D18 y SPEC §7 de SCRUM-91.
+- **Precondición:** la misma. Corre en desktop y en Pixel 7.
+- **Pasos y resultado esperado:**
+  1. **Inválido:** en una compra, dejar vacío y tocar «Guardar», y después `12.5`: se ve «Escribe el monto en colones, solo números (ej. 50000).», sin petición a la RPC.
+  2. **Error al guardar:** la RPC responde `500`; se ve «No se pudo guardar el total. Intenta de nuevo.» (`role="alert"`), el campo conserva lo escrito y el monto no cambia.
+  3. **Reintento:** la segunda respuesta sale bien y el campo se cierra.
+  4. **Negativo:** `rpc/set_period_total` responde con código `23514`; se ve «Ese monto dejaría un periodo en negativo. Revisa el total del día, la semana y el mes.» y no aparece ningún ajuste.
+  5. **Cancelar:** Escape cierra el campo, sin petición, y el foco vuelve al lápiz.
+
+### E2E-FIN-13: editar un periodo sin compras (SCRUM-91)
+
+- **Cubre:** D17 y reglas 47 y 49.
+- **Precondición:** sin compras en el periodo. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial`: ₡0, mensaje de vacío y lápiz del total.
+  2. Editar a `5000`.
+- **Resultado esperado:**
+  - Se ve ₡5 000 y «Ajuste manual» con «+₡5 000», sin el mensaje de vacío.
+  - «Compras» y «Sin total» siguen en 0.
+
+### Cobertura de SCRUM-91
+
+| Criterio | Escenarios E2E | Otros niveles |
+|---|---|---|
+| HU-60 CA-01 | E2E-FIN-09 | `useTotalEdit.test.ts`, `PurchaseHistory.test.tsx`, prueba SQL 040, manual |
+| HU-60 CA-02 | E2E-FIN-10 | `usePeriodPurchases.test.ts`, `summarizeSpending.test.ts`, prueba SQL 040, manual |
+| HU-60 CA-03 y D19 | E2E-FIN-11 | `finance.service.test.ts`, `usePeriodSpending.test.ts`, `FinanceDashboard.test.tsx`, manual |
+| D12, totales nulos y ₡0 | E2E-FIN-09 | `summarizeSpending.test.ts`, `usePurchaseHistoryViewModel.test.ts` |
+| D13 y D14 | E2E-FIN-12 | `parseColonesAmount.test.ts`, prueba SQL 040 |
+| D17 | E2E-FIN-13 | `usePeriodPurchases.test.ts`, prueba SQL 040 |
+| D18 y regla 54 | E2E-FIN-12 (solo el mensaje del código `23514`) | `finance.service.test.ts` (reconoce el código), prueba SQL 040 (el rechazo real, la transacción y las compras históricas) |
+| Regla 48 (compras históricas) | — (el Historial solo muestra el periodo en curso) | Prueba SQL 040 |
+| Regla 58 (zona horaria) | E2E-FIN-09 y 10 (se manda la zona) | `finance.service.test.ts`, `getPeriodBounds.test.ts`, prueba SQL 040 |
+| Indicación de ajustes en el Dashboard | E2E-FIN-11 | `FinanceDashboard.test.tsx` |
+| D21 | E2E-FIN-09 | `useTotalEdit.test.ts` |
+| D22 | — | `usePurchaseHistoryViewModel.test.ts`, `useTotalEdit.test.ts` |
+| Regla 52 (dónde cuenta) | — | `finance.service.test.ts`, prueba SQL 040 |
+| Trigger, permisos y RLS | — (no llegan a la base) | Prueba SQL 040, manual |
+| D20 (otra pestaña) | — (fuera de alcance) | Límite declarado |

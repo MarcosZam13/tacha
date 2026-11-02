@@ -168,3 +168,62 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Productos de cada compra.
 - [ ] Editar totales (HU-60), badge y recordatorio (HU-61) y filtros (HU-62).
 - [ ] Deuda de SCRUM-69: `getPeriodSpending` puede sumar un resultado cortado por el servidor, sin avisar (plan, "Deuda de SCRUM-69").
+
+## SCRUM-91: editar el total de una sesión o periodo
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir.
+
+### Etapa 0 — Decisiones y specs
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-11-02): D10 a D22, SPEC §5.
+- [x] 0.2 `SPEC.md`, `plan.md`, `tasks.md` y `E2E.md`, sección SCRUM-91.
+- [ ] 0.3 Revisión y aprobación de la documentación.
+- [ ] 0.4 Commit `docs(SCRUM-91): add total editing planning`, push y abrir el PR hacia `develop` con label `in progress`; SCRUM-91 a In Progress en Jira.
+
+### Etapa 1 — Base
+
+- [ ] 1.1 Verificar que `040` siga libre en `develop` y en los PRs abiertos; si no, usar el siguiente libre.
+- [ ] 1.2 Migración (trigger, tabla, RLS, funciones internas y dos RPC) y su prueba SQL.
+- [ ] 1.3 Revisión con `security-reviewer`; aprobación; commit.
+- [ ] 1.4 La dueña de la historia comprueba en la base el trigger, la política y que la tabla no tenga `force row level security`; avisa al grupo; aplica la migración en una transacción con su fila del historial; corre la prueba SQL.
+- [ ] 1.5 Tipos en `types/database.types.ts`, comparados con la base; `documento-proyecto.md` §6.
+
+### Etapa 2 — Lectura y consistencia
+
+- [ ] 2.1 Renombrar `parseBudgetAmount` y `BUDGET_AMOUNT`, sin cambiar su comportamiento.
+- [ ] 2.2 `PeriodAdjustment`, constantes, lectura de ajustes y `summarizeSpending`, con sus tests.
+- [ ] 2.3 Corregir `getPeriodSpending` (D19); `usePeriodSpending` y `usePeriodPurchases` con ajustes, con sus tests.
+
+### Etapa 3 — Lógica de edición
+
+- [ ] 3.1 Payload, Response y error tipado; `setPurchaseTotal` y `setPeriodTotal`, con sus tests.
+- [ ] 3.2 `useTotalEdit` y `usePurchaseHistoryViewModel`, con sus tests.
+
+### Etapa 4 — Compra (CA-01)
+
+- [ ] 4.1 `EditTotalButton`, `InlineTotalEditor` y `PurchaseSessionRow`, con Page Object y tests.
+
+### Etapa 5 — Periodo y Dashboard (CA-02 y CA-03)
+
+- [ ] 5.1 `SpendingTotal`, `formatSignedColones`, `PeriodAdjustmentRow` y `PurchaseHistory`, con tests.
+- [ ] 5.2 Test de totales iguales entre pantallas (D19), Dashboard sin lápices (D11) e indicación "Incluye ajustes manuales", sin cambiar "Compras".
+
+### Etapa 6 — E2E
+
+- [ ] 6.1 Ajustar `finance.helpers.ts` (conteo del gasto, ajustes y RPC); confirmar que E2E-FIN-01 a 08 siguen pasando.
+- [ ] 6.2 `e2e/features/finance/edit-totals.spec.ts` (E2E-FIN-09 a 13); correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+
+### Etapa 7 — QA y cierre
+
+- [ ] 7.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`.
+- [ ] 7.2 Pruebas manuales de SPEC §13 y `TC-SCRUM-91-01` a `08` (plan), con capturas sin correos.
+- [ ] 7.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
+- [ ] 7.4 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [ ] 7.5 Revisar otra vez el número de la migración, traer `develop`, descripción del PR con la evidencia, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Actualizar otra pestaña abierta (D20).
+- [ ] Editar desde el Dashboard (D11) o periodos anteriores (D15).
+- [ ] Volver una compra a "Sin total" (D13).
+- [ ] Badge y recordatorio (HU-61), y filtros (HU-62).
