@@ -95,9 +95,11 @@ supabase functions deploy submit-contact-message
 
 ## Probar en Postman
 
+Desde SCRUM-130, `ingest-maxipali`, `ingest-walmart` e `ingest-masxmenos` solo aceptan la **service role key** en `Authorization` — una llamada con la anon key (o sin header) devuelve `403 { "error": "forbidden" }` antes de tocar VTEX o la base. El único consumidor legítimo es un script de servidor (script de ingesta mensual, SCRUM-132); nada en la app de producción las llama.
+
 ```
 POST https://<project-ref>.supabase.co/functions/v1/ingest-maxipali
-Headers: Authorization: Bearer <anon-or-service-key>
+Headers: Authorization: Bearer <service-role-key>
 Body (JSON): { "query": "leche" }
 ```
 
