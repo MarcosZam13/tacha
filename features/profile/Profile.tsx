@@ -1,6 +1,7 @@
 "use client";
 
 import { ProfileAvatar } from "@/components/profile-avatar/ProfileAvatar";
+import { SignOutButton } from "@/components/sign-out-button/SignOutButton";
 import { Spinner } from "@/components/ui";
 import { AVATAR_SIZE } from "@/constants";
 import { ProfileChangePasswordLink } from "./components/ProfileChangePasswordLink";
@@ -30,6 +31,10 @@ export const Profile = (): React.JSX.Element => {
       </header>
       {isLoading ? <Spinner /> : <ProfileForm {...formViewModel} />}
       <ProfileChangePasswordLink />
+      {/* Cerrar sesión (SCRUM-55), al final y siempre a la vista: en mobile es el lugar del criterio ("Más → Perfil"). */}
+      <div>
+        <SignOutButton />
+      </div>
     </div>
   );
 };
