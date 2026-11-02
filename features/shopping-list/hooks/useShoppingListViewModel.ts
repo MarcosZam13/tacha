@@ -9,6 +9,7 @@ import type { ItemQuantityStepType } from "../constants/shopping-list.constants"
 import type { ClosePurchaseViewModel } from "../models/ClosePurchaseViewModel.interface";
 import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
+import type { ShortfallPanelViewModel, UndoUncheckViewModel } from "../models/shortfall-resolution.types";
 import type { StorePickerViewModel } from "../models/StorePickerViewModel.interface";
 import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
 import { isBoughtInSession, toShoppingListRow } from "../utils/toShoppingListRow";
@@ -19,6 +20,7 @@ import { useItemRemoval } from "./useItemRemoval";
 import { useKeptPersonalList } from "./useKeptPersonalList";
 import { usePurchaseSession } from "./usePurchaseSession";
 import { useShoppingList } from "./useShoppingList";
+import { useShortfallFlowViewModel } from "./useShortfallFlowViewModel";
 import { useStorePicker } from "./useStorePicker";
 
 interface UseShoppingListViewModelReturn {
@@ -67,7 +69,13 @@ interface UseShoppingListViewModelReturn {
   searchOptions: ProductSearchOption[];
   /** Aviso cuando la compra de la URL no está abierta. */
   sessionNoticeMessage: NullableRef<string>;
+  /** Otro miembro ya había cambiado la fila que se quiso resolver o deshacer (SCRUM-115). */
+  shortfallNoticeMessage: NullableRef<string>;
+  /** "¿Qué hiciste?" al tachar una fila con aviso de faltante (SCRUM-115). */
+  shortfallPanel: ShortfallPanelViewModel;
   storePicker: StorePickerViewModel;
+  /** Confirmar antes de destachar una fila que "¿Qué hiciste?" cambió (SCRUM-115). */
+  undoUncheck: UndoUncheckViewModel;
 }
 
 /**
@@ -75,7 +83,8 @@ interface UseShoppingListViewModelReturn {
  * entrega a ShoppingListInner.tsx exactamente lo que dibuja, ya calculado.
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
-  const { addItem, changeBoughtQuantity, changeQuantity, removeItem, state, toggleChecked } = useShoppingList();
+  const { addItem, changeBoughtQuantity, changeQuantity, reload, removeItem, state, toggleChecked } = useShoppingList();
+  const shortfallFlow = useShortfallFlowViewModel({ items: state.items, reload });
   const keptPersonalItems = useKeptPersonalList();
   const search = useProductSearch();
   const removal = useItemRemoval({ removeItem });
@@ -164,7 +173,16 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     const item = state.items.find((listedItem) => listedItem.id === itemId);
     // Fila esperando respuesta: se ignora, igual que el botón deshabilitado.
     if (!item || state.pendingItemIds.includes(itemId)) return;
-    toggleChecked(itemId, item.checkedAt === null, activeSessionId);
+    const isChecking = item.checkedAt === null;
+    // Una fila tachada que "¿Qué hiciste?" cambió no se destacha sin preguntar (SCRUM-115, regla 45).
+    if (!isChecking && item.shortfallSnapshot) {
+      shortfallFlow.requestUndo(itemId);
+      return;
+    }
+    // Tachar una fila con avisos abre "¿Qué hiciste?" cuando la base lo confirma (regla 35).
+    const onChecked =
+      isChecking && item.recipeShortfalls.length > 0 ? () => shortfallFlow.openPanelFor(itemId) : undefined;
+    toggleChecked(itemId, isChecking, activeSessionId, onChecked);
   };
 
   const onRemoveItem = (itemId: string): void => {
@@ -253,6 +271,8 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       label: result.productName,
     })),
     sessionNoticeMessage: purchase.sessionNoticeMessage,
+    shortfallNoticeMessage: shortfallFlow.noticeMessage,
+    shortfallPanel: shortfallFlow.shortfallPanel,
     storePicker: {
       errorMessage: storePicker.errorMessage,
       isLoading: storePicker.isLoadingStores,
@@ -262,5 +282,6 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       onPickStore: (storeId: string) => void storePicker.pickStore(storeId),
       stores: storePicker.stores,
     },
+    undoUncheck: shortfallFlow.undoUncheck,
   };
 };

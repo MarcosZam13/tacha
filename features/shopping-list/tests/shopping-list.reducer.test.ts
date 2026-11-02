@@ -13,6 +13,7 @@ const createItem = (overrides: Partial<ShoppingListItem> = {}): ShoppingListItem
   quantity: 1,
   quantityBought: null,
   recipeShortfalls: [],
+  shortfallSnapshot: null,
   sizeLabel: "1000 ml",
   variantId: "variant-leche",
   ...overrides,
@@ -423,5 +424,45 @@ describe("shoppingListReducer: shopping mode (SCRUM-67)", () => {
     });
 
     expect(state.quantityErrorMessage).toBeNull();
+  });
+});
+
+describe("shoppingListReducer: live shortfalls and undo snapshot (SCRUM-115)", () => {
+  const SHORTFALL = { quantityMissing: 600, recipeName: "Tres leches", unit: CATALOG_BASE_UNIT.MILLILITERS };
+  const SNAPSHOT = { previousQuantity: 1, previousSizeLabel: "1000 ml" };
+
+  it("replaces every row's shortfalls with the ones the database computed again", () => {
+    const leche = createItem({ recipeShortfalls: [SHORTFALL] });
+    const arroz = createItem({ id: "item-arroz", variantId: "variant-arroz" });
+
+    const state = shoppingListReducer(createLoadedState([leche, arroz]), {
+      shortfallsByItemId: new Map([["item-arroz", [SHORTFALL]]]),
+      type: SHOPPING_LIST_ACTION.SHORTFALLS_REFRESHED,
+    });
+
+    expect(state.items.map((item) => item.recipeShortfalls)).toEqual([[], [SHORTFALL]]);
+  });
+
+  it("drops the undo snapshot when the row is unchecked (the database deletes it)", () => {
+    const checkedLeche = createItem({ checkedAt: "2026-11-01T15:00:00.000Z", shortfallSnapshot: SNAPSHOT });
+
+    const state = shoppingListReducer(createLoadedState([checkedLeche]), {
+      check: { checkedAt: null, purchaseSessionId: null, quantityBought: null },
+      itemId: checkedLeche.id,
+      type: SHOPPING_LIST_ACTION.CHECK_TOGGLED,
+    });
+
+    expect(state.items[0].shortfallSnapshot).toBeNull();
+  });
+
+  it("keeps the undo snapshot when the same row comes back from adding", () => {
+    const leche = createItem({ shortfallSnapshot: SNAPSHOT });
+
+    const state = shoppingListReducer(createLoadedState([leche]), {
+      item: createItem({ quantity: 2 }),
+      type: SHOPPING_LIST_ACTION.ITEM_UPSERTED,
+    });
+
+    expect(state.items[0]).toMatchObject({ quantity: 2, shortfallSnapshot: SNAPSHOT });
   });
 });

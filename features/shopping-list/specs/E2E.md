@@ -88,3 +88,23 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
 - **Oráculo:** la cantidad exacta depende de las presentaciones del catálogo, así que se valida la forma del texto, no el número.
 - **Limpieza:** borra los items de la lista (`deleteOwnListItems`) y las recetas (`deleteOwnRecipes`; sus registros se van en cascada).
 - **Fuera del navegador:** conteos, faltante 0 y `unidad` (CA-03) en la prueba SQL de la `033`; el texto y la coma decimal en `tests/toShortfallNote.test.ts`; una línea por receta en `tests/toRecipeShortfalls.test.ts`; la familia (regla 29), en la prueba SQL y a mano (el E2E no maneja cuentas registradas).
+
+### E2E-LISTA-07: "¿Qué hiciste?" al tachar y deshacer al destachar
+
+- **Cubre:** HU-77 CA-01, CA-02, CA-04 y las reglas 39, 41 y 45 (SPEC §18).
+- **Precondición:** como E2E-LISTA-06: usuario anónimo nuevo con una receta propia de **100 000 ml** agregada a la lista, así que su fila tiene aviso y una unidad más nunca lo cubre.
+- **Pasos:**
+  1. En `/lista`, tocar la fila (tachar).
+  2. Tocar "Agregué otra igual".
+  3. Tocar "Ahora no".
+  4. Tocar la fila tachada (destachar) y confirmar "Destachar y deshacer".
+  5. Tocar la fila otra vez (tachar) y elegir "Ya tenía suficiente".
+- **Resultado esperado:**
+  - Paso 1: se abre el diálogo "¿Qué hiciste?" con el aviso de la receta.
+  - Paso 2: el panel sigue abierto con "Todavía falta:" (100 000 ml no se cubren con dos unidades).
+  - Paso 3: el panel se cierra; la fila está en "Tachados hoy" con cantidad 2 y su aviso.
+  - Paso 4: aparece "¿Destachar y deshacer lo que elegiste?" con "La fila vuelve a 1 ×"; al confirmar, la fila vuelve a "Pendientes" con cantidad 1 y su aviso.
+  - Paso 5: el panel se cierra y la fila ya no tiene aviso.
+- **Oráculo:** como E2E-LISTA-06, la cantidad del faltante depende del catálogo: se valida la forma del texto y las cantidades de la fila, no el número del faltante.
+- **Limpieza:** `deleteOwnListItems` y `deleteOwnRecipes`.
+- **Fuera del navegador:** la cuenta en vivo, "Cambié a otra presentación", modo compra, familia y los rechazos de la base están en `supabase/tests/037_resolve_recipe_shortfalls.test.sql`; el orden por precio en `tests/toPresentationOptions.test.ts`.

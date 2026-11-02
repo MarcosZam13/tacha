@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useOptimistic, useReducer } from "react";
+import { startTransition, useEffect, useOptimistic, useReducer, useRef } from "react";
 import type { NullableRef } from "@/types/nullable.types";
 import { SHOPPING_LIST_ACTION, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
@@ -13,6 +13,7 @@ import {
   checkItemInSession,
   deleteListItem,
   getGeneralList,
+  getGeneralListShortfalls,
   setItemChecked,
 } from "../services/shopping-list.service";
 import { INITIAL_SHOPPING_LIST_STATE, shoppingListReducer } from "../utils/shopping-list.reducer";
@@ -22,10 +23,20 @@ interface UseShoppingListReturn {
   /** Modo compra (SCRUM-67): ±1 a lo comprado de una fila tachada en la compra. */
   changeBoughtQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
   changeQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
+  /** Vuelve a pedir la lista entera; devuelve lo que quedó en pantalla, o null si falló (SCRUM-115). */
+  reload: () => Promise<NullableRef<ShoppingListItem[]>>;
   removeItem: (itemId: string) => Promise<void>;
   state: ShoppingListState;
-  /** sessionId = la compra activa (modo compra) o null. */
-  toggleChecked: (itemId: string, isChecked: boolean, sessionId: NullableRef<string>) => void;
+  /**
+   * sessionId = la compra activa (modo compra) o null. onChecked se llama
+   * cuando la base confirma un tachado (abre "¿Qué hiciste?", SCRUM-115).
+   */
+  toggleChecked: (
+    itemId: string,
+    isChecked: boolean,
+    sessionId: NullableRef<string>,
+    onChecked?: () => void,
+  ) => void;
 }
 
 /** Un tachado que todavía viaja a la base. */
@@ -57,6 +68,9 @@ export const useShoppingList = (): UseShoppingListReturn => {
   // viaja. React muestra el valor optimista mientras dura la transición de
   // toggleChecked y lo descarta al terminar; el reducer guarda solo lo confirmado.
   const [optimisticItems, setOptimisticCheck] = useOptimistic(state.items, applyOptimisticCheck);
+  // Número de la última vez que se pidieron los avisos: una respuesta vieja
+  // que llega después de una nueva se ignora.
+  const latestShortfallsRequestRef = useRef(0);
 
   useEffect(() => {
     // Si el componente se desmonta antes de que responda la base, la
@@ -78,10 +92,41 @@ export const useShoppingList = (): UseShoppingListReturn => {
     };
   }, []);
 
+  // El faltante es una cuenta en vivo (SCRUM-115, regla 47): después de un
+  // cambio que puede moverlo (cantidad, añadir, borrar, tachar, juntar) se
+  // vuelven a pedir solo los avisos. Si falla se quedan los últimos que se
+  // vieron: la acción ya se guardó y no se le muestra un error por esto.
+  const refreshShortfalls = async (): Promise<void> => {
+    latestShortfallsRequestRef.current += 1;
+    const requestNumber = latestShortfallsRequestRef.current;
+    try {
+      const shortfallsByItemId = await getGeneralListShortfalls();
+      if (requestNumber !== latestShortfallsRequestRef.current) return;
+      startTransition(() => dispatch({ shortfallsByItemId, type: SHOPPING_LIST_ACTION.SHORTFALLS_REFRESHED }));
+    } catch {
+      // Se conservan los avisos anteriores (ver arriba).
+    }
+  };
+
+  const reload = async (): Promise<NullableRef<ShoppingListItem[]>> => {
+    // La recarga trae avisos nuevos: un refresco de avisos que salió antes y
+    // responde después ya no tiene que pisarlos.
+    latestShortfallsRequestRef.current += 1;
+    try {
+      const items = await getGeneralList();
+      dispatch({ items, type: SHOPPING_LIST_ACTION.LOADED });
+      return items;
+    } catch {
+      dispatch({ errorMessage: SHOPPING_LIST_TEXT.LOAD_ERROR, type: SHOPPING_LIST_ACTION.LOAD_FAILED });
+      return null;
+    }
+  };
+
   const addItem = async (searchResult: CatalogSearchResult): Promise<void> => {
     try {
       const item = await addItemToGeneralList(searchResult);
       dispatch({ item, type: SHOPPING_LIST_ACTION.ITEM_UPSERTED });
+      void refreshShortfalls();
     } catch {
       dispatch({ errorMessage: SHOPPING_LIST_TEXT.ADD_ERROR, type: SHOPPING_LIST_ACTION.ADD_FAILED });
     }
@@ -94,6 +139,7 @@ export const useShoppingList = (): UseShoppingListReturn => {
     try {
       const quantity = await changeItemQuantity(itemId, quantityStep);
       dispatch({ itemId, quantity, type: SHOPPING_LIST_ACTION.QUANTITY_CHANGED });
+      void refreshShortfalls();
     } catch {
       dispatch({
         errorMessage: SHOPPING_LIST_TEXT.QUANTITY_ERROR,
@@ -109,6 +155,7 @@ export const useShoppingList = (): UseShoppingListReturn => {
     try {
       const quantityBought = await changeItemBoughtQuantity(itemId, quantityStep);
       dispatch({ itemId, quantityBought, type: SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED });
+      void refreshShortfalls();
     } catch {
       dispatch({
         errorMessage: SHOPPING_LIST_TEXT.QUANTITY_ERROR,
@@ -124,7 +171,14 @@ export const useShoppingList = (): UseShoppingListReturn => {
   // el valor optimista y queda lo del reducer, que nunca cambió.
   // En modo compra, tachar usa la RPC de la compra; destachar es igual en los
   // dos modos: la base borra la compra y lo comprado (trigger de 016).
-  const toggleChecked = (itemId: string, isChecked: boolean, sessionId: NullableRef<string>): void => {
+  // Después de confirmar se vuelven a pedir los avisos: destachar quita un
+  // descarte de "¿Qué hiciste?" y juntar mueve los pedidos (SCRUM-115).
+  const toggleChecked = (
+    itemId: string,
+    isChecked: boolean,
+    sessionId: NullableRef<string>,
+    onChecked?: () => void,
+  ): void => {
     const item = state.items.find((listedItem) => listedItem.id === itemId);
     if (!item) return;
     dispatch({ itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED });
@@ -136,6 +190,8 @@ export const useShoppingList = (): UseShoppingListReturn => {
           // Después de un await, React pide envolver otra vez en startTransition
           // para que el cambio siga siendo parte de la misma transición.
           startTransition(() => dispatch({ check, itemId, type: SHOPPING_LIST_ACTION.CHECK_TOGGLED }));
+          onChecked?.();
+          void refreshShortfalls();
           return;
         }
         const result = await setItemChecked(itemId, isChecked);
@@ -153,6 +209,8 @@ export const useShoppingList = (): UseShoppingListReturn => {
                 },
           ),
         );
+        if (isChecked) onChecked?.();
+        void refreshShortfalls();
       } catch {
         startTransition(() =>
           dispatch({
@@ -170,6 +228,7 @@ export const useShoppingList = (): UseShoppingListReturn => {
     try {
       await deleteListItem(itemId);
       dispatch({ itemId, type: SHOPPING_LIST_ACTION.ITEM_REMOVED });
+      void refreshShortfalls();
     } catch {
       dispatch({ errorMessage: SHOPPING_LIST_TEXT.REMOVE_ERROR, type: SHOPPING_LIST_ACTION.REMOVE_FAILED });
     }
@@ -179,6 +238,7 @@ export const useShoppingList = (): UseShoppingListReturn => {
     addItem,
     changeBoughtQuantity,
     changeQuantity,
+    reload,
     removeItem,
     state: { ...state, items: optimisticItems },
     toggleChecked,
