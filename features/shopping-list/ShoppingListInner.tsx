@@ -65,6 +65,11 @@ export const ShoppingListInner = (): React.JSX.Element => {
           {viewModel.sessionNoticeMessage}
         </p>
       ) : null}
+      {viewModel.shortfallNoticeMessage ? (
+        <p role="status" className="font-body text-sm text-tacha-textsec">
+          {viewModel.shortfallNoticeMessage}
+        </p>
+      ) : null}
       {viewModel.closePurchase.isVisible ? <ClosePurchasePanel panel={viewModel.closePurchase} /> : null}
 
       {viewModel.canAddItems ? (

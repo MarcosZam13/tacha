@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { UNDO_UNCHECK_STATUS, UNDO_UNCHECK_TEXT } from "../constants/shortfall-resolution.constants";
+import {
+  SHORTFALL_PANEL_TEXT,
+  UNDO_UNCHECK_STATUS,
+  UNDO_UNCHECK_TEXT,
+} from "../constants/shortfall-resolution.constants";
 import { useUncheckWithUndo } from "../hooks/useUncheckWithUndo";
 import { undoShortfallResolutionAndUncheck } from "../services/shortfall-resolution.service";
 
@@ -40,6 +44,17 @@ describe("useUncheckWithUndo", () => {
     expect(undoMock).toHaveBeenCalledWith(ITEM_ID);
     expect(reload).toHaveBeenCalledTimes(1);
     expect(result.current.state.status).toBe(UNDO_UNCHECK_STATUS.CLOSED);
+  });
+
+  it("says another member already changed the row when the undo was not applied", async () => {
+    undoMock.mockResolvedValue({ isApplied: false });
+    const { result, reload } = renderConfirming();
+
+    await act(async () => result.current.confirm());
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(result.current.state.status).toBe(UNDO_UNCHECK_STATUS.CLOSED);
+    expect(result.current.noticeMessage).toBe(SHORTFALL_PANEL_TEXT.ROW_CHANGED);
   });
 
   it("cancel changes nothing", () => {

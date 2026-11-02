@@ -53,6 +53,31 @@ describe("toPresentationOptions", () => {
     expect(withoutPrice.priceLabel).toBe("Sin precio de referencia");
   });
 
+  it("offers only presentations in the unit of the row's shortfalls (rule 37)", () => {
+    const options = toPresentationOptions(
+      [
+        createRow("variant-galon", 3780, [2300]),
+        { baseQuantity: 800, baseUnit: CATALOG_BASE_UNIT.GRAMS, prices: [5800], variantId: "variant-polvo" },
+      ],
+      CURRENT_VARIANT_ID,
+      [CATALOG_BASE_UNIT.MILLILITERS],
+    );
+
+    expect(options.map((option) => option.variantId)).toEqual(["variant-galon"]);
+  });
+
+  it("does not filter by unit when the row has no shortfalls", () => {
+    const options = toPresentationOptions(
+      [
+        createRow("variant-galon", 3780, [2300]),
+        { baseQuantity: 800, baseUnit: CATALOG_BASE_UNIT.GRAMS, prices: [5800], variantId: "variant-polvo" },
+      ],
+      CURRENT_VARIANT_ID,
+    );
+
+    expect(options).toHaveLength(2);
+  });
+
   it("marks no presentation as the best one (CA-03)", () => {
     const options = toPresentationOptions([createRow("variant-galon", 3780, [2300])], CURRENT_VARIANT_ID);
 

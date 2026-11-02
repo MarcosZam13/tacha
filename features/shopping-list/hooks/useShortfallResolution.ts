@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
 import {
   SHORTFALL_PANEL_ACTION,
@@ -22,6 +22,8 @@ interface UseShortfallResolutionReturn {
   back: () => void;
   choose: (resolution: ShortfallResolutionType) => Promise<void>;
   close: () => void;
+  /** "Otro miembro ya cambió este producto…" cuando la base no aplicó lo elegido; null si no. */
+  noticeMessage: NullableRef<string>;
   openFor: (itemId: string) => void;
   pickPresentation: (variantId: string) => Promise<void>;
   requestPresentations: () => Promise<void>;
@@ -37,11 +39,13 @@ interface UseShortfallResolutionReturn {
  */
 export const useShortfallResolution = ({ items, reload }: UseShortfallResolutionParams): UseShortfallResolutionReturn => {
   const [state, dispatch] = useReducer(shortfallPanelReducer, INITIAL_SHORTFALL_PANEL_STATE);
+  const [noticeMessage, setNoticeMessage] = useState<NullableRef<string>>(null);
   const itemId = state.status === SHORTFALL_PANEL_STATUS.CLOSED ? null : state.itemId;
   const item = items.find((listedItem) => listedItem.id === itemId) ?? null;
   const isResolving = state.status === SHORTFALL_PANEL_STATUS.RESOLVING;
 
   const openFor = (targetItemId: string): void => {
+    setNoticeMessage(null);
     dispatch({ itemId: targetItemId, type: SHORTFALL_PANEL_ACTION.OPENED });
   };
 
@@ -62,6 +66,8 @@ export const useShortfallResolution = ({ items, reload }: UseShortfallResolution
     dispatch({ type: SHORTFALL_PANEL_ACTION.RESOLVE_STARTED });
     try {
       const { isApplied } = await resolveShortfall({ itemId, resolution, variantId });
+      // Otro miembro destachó o borró la fila: no se guardó nada, se dice por qué.
+      if (!isApplied) setNoticeMessage(SHORTFALL_PANEL_TEXT.ROW_CHANGED);
       const reloadedItems = await reload();
       const reloadedItem = reloadedItems?.find((listedItem) => listedItem.id === itemId);
       // Seguir abierto solo si se guardó, la fila sigue tachada y todavía le falta algo.
@@ -83,8 +89,10 @@ export const useShortfallResolution = ({ items, reload }: UseShortfallResolution
     dispatch({ type: SHORTFALL_PANEL_ACTION.PRESENTATIONS_REQUESTED });
     try {
       const presentationRows = await getProductPresentations(item.variantId);
+      // Solo presentaciones en la unidad de los avisos de la fila (regla 37).
+      const shortfallUnits = [...new Set(item.recipeShortfalls.map((shortfall) => shortfall.unit))];
       dispatch({
-        presentations: toPresentationOptions(presentationRows, item.variantId),
+        presentations: toPresentationOptions(presentationRows, item.variantId, shortfallUnits),
         type: SHORTFALL_PANEL_ACTION.PRESENTATIONS_LOADED,
       });
     } catch {
@@ -92,5 +100,5 @@ export const useShortfallResolution = ({ items, reload }: UseShortfallResolution
     }
   };
 
-  return { back, choose, close, openFor, pickPresentation, requestPresentations, state };
+  return { back, choose, close, noticeMessage, openFor, pickPresentation, requestPresentations, state };
 };

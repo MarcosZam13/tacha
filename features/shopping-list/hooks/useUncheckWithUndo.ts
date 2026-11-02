@@ -1,6 +1,10 @@
 import { useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
-import { UNDO_UNCHECK_STATUS, UNDO_UNCHECK_TEXT } from "../constants/shortfall-resolution.constants";
+import {
+  SHORTFALL_PANEL_TEXT,
+  UNDO_UNCHECK_STATUS,
+  UNDO_UNCHECK_TEXT,
+} from "../constants/shortfall-resolution.constants";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { UndoUncheckState } from "../models/shortfall-resolution.types";
 import { undoShortfallResolutionAndUncheck } from "../services/shortfall-resolution.service";
@@ -12,6 +16,8 @@ interface UseUncheckWithUndoParams {
 interface UseUncheckWithUndoReturn {
   cancel: () => void;
   confirm: () => Promise<void>;
+  /** "Otro miembro ya cambió este producto…" cuando la base no aplicó el deshacer; null si no. */
+  noticeMessage: NullableRef<string>;
   request: (itemId: string) => void;
   state: UndoUncheckState;
 }
@@ -25,8 +31,10 @@ const CLOSED_STATE: UndoUncheckState = { status: UNDO_UNCHECK_STATUS.CLOSED };
  */
 export const useUncheckWithUndo = ({ reload }: UseUncheckWithUndoParams): UseUncheckWithUndoReturn => {
   const [state, setState] = useState<UndoUncheckState>(CLOSED_STATE);
+  const [noticeMessage, setNoticeMessage] = useState<NullableRef<string>>(null);
 
   const request = (itemId: string): void => {
+    setNoticeMessage(null);
     setState({ itemId, status: UNDO_UNCHECK_STATUS.CONFIRMING });
   };
 
@@ -42,8 +50,10 @@ export const useUncheckWithUndo = ({ reload }: UseUncheckWithUndoParams): UseUnc
     const { itemId } = state;
     setState({ itemId, status: UNDO_UNCHECK_STATUS.REVERTING });
     try {
-      // Si otro miembro ya la destachó (no se aplicó), recargar igual muestra cómo quedó.
-      await undoShortfallResolutionAndUncheck(itemId);
+      // Si otro miembro ya la destachó o la borró, no se aplicó: se dice por
+      // qué, y recargar muestra cómo quedó.
+      const { isApplied } = await undoShortfallResolutionAndUncheck(itemId);
+      if (!isApplied) setNoticeMessage(SHORTFALL_PANEL_TEXT.ROW_CHANGED);
       await reload();
       setState(CLOSED_STATE);
     } catch {
@@ -51,5 +61,5 @@ export const useUncheckWithUndo = ({ reload }: UseUncheckWithUndoParams): UseUnc
     }
   };
 
-  return { cancel, confirm, request, state };
+  return { cancel, confirm, noticeMessage, request, state };
 };

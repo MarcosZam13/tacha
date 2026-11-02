@@ -62,6 +62,8 @@ export const SHORTFALL_PANEL_TEXT = {
   PRESENTATION_LABEL_SEPARATOR: ", ",
   RESOLVE_ERROR: "No se pudo guardar lo que hiciste. Intenta de nuevo.",
   RETRY: "Reintentar",
+  // Otro miembro destachó o borró la fila mientras el panel o el diálogo estaban abiertos (QA de la PR #82).
+  ROW_CHANGED: "Otro miembro ya cambió este producto. Tu lista se actualizó.",
   SAME_AGAIN: "Agregué otra igual",
   SAVING: "Guardando…",
   STILL_SHORT: "Todavía falta:",

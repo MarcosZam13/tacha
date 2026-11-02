@@ -89,6 +89,7 @@ describe("useShortfallResolution", () => {
 
     expect(reload).toHaveBeenCalledTimes(1);
     expect(result.current.state.status).toBe(SHORTFALL_PANEL_STATUS.CLOSED);
+    expect(result.current.noticeMessage).toBe(SHORTFALL_PANEL_TEXT.ROW_CHANGED);
   });
 
   it("keeps the panel open with the message when saving fails", async () => {
@@ -138,6 +139,8 @@ describe("useShortfallResolution", () => {
     getProductPresentationsMock.mockResolvedValue([
       { baseQuantity: 1000, baseUnit: CATALOG_BASE_UNIT.MILLILITERS, prices: [900], variantId: "variant-1l" },
       { baseQuantity: 3780, baseUnit: CATALOG_BASE_UNIT.MILLILITERS, prices: [2300], variantId: "variant-galon" },
+      // En g: no cubre los avisos en ml de la fila, no se ofrece.
+      { baseQuantity: 800, baseUnit: CATALOG_BASE_UNIT.GRAMS, prices: [5800], variantId: "variant-polvo" },
     ]);
     resolveShortfallMock.mockResolvedValue({ isApplied: true });
     const { result } = renderOpenPanel([{ ...CHECKED_LECHE, recipeShortfalls: [] }]);

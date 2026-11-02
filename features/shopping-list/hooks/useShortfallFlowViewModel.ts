@@ -17,6 +17,8 @@ interface UseShortfallFlowViewModelParams {
 }
 
 interface UseShortfallFlowViewModelReturn {
+  /** Aviso en la lista cuando otro miembro ya había cambiado la fila (QA de la PR #82). */
+  noticeMessage: NullableRef<string>;
   /** Tachar una fila con avisos, ya confirmado por la base: abre "¿Qué hiciste?". */
   openPanelFor: (itemId: string) => void;
   /** Tocar una fila tachada que el panel cambió: pide confirmar el deshacer. */
@@ -53,6 +55,7 @@ export const useShortfallFlowViewModel = ({
   const undoSnapshot = undoItem?.shortfallSnapshot ?? null;
 
   return {
+    noticeMessage: resolution.noticeMessage ?? undo.noticeMessage,
     openPanelFor: resolution.openFor,
     requestUndo: undo.request,
     shortfallPanel: {

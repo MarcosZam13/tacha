@@ -69,6 +69,8 @@ interface UseShoppingListViewModelReturn {
   searchOptions: ProductSearchOption[];
   /** Aviso cuando la compra de la URL no está abierta. */
   sessionNoticeMessage: NullableRef<string>;
+  /** Otro miembro ya había cambiado la fila que se quiso resolver o deshacer (SCRUM-115). */
+  shortfallNoticeMessage: NullableRef<string>;
   /** "¿Qué hiciste?" al tachar una fila con aviso de faltante (SCRUM-115). */
   shortfallPanel: ShortfallPanelViewModel;
   storePicker: StorePickerViewModel;
@@ -269,6 +271,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       label: result.productName,
     })),
     sessionNoticeMessage: purchase.sessionNoticeMessage,
+    shortfallNoticeMessage: shortfallFlow.noticeMessage,
     shortfallPanel: shortfallFlow.shortfallPanel,
     storePicker: {
       errorMessage: storePicker.errorMessage,
