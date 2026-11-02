@@ -21,7 +21,9 @@ export type AppRouteType = (typeof APP_ROUTE)[keyof typeof APP_ROUTE];
 export const AUTH_ROUTE = {
   FORGOT_PASSWORD: "/recuperar-contrasena",
   LOGIN: "/login",
+  REGISTER: "/registro",
   RESET_PASSWORD: "/actualizar-contrasena",
+  SOCIAL_SIGN_UP: "/registro/social",
 } as const;
 
 export type AuthRouteType = (typeof AUTH_ROUTE)[keyof typeof AUTH_ROUTE];
