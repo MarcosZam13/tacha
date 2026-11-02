@@ -3,6 +3,7 @@
 export const APP_ROUTE = {
   CATALOG: "/catalogo",
   CATALOG_MY_PRODUCTS: "/catalogo/mis-productos",
+  DATE_LISTS: "/fechas",
   FINANCE: "/finanzas",
   HOUSEHOLD: "/household",
   LIST: "/lista",
