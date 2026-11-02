@@ -35,3 +35,21 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Cubre:** SPEC §5, regla 8.
 - **Pasos:** retener la respuesta de la carga hasta que termine de crearse una sublista.
 - **Resultado:** la sublista sigue en pantalla cuando llega la carga.
+
+### E2E-FECHAS-04: la sublista aparece en su día
+
+- **Cubre:** HU-44 CA-01, CA-03, SPEC §8, regla 3.
+- **Pasos:** con un usuario sin familia, crear una sublista en un mes lejano.
+- **Resultado:** el calendario salta a ese mes y la sublista está en la celda de su día.
+
+### E2E-FECHAS-05: tocar un día abre el formulario con esa fecha
+
+- **Cubre:** HU-45 CA-01, SPEC §8, regla 4.
+- **Pasos:** ir al mes siguiente y tocar el día 15.
+- **Resultado:** se abre el formulario con esa fecha ya escrita.
+
+### E2E-FECHAS-06: un día pasado no se puede tocar
+
+- **Cubre:** SPEC §8, regla 4.
+- **Pasos:** ir al mes anterior.
+- **Resultado:** ningún día de ese mes tiene el botón de crear.

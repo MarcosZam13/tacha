@@ -19,7 +19,11 @@ const fillCreateForm = async (page: Page, eventDate: string): Promise<void> => {
   await page.getByRole("button", { name: "Crear sublista" }).click();
 };
 
-const getListCard = (page: Page) => page.getByRole("link", { name: new RegExp(LIST_NAME) });
+// La agenda: en desktop la misma sublista también es un enlace dentro de la celda.
+const getListCard = (page: Page) =>
+  page.getByRole("list", { name: "Sublistas del mes" }).getByRole("link", { name: new RegExp(LIST_NAME) });
+
+const getCalendar = (page: Page) => page.getByRole("region", { name: "Calendario de sublistas" });
 
 const addFirstResult = async (page: Page): Promise<void> => {
   await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
@@ -60,6 +64,28 @@ test.describe("Sublistas por fecha", () => {
     await expect(page.getByRole("status")).toHaveCount(0);
 
     await expect(getListCard(page)).toContainText("Pendiente");
+  });
+
+  test("E2E-FECHAS-04: la sublista aparece en su día, en otro mes", async ({ page }) => {
+    await fillCreateForm(page, FUTURE_DATE);
+
+    const calendar = getCalendar(page);
+    await expect(calendar.getByRole("heading")).toContainText("2099");
+    await expect(calendar.getByRole("listitem").filter({ hasText: LIST_NAME })).toContainText("20");
+  });
+
+  test("E2E-FECHAS-05: tocar un día abre el formulario con esa fecha", async ({ page }) => {
+    await page.getByRole("button", { name: "Mes siguiente" }).click();
+    await getCalendar(page).getByRole("button", { name: /Crear sublista el .* 15 de / }).click();
+
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel(/^Fecha/)).toHaveValue(/^\d{4}-\d{2}-15$/);
+  });
+
+  test("E2E-FECHAS-06: un día pasado no se puede tocar", async ({ page }) => {
+    await page.getByRole("button", { name: "Mes anterior" }).click();
+
+    await expect(getCalendar(page).getByRole("button", { name: /Crear sublista el/ })).toHaveCount(0);
   });
 
   test("E2E-FECHAS-02: una fecha pasada no se acepta", async ({ page }) => {
