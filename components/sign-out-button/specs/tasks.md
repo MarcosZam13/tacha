@@ -12,4 +12,5 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md).
 - [x] 6. Perfil informa sus cambios sin guardar (`useProfileViewModel`).
 - [x] 7. Conectar el botón: `AppSidebar` y `Profile.tsx`.
 - [x] 8. Tests: servicio, ViewModel, componente con Page Object; ajustar los de `app-shell` y `profile` (mock de `useRouter`).
-- [x] 9. Validar contra los casos de aceptación del SPEC: `tsc`, lint, tests y build; revisión en el navegador con una cuenta real (pendiente).
+- [x] 9. (BUG-1 de QA) El editor de recetas informa sus cambios sin guardar: `hasChanges` en el reducer, `useReportUnsavedChanges` en `useRecipeEditorViewModel` y test del reducer.
+- [x] 10. Validar contra los casos de aceptación del SPEC: `tsc`, lint, tests y build; revisión en el navegador con una cuenta real (pendiente).

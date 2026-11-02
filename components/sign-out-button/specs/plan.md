@@ -22,13 +22,14 @@ components/sign-out-button/
 Registro de cambios sin guardar (compartido)
   services/unsaved-changes.service.ts  setUnsavedChanges(fuente, hay), hasUnsavedChanges(), subscribeToUnsavedChanges()
   hooks/useUnsavedChanges.ts           useReportUnsavedChanges(fuente, hay) y useHasUnsavedChanges()
-  constants/unsaved-changes.constants.ts   UNSAVED_CHANGES_SOURCE { PROFILE }
+  constants/unsaved-changes.constants.ts   UNSAVED_CHANGES_SOURCE { PROFILE, RECIPE_EDITOR }
   services/tests/unsaved-changes.service.test.ts
 
 Quién lo usa
   components/app-shell/components/AppSidebar.tsx    + <SignOutButton /> al pie, bajo el enlace al perfil
   features/profile/Profile.tsx                      + <SignOutButton /> al final
   features/profile/hooks/useProfileViewModel.ts     + useReportUnsavedChanges(PROFILE, hasChanges)
+  features/recipes/hooks/useRecipeEditorViewModel.ts + useReportUnsavedChanges(RECIPE_EDITOR, hasChanges); el reducer suma `hasChanges`
   (tests de app-shell y de profile: el mock de next/navigation suma useRouter)
 ```
 
@@ -50,7 +51,7 @@ En el otro extremo, `useProfileViewModel` llama a `useReportUnsavedChanges(PROFI
 | Servicio con suscripción + `useSyncExternalStore` para los cambios sin guardar | Context, Zustand o prop drilling | El equipo no eligió patrón de estado de cliente (nextjs-enterprise-patterns §3). El sidebar y el formulario de Perfil no comparten árbol de props, y esto sigue el patrón que ya existe (`subscribeToSessionChanges`) sin agregar una librería. Costo: un estado global de módulo; por eso es mínimo y se limpia al desmontar |
 | Una fuente por pantalla (`Set` de ids) | Un solo booleano global | Con un booleano, la pantalla A al desmontarse borraría el aviso de la B. Con ids, cada una retira solo el suyo |
 | Efecto con limpieza para informar | Informar en cada render | Es sincronizar con algo externo (el registro): eso es un efecto, y la limpieza garantiza que al salir de la pantalla no quede un aviso viejo |
-| Solo Perfil informa hoy | Registrar todas las pantallas | El criterio lo pide donde hay una edición pendiente y solo Perfil tiene borrador. Las demás guardan al instante; las que lo necesiten usan el mismo hook |
+| Informan Perfil y el editor de recetas | Registrar todas las pantallas | El criterio lo pide donde hay una edición pendiente y solo esas dos pantallas tienen borrador. En el editor, "hay cambios" es "la persona ya tocó el formulario" (bandera del reducer), no una comparación con lo guardado; las demás pantallas guardan al instante y, si lo necesitan, usan el mismo hook |
 | `signOutUser` (alcance local) | `signOut` global | El criterio habla de proteger "dispositivos compartidos": cerrar este navegador basta, y cerrar los demás sorprendería a quien usa la app en el celular |
 | `router.replace` al login | `push` | Con `push`, "atrás" volvería a una pantalla privada sin sesión (igual que la inactividad) |
 | Confirmación con el `Modal` compartido | `window.confirm` | `confirm` no se estiliza, no es accesible por rol y no se puede probar bien |

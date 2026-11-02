@@ -15,7 +15,7 @@ Incluye:
 - Botón "Cerrar sesión" al pie del sidebar (desktop) y al final de la pantalla de Perfil (mobile, donde el criterio dice "Más → Perfil") (CA-01).
 - Cierre de la sesión de este navegador y redirección a `/login` (CA-02).
 - Confirmación antes de cerrar cuando hay cambios sin guardar; sin ellos, el cierre es inmediato (CA-03).
-- Un registro mínimo de "esta pantalla tiene cambios sin guardar" que cualquier pantalla puede usar, y su primer uso: el formulario de Perfil.
+- Un registro mínimo de "esta pantalla tiene cambios sin guardar" que cualquier pantalla puede usar, y sus usos: el formulario de Perfil y el editor de recetas (las dos pantallas con un borrador).
 
 No incluye: ver el apartado 14.
 
@@ -88,7 +88,7 @@ No hay mensajes de error: `signOutUser` no lanza y, pase lo que pase, se redirig
 | 1 | El botón está al pie del sidebar de desktop | CA-01 |
 | 2 | El botón está al final de la pantalla de Perfil (mobile) | CA-01 |
 | 3 | Sin cambios sin guardar, un clic cierra la sesión y lleva a `/login` | CA-02, CA-03 |
-| 4 | Con cambios sin guardar en Perfil, un clic abre la confirmación y no cierra | CA-03 |
+| 4 | Con cambios sin guardar en Perfil o en el editor de recetas, un clic abre la confirmación y no cierra | CA-03 |
 | 5 | En la confirmación, "Seguir editando" o `Escape` vuelve al formulario con lo escrito | CA-03 |
 | 6 | En la confirmación, "Cerrar sesión" cierra y lleva a `/login` | CA-02 |
 | 7 | Tras guardar el perfil, el cierre vuelve a ser inmediato | Regla 7 |
@@ -100,11 +100,11 @@ No hay mensajes de error: `signOutUser` no lanza y, pase lo que pase, se redirig
 
 - Cerrar todas las sesiones de la cuenta.
 - Avisar de cambios sin guardar al cerrar la pestaña o navegar (`beforeunload`).
-- Que otras pantallas informen sus cambios sin guardar: lo hace cada una con `useReportUnsavedChanges` cuando le toque. Hoy solo Perfil (la pantalla de cambio de contraseña, SCRUM-54, aún no está en `develop`).
+- Que otras pantallas informen sus cambios sin guardar: lo hace cada una con `useReportUnsavedChanges` cuando le toque. Hoy informan Perfil y el editor de recetas (BUG-1 de QA: el criterio pide la confirmación en cualquier acción sin guardar).
 - El menú "Más" de mobile (DESIGN.md §3.2).
 - El aviso de cierre por inactividad (SCRUM-50), que sigue como está.
 
 ## 15. Notas de implementación
 
 - La inactividad ya limpia su marca cuando la sesión termina por cualquier causa, así que el cierre manual no necesita tocarla.
-- Si SCRUM-54 se mergea después, ambas historias agregan una línea al final de `Profile.tsx`: es un conflicto pequeño de resolver a mano.
+- SCRUM-54 ya está en `develop`: ambas historias agregaron una línea al final de `Profile.tsx`, y el merge conserva las dos.
