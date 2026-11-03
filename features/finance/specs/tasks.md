@@ -182,22 +182,23 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 1 — Base
 
-- [ ] 1.1 Verificar que `040` siga libre en `develop` y en los PRs abiertos; si no, usar el siguiente libre.
-- [ ] 1.2 Migración (trigger, tabla, RLS, funciones internas y dos RPC) y su prueba SQL.
+- [x] 1.1 Verificar el número libre en `develop` y en los PRs abiertos. Verificado el 2026-11-03: `040`, el reservado para esta historia, no choca con ningún archivo (`develop` tiene `039` y `042`; las ramas abiertas `037`, `038` y `041`).
+- [x] 1.2 Migración (trigger, tablas, índice, RLS, funciones internas y cinco RPC, con `get_period_finance`) y sus pruebas SQL: `supabase/migrations/040_edit_purchase_totals.sql`, `supabase/tests/040_edit_purchase_totals.test.sql` y `supabase/tests/040_time_zone_sweep.test.sql`. Pasaron en un PostgreSQL 17.5 local con `016`, `018` y `040` reales; falta correrlas contra la base.
 - [ ] 1.3 Revisión con `security-reviewer`; aprobación; commit.
-- [ ] 1.4 La dueña de la historia comprueba en la base el trigger, la política y que la tabla no tenga `force row level security`; avisa al grupo; aplica la migración en una transacción con su fila del historial; corre la prueba SQL.
-- [ ] 1.5 Tipos en `types/database.types.ts`, comparados con la base; `documento-proyecto.md` §6.
+- [ ] 1.4 La dueña de la historia vuelve a comprobar que `040` sigue libre, y comprueba en la base el trigger, la política, y que la tabla no tenga `force row level security` (plan, "Número de la migración"); avisa al grupo; aplica la migración en una transacción con su fila del historial, como dice `supabase/README.md`; corre la prueba SQL.
+- [ ] 1.5 Tipos en `types/database.types.ts`, comparados con la base; `documento-proyecto.md` §6. Tipos escritos según la migración; falta compararlos con la base y actualizar §6.
 
 ### Etapa 2 — Lectura y consistencia
 
 - [ ] 2.1 Renombrar `parseBudgetAmount` y `BUDGET_AMOUNT`, sin cambiar su comportamiento.
-- [ ] 2.2 `PeriodAdjustment`, constantes, lectura de ajustes y `summarizeSpending`, con sus tests.
-- [ ] 2.3 Corregir `getPeriodSpending` (D19); `usePeriodSpending` y `usePeriodPurchases` con ajustes, con sus tests.
+- [ ] 2.2 `PeriodAdjustment`, constantes, el mapeo de los ajustes de `get_period_finance` y `summarizeSpending`, con sus tests.
+- [ ] 2.3 Lectura con `get_period_finance` (SPEC §12, ya en la `040`): `usePeriodSpending` y `usePeriodPurchases` toman de ahí límites, compras, ajustes y total si hay zona guardada, con fechas en esa zona; sin zona, siguen como hoy; con `TZ002`, piden confirmar. Corrige también D19. Con sus tests. Obligatorio antes de ofrecer la edición (plan, "Riesgos").
+- [x] 2.4 `get_period_finance` entra en la `040` (decisión de la dueña de la historia, 2026-11-03).
 
 ### Etapa 3 — Lógica de edición
 
 - [ ] 3.1 Payload, Response y error tipado; `setPurchaseTotal` y `setPeriodTotal`, con sus tests.
-- [ ] 3.2 `useTotalEdit` y `usePurchaseHistoryViewModel`, con sus tests.
+- [ ] 3.2 `useTotalEdit` y `usePurchaseHistoryViewModel`, con sus tests, incluida la confirmación de la zona (SPEC regla 59).
 
 ### Etapa 4 — Compra (CA-01)
 
@@ -211,7 +212,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 ### Etapa 6 — E2E
 
 - [ ] 6.1 Ajustar `finance.helpers.ts` (conteo del gasto, ajustes y RPC); confirmar que E2E-FIN-01 a 08 siguen pasando.
-- [ ] 6.2 `e2e/features/finance/edit-totals.spec.ts` (E2E-FIN-09 a 13); correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+- [ ] 6.2 `e2e/features/finance/edit-totals.spec.ts` (E2E-FIN-09 a 14); correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
 
 ### Etapa 7 — QA y cierre
 

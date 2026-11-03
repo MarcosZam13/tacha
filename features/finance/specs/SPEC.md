@@ -61,6 +61,7 @@ Incluye:
 - **Ajustes manuales:** editar el total de un periodo no cambia ninguna compra. La diferencia se guarda como un ajuste (D10), que se ve como una fila **"Ajuste manual"** y no cuenta en "Compras" (D16).
 - **Reflejo en el Dashboard** en la misma pestaña (CA-03): las dos pantallas calculan el total con las mismas compras y los mismos ajustes.
 - Una **indicación discreta en el Dashboard** cuando el total del periodo incluye ajustes manuales, sin cambiar el conteo de compras.
+- Una **zona horaria guardada por persona**, confirmada de forma explícita, que es la única referencia de sus periodos (reglas 58 y 59).
 - La corrección de `getPeriodSpending` para que el Dashboard y el Historial no den totales distintos (D19).
 - Una migración con dos RPC, la tabla de ajustes y la corrección del trigger de cierre.
 
@@ -100,11 +101,12 @@ No incluye ([§14](#14-casos-fuera-de-alcance)): editar desde el Dashboard, peri
 | Compra a editar | `id: string` | La fila del Historial |
 | Periodo a editar | `SpendingPeriodType` | El periodo elegido en el selector |
 | Texto del total | `string` | Campo de edición; se valida con las reglas de la regla 15 |
-| Zona horaria | `string` (IANA) | `Intl.DateTimeFormat().resolvedOptions().timeZone`; solo sirve para interpretar los límites de los periodos (regla 58) |
+| Zona horaria propuesta | `string` (IANA) | `Intl.DateTimeFormat().resolvedOptions().timeZone`; solo se propone. Se guarda si la persona la confirma, y las RPC de edición no la reciben (regla 58) |
+| Zona guardada | `string` (IANA) o ninguna | `spending_time_zones` del usuario ([§12](#12-contratos-externos)) |
 | Ajustes del periodo | `PeriodAdjustment[]` (`id`, `amount`, `effectiveAt`, `scope`) | `spending_adjustments` del usuario ([§12](#12-contratos-externos)) |
 | `onEdit`, `onSave`, `onCancel`, `onTextChange` | funciones del ViewModel | Lápiz y campo de edición |
 
-El cliente nunca manda `owner_id`, el monto del ajuste ni los límites del periodo.
+El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo ni una zona al editar un total.
 
 ## 4. Salidas
 
@@ -136,6 +138,7 @@ El cliente nunca manda `owner_id`, el monto del ajuste ni los límites del perio
 - **Al guardar un periodo:** ninguna compra cambia. Se crea, reemplaza o quita el ajuste de ese periodo, y el total muestra lo escrito.
 - **Al volver al Dashboard:** el gasto, los contadores y la diferencia con el presupuesto ya incluyen el cambio (CA-03). Si el total del periodo incluye ajustes, se indica debajo del monto; "Compras" no cambia por eso.
 - **Si no se puede guardar:** no cambia nada y lo escrito se conserva.
+- **Al confirmar o cambiar la zona:** se guarda solo si ningún periodo con ajustes queda negativo en ella; si no, sigue la anterior.
 - El Historial sigue sin mostrar periodos anteriores.
 
 ## 5. Reglas de negocio
@@ -253,9 +256,9 @@ El cliente nunca manda `owner_id`, el monto del ajuste ni los límites del perio
 **Ajustes:**
 
 49. **Total de un periodo** = compras con total + ajustes que cuentan en ese periodo. Las compras "Sin total" siguen sin sumar y un ajuste no las completa.
-50. **Uno por periodo:** hay como máximo un ajuste por dueño, nivel y periodo. Volver a editar lo reemplaza, y si la diferencia da 0 se quita y su fila desaparece.
+50. **Uno por periodo:** volver a editar el total de un periodo reemplaza su ajuste, y si la diferencia da 0 se quita y su fila desaparece. Un cambio de zona puede dejar dos ajustes del mismo nivel en un periodo, porque dos semanas distintas caen en una sola; siguen sumando bien, y la siguiente edición los une en el más antiguo.
 51. **Lo calcula la base:** el cliente manda el total deseado. La diferencia se calcula en la base con los datos de ese momento, así que un dato viejo en pantalla no altera el resultado.
-52. **Dónde cuenta:** un ajuste lleva como fecha el momento de guardarlo y cuenta en su nivel y en los mayores que contienen esa fecha, nunca en los menores.
+52. **Dónde cuenta:** un ajuste lleva como fecha el momento de crearlo, que no cambia al reemplazarlo, y cuenta en su nivel y en los mayores que contienen esa fecha, nunca en los menores.
 
     | Nivel del ajuste | Día | Semana | Mes |
     |---|---|---|---|
@@ -265,11 +268,14 @@ El cliente nunca manda `owner_id`, el monto del ajuste ni los límites del perio
 
     Por eso la suma de los días puede no dar la semana. Es intencional: la fila "Ajuste manual" explica la diferencia.
 53. **Editar una compra con un ajuste existente:** el ajuste no se recalcula. El total del periodo se mueve con la diferencia de esa compra.
-54. **Sin negativos (D18):** si cualquier periodo afectado queda negativo, se rechaza **toda** la operación y no se guarda nada.
-    - **Al guardar un ajuste:** se revisa el periodo editado y los periodos que lo contienen, en la fecha del ajuste. Ejemplo de semana que cruza meses: en el domingo 1 de noviembre, un ajuste de −₡5 000 a la semana del 26 de octubre cuenta en noviembre. Si noviembre no tiene otro gasto, quedaría en −₡5 000, así que se rechaza.
-    - **Al editar una compra:** se revisan **todos los periodos contenedores afectados que tengan ajustes manuales**: el día, la semana y el mes que contienen su `closed_at`, también si es una compra histórica. Un periodo sin ajustes no se revisa, porque sus totales nunca son negativos.
+54. **Sin negativos (D18):** ningún periodo con un ajuste manual puede quedar negativo. Todos los periodos se calculan con la zona guardada de la persona. Si alguno queda negativo, se rechaza **toda** la operación con `23514` y no se guarda nada.
+    - **Al guardar un ajuste:** se revisan el día, la semana y el mes de hoy y de la fecha de los ajustes que se reemplazan.
+    - **Al editar una compra:** se revisan el día, la semana y el mes que contienen su `closed_at`, también si es una compra histórica.
+    - **Al cambiar de zona:** se revisan los periodos de todos los ajustes de la persona, en la zona nueva.
     - **Dentro de la transacción de la RPC:** la revisión se hace después de escribir y antes de confirmar, de modo que un rechazo deshace también la escritura.
-    - **Sin condiciones de carrera:** la RPC toma el bloqueo por usuario antes de leer o escribir, y lo conserva hasta terminar la transacción. Las dos RPC usan el mismo bloqueo, así que una no puede cambiar un total mientras la otra lo revisa. La compra se lee además con `for update`.
+    - **Sin condiciones de carrera:** cada RPC toma el bloqueo por usuario antes de leer o escribir, y lo conserva hasta terminar la transacción. Las tres usan el mismo bloqueo, así que una no puede cambiar un total mientras otra lo revisa. La compra se lee además con `for update`.
+    - **Por qué alcanza:** estas RPC son las únicas escrituras del cliente que pueden bajar un total. Cerrar una compra solo suma, y una compra cerrada no se borra desde el cliente.
+    - **Qué no cubre:** un cambio por fuera de la aplicación (`service_role`, SQL manual) no pasa por esta revisión. Tampoco una actualización de la base de zonas de PostgreSQL, que podría mover los límites de fechas ya guardadas.
 
 **Edición:**
 
@@ -279,10 +285,27 @@ El cliente nunca manda `owner_id`, el monto del ajuste ni los límites del perio
 
 **Zona horaria:**
 
-58. **Solo interpreta límites:** la zona horaria que manda el navegador sirve únicamente para saber dónde empieza y termina cada periodo.
-    - **Tiene que reconocerla PostgreSQL** (`pg_timezone_names`). Si no la reconoce, la RPC responde `22023` y no guarda nada.
-    - **No autoriza nada:** quién es el dueño y qué compras puede tocar salen siempre de `auth.uid()`. Mandar otra zona no da acceso a más datos ni se usa en ninguna comprobación de permisos.
-    - **Mismos límites en todo:** el Dashboard, el Historial y las RPC aplican las definiciones de la regla 8 (inicio incluido, fin excluido; semana de lunes a lunes; mes del día 1 al día 1 siguiente) con la misma zona del navegador. Las pruebas lo fijan con las mismas fechas en los dos lados.
+58. **Una sola referencia:** los periodos de una persona se calculan siempre con su zona guardada.
+    - **El navegador no decide:** las RPC de edición no reciben ninguna zona. Viajar o cambiar la zona del navegador no cambia la zona guardada ni los periodos.
+    - **Tiene que reconocerla PostgreSQL y ser una zona con nombre:** `America/Costa_Rica`, `UTC` o `Etc/GMT+5`, que es un nombre de la base de zonas. No valen un desfase como `UTC+5`, una abreviatura como `CST`, un directorio como `America/Argentina` ni las copias `posix/` y `right/`. Si no, `set_spending_time_zone` responde `22023` y no guarda nada.
+    - **No autoriza nada:** quién es el dueño y qué compras puede tocar salen siempre de `auth.uid()`.
+    - **Mismos límites en todo:** el Dashboard, el Historial y las RPC aplican las definiciones de la regla 8 (inicio incluido, fin excluido; semana de lunes a lunes; mes del día 1 al día 1 siguiente). Con zona guardada, las pantallas leen los límites de `get_period_finance`; en esos casos, los límites no se calculan en el navegador, como decía la regla 8.
+    - **Medianoche repetida:** si el horario retrocede justo a medianoche, como en La Habana, el día empieza en la primera de las dos, sea cual sea la duración del retroceso. Así el fin de un periodo es el inicio del siguiente. Si la medianoche no existe, como el día que Samoa se saltó en 2011, el periodo anterior termina donde empieza el siguiente.
+    - **Cada instante en el periodo que lo contiene:** si el horario retrocede después de medianoche o cruzándola, como en Terranova hasta 2010, la fecha local vuelve a ser la de ayer un rato. Ese rato cuenta en el periodo que lo contiene, no en el de su fecha local.
+    - **"Hoy" al guardar un ajuste:** es la hora real después de tomar el bloqueo, no la del inicio de la transacción.
+59. **Zona guardada por persona** (decisión de la dueña de la historia, 2026-11-02).
+    - **Sin backfill:** ningún dato existente dice cuál es la zona de una persona, así que los usuarios existentes y los nuevos empiezan igual, sin zona. Nunca se asigna sola, ni al intentar editar.
+    - **Confirmar:** al editar un total sin zona, las RPC responden `TZ001`. La pantalla propone la zona del navegador y la guarda solo si la persona la confirma. Se puede ver Finanzas sin confirmar: sin zona no hay ajustes, y `get_period_finance` responde `time_zone: null`, así que la pantalla lee como hasta ahora, con el navegador. Si PostgreSQL deja de reconocer la zona guardada, las RPC responden `TZ002`: ahí sí hay ajustes, y la pantalla pide confirmar otra zona antes de mostrar totales.
+    - **Cambiar:** es una acción explícita, con `set_spending_time_zone`. Se aceptan otra zona o un alias si ningún periodo con ajustes queda negativo en ella; si no, se rechaza la operación completa con `23514` y sigue la anterior.
+    - **Efecto de cambiar:** los ajustes conservan su fecha, y sus periodos se calculan con la zona nueva. Un total puede cambiar de periodo.
+60. **Qué se puede hacer ante cada rechazo.** Hay casos sin salida desde la aplicación, y se declaran acá. Ninguna operación oculta ni agrava un periodo negativo: toda operación que lo toque se rechaza, y la lectura lo muestra tal cual.
+    - **Compra con `23514`:** se puede guardar con un monto mayor, porque todos los periodos revisados contienen la compra. Sin embargo, no se puede guardar un monto menor mientras un ajuste negativo lo impida, y un ajuste de un periodo anterior ya no se puede quitar (D15). Es lo que pide D18.
+    - **Periodo con `23514`:** se puede escribir otro total. Si el ajuste que lo impide es de un periodo anterior, la salida es subir una compra de ese periodo.
+    - **Cambio de zona con `23514`:** sigue la zona anterior, y se puede seguir usando. Para cambiarla, hay que subir compras de los periodos que quedarían negativos.
+    - **`TZ001` y `TZ002`:** se resuelven confirmando una zona. `set_spending_time_zone` no necesita la zona anterior, así que también sirve si PostgreSQL dejó de reconocerla.
+    - **Zona del navegador no reconocida:** si PostgreSQL no conoce la zona que propone el navegador, da `22023` y hasta que exista una forma de elegir otra zona esa persona no puede editar totales. Se define en la Etapa 5.
+    - **Periodo ya negativo:** solo aparece por un cambio fuera de la aplicación (`service_role`, SQL manual) o por una actualización de la base de zonas de PostgreSQL. Si es el periodo en curso, la persona lo arregla escribiendo su total. Si es un periodo anterior, nada en la aplicación lo arregla, y tampoco subir una compra si el déficit supera el tope de la regla 46: hace falta soporte, con el procedimiento de [plan.md](plan.md#recuperación-de-un-periodo-negativo).
+    - **Sin salida desde la aplicación:** además del caso anterior, un ajuste negativo tan grande que ninguna zona nueva lo sostenga.
 
 ## 6. Estados
 
@@ -344,6 +367,8 @@ El aviso de precios se ve en los cuatro estados, siempre con cuenta registrada.
 | `saving` | Esperando la RPC | Campo y botones deshabilitados, "Guardando…"; los demás lápices deshabilitados |
 | `saveFailed` | Falló el guardado | El campo con lo escrito, el error y los mismos botones |
 
+**Zona:** antes de la primera edición, se pide confirmar. Mientras no haya zona guardada, los lápices se ven igual, y al guardar `TZ001` abre la confirmación sin perder lo escrito.
+
 **Cuándo hay lápiz:**
 
 | Situación | Lápiz del periodo | Lápiz de las compras |
@@ -393,12 +418,19 @@ Textos propuestos (se confirman al escribir las constantes):
 | Vacío, inválido, con decimales o mayor al tope | "Escribe el monto en colones, solo números (ej. 50000)." | Debajo del campo, con `aria-describedby`; sin llamar a la base |
 | No se pudo guardar (red o servidor) | "No se pudo guardar el total. Intenta de nuevo." | Debajo del campo, `role="alert"`; lo escrito se conserva |
 | Dejaría un periodo en negativo, código `23514` (regla 54) | "Ese monto dejaría un periodo en negativo. Revisa el total del día, la semana y el mes." | Ídem |
+| Sin zona confirmada, código `TZ001` (reglas 59 y 60) | "Confirma tu zona horaria para guardar este total." + la zona del navegador + "Confirmar" | Ídem; lo escrito se conserva |
+| PostgreSQL ya no reconoce la zona guardada, código `TZ002` (regla 60) | "Tu zona horaria guardada ya no es válida. Confirma tu zona para continuar." + la zona del navegador + "Confirmar" | En lugar de los totales; lo escrito se conserva |
+| La zona nueva dejaría un periodo en negativo, código `23514` | "No se puede usar esa zona: dejaría un periodo en negativo. Sigues con tu zona actual." | Junto a la acción de cambiar de zona |
 | La compra ya no se puede editar, `P0002` | "Esa compra ya no está disponible. Recarga la lista." | Ídem |
 | La sesión venció, `42501` o `401` | El error de guardado; al volver a leer la sesión, si ya no es registrada, se pasa a `noAccount` | Ídem |
 
 Los errores de Supabase no se muestran crudos. Un error de guardado no cambia los montos en pantalla.
 
 **Código `23514`:** la aplicación identifica específicamente este código para mostrar el mensaje de arriba. Nunca lee ni compara el texto interno de PostgreSQL, que puede cambiar. Las RPC validan los montos antes de escribir, así que en esta operación el código solo llega por la regla 54. Cualquier otro código desconocido muestra el error general de guardado.
+
+**Códigos `TZ001` y `TZ002`:** son propios de esta historia y distintos de `23514`: `TZ001` significa que falta confirmar una zona y `TZ002`, que la guardada ya no se reconoce. La aplicación también los identifica por el código, nunca por el texto interno.
+
+**Cómo se identifican todos los errores:** siempre por `error.code`, nunca por el estado HTTP ni por el texto de PostgreSQL. PostgREST puede dar el mismo estado a códigos distintos, y a `P0002` probablemente un 500.
 
 ## 8. UI esperada
 
@@ -441,6 +473,8 @@ Según DESIGN.md §7.9. Textos propuestos:
 - **Fila de ajuste:** fecha, "Ajuste manual" y el monto con signo ("+₡5 000", "−₡5 000"), sin lápiz. Va en la misma lista, ordenada por fecha con las compras.
 - **Contadores:** "Compras" y "Sin total" no cambian por un ajuste.
 - **Dashboard:** sin lápices. Si el total del periodo incluye algún ajuste, debajo del monto va una indicación discreta en texto secundario: **"Incluye ajustes manuales"**. Sin ajustes no se muestra. "Compras" y "Sin total" no cambian.
+
+- **Confirmar la zona:** al recibir `TZ001`, un aviso junto al campo muestra la zona del navegador y "Confirmar". Nunca se guarda sin ese toque.
 
 Ícono: `Pencil` de `lucide-react`, con `Icon` de `@/components/ui`.
 
@@ -603,7 +637,7 @@ No se pide `owner_id` ni se manda ningún id de usuario.
 
 ### SCRUM-91
 
-Migración nueva; número previsto `040` ([plan.md](plan.md#número-de-la-migración-1)).
+Migración nueva: `040_edit_purchase_totals.sql` ([plan.md](plan.md#número-de-la-migración-1)).
 
 **Tabla `public.spending_adjustments`:**
 
@@ -612,46 +646,84 @@ Migración nueva; número previsto `040` ([plan.md](plan.md#número-de-la-migrac
 | `id` | `uuid` | `primary key default gen_random_uuid()` |
 | `owner_id` | `uuid` | `not null`, FK a `auth.users` con `on delete cascade` |
 | `scope` | `text` | `not null`, `check (scope in ('day', 'week', 'month'))` |
-| `period_start` | `timestamptz` | `not null`; lo calcula la base |
-| `effective_at` | `timestamptz` | `not null`; la hora de la base al guardar (regla 52) |
-| `amount` | `numeric(14, 2)` | `not null`, `check (amount <> 'NaN' and amount <> 0)`; con signo. Lleva centavos porque una compra antigua puede tenerlos |
-| | | `unique (owner_id, scope, period_start)` |
+| `effective_at` | `timestamptz` | `not null`; la hora de la base al crearlo; no cambia al reemplazarlo (regla 52) |
+| `amount` | `numeric(18, 2)` | `not null`, `check (amount <> 'NaN' and amount <> 0)`; con signo. Lleva centavos porque una compra antigua puede tenerlos |
 
-**Permisos:** RLS activada; `revoke all` de `public`, `anon` y `authenticated`; solo `grant select` a `authenticated`, con política de dueño registrado (el mismo criterio de `027`). El cliente no escribe la tabla.
+Sus periodos no se guardan: salen de `effective_at` y de la zona de su dueño. Por eso cambiar de zona no deja datos viejos, y "uno por periodo" lo cumple `set_period_total` bajo el bloqueo por usuario, no un índice único (regla 50).
 
-**`set_purchase_session_total(target_session_id uuid, new_total numeric, client_time_zone text) returns public.purchase_sessions`:**
+**Tabla `public.spending_time_zones`:** `owner_id uuid` (`primary key`, FK a `auth.users` con `on delete cascade`) y `time_zone text not null`. Una fila por persona; sin fila, no confirmó ninguna zona. Sin backfill.
+
+**Permisos, en las dos tablas:** RLS activada; `revoke all` de `public`, `anon` y `authenticated`; solo `grant select` a `authenticated`, con política de dueño registrado (el mismo criterio de `027`). El cliente no escribe ninguna.
+
+**`set_purchase_session_total(target_session_id uuid, new_total numeric) returns public.purchase_sessions`:**
 
 - Sin `auth.uid()` o con sesión anónima: `42501`.
-- Total nulo, negativo, con decimales, `NaN` o sobre el tope, o zona horaria desconocida: `22023`.
+- Total nulo, negativo, con decimales, `NaN` o sobre el tope: `22023`.
+- Sin zona confirmada: `TZ001`; zona guardada que PostgreSQL ya no reconoce: `TZ002`. Los dos, sin revisar la compra.
 - Compra inexistente, ajena o abierta: `P0002`, con el mismo mensaje en los tres casos.
 - Sin límite de fecha: acepta cualquier compra cerrada propia (regla 48).
-- Dejaría un periodo negativo: `23514`, sin guardar nada.
+- Dejaría un periodo con ajustes en negativo: `23514`, sin guardar nada.
 - Devuelve la fila actualizada.
 
-**`set_period_total(target_scope text, target_total numeric, client_time_zone text) returns setof public.spending_adjustments`:**
+**`set_period_total(target_scope text, target_total numeric) returns setof public.spending_adjustments`:**
 
 - Sin `auth.uid()` o con sesión anónima: `42501`.
-- Nivel, total o zona horaria inválidos: `22023`.
-- Calcula con la hora de la base el periodo en curso (D15), y ajusta según las reglas 50 a 52.
-- Dejaría un periodo negativo: `23514`, sin guardar nada.
+- Nivel o total inválidos: `22023`.
+- Sin zona confirmada: `TZ001`; zona guardada que PostgreSQL ya no reconoce: `TZ002`.
+- Calcula con la hora de la base y la zona guardada el periodo en curso (D15), y ajusta según las reglas 50 a 52.
+- Dejaría un periodo con ajustes en negativo: `23514`, sin guardar nada.
 - Devuelve el ajuste guardado, o ninguna fila si se quitó.
 
-Las dos RPC son `security definer`, `set search_path = ''`, con `revoke execute … from public, anon` y `grant … to authenticated`.
+**`set_spending_time_zone(new_time_zone text) returns public.spending_time_zones`:**
 
-**Lecturas** (solo con sesión registrada):
+- Sin `auth.uid()` o con sesión anónima: `42501`.
+- Zona inválida (regla 58): `22023`.
+- Crea o reemplaza la zona de quien llama.
+- Dejaría un periodo con ajustes en negativo en la zona nueva: `23514`, y sigue la anterior.
+- Devuelve la fila guardada.
+
+**`get_spending_period_bounds(target_scope text) returns table (period_start timestamptz, period_end timestamptz)`:**
+
+- Sin `auth.uid()` o con sesión anónima: `42501`.
+- Nivel inválido: `22023`.
+- Sin zona confirmada: `TZ001`; zona guardada que PostgreSQL ya no reconoce: `TZ002`.
+- Devuelve los límites del periodo en curso, con la zona guardada.
+
+Las cinco RPC, con `get_period_finance`, son `security definer`, `set search_path = ''`, con `revoke execute … from public, anon` y `grant … to authenticated`.
+
+**`get_period_finance(target_scope text) returns jsonb`:** la lectura del Dashboard y del Historial. La implementa la `040`; los hooks que la usan son de la Etapa 2.
+
+- **Por qué una sola:** el Dashboard y el Historial no leen compras y ajustes en consultas separadas. Entre dos consultas, una edición podría colarse y mostrar por un momento un total que no existe, incluso negativo.
+- **Coherencia:** es **una sola sentencia SQL**, en una función SQL estable. Ve una sola foto de la base, así que la zona, los límites, las compras, los ajustes y el total son del mismo momento. Todas las funciones que llama son estables, y "ahora" es `now()`, una sola vez.
+- **Responde:**
+
+  | Campo | Contenido |
+  |---|---|
+  | `time_zone` | La zona guardada, o `null` si no hay |
+  | `period_start`, `period_end` | Los límites del periodo en curso con esa zona; `null` sin zona |
+  | `purchases` | `[{ id, closed_at, total_amount, store_name }]` del periodo, de la más reciente a la más antigua (regla 26); `store_name` es `null` si está en blanco (regla 29) |
+  | `adjustments` | `[{ id, scope, effective_at, amount }]` que cuentan en el periodo (regla 52) |
+  | `total` | Compras con total más ajustes (regla 49), calculado en la base; `null` sin zona |
+  | `closed_count`, `without_total_count`, `adjustment_count` | Los contadores de §8; los ajustes no cuentan como compras |
+
+- **Errores:** sin cuenta registrada, `42501`; nivel inválido, `22023`; zona guardada que PostgreSQL ya no reconoce, `TZ002`.
+- **Sin zona:** no es un error. Responde `time_zone: null`, sin límites, compras, ajustes ni total, y la pantalla sigue leyendo como hasta ahora, con el navegador. Sin zona no hay ajustes (regla 59).
+- **Con `TZ002`:** sí hay ajustes, así que la pantalla no muestra totales y pide confirmar una zona. Nunca cae a otra zona.
+- **Resultados completos:** se arma en la base, sin el límite de filas de PostgREST.
+- **Montos:** van como números JSON. Son exactos hasta unos 9 × 10^15, muy por encima de cualquier total real.
+- **Tamaño:** sin tope de compras por periodo; son las compras personales de un mes como mucho.
+- **Mismos permisos:** `security definer`, `set search_path = ''`, solo `authenticated`, el dueño de `auth.uid()`.
+
+**Lecturas sin zona guardada** (solo con sesión registrada): no hay ajustes, así que no se leen. El Historial lee como hasta ahora y el Dashboard pide sus compras con `count: "exact"` (D19):
 
 ```
-spending_adjustments  select id, scope, effective_at, amount
-                      where effective_at >= <inicio> and effective_at < <fin>
-                        and scope in (<niveles que cuentan, regla 52>)
-
 purchase_sessions     select total_amount
                       where closed_at >= <inicio> and closed_at < <fin>     con count: "exact" (D19)
 ```
 
-La lectura del Historial no cambia. Las compras y los ajustes se piden juntos, y si falla cualquiera de las dos la carga falla.
+Con zona guardada, las dos pantallas leen solo de `get_period_finance`.
 
-**`stamp_purchase_session_close`:** si `old.closed_at` no es nulo, conserva ese valor; si la compra se está cerrando, pone `now()`, como hasta ahora.
+**`stamp_purchase_session_close`:** si `old.closed_at` no es nulo, conserva ese valor; si la compra se está cerrando, pone `now()`, como hasta ahora. **Limitación aceptada:** ningún rol puede corregir o reabrir el `closed_at` de una compra cerrada con un update, tampoco soporte, sin deshabilitar el trigger.
 
 ## 13. Casos de aceptación
 
@@ -778,8 +850,10 @@ Casos de cada flujo:
 - [ ] **₡0 (regla 47):** guardar 0 muestra ₡0 y cuenta en "Compras"; el total del periodo también acepta 0.
 - [ ] **Totales nulos con ajuste (regla 49):** las compras "Sin total" siguen contadas aparte y un ajuste no las completa.
 - [ ] **Vacío (D17):** sin compras, el lápiz sigue disponible; guardar ₡5 000 muestra el total y la fila de ajuste, sin mensaje de vacío.
-- [ ] **Contenedor negativo (D18, regla 54):** un ajuste o una compra que dejaría negativo el día, la semana o el mes se rechaza entero, sin cambios, también en una compra histórica. Se muestra el mensaje del código `23514`.
-- [ ] **Zona horaria (regla 58):** una zona que PostgreSQL no reconoce da `22023`; otra zona no da acceso a compras ajenas; el Dashboard, el Historial y las RPC usan los mismos límites.
+- [ ] **Contenedor negativo (D18, regla 54):** un ajuste, una compra o un cambio de zona que dejaría negativo un periodo con ajustes se rechaza entero, sin cambios, también en una compra histórica. Se muestra el mensaje del código `23514`.
+- [ ] **Zona horaria (regla 58):** una zona que PostgreSQL no reconoce da `22023`; cambiar la zona del navegador no cambia los periodos; el Dashboard, el Historial y las RPC usan los mismos límites.
+- [ ] **Zona guardada (regla 59):** sin zona, editar da `TZ001` y nada la asigna; confirmar la guarda y permite editar; cambiarla se rechaza si un periodo con ajustes quedaría negativo, y sigue la anterior.
+- [ ] **Salidas (regla 60):** si PostgreSQL deja de reconocer la zona guardada, editar y leer dan `TZ002` y se puede confirmar otra; un periodo ya negativo no se oculta ni se agrava.
 - [ ] **Dónde cuenta (regla 52):** un ajuste de semana no cambia Día y sí Mes; uno de mes solo cambia Mes; uno de día cambia los tres.
 - [ ] **Validación (D13, D14):** vacío, letras, negativo, decimales, separadores mal agrupados y más del tope se rechazan sin llamar a la base; "50000", "50 000", "50.000" y "0" se aceptan.
 - [ ] **Decimales antiguos (D22):** abre redondeado; "Cancelar" no cambia nada; "Guardar" guarda el entero.
@@ -787,8 +861,9 @@ Casos de cada flujo:
 - [ ] **Errores:** una falla conserva lo escrito y permite reintentar o cancelar; con la sesión vencida se pasa a `noAccount`.
 - [ ] **Dashboard (D11):** no tiene lápices.
 - [ ] **Otra pestaña (D20):** no se actualiza sola; límite declarado, sin test que lo exija.
+- [ ] **Lectura (`get_period_finance`):** límites, compras, ajustes, total y contadores en una sola lectura, iguales a los de las RPC; sin zona, `time_zone: null`.
 - [ ] **Base (prueba SQL):** los casos de [plan.md](plan.md#pruebas-2).
-- [ ] **E2E (interfaz):** E2E-FIN-09 a 13 pasan en `chromium` y `mobile-chrome`. Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
+- [ ] **E2E (interfaz):** E2E-FIN-09 a 14 pasan en `chromium` y `mobile-chrome`. Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
 - [ ] **Manual (acceso real):**
   - [ ] CA-01, CA-02 y CA-03 contra la base compartida, comprobando que la compra conserva su fecha.
   - [ ] Una cuenta registrada no puede editar la compra de otra, ni desde la consola con un PATCH o la RPC.
@@ -840,6 +915,8 @@ Casos de cada flujo:
 - Historial de cambios de un total o de ajustes anteriores.
 - Ajustes o totales compartidos con la familia (D4).
 - Ampliar la RLS o los permisos de `purchase_sessions`.
+- Asignar una zona a usuarios existentes (regla 59).
+- Una pantalla de configuración para cambiar la zona: la base lo permite, y la acción se define en la Etapa 5.
 
 ## 15. Notas de implementación
 
@@ -860,5 +937,5 @@ Casos de cada flujo:
 ### SCRUM-91
 
 - **Por qué RPC y no una política:** la política de `016` solo deja actualizar compras abiertas. Abrirla junto con el permiso de columna existente permitiría cambiar `closed_at` o vaciar el total por API.
-- **La base calcula los límites:** recibe la zona horaria en lugar de instantes, para que el cliente no pueda elegir otro periodo. La zona no autoriza nada (regla 58). El cliente sigue usando `getPeriodBounds` para leer; los dos cálculos se comparan en pruebas.
+- **La base calcula los límites:** con la zona guardada, para que el navegador no elija otro periodo. Con zona guardada, las pantallas leen esos límites; sin ella, siguen con `getPeriodBounds`, porque no hay ajustes (regla 59).
 - **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.

@@ -230,7 +230,8 @@ Mismos reloj, zona horaria y compras del Historial de E2E-FIN-05, con estos camb
 | Petición | Respuesta simulada |
 |---|---|
 | `GET /rest/v1/purchase_sessions?select=total_amount…` | Las compras del periodo, ahora con `Content-Range`, por D19. También cambia lo que necesitan E2E-FIN-01 a 04 |
-| `GET /rest/v1/spending_adjustments?…` | Los ajustes que recuerda el escenario y que cuentan en el periodo; empieza sin ninguno |
+| `POST /rest/v1/rpc/get_period_finance` | La zona `America/Costa_Rica`, los límites de la tabla de arriba, las compras, los ajustes que recuerda el escenario (empieza sin ninguno) y el total del periodo; con `time_zone: null` en E2E-FIN-14 hasta confirmar |
+| `POST /rest/v1/rpc/set_spending_time_zone` | La fila guardada; el helper la recuerda |
 | `POST /rest/v1/rpc/set_purchase_session_total` | La compra con el total nuevo; el helper la recuerda para la siguiente lectura |
 | `POST /rest/v1/rpc/set_period_total` | El ajuste calculado por el helper, o ninguna fila si se quitó |
 
@@ -246,7 +247,7 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
   3. Tocar el lápiz de Walmart («Sin total»), escribir `0` y tocar «Guardar».
   4. Abrir un lápiz y, sin guardar, abrir otro.
 - **Resultado esperado:**
-  - La petición a `rpc/set_purchase_session_total` lleva la compra, el total y la zona horaria, sin dueño.
+  - La petición a `rpc/set_purchase_session_total` lleva la compra y el total, sin dueño ni zona.
   - **MaxiPali:** ₡12 000, el total del periodo pasa a ₡17 000 y conserva su fecha, sin recargar. `role="status"` anuncia «Total guardado».
   - **Walmart:** ₡0; «Compras» pasa de 2 a 3 y «Sin total» de 1 a 0.
   - **Dos lápices:** solo queda abierto el último y el primero no se guardó.
@@ -261,7 +262,7 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
   3. Editar otra vez a `18000`.
   4. Editar otra vez a `15000`.
 - **Resultado esperado:**
-  - La petición a `rpc/set_period_total` lleva el periodo, el total deseado y la zona horaria, sin dueño ni diferencia.
+  - La petición a `rpc/set_period_total` lleva el periodo y el total deseado, sin dueño, diferencia ni zona.
   - **₡20 000:** aparece «Ajuste manual» con «+₡5 000» y sin lápiz. Las compras conservan sus montos; «Compras» sigue en 2 y «Sin total» en 1.
   - **₡18 000:** una sola fila de ajuste, con «+₡3 000».
   - **₡15 000:** la fila de ajuste desaparece.
@@ -300,6 +301,15 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
   - Se ve ₡5 000 y «Ajuste manual» con «+₡5 000», sin el mensaje de vacío.
   - «Compras» y «Sin total» siguen en 0.
 
+### E2E-FIN-14: confirmar la zona y que el navegador no cambie los periodos (SCRUM-91)
+
+- **Cubre:** reglas 58 y 59.
+- **Precondición:** sesión registrada simulada, sin zona guardada. Corre en desktop y en Pixel 7.
+- **Pasos y resultado esperado:**
+  1. **Sin zona:** en una compra, escribir `12000` y tocar «Guardar»; `rpc/set_purchase_session_total` responde con código `TZ001`. Se ve «Confirma tu zona horaria para guardar este total.», la zona del navegador y «Confirmar», y el campo conserva `12000`. No hubo ninguna petición a `rpc/set_spending_time_zone`.
+  2. **Confirmar:** al tocar «Confirmar», `rpc/set_spending_time_zone` recibe la zona del navegador, se repite la edición y se ve ₡12 000.
+  3. **Otro navegador:** con zona guardada `America/Costa_Rica` y `timezoneId` `Asia/Tokyo`, la pantalla usa los límites de `rpc/get_period_finance`, y sus peticiones de compras y sus fechas son las de la zona guardada. No se pide confirmar nada.
+
 ### Cobertura de SCRUM-91
 
 | Criterio | Escenarios E2E | Otros niveles |
@@ -312,7 +322,8 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
 | D17 | E2E-FIN-13 | `usePeriodPurchases.test.ts`, prueba SQL 040 |
 | D18 y regla 54 | E2E-FIN-12 (solo el mensaje del código `23514`) | `finance.service.test.ts` (reconoce el código), prueba SQL 040 (el rechazo real, la transacción y las compras históricas) |
 | Regla 48 (compras históricas) | — (el Historial solo muestra el periodo en curso) | Prueba SQL 040 |
-| Regla 58 (zona horaria) | E2E-FIN-09 y 10 (se manda la zona) | `finance.service.test.ts`, `getPeriodBounds.test.ts`, prueba SQL 040 |
+| Regla 58 (zona guardada) | E2E-FIN-14 | `finance.service.test.ts`, `getPeriodBounds.test.ts`, prueba SQL 040 |
+| Reglas 54, 59 y 60 (D18, confirmar y cambiar la zona) | E2E-FIN-12 (mensaje de `23514`), E2E-FIN-14 (confirmar) | `finance.service.test.ts` (reconoce el código), `useTotalEdit.test.ts`, prueba SQL 040 (el rechazo real, el cambio de zona y la zona no reconocida) |
 | Indicación de ajustes en el Dashboard | E2E-FIN-11 | `FinanceDashboard.test.tsx` |
 | D21 | E2E-FIN-09 | `useTotalEdit.test.ts` |
 | D22 | — | `usePurchaseHistoryViewModel.test.ts`, `useTotalEdit.test.ts` |

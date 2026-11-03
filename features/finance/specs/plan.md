@@ -490,8 +490,9 @@ Staging explícito, nunca `git add .`.
 ### Archivos
 
 ```
-supabase/migrations/040_edit_purchase_totals.sql   nueva (número previsto): trigger, tabla, RLS y dos RPC
+supabase/migrations/040_edit_purchase_totals.sql   nueva: trigger, dos tablas, índice, RLS y cinco RPC
 supabase/tests/040_edit_purchase_totals.test.sql   nueva: prueba SQL
+supabase/tests/040_time_zone_sweep.test.sql       nueva: barrido de cambios de horario, 1970-2035
 types/database.types.ts                            + spending_adjustments y las dos RPC
 
 features/finance/
@@ -505,7 +506,7 @@ features/finance/
     SpendingTotal.tsx                              + zona opcional para el lápiz (el Dashboard no la usa) y texto
                                                    opcional "Incluye ajustes manuales" (solo el Dashboard)
     models/*Props.interface.ts                     nuevos y extendidos
-  constants/finance.constants.ts                   + TOTAL_EDIT_STATUS (+ tipo), TOTAL_EDIT_TARGET, ADJUSTMENT_SCOPES_BY_PERIOD,
+  constants/finance.constants.ts                   + TOTAL_EDIT_STATUS (+ tipo), TOTAL_EDIT_TARGET,
                                                    TOTAL_SAVE_ERROR_CODE, tabla, RPC, select, textos;
                                                    BUDGET_AMOUNT pasa a COLONES_AMOUNT
   hooks/
@@ -518,7 +519,7 @@ features/finance/
     PeriodAdjustment.interface.ts                  nuevo
     TotalMutations.interface.ts                    nuevo: Payload y Response de las dos RPC, y error tipado
     PeriodSpending.interface.ts                    + adjustmentCount
-  services/finance.service.ts                      + setPurchaseTotal, setPeriodTotal, lectura de ajustes;
+  services/finance.service.ts                      + setPurchaseTotal, setPeriodTotal, lectura con get_period_finance;
                                                    getPeriodSpending corregido (D19)
   utils/
     parseColonesAmount.ts                          renombrado desde parseBudgetAmount
@@ -538,36 +539,48 @@ docs/documento-proyecto.md                         §4.6 y §6, al implementar y
 **Migración, en este orden:**
 
 1. **Trigger.** `create or replace` de `stamp_purchase_session_close`: si `old.closed_at` no es nulo, `new.closed_at := old.closed_at`; si no, se comporta como hoy.
-2. **Tabla** `spending_adjustments`, con permisos y política (SPEC §12).
-3. **Funciones internas**, sin `execute` para el cliente:
-   - límites de día, semana y mes con `date_trunc` en la zona horaria recibida (semana de lunes a lunes);
+2. **Tabla** `spending_time_zones`: la zona confirmada por persona, solo lectura para el cliente. Sin backfill (SPEC regla 59).
+3. **Tabla** `spending_adjustments`, con permisos y política (SPEC §12). `amount` es `numeric(18, 2)` porque suma muchas compras de hasta `numeric(12, 2)`. No guarda sus periodos: salen de `effective_at` y de la zona.
+4. **Funciones internas**, sin `execute` para el cliente:
+   - cuenta registrada, monto y forma de la zona;
+   - zona guardada, o `null` sin zona, o `TZ002` si PostgreSQL ya no la reconoce; para editar, `TZ001` sin zona;
+   - límites de día, semana y mes con `date_trunc` en una zona (semana de lunes a lunes), con una medianoche repetida resuelta a la primera, sea cual sea la duración del retroceso, y con el periodo que de verdad contiene al instante;
+   - índice `purchase_sessions (owner_id, closed_at)` para las sumas de D18;
    - total de un periodo: compras + ajustes que cuentan (SPEC regla 52);
-   - revisión de que el día, la semana y el mes de un instante no queden negativos: los calcula con la zona recibida y solo evalúa los que tengan ajustes que cuenten.
-4. **`set_purchase_session_total`:**
-   1. valida sesión registrada y parámetros;
+   - revisión de que el día, la semana y el mes de un instante, con ajustes que cuenten, no queden negativos.
+5. **`get_spending_period_bounds`:** los límites del periodo en curso con la zona guardada.
+5b. **`get_period_finance`:** una sola sentencia SQL estable con la zona, los límites, las compras, los ajustes, el total y los contadores (SPEC §12). La sesión y el nivel se comprueban en una función interna usada como fuente de filas: en la lista de un `select`, PostgreSQL podía evaluar antes el nivel al planificar, y un anónimo veía `22023` en vez de `42501`.
+6. **`set_spending_time_zone`:**
+   1. valida sesión registrada y zona;
    2. toma `pg_advisory_xact_lock(hashtextextended(auth.uid()::text, 0))`;
-   3. busca la compra por `id`, `owner_id` y `closed_at is not null`, con `for update` y sin límite de fecha (SPEC regla 48);
-   4. actualiza solo `total_amount`;
-   5. dentro de la misma transacción, revisa todos los periodos contenedores de su `closed_at` que tengan ajustes; si alguno queda negativo, `raise` con `errcode = '23514'` deshace también el paso 4.
-5. **`set_period_total`:**
+   3. crea o reemplaza la zona;
+   4. dentro de la misma transacción, revisa cada periodo distinto de la zona nueva donde cuenta algún ajuste, una sola vez; si alguno queda negativo, `raise` con `errcode = '23514'` deshace también el paso 3.
+7. **`set_purchase_session_total`:**
+   1. valida sesión registrada y monto;
+   2. toma el mismo bloqueo;
+   3. lee la zona guardada, o `TZ001` / `TZ002`;
+   4. busca la compra por `id`, `owner_id` y `closed_at is not null`, con `for update` y sin límite de fecha (SPEC regla 48);
+   5. actualiza solo `total_amount`;
+   6. dentro de la misma transacción, revisa los periodos de su `closed_at`; si alguno queda negativo, `raise` con `errcode = '23514'` deshace también el paso 5.
+8. **`set_period_total`:**
    1. valida sesión registrada y parámetros;
    2. toma el mismo bloqueo;
-   3. calcula los límites del periodo en curso;
-   4. calcula `diferencia = total deseado − (total actual sin el ajuste de este periodo)`;
-   5. si es 0, borra el ajuste; si no, hace `insert … on conflict (owner_id, scope, period_start) do update` con `effective_at = now()`;
-   6. dentro de la misma transacción, revisa el periodo editado y sus contenedores en `now()`; si alguno queda negativo, `raise` con `errcode = '23514'` deshace todo.
+   3. toma la hora real con `clock_timestamp()`, lee la zona guardada, o `TZ001` / `TZ002`, y calcula los límites del periodo en curso;
+   4. busca los ajustes de ese nivel en el periodo y calcula `diferencia = total deseado − (total actual sin esos ajustes)`;
+   5. si es 0, los borra; si no, actualiza el más antiguo, que conserva su fecha, y borra los demás; si no hay ninguno, crea uno con la hora del paso 3 como `effective_at`;
+   6. dentro de la misma transacción, revisa los periodos de hoy y de la fecha de los ajustes anteriores; si alguno queda negativo, `raise` con `errcode = '23514'` deshace todo.
 
 **Permisos sin cambios:** `purchase_sessions` conserva su `grant` y sus políticas. La RPC puede escribir porque es `security definer` del dueño de la tabla, que no tiene `force row level security`; se confirma en la base antes de aplicar. Por eso no hace falta abrir el update a compras cerradas.
 
-**Lectura de ajustes:** `ADJUSTMENT_SCOPES_BY_PERIOD` lleva los niveles que cuentan: Día `[day]`, Semana `[day, week]`, Mes `[day, week, month]`.
+**Lectura de ajustes:** llegan en `get_period_finance`, ya filtrados por los niveles que cuentan (SPEC regla 52); el cliente no los pide por separado.
 
 **Corrección de D19:**
 
 - `getPeriodSpending(period, bounds)` pide compras con `count: "exact"` y falla como `getPeriodPurchases` si el conteo no coincide.
-- Las dos funciones usan la misma lectura de ajustes y la misma `summarizeSpending(totales, ajustes)`.
+- Con zona guardada, el Dashboard y el Historial usan la misma lectura, `get_period_finance`, con el total calculado en la base.
 - `closedCount` y `withoutTotalCount` no cuentan ajustes. `adjustmentCount` decide entre `empty` y `ready` y si el Dashboard muestra "Incluye ajustes manuales"; no cambia "Compras".
 
-**Mismos límites:** el Dashboard y el Historial leen con `getPeriodBounds` y una sola función da la zona que se manda a las RPC (`Intl.DateTimeFormat().resolvedOptions().timeZone`). Los dos lados aplican SPEC regla 8.
+**Mismos límites:** con zona guardada, el Dashboard y el Historial leen límites, compras y ajustes de `get_period_finance` y dan formato a las fechas con esa zona. Sin zona no hay ajustes, así que siguen con `getPeriodBounds`. Los hooks se cambian en la Etapa 2.
 
 ### Flujo
 
@@ -577,7 +590,8 @@ docs/documento-proyecto.md                         §4.6 y §6, al implementar y
 2. "Guardar" valida con `parseColonesAmount`; si no pasa, muestra el error sin llamar a la base.
 3. `saving`, con `isSavingRef` contra el doble clic, y `setPurchaseTotal`.
 4. Si sale bien, `usePeriodPurchases` reemplaza el total de esa fila. La lista y el total se recalculan sin pasar por `loading` y el foco vuelve al lápiz.
-5. Si falla, `saveFailed` con lo escrito y el mensaje según el código. `TOTAL_SAVE_ERROR_CODE` identifica `23514` (y los demás códigos) desde `error.code`, nunca desde `error.message`; un código desconocido da el error general.
+5. Si falla, `saveFailed` con lo escrito y el mensaje según el código. `TOTAL_SAVE_ERROR_CODE` identifica `23514`, `TZ001` (y los demás códigos) desde `error.code`, nunca desde `error.message` ni desde el estado HTTP; un código desconocido da el error general.
+6. Con `TZ001`, el campo muestra la zona del navegador y "Confirmar". Solo con ese toque se llama a `set_spending_time_zone` y se repite la operación, sin perder lo escrito (SPEC regla 59).
 
 **Editar el periodo (CA-02):** igual, con `setPeriodTotal`. Se reemplaza o quita el ajuste en la respuesta guardada. Si el total calculado en pantalla no coincide con lo guardado, porque otra pestaña cambió algo, se recarga el periodo.
 
@@ -592,7 +606,9 @@ docs/documento-proyecto.md                         §4.6 y §6, al implementar y
 - **`security definer`:** salta la RLS, así que valida dentro, fija `search_path`, usa nombres calificados y solo escribe `total_amount` o sus ajustes.
 - **Sin escritura directa:** PATCH sobre compras cerradas y cualquier escritura sobre `spending_adjustments` siguen rechazados.
 - **Validación doble:** cliente y RPC; `NaN`, negativos, decimales y sobre el tope son `22023`.
-- **Zona horaria:** solo interpreta los límites de los periodos (SPEC regla 58). Se compara contra `pg_timezone_names` y nunca se concatena en SQL. No participa en ninguna comprobación de dueño o de permisos.
+- **Zona horaria:** se guarda solo con `set_spending_time_zone`. Se valida su forma de zona con nombre, sin `posix/` ni `right/`, y que `at time zone` la conozca, y nunca se concatena en SQL. No se usa `pg_timezone_names`, que costó unos 40 ms por llamada en PostgreSQL local. No participa en ninguna comprobación de dueño o de permisos.
+- **Elegir la zona no evade nada:** las RPC de edición no reciben una zona, y cambiarla pasa por la misma revisión de D18 (SPEC reglas 54 y 59). Una persona solo puede afectar sus propios datos.
+- **`TZ001`:** se decide antes de buscar la compra, así que no revela si existe.
 - **Errores:** códigos a textos fijos; los mensajes de Supabase no llegan a la pantalla.
 - `security-reviewer` sobre la migración antes de aplicarla y otra vez antes de `waiting qa`.
 
@@ -606,7 +622,8 @@ docs/documento-proyecto.md                         §4.6 y §6, al implementar y
 | Ajuste y compra a la vez | El mismo `pg_advisory_xact_lock`, tomado antes de leer y conservado hasta terminar la transacción, con la revisión de negativos dentro de ella: ninguna puede cambiar un total mientras la otra lo revisa |
 | Cambio de periodo mientras guarda | Solo se aplica si la fila o el periodo siguen visibles |
 | Pantalla cerrada mientras guarda | `isMountedRef`: se ignora la respuesta; el dato ya quedó en la base |
-| Compras y ajustes leídos por separado | Dos consultas no atómicas; una diferencia momentánea se corrige en la siguiente carga, y si falla cualquiera la carga falla |
+| Ajuste, compra y cambio de zona a la vez | El mismo bloqueo: la segunda operación espera, ve el resultado de la primera y revisa D18 con la zona vigente. No hay una restricción única: "uno por periodo" depende de este bloqueo |
+| Una edición mientras se lee el periodo | `get_period_finance` es una sola sentencia: ve una sola foto, así que nunca mezcla compras y ajustes de dos momentos |
 
 ### Pruebas
 
@@ -616,12 +633,25 @@ docs/documento-proyecto.md                         §4.6 y §6, al implementar y
 - **Compra:** el dueño la edita, también una compra histórica; `closed_at` no cambia; otro usuario, una sesión anónima, sin sesión, compra abierta e inexistente se rechazan con el código de SPEC §12.
 - **Regresión del trigger:** cerrar una compra sigue poniendo `now()` aunque se mande otra fecha.
 - **Directo:** PATCH sobre una compra cerrada no afecta filas; insert, update y delete sobre ajustes se rechazan.
-- **Validación:** nulo, negativo, decimales, `NaN`, sobre el tope, nivel y zona horaria que PostgreSQL no reconoce dan `22023`; 0 es válido.
-- **Zona horaria:** con otra zona, otro usuario sigue sin poder editar la compra; los límites de día, semana y mes coinciden con los casos de `getPeriodBounds.test.ts` (medianoche, domingo, semana y mes que cruzan).
+- **Validación:** nulo, negativo, decimales, `NaN`, sobre el tope, nivel y zona que PostgreSQL no reconoce dan `22023`; 0 es válido.
+- **Límites:** los de día, semana y mes coinciden con los casos de `getPeriodBounds.test.ts` (medianoche, domingo, semana y mes que cruzan).
 - **Ajuste:** crea, reemplaza sin duplicar y quita si la diferencia es 0; calcula en la base; funciona sin compras; los "Sin total" no cambian.
 - **Niveles:** las tres filas de SPEC regla 52.
 - **Negativos:** semana que cruza meses; día, semana y mes; compra, también histórica, que deja negativo cualquier periodo contenedor con ajuste; responden `23514` y nada queda guardado, ni siquiera el total de la compra.
 - **Sin ajustes:** bajar una compra a 0 en periodos sin ajustes se acepta.
+- **Sin zona:** `TZ001` en las dos RPC y en la lectura; nada asigna una zona; confirmar permite editar.
+- **El entorno:** otra zona en la sesión no cambia límites, zona guardada ni ajustes; las RPC de edición no reciben una zona.
+- **Cambiar de zona:** rechazo por D18 sin cambiar la anterior, también por un ajuste antiguo; aceptación con los mismos límites o con una compra que sostenga el periodo.
+- **Zona no reconocida:** `TZ002` al editar y al leer, y confirmar otra es la salida.
+- **Lectura:** `get_period_finance` cuadra con las RPC; sin zona, `time_zone: null`; aislamiento, sesión anónima y nivel inválido.
+- **Periodo ya negativo:** ninguna operación lo oculta ni lo agrava; lo que no lo toca sigue funcionando.
+- **Barrido** (`supabase/tests/040_time_zone_sweep.test.sql`): todos los días con cambio de desfase de 1970 a 2035, en todas las zonas con nombre; cada instante en su día, semana y mes, y cada día contiguo al siguiente. Tarda unos 2 minutos en local.
+- **Reemplazar:** conserva la fecha; une dos ajustes del mismo periodo.
+- **Cómo se llega a cada estado:** la prueba marca `[RPC]` o `[filas fijas]`.
+- **Nombres:** se rechazan `posix/`, `right/`, directorios, abreviaturas y desfases.
+- **Bloqueo:** se toma antes de leer, en el código de cada RPC, y se conserva hasta terminar la transacción. La espera entre dos conexiones se prueba aparte, porque el archivo SQL es una sola transacción.
+- **Rango:** ajustes de más de `10^12`, por encima de `numeric(14, 2)`.
+- **Datos reales:** la prueba solo cuenta filas de sus propios usuarios.
 - **Aislamiento:** otro usuario no lee los ajustes; una sesión anónima no lee ninguno.
 
 **Vitest:**
@@ -631,8 +661,8 @@ docs/documento-proyecto.md                         §4.6 y §6, al implementar y
 | `parseColonesAmount` | Los de `parseBudgetAmount`, sin cambios; vacío inválido (D13) y decimales inválidos (D14) |
 | `summarizeSpending` | Con ajustes positivos y negativos; contadores sin cambios; centavos; solo ajustes; nulos sin sumar |
 | `formatSignedColones` | Positivo, negativo y miles |
-| `finance.service` | RPC y argumentos exactos sin `owner_id`; zona del navegador en las dos RPC; lectura de ajustes con los niveles de cada periodo; `count` en `getPeriodSpending`; falla si compras o ajustes fallan; `23514` se reconoce por su código, con cualquier texto interno; código desconocido da el error general |
-| `useTotalEdit` | Abrir, cancelar y Escape; un solo campo (D21); validación sin llamada; `saving`; doble clic; `saveFailed` conserva lo escrito; cada mensaje; cambio de periodo; desmontaje; sesión vencida |
+| `finance.service` | RPC y argumentos exactos sin `owner_id` ni zona; `get_period_finance` con zona, sin zona (`time_zone: null`) y con `TZ002`; `count` en `getPeriodSpending` sin zona; falla si la lectura falla; `23514`, `TZ001` y `P0002` se reconocen por `error.code`, con cualquier texto interno y cualquier estado HTTP; código desconocido da el error general |
+| `useTotalEdit` | Abrir, cancelar y Escape; un solo campo (D21); validación sin llamada; `saving`; doble clic; `saveFailed` conserva lo escrito; cada mensaje; cambio de periodo; desmontaje; sesión vencida; con `TZ001`, guardar la zona y repetir solo al confirmar |
 | `usePeriodPurchases` | Aplicar lo guardado sin `loading`; ajuste creado, reemplazado y quitado; `empty` frente a `ready` con solo un ajuste; respuesta vieja descartada |
 | `usePeriodSpending` | Total con ajustes; `empty` frente a `ready`; `failed` si el conteo no coincide |
 | `usePurchaseHistoryViewModel` | Filas de compra y ajuste en orden; lápices según el estado; valor inicial con "Sin total", ₡0 y decimales (D22); mensaje de `status` |
@@ -656,12 +686,38 @@ docs/documento-proyecto.md                         §4.6 y §6, al implementar y
 | 07 | D4 con dos cuentas de la misma familia | Negativo |
 | 08 | Mobile y teclado | Usabilidad |
 
+### Recuperación de un periodo negativo
+
+Un periodo con ajustes solo puede quedar negativo por algo que no pasa por las RPC: un cambio con `service_role`, SQL manual, o una actualización de la base de zonas de PostgreSQL. No hay corrección automática ni un camino que se salte D18.
+
+1. **Si es el periodo en curso:** la persona lo arregla escribiendo su total; `set_period_total` revisa D18 igual que siempre. Solo alcanza si ningún periodo que lo contiene sigue negativo: si también lo está el mes, el total de la semana tiene que cubrir el déficit del mes.
+2. **Si no:** soporte, en el SQL Editor y como dueño de las tablas:
+   1. **Zona:** si la persona tiene `TZ002`, primero confirma otra zona con `set_spending_time_zone`; el diagnóstico necesita una zona que PostgreSQL reconozca.
+   2. **Diagnóstico, solo lectura.** Los periodos negativos de una persona, en su zona:
+
+      ```sql
+      select distinct levels.period_scope, b.period_start, b.period_end,
+        public.spending_period_total(a.owner_id, levels.period_scope, b.period_start, b.period_end) as total
+      from public.spending_adjustments a
+      join public.spending_time_zones z on z.owner_id = a.owner_id
+      cross join unnest(array['day', 'week', 'month']) as levels (period_scope)
+      cross join lateral public.spending_period_bounds(levels.period_scope, a.effective_at, z.time_zone) b
+      where a.owner_id = '<id de la persona>'
+        and array_position(array['day', 'week', 'month'], a.scope)
+          <= array_position(array['day', 'week', 'month'], levels.period_scope)
+        and public.spending_period_total(a.owner_id, levels.period_scope, b.period_start, b.period_end) < 0;
+      ```
+
+   3. **Corrección, con la persona:** en una transacción, primero `select pg_advisory_xact_lock(hashtextextended('<id de la persona>', 0));`, el mismo bloqueo de las RPC, para que ninguna edición de la persona se cruce. Después se ajusta o se borra el ajuste que lo deja negativo, o se corrige el total de una compra con el dato real.
+   4. **Antes del `commit`:** en la misma transacción se repite el diagnóstico, que tiene que quedar vacío; si no, `rollback`.
+   5. **Registro:** qué se cambió y por qué, en el ticket.
+
 ### Número de la migración
 
-- En esta rama: `000` a `036`, con la más alta en `036_create_avatars_bucket.sql`.
-- Reservadas en ramas abiertas: `037` (SCRUM-115), `038` (SCRUM-77) y `039` (SCRUM-130).
-- **Previsto: `040_edit_purchase_totals.sql`.** Se vuelve a revisar `develop` y los PRs abiertos justo antes de crear el archivo y antes del merge. Si alguien tomó el número, se renombra antes de aplicarla.
+- **Número: `040_edit_purchase_totals.sql`**, el reservado para esta historia (decisión de la dueña de la historia, 2026-11-03). No choca con ningún archivo: el 2026-11-03, `develop` tenía `039` y `042` y las ramas abiertas `037`, `038` y `041`. Que `develop` tenga números más altos no importa, porque cada migración es independiente y se registra con su número.
+- Se vuelve a revisar justo antes de aplicarla y antes del merge.
 - La aplica la dueña de la historia antes de `waiting qa`, avisando al grupo, en una transacción con su fila del historial. Antes se confirma que el trigger y la política de la base coinciden con el repo.
+- **Historial:** se registra como dice `supabase/README.md`, con `insert into supabase_migrations.schema_migrations (version, name, created_by) values ('040', 'edit_purchase_totals', 'SCRUM-91')` en la misma transacción. Es el mecanismo real: la columna `created_by` existe, porque `supabase/specs/SCRUM-134/reconcile-history.sql` la usó contra la base el 2026-10-08, y con ese procedimiento se registraron después `020`, `021`, `023` y `042`. No se usa `apply_migration` ni `supabase migration new`.
 
 ### Documento del proyecto
 
@@ -690,8 +746,16 @@ Staging explícito, nunca `git add .`.
 
 - **El trigger de cierre:** es el riesgo más grave. Lo cubren la corrección y su prueba de regresión, y se aplica antes de cualquier RPC.
 - **Base distinta del repo:** si el trigger o la política difieren, la migración podría no comportarse igual; se comprueba antes de aplicar.
-- **Dos cálculos de periodo:** el navegador lee con `getPeriodBounds` y la base escribe con la zona horaria. Deben aplicar los mismos límites (SPEC regla 58), y lo fijan las pruebas. Con un reloj mal puesto podrían no coincidir; es el mismo supuesto del modo compra.
-- **Zona no reconocida:** si PostgreSQL no conoce la zona del navegador, la persona no puede guardar y ve el error general.
+- **Lecturas de la Etapa 2:** hasta cambiar los hooks, las pantallas calculan los periodos con el navegador. Es obligatorio cambiarlos antes de ofrecer la edición, o un viaje mostraría periodos distintos a los que protege D18. La lectura usa `get_period_finance` (SPEC §12), una sola sentencia, para que compras y ajustes sean del mismo momento.
+- **`get_period_finance`:** va en la `040`; los hooks que la usan son de la Etapa 2.
+- **Zona propuesta no reconocida:** si PostgreSQL no conoce la zona del navegador, `set_spending_time_zone` da `22023` y hace falta elegir otra.
+- **Viajes:** quien viaje sigue viendo los periodos de su zona guardada hasta cambiarla.
+- **Cambio de zona rechazado:** un ajuste negativo antiguo puede impedirlo. Se puede seguir usando la zona anterior (SPEC regla 60).
+- **Zona guardada desconocida:** si PostgreSQL dejara de reconocerla, editar y leer dan `TZ002` y confirmar otra es la salida (SPEC regla 60).
+- **Base de zonas:** actualizarla en PostgreSQL podría mover los límites de fechas ya guardadas, y dejar negativo un periodo sin ninguna operación de por medio.
+- **Cambios manuales:** `service_role` o SQL manual pueden romper D18, porque no pasan por las RPC.
+- **`closed_at`:** el trigger impide corregirlo con un update a cualquier rol (SPEC §12). Una corrección de soporte tendría que deshabilitar el trigger.
+- **Montos extremos:** `numeric(18, 2)` admite más que un `number` exacto de JavaScript, a partir de unos 9 × 10^15. Equivale a unas 900 000 compras en el tope; no se trata en esta historia.
 - **La suma de días no da la semana:** es intencional (SPEC regla 52), y la fila de ajuste lo explica.
 - **Rechazos por negativo:** una persona puede encontrarse con que no puede bajar un total, sobre todo en una semana que cruza meses. El mensaje lo explica.
 - **El Dashboard no detalla el ajuste:** D16 muestra las filas solo en la lista. El Dashboard solo avisa con "Incluye ajustes manuales"; el detalle está en el Historial.
@@ -710,4 +774,7 @@ Conceptos nuevos: `security definer` frente a `security invoker`; `old` y `new` 
 | Fila de ajuste | Total fijo por periodo | La semana y el mes podrían contradecirse |
 | Un hook de edición | Un hook por tipo de edición | D21 exige un solo campo abierto, y dos estados podrían contradecirse |
 | La base calcula la diferencia | La calcula el cliente | Un dato viejo en pantalla guardaría una diferencia equivocada |
+| Una zona guardada por persona | La zona del navegador en cada llamada | Un periodo podía quedar negativo en una zona que nadie revisaba |
+| Sin backfill, con confirmación | Asignar una zona a los usuarios existentes | Ningún dato existente dice cuál es; una zona inventada movería sus periodos |
+| Los periodos salen de `effective_at` y la zona | Guardar los límites en cada ajuste | Al cambiar de zona habría que reescribirlos, y dos ajustes podrían chocar |
 | `getPeriodSpending` con conteo | Dejar la deuda | Un resultado cortado daría un total distinto entre pantallas y rompería CA-03 |
