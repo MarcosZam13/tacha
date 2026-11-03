@@ -188,6 +188,8 @@ Ya existía la idea de "producto propio por household" (primer bullet de esta se
   - Los datos scrapeados deben pasar por una tabla de "staging" y un proceso de normalización/deduplicación antes de insertarse al catálogo real, para no ensuciarlo con productos duplicados o mal categorizados.
   - Es razonable que este componente sea el que más tiempo de desarrollo tome del equipo — vale la pena asignarlo a quien tenga más experiencia con scraping/backend.
 
+- **Decisión 2026-11-01 (SCRUM-138) — convertir galones a `ml` en `parse_size_text` (1 gal ≈ 3785 ml), no una unidad `gal` independiente:** mismo patrón que litros→ml y kilogramos→g, que ya convierten a la unidad base más fina en vez de preservar la unidad original de la etiqueta. Una unidad `gal` aparte rompería esa consistencia y obligaría a toda la capa de agregación de precios/variantes a conocer una unidad más.
+
 ### 4.8 Sugerencias de dónde comprar
 
 - A partir de los precios obtenidos por scraping, sugerir el supermercado más barato para los productos pendientes de una lista.
