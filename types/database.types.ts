@@ -1210,6 +1210,25 @@ export type Database = {
           variants: Json
         }[]
       }
+      set_date_list_cancelled: {
+        Args: { is_cancelled: boolean; target_list_id: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_list_item_checked: {
         Args: { is_checked: boolean; target_item_id: string }
         Returns: {

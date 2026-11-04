@@ -5,6 +5,7 @@ import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { DATE_LIST_DB } from "../constants/date-lists.constants";
 import type { DateListStatusType } from "../constants/date-lists.constants";
 import type { DateList, DateListDetail } from "../models/DateList.interface";
+import { sortPendingFirst } from "../utils/sortPendingFirst";
 
 interface DateListRow {
   event_date: NullableRef<string>;
@@ -53,7 +54,7 @@ export const createDateList = async (name: string, eventDate: string): Promise<D
   return toDateList(data);
 };
 
-/** Una sublista con sus productos pendientes; null si no existe o quien llama no la ve. */
+/** Una sublista con sus productos, primero los pendientes; null si no existe o quien llama no la ve. */
 export const getDateListDetail = async (listId: string): Promise<NullableRef<DateListDetail>> => {
   await ensureSession();
 
@@ -62,7 +63,6 @@ export const getDateListDetail = async (listId: string): Promise<NullableRef<Dat
     .select(DATE_LIST_DB.DETAIL_SELECT)
     .eq("id", listId)
     .eq("type", DATE_LIST_DB.LIST_TYPE)
-    .is("list_items.checked_at", null)
     .order("created_at", { referencedTable: DATE_LIST_DB.TABLE.LIST_ITEMS })
     .maybeSingle();
   if (error) throw error;
@@ -70,17 +70,18 @@ export const getDateListDetail = async (listId: string): Promise<NullableRef<Dat
 
   return {
     ...toDateList(data),
-    items: data.list_items.map((listItem) => {
+    items: sortPendingFirst(data.list_items.map((listItem) => {
       const variant = listItem.product_catalog_variants;
       return {
         id: listItem.id,
+        isChecked: listItem.checked_at !== null,
         productName: variant.product_catalog.name,
         quantity: listItem.quantity_requested,
         // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
         sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
         variantId: variant.id,
       };
-    }),
+    })),
   };
 };
 
@@ -99,5 +100,27 @@ export const removeDateListItem = async (itemId: string): Promise<void> => {
   await ensureSession();
 
   const { error } = await getSupabaseClient().from(DATE_LIST_DB.TABLE.LIST_ITEMS).delete().eq("id", itemId);
+  if (error) throw error;
+};
+
+/** Tachar o destachar. El estado de la sublista lo actualiza un trigger de la base (SPEC §9, regla 1). */
+export const setDateListItemChecked = async (itemId: string, isChecked: boolean): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient().rpc(DATE_LIST_DB.RPC.SET_ITEM_CHECKED, {
+    is_checked: isChecked,
+    target_item_id: itemId,
+  });
+  if (error) throw error;
+};
+
+/** Cancela sin borrar, o reactiva y la base recalcula el estado (SPEC §9, reglas 3 y 5). */
+export const setDateListCancelled = async (listId: string, isCancelled: boolean): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient().rpc(DATE_LIST_DB.RPC.SET_CANCELLED, {
+    is_cancelled: isCancelled,
+    target_list_id: listId,
+  });
   if (error) throw error;
 };
