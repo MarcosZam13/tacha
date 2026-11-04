@@ -33,6 +33,7 @@ Una persona quiere separar las compras de un evento o viaje de su lista general:
 5. `active` en la base se muestra como "Pendiente".
 6. Agregar lo que ya está pendiente suma 1, como en la lista general (regla 8 de shopping-list).
 7. Solo se agrega a una sublista visible, de tipo `date` y activa.
+8. El botón de crear se puede tocar mientras carga la sección. Si la carga llega después de crear, se une con lo que hay en pantalla: reemplazar borraría la sublista nueva.
 
 ## 6. Datos
 

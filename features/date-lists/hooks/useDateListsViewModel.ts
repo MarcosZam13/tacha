@@ -3,6 +3,7 @@ import type { NullableRef } from "@/types/nullable.types";
 import { DATE_LIST_TEXT } from "../constants/date-lists.constants";
 import type { DateList } from "../models/DateList.interface";
 import { getDateLists } from "../services/date-lists.service";
+import { insertByDate, mergeLoadedLists } from "../utils/mergeDateLists";
 import { useCreateDateListForm } from "./useCreateDateListForm";
 import type { CreateDateListFormViewModel } from "./useCreateDateListForm";
 
@@ -13,11 +14,6 @@ interface UseDateListsViewModelReturn {
   lists: DateList[];
   loadErrorMessage: NullableRef<string>;
 }
-
-// Mismo orden que el servicio: por fecha; en la misma fecha, la nueva al final.
-// sort es estable, así que basta con comparar la fecha.
-const insertByDate = (lists: DateList[], createdList: DateList): DateList[] =>
-  [...lists, createdList].sort((first, second) => first.eventDate.localeCompare(second.eventDate));
 
 /** ViewModel de /fechas: carga las sublistas y suma la nueva sin recargar (CA-02). */
 export const useDateListsViewModel = (): UseDateListsViewModelReturn => {
@@ -31,7 +27,7 @@ export const useDateListsViewModel = (): UseDateListsViewModelReturn => {
 
     getDateLists()
       .then((loadedLists) => {
-        if (!isCancelled) setLists(loadedLists);
+        if (!isCancelled) setLists((current) => mergeLoadedLists(loadedLists, current));
       })
       .catch(() => {
         if (!isCancelled) setLoadErrorMessage(DATE_LIST_TEXT.LOAD_ERROR);

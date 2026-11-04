@@ -29,3 +29,9 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Cubre:** HU-45 CA-03, SPEC §5, regla 6.
 - **Pasos:** crear una sublista, abrirla y agregar el mismo producto dos veces con el buscador.
 - **Resultado:** una sola fila, con cantidad 2.
+
+### E2E-FECHAS-07: la carga inicial que llega tarde no borra lo recién creado
+
+- **Cubre:** SPEC §5, regla 8.
+- **Pasos:** retener la respuesta de la carga hasta que termine de crearse una sublista.
+- **Resultado:** la sublista sigue en pantalla cuando llega la carga.

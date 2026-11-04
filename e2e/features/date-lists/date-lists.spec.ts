@@ -9,6 +9,8 @@ const PAST_DATE = "2020-01-01";
 const FUTURE_DATE = "2099-12-20";
 const SEARCH_TERM = "leche";
 const DETAIL_URL = /\/fechas\/[0-9a-f-]+$/;
+const CREATE_RPC_URL = /\/rest\/v1\/rpc\/create_date_list/;
+const LOAD_LISTS_URL = /\/rest\/v1\/lists\?.*type=eq\.date/;
 
 const fillCreateForm = async (page: Page, eventDate: string): Promise<void> => {
   await page.getByRole("button", { name: "+ Nueva sublista" }).click();
@@ -35,6 +37,24 @@ test.describe("Sublistas por fecha", () => {
 
   test("E2E-FECHAS-01: la sublista creada aparece sin recargar, pendiente", async ({ page }) => {
     await fillCreateForm(page, FUTURE_DATE);
+
+    await expect(getListCard(page)).toContainText("Pendiente");
+  });
+
+  test("E2E-FECHAS-07: la carga inicial que llega tarde no borra lo recién creado", async ({ page }) => {
+    // La respuesta de la carga se retiene hasta que termina de crearse: es la consulta vieja
+    // llegando después, sin depender de cuánto tarde la red.
+    const created = page.waitForResponse(CREATE_RPC_URL);
+    await page.route(LOAD_LISTS_URL, async (route) => {
+      const response = await route.fetch();
+      await created;
+      await route.fulfill({ response });
+    });
+    const loaded = page.waitForResponse(LOAD_LISTS_URL);
+    await page.goto(DATE_LISTS_PATH);
+
+    await fillCreateForm(page, FUTURE_DATE);
+    await loaded;
 
     await expect(getListCard(page)).toContainText("Pendiente");
   });
