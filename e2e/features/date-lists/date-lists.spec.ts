@@ -42,19 +42,22 @@ test.describe("Sublistas por fecha", () => {
   });
 
   test("E2E-FECHAS-07: la carga inicial que llega tarde no borra lo recién creado", async ({ page }) => {
-    // La respuesta de la carga se retiene hasta que termina de crearse: es la consulta vieja
-    // llegando después, sin depender de cuánto tarde la red.
+    // La carga responde vacía y solo después de crear: es la consulta que salió antes de que
+    // existiera la sublista y llegó tarde. Dejarla ir a la red no sirve: si sale después de
+    // crear ya trae la sublista, y la prueba pasaría aunque el bug siguiera ahí.
     const created = page.waitForResponse(CREATE_RPC_URL);
     await page.route(LOAD_LISTS_URL, async (route) => {
-      const response = await route.fetch();
       await created;
-      await route.fulfill({ response });
+      await route.fulfill({ json: [] });
     });
     const loaded = page.waitForResponse(LOAD_LISTS_URL);
     await page.goto(DATE_LISTS_PATH);
 
     await fillCreateForm(page, FUTURE_DATE);
     await loaded;
+    // El spinner se va en el mismo paso en que se guarda la carga. Revisar antes pasaría
+    // aunque la carga después borrara la sublista.
+    await expect(page.getByRole("status")).toHaveCount(0);
 
     await expect(getListCard(page)).toContainText("Pendiente");
   });
