@@ -10,7 +10,7 @@ export interface InputProps {
   helperText?: NullableUndefined<string>;
   errorMessage?: NullableUndefined<string>;
   placeholder?: string;
-  type?: "text" | "email" | "password" | "number";
+  type?: "text" | "email" | "password" | "number" | "date";
   isRequired?: boolean;
 }
 

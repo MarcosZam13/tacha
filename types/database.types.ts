@@ -273,24 +273,30 @@ export type Database = {
       lists: {
         Row: {
           created_at: string
+          event_date: string | null
           household_id: string | null
           id: string
+          name: string | null
           owner_id: string
           status: string
           type: string
         }
         Insert: {
           created_at?: string
+          event_date?: string | null
           household_id?: string | null
           id?: string
+          name?: string | null
           owner_id?: string
           status?: string
           type: string
         }
         Update: {
           created_at?: string
+          event_date?: string | null
           household_id?: string | null
           id?: string
+          name?: string | null
           owner_id?: string
           status?: string
           type?: string
@@ -890,6 +896,26 @@ export type Database = {
         Args: { invite_token: string }
         Returns: string
       }
+      add_item_to_date_list: {
+        Args: { target_list_id: string; target_variant_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
@@ -1019,6 +1045,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "purchase_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_date_list: {
+        Args: { list_event_date: string; list_name: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
           isOneToOne: true
           isSetofReturn: false
         }
