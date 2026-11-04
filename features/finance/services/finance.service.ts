@@ -4,6 +4,7 @@ import { getSessionStatus } from "@/utils/getSessionStatus";
 import { BUDGET_AMOUNT, FINANCE_DB, SPENDING_PERIOD } from "../constants/finance.constants";
 import type { SpendingPeriodType } from "../constants/finance.constants";
 import type { PeriodBounds } from "../models/PeriodBounds.interface";
+import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
 import type { SpendingBudgets } from "../models/SpendingBudgets.type";
 import { summarizeSpending } from "../utils/summarizeSpending";
@@ -18,6 +19,12 @@ const isSpendingPeriod = (period: string): period is SpendingPeriodType => SPEND
 // valida con parseBudgetAmount; esto evita mandar a la base algo que va a rechazar.
 const isValidBudgetAmount = (amount: number): boolean =>
   Number.isInteger(amount) && amount >= 0 && amount <= BUDGET_AMOUNT.MAX;
+
+const assertPeriodMovesForward = ({ end, start }: PeriodBounds): void => {
+  if (!(start.getTime() < end.getTime())) {
+    throw new RangeError("El periodo tiene que empezar antes de terminar");
+  }
+};
 
 /**
  * true si la sesión guardada es de una cuenta registrada (SPEC D6). Usa
@@ -39,9 +46,7 @@ export const hasRegisteredSession = async (): Promise<boolean> => {
  * abiertas, que tienen `closed_at` nulo (D3).
  */
 export const getPeriodSpending = async ({ end, start }: PeriodBounds): Promise<PeriodSpending> => {
-  if (!(start.getTime() < end.getTime())) {
-    throw new RangeError("El periodo tiene que empezar antes de terminar");
-  }
+  assertPeriodMovesForward({ end, start });
 
   const { data: purchaseRows, error } = await getSupabaseClient()
     .from(FINANCE_DB.TABLE.PURCHASE_SESSIONS)
@@ -51,6 +56,50 @@ export const getPeriodSpending = async ({ end, start }: PeriodBounds): Promise<P
   if (error) throw error;
 
   return summarizeSpending(purchaseRows.map((purchaseRow) => purchaseRow.total_amount));
+};
+
+/**
+ * Las compras cerradas propias del periodo para el Historial (SCRUM-90), de la
+ * más reciente a la más antigua (SPEC regla 26). Mismos límites y misma RLS que
+ * getPeriodSpending.
+ *
+ * El servidor puede cortar la respuesta sin avisar: si el conteo exacto es nulo
+ * o no coincide con las filas recibidas, falla en vez de dar un total falso
+ * (regla 30). Un nombre de supermercado nulo o en blanco no es un error: se
+ * entrega como null y la fila se conserva (regla 29).
+ */
+export const getPeriodPurchases = async ({ end, start }: PeriodBounds): Promise<PeriodPurchase[]> => {
+  assertPeriodMovesForward({ end, start });
+
+  const {
+    count,
+    data: purchaseRows,
+    error,
+  } = await getSupabaseClient()
+    .from(FINANCE_DB.TABLE.PURCHASE_SESSIONS)
+    .select(FINANCE_DB.SELECT.PURCHASES, { count: "exact" })
+    .gte(FINANCE_DB.COLUMN.CLOSED_AT, start.toISOString())
+    .lt(FINANCE_DB.COLUMN.CLOSED_AT, end.toISOString())
+    .order(FINANCE_DB.COLUMN.CLOSED_AT, { ascending: false })
+    .order(FINANCE_DB.COLUMN.ID);
+  if (error) throw error;
+  if (count !== purchaseRows.length) {
+    throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió un resultado incompleto`);
+  }
+
+  return purchaseRows.map((purchaseRow) => {
+    // closed_at es nullable en la tabla; el filtro deja solo las cerradas.
+    if (purchaseRow.closed_at === null) {
+      throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió una compra sin cierre`);
+    }
+
+    return {
+      closedAt: purchaseRow.closed_at,
+      id: purchaseRow.id,
+      storeName: purchaseRow.stores?.display_name?.trim() || null,
+      totalAmount: purchaseRow.total_amount,
+    };
+  });
 };
 
 /**

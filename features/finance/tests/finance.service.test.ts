@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BUDGET_AMOUNT, FINANCE_DB, SPENDING_PERIOD } from "../constants/finance.constants";
 import {
+  getPeriodPurchases,
   getPeriodSpending,
   getSpendingBudgets,
   hasRegisteredSession,
@@ -17,6 +18,7 @@ const fromMock = vi.fn();
 const selectMock = vi.fn();
 const gteMock = vi.fn();
 const ltMock = vi.fn();
+const orderMock = vi.fn();
 // ensureSession no se puede usar en Finanzas (crearía una sesión anónima).
 const ensureSessionMock = vi.fn();
 
@@ -129,6 +131,140 @@ describe("getPeriodSpending", () => {
     ltMock.mockResolvedValue({ data: null, error: SUPABASE_ERROR });
 
     await expect(getPeriodSpending(WEEK_BOUNDS)).rejects.toBe(SUPABASE_ERROR);
+  });
+});
+
+describe("getPeriodPurchases", () => {
+  const NOW = new Date(2026, 9, 18, 15, 0);
+  const WEEK_BOUNDS = getPeriodBounds(SPENDING_PERIOD.WEEK, NOW);
+  const CLOSED_AT = "2026-10-18T16:00:00+00:00";
+
+  const buildRow = (overrides: Record<string, unknown> = {}) => ({
+    closed_at: CLOSED_AT,
+    id: "purchase-1",
+    stores: { display_name: "MaxiPali" },
+    total_amount: 10000,
+    ...overrides,
+  });
+
+  // La consulta termina en dos .order(): el primero encadena y el segundo responde.
+  const mockResponse = (response: Record<string, unknown>) => {
+    ltMock.mockReturnValue({ order: orderMock });
+    orderMock.mockReturnValueOnce({ order: orderMock }).mockResolvedValueOnce(response);
+  };
+  const mockRows = (rows: readonly unknown[]) => mockResponse({ count: rows.length, data: rows, error: null });
+
+  it("asks for the exact count and only the columns it shows, without a row limit", async () => {
+    mockRows([]);
+
+    await getPeriodPurchases(WEEK_BOUNDS);
+
+    // Nombres literales a propósito: fijan el contrato con la base (016).
+    expect(fromMock).toHaveBeenCalledWith("purchase_sessions");
+    expect(selectMock).toHaveBeenCalledWith("id, closed_at, total_amount, stores(display_name)", { count: "exact" });
+    // La cadena falsa no tiene limit ni range: si se agregaran, este test fallaría.
+    expect(orderMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [SPENDING_PERIOD.DAY, new Date(2026, 9, 18), new Date(2026, 9, 19)],
+    [SPENDING_PERIOD.WEEK, new Date(2026, 9, 12), new Date(2026, 9, 19)],
+    [SPENDING_PERIOD.MONTH, new Date(2026, 9, 1), new Date(2026, 10, 1)],
+  ])("filters the %s by closed_at, start included and end excluded", async (period, start, end) => {
+    mockRows([]);
+
+    await getPeriodPurchases(getPeriodBounds(period, NOW));
+
+    expect(gteMock).toHaveBeenCalledWith("closed_at", start.toISOString());
+    expect(ltMock).toHaveBeenCalledWith("closed_at", end.toISOString());
+  });
+
+  it("orders from the most recent to the oldest, with the id as a tiebreaker", async () => {
+    mockRows([]);
+
+    await getPeriodPurchases(WEEK_BOUNDS);
+
+    expect(orderMock).toHaveBeenNthCalledWith(1, "closed_at", { ascending: false });
+    expect(orderMock).toHaveBeenNthCalledWith(2, "id");
+  });
+
+  it("never filters by owner: the RLS returns only the user's own purchases", async () => {
+    mockRows([]);
+
+    await getPeriodPurchases(WEEK_BOUNDS);
+
+    expect(
+      JSON.stringify([selectMock.mock.calls, gteMock.mock.calls, ltMock.mock.calls, orderMock.mock.calls]),
+    ).not.toContain("owner_id");
+  });
+
+  it("maps a row to the model", async () => {
+    mockRows([buildRow()]);
+
+    await expect(getPeriodPurchases(WEEK_BOUNDS)).resolves.toEqual([
+      { closedAt: CLOSED_AT, id: "purchase-1", storeName: "MaxiPali", totalAmount: 10000 },
+    ]);
+  });
+
+  it("keeps a null total and a real zero total apart (D8)", async () => {
+    mockRows([buildRow({ id: "without-total", total_amount: null }), buildRow({ id: "zero", total_amount: 0 })]);
+
+    const purchases = await getPeriodPurchases(WEEK_BOUNDS);
+
+    expect(purchases.map((purchase) => purchase.totalAmount)).toEqual([null, 0]);
+  });
+
+  it("returns an empty list when there are no purchases", async () => {
+    mockResponse({ count: 0, data: [], error: null });
+
+    await expect(getPeriodPurchases(WEEK_BOUNDS)).resolves.toEqual([]);
+  });
+
+  it.each([
+    ["a null relation", null],
+    ["a null name", { display_name: null }],
+    ["an empty name", { display_name: "" }],
+    ["a blank name", { display_name: "   " }],
+  ])("keeps the row with a null store name for %s (rule 29)", async (_caseName, stores) => {
+    mockRows([buildRow({ stores })]);
+
+    await expect(getPeriodPurchases(WEEK_BOUNDS)).resolves.toEqual([
+      { closedAt: CLOSED_AT, id: "purchase-1", storeName: null, totalAmount: 10000 },
+    ]);
+  });
+
+  it.each([
+    ["more rows exist than the ones received", 2],
+    ["fewer rows exist than the ones received", 0],
+    ["the count is missing", null],
+  ])("throws when %s (rule 30)", async (_caseName, count) => {
+    mockResponse({ count, data: [buildRow()], error: null });
+
+    await expect(getPeriodPurchases(WEEK_BOUNDS)).rejects.toThrow(
+      `${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió un resultado incompleto`,
+    );
+  });
+
+  it("throws on a row without closed_at, which the filter should have left out", async () => {
+    mockRows([buildRow({ closed_at: null })]);
+
+    await expect(getPeriodPurchases(WEEK_BOUNDS)).rejects.toThrow(
+      `${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió una compra sin cierre`,
+    );
+  });
+
+  it("rejects bounds that do not move forward without calling the database", async () => {
+    const start = new Date(2026, 9, 12);
+
+    await expect(getPeriodPurchases({ end: start, start })).rejects.toThrow(RangeError);
+    await expect(getPeriodPurchases({ end: new Date(2026, 9, 11), start })).rejects.toThrow(RangeError);
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it("rethrows the Supabase error", async () => {
+    mockResponse({ count: null, data: null, error: SUPABASE_ERROR });
+
+    await expect(getPeriodPurchases(WEEK_BOUNDS)).rejects.toBe(SUPABASE_ERROR);
   });
 });
 

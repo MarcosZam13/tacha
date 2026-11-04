@@ -1,6 +1,8 @@
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
+import { UNSAVED_CHANGES_SOURCE } from "@/constants";
 import { useProductSearch } from "@/hooks/useProductSearch";
+import { useReportUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import type { NullableUndefined } from "@/types/nullable.types";
 import { RECIPE_EDITOR_STATUS, RECIPE_EDITOR_TEXT, RECIPE_ROUTE } from "../constants/recipes.constants";
 import type { RecipeEditorViewModel } from "../models/recipe-editor.interfaces";
@@ -16,7 +18,10 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
   const router = useRouter();
   const editor = useRecipeEditor(recipeId);
   const search = useProductSearch();
-  const { errors, ingredientNotice, saveErrorMessage, status, values } = editor.state;
+  const { errors, hasChanges, ingredientNotice, saveErrorMessage, status, values } = editor.state;
+
+  // Cerrar sesión (SCRUM-55) pide confirmación mientras haya una receta sin guardar.
+  useReportUnsavedChanges(UNSAVED_CHANGES_SOURCE.RECIPE_EDITOR, hasChanges);
 
   // CA-02: el ingrediente queda ligado al producto madre desde que se elige;
   // la cantidad la escribe el usuario después, y la unidad viene sugerida.

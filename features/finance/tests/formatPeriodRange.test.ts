@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SPENDING_PERIOD } from "../constants/finance.constants";
-import { formatPeriodRange } from "../utils/formatPeriodRange";
+import { formatDay, formatPeriodRange } from "../utils/formatPeriodRange";
 import { getPeriodBounds } from "../utils/getPeriodBounds";
 
 const SUNDAY_OCT_18 = new Date(2026, 9, 18, 15, 0);
@@ -36,5 +36,16 @@ describe("formatPeriodRange", () => {
     const bounds = getPeriodBounds(SPENDING_PERIOD.MONTH, SUNDAY_OCT_18);
 
     expect(formatPeriodRange(SPENDING_PERIOD.MONTH, bounds)).toBe("Octubre de 2026");
+  });
+});
+
+describe("formatDay", () => {
+  it("shows the day of a closing time with its weekday, without the time", () => {
+    expect(formatDay(new Date(new Date(2026, 9, 18, 15, 0).toISOString()))).toBe("Domingo 18 de octubre");
+  });
+
+  it("uses the local day at both sides of midnight", () => {
+    expect(formatDay(new Date(new Date(2026, 9, 18, 23, 59).toISOString()))).toBe("Domingo 18 de octubre");
+    expect(formatDay(new Date(new Date(2026, 9, 19, 0, 0).toISOString()))).toBe("Lunes 19 de octubre");
   });
 });

@@ -10,6 +10,7 @@ import { getAuthStorageKey, getRequiredEnv } from "../../support/supabase";
 // interfaz, NO la autenticación real ni la seguridad de la base (E2E.md).
 
 export const FINANCE_PATH = "/finanzas";
+export const FINANCE_HISTORY_PATH = "/finanzas/historial";
 export const LIST_PATH = "/lista";
 export const LOGIN_PATH = "/login";
 
@@ -23,7 +24,7 @@ export const COLD_START_TEST_TIMEOUT_MS = 90_000;
 
 /** Pide las rutas antes de empezar: compiladas, no hay una recarga en medio del test. */
 export const warmUpRoutes = async (request: APIRequestContext): Promise<void> => {
-  for (const path of [PUBLIC_ORIGIN_PATH, LIST_PATH, FINANCE_PATH, LOGIN_PATH]) {
+  for (const path of [PUBLIC_ORIGIN_PATH, LIST_PATH, FINANCE_PATH, FINANCE_HISTORY_PATH, LOGIN_PATH]) {
     await request.get(path);
   }
 };
@@ -75,6 +76,56 @@ const PURCHASES_BY_PERIOD_START: Record<string, { total_amount: number | null }[
   ],
 };
 
+/** Una fila del Historial, como la devuelve la consulta de getPeriodPurchases. */
+export interface HistoryRow {
+  closed_at: string;
+  id: string;
+  stores: { display_name: string } | null;
+  total_amount: number | null;
+}
+
+// Compras del Historial por periodo (E2E.md, E2E-FIN-05), de la más reciente a
+// la más antigua. Horas en UTC: 16:00Z son las 10:00 en Costa Rica.
+const SUNDAY_ROW: HistoryRow = {
+  closed_at: "2026-10-18T16:00:00+00:00",
+  id: "00000000-0000-4000-8000-000000000001",
+  stores: { display_name: "MaxiPali" },
+  total_amount: 10000,
+};
+const WEDNESDAY_ROW: HistoryRow = {
+  closed_at: "2026-10-14T16:00:00+00:00",
+  id: "00000000-0000-4000-8000-000000000002",
+  stores: { display_name: "Walmart" },
+  total_amount: null,
+};
+const MONDAY_ROW: HistoryRow = {
+  closed_at: "2026-10-12T16:00:00+00:00",
+  id: "00000000-0000-4000-8000-000000000003",
+  stores: { display_name: "MasXMenos" },
+  total_amount: 5000,
+};
+const FIFTH_ROW: HistoryRow = {
+  closed_at: "2026-10-05T16:00:00+00:00",
+  id: "00000000-0000-4000-8000-000000000004",
+  stores: { display_name: "MaxiPali" },
+  total_amount: 20000,
+};
+const HISTORY_ROWS_BY_PERIOD_START: Record<string, HistoryRow[]> = {
+  "2026-10-18T06:00:00.000Z": [SUNDAY_ROW],
+  "2026-10-12T06:00:00.000Z": [SUNDAY_ROW, WEDNESDAY_ROW, MONDAY_ROW],
+  "2026-10-01T06:00:00.000Z": [SUNDAY_ROW, WEDNESDAY_ROW, MONDAY_ROW, FIFTH_ROW],
+};
+
+// La consulta del Historial se distingue de la del Dashboard por su select.
+const HISTORY_SELECT_COLUMN = "stores(display_name)";
+
+// El conteo exacto que pide { count: "exact" } llega en este header, y el
+// navegador solo lo deja leer si está expuesto (como hace PostgREST).
+const toContentRangeHeaders = (rowCount: number): Record<string, string> => ({
+  "access-control-expose-headers": "content-range",
+  "content-range": rowCount === 0 ? "*/0" : `0-${rowCount - 1}/${rowCount}`,
+});
+
 const SERVER_ERROR = { code: "XX000", message: "simulated failure" };
 const OK_STATUS = 200;
 const NO_CONTENT_STATUS = 204;
@@ -87,11 +138,18 @@ export interface FinanceStubOptions {
   failBudgets?: boolean;
   /** Si guardar un presupuesto falla siempre. */
   failSave?: boolean;
+  /** Cuántas veces seguidas falla la consulta del Historial antes de responder bien. */
+  failHistoryTimes?: number;
+  /** Las filas del Historial, en lugar de las de cada periodo. */
+  historyRows?: HistoryRow[];
+  /** La consulta del Historial no responde hasta que esta promesa termina. */
+  historyGate?: Promise<void>;
 }
 
 /** Lo que la pantalla le pidió a Supabase, para comprobarlo en el test. */
 export interface FinanceStubRecorder {
   budgetRequests: Request[];
+  historyRequests: Request[];
   rpcRequests: Request[];
   spendingRequests: Request[];
 }
@@ -106,13 +164,26 @@ export const stubFinanceSupabase = async (
   options: FinanceStubOptions = {},
 ): Promise<FinanceStubRecorder> => {
   const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const recorder: FinanceStubRecorder = { budgetRequests: [], rpcRequests: [], spendingRequests: [] };
+  const recorder: FinanceStubRecorder = { budgetRequests: [], historyRequests: [], rpcRequests: [], spendingRequests: [] };
   const savedBudgets = new Map<string, number>();
   let spendingFailuresLeft = options.failSpendingTimes ?? 0;
+  let historyFailuresLeft = options.failHistoryTimes ?? 0;
 
-  await page.route(`${supabaseUrl}/**`, (route) => {
+  await page.route(`${supabaseUrl}/**`, async (route) => {
     const request = route.request();
     const { pathname, searchParams } = new URL(request.url());
+
+    if (pathname.endsWith("/rest/v1/purchase_sessions") && searchParams.get("select")?.includes(HISTORY_SELECT_COLUMN)) {
+      recorder.historyRequests.push(request);
+      await options.historyGate;
+      if (historyFailuresLeft > 0) {
+        historyFailuresLeft -= 1;
+        return route.fulfill({ json: SERVER_ERROR, status: SERVER_ERROR_STATUS });
+      }
+      const periodStart = searchParams.getAll("closed_at").find((filter) => filter.startsWith("gte."))?.slice(4) ?? "";
+      const rows = options.historyRows ?? HISTORY_ROWS_BY_PERIOD_START[periodStart] ?? [];
+      return route.fulfill({ headers: toContentRangeHeaders(rows.length), json: rows, status: OK_STATUS });
+    }
 
     if (pathname.endsWith("/rest/v1/purchase_sessions")) {
       recorder.spendingRequests.push(request);
@@ -162,10 +233,31 @@ export const getSelect = (request: Request): string | null => new URL(request.ur
 // ----------------------------------------------------------------------------
 
 const APP_NAV_NAME = "Secciones de la app";
+const FINANCE_TABS_NAME = "Secciones de finanzas";
+const PURCHASES_LIST_NAME = "Compras del periodo";
+const PRICE_DISCLAIMER_NAME = "Precios estimados";
 
 /** La navegación del shell que se ve en este ancho (sidebar en desktop, tabs en mobile). */
 export const getVisibleAppNav = (page: Page): Locator =>
   page.getByRole("navigation", { name: APP_NAV_NAME }).filter({ visible: true });
+
+export const getFinanceTabs = (page: Page): Locator => page.getByRole("navigation", { name: FINANCE_TABS_NAME });
+
+export const getFinanceTab = (page: Page, name: string): Locator => getFinanceTabs(page).getByRole("link", { name });
+
+export const getPurchaseList = (page: Page): Locator => page.getByRole("list", { name: PURCHASES_LIST_NAME });
+
+export const getPurchaseRows = (page: Page): Locator => getPurchaseList(page).getByRole("listitem");
+
+export const getPriceDisclaimer = (page: Page): Locator =>
+  page.getByRole("complementary", { name: PRICE_DISCLAIMER_NAME });
+
+/** El bloque del total del periodo, con sus contadores. */
+export const getTotalSection = (page: Page): Locator => page.locator("section").filter({ hasText: "Gastado" });
+
+/** true si la página se puede desplazar a los lados en este ancho. */
+export const hasHorizontalOverflow = (page: Page): Promise<boolean> =>
+  page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
 
 export const getPeriodGroup = (page: Page): Locator => page.getByRole("group", { name: "Periodo" });
 

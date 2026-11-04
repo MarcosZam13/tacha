@@ -35,6 +35,9 @@ const { DATE_CONNECTOR, RANGE_CONNECTOR } = PERIOD_RANGE_FORMAT;
 const toDayText = (parts: DateParts, withYear: boolean): string =>
   `${parts.weekday} ${parts.day}${DATE_CONNECTOR}${parts.month}${withYear ? `${DATE_CONNECTOR}${parts.year}` : ""}`;
 
+/** Un día con su día de la semana, sin el año: "Domingo 18 de octubre". */
+export const formatDay = (date: Date): string => capitalize(toDayText(toDateParts(date), false));
+
 /**
  * Las fechas de un periodo, para ver qué se está sumando (SPEC regla 9):
  * - día: "Domingo 18 de octubre";
@@ -46,7 +49,7 @@ const toDayText = (parts: DateParts, withYear: boolean): string =>
 export const formatPeriodRange = (period: SpendingPeriodType, bounds: PeriodBounds): string => {
   const first = toDateParts(bounds.start);
 
-  if (period === SPENDING_PERIOD.DAY) return capitalize(toDayText(first, false));
+  if (period === SPENDING_PERIOD.DAY) return formatDay(bounds.start);
   if (period === SPENDING_PERIOD.MONTH) return capitalize(`${first.month}${DATE_CONNECTOR}${first.year}`);
 
   // SPENDING_PERIOD.WEEK: el único que queda en la unión.

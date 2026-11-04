@@ -12,7 +12,11 @@ export const createProfilePage = () => {
     screen.queryByRole("button", { name: PROFILE_TEXT.REMOVE_PHOTO });
   const queryConfirmation = (): HTMLElement | null => screen.queryByText(PROFILE_SUCCESS_MESSAGE);
   const queryAlert = (): HTMLElement | null => screen.queryByRole("alert");
+  const getSignOutButton = (): HTMLElement => screen.getByRole("button", { name: "Cerrar sesión" });
+  const queryConfirmDialog = (): HTMLElement | null => screen.queryByRole("dialog", { name: "¿Cerrar sesión?" });
   const getHeading = (): HTMLElement => screen.getByRole("heading", { name: PROFILE_TEXT.TITLE });
+  const getChangePasswordLink = (): HTMLElement =>
+    screen.getByRole("link", { name: PROFILE_TEXT.CHANGE_PASSWORD });
 
   const replaceName = async (name: string): Promise<void> => {
     await user.clear(getNameInput());
@@ -21,6 +25,10 @@ export const createProfilePage = () => {
 
   const choosePhoto = async (file: File): Promise<void> => {
     await user.upload(getPhotoInput(), file);
+  };
+
+  const clickSignOut = async (): Promise<void> => {
+    await user.click(getSignOutButton());
   };
 
   const save = async (): Promise<void> => {
@@ -33,10 +41,14 @@ export const createProfilePage = () => {
 
   return {
     choosePhoto,
+    clickSignOut,
+    getChangePasswordLink,
     getHeading,
     getNameInput,
     getSaveButton,
+    getSignOutButton,
     queryAlert,
+    queryConfirmDialog,
     queryConfirmation,
     queryRemovePhotoButton,
     removePhoto,
