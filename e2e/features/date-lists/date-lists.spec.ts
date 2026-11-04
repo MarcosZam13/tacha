@@ -23,6 +23,31 @@ const fillCreateForm = async (page: Page, eventDate: string): Promise<void> => {
 const getListCard = (page: Page) =>
   page.getByRole("list", { name: "Sublistas del mes" }).getByRole("link", { name: new RegExp(LIST_NAME) });
 
+const getPendingCheckbox = (page: Page) => page.getByRole("checkbox", { checked: false, name: /^Tachar / });
+const getCheckedCheckbox = (page: Page) => page.getByRole("checkbox", { checked: true, name: /^Tachar / });
+
+// Espera a que termine de guardarse el cambio anterior: mientras tanto la fila está deshabilitada.
+const waitForSave = async (page: Page): Promise<void> => {
+  await expect(page.getByRole("checkbox", { name: /^Tachar / }).first()).toBeEnabled();
+};
+
+// Dos productos distintos, para que no se sumen en la misma fila.
+const createListWithTwoProducts = async (page: Page): Promise<void> => {
+  await fillCreateForm(page, FUTURE_DATE);
+  await getListCard(page).click();
+  await expect(page).toHaveURL(DETAIL_URL);
+
+  await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
+  await page.locator("section ul li button").first().click();
+  await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(1);
+  await waitForSave(page);
+
+  await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
+  await page.locator("section ul li button").nth(1).click();
+  await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(2);
+  await waitForSave(page);
+};
+
 const getCalendar = (page: Page) => page.getByRole("region", { name: "Calendario de sublistas" });
 
 const addFirstResult = async (page: Page): Promise<void> => {
@@ -109,5 +134,37 @@ test.describe("Sublistas por fecha", () => {
 
     await expect(page.getByRole("button", { name: "Agregar uno" }).locator("..")).toContainText("2");
     await expect(removeButtons).toHaveCount(1);
+  });
+
+  test("E2E-FECHAS-08: tachar todo la completa, y destachar la devuelve a pendiente", async ({ page }) => {
+    await createListWithTwoProducts(page);
+
+    await getPendingCheckbox(page).first().click();
+    await expect(getPendingCheckbox(page)).toHaveCount(1);
+    await expect(page.getByText(/· Pendiente$/)).toBeVisible();
+    await waitForSave(page);
+
+    await getPendingCheckbox(page).first().click();
+    await expect(page.getByText(/· Completada$/)).toBeVisible();
+    await waitForSave(page);
+
+    await getCheckedCheckbox(page).first().click();
+    await expect(page.getByText(/· Pendiente$/)).toBeVisible();
+  });
+
+  test("E2E-FECHAS-09 y 10: cancelar no borra, y reactivar la devuelve", async ({ page }) => {
+    await createListWithTwoProducts(page);
+
+    await page.getByRole("button", { name: "Cancelar sublista" }).click();
+    await page.getByRole("button", { name: "Sí, cancelar" }).click();
+
+    await expect(page.getByText(/· Cancelada$/)).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(2);
+    await expect(page.getByRole("textbox", { name: "Buscar producto" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Reactivar sublista" }).click();
+
+    await expect(page.getByText(/· Pendiente$/)).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Buscar producto" })).toBeVisible();
   });
 });

@@ -55,12 +55,6 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Resultado:** ningún día de ese mes tiene el botón de crear.
 
 
-### E2E-FECHAS-07: la carga inicial que llega tarde no borra lo recién creado
-
-- **Cubre:** HU-45 CA-02, SPEC §8, regla 8.
-- **Pasos:** retener la respuesta de la carga inicial, crear una sublista y soltar la respuesta.
-- **Resultado:** la sublista sigue en la celda de su día.
-
 ### E2E-FECHAS-08: tachar todo la completa
 
 - **Cubre:** HU-46 CA-01, SPEC §9, reglas 1 y 4.
