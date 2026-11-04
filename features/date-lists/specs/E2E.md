@@ -53,3 +53,28 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Cubre:** SPEC §8, regla 4.
 - **Pasos:** ir al mes anterior.
 - **Resultado:** ningún día de ese mes tiene el botón de crear.
+
+
+### E2E-FECHAS-07: la carga inicial que llega tarde no borra lo recién creado
+
+- **Cubre:** HU-45 CA-02, SPEC §8, regla 8.
+- **Pasos:** retener la respuesta de la carga inicial, crear una sublista y soltar la respuesta.
+- **Resultado:** la sublista sigue en la celda de su día.
+
+### E2E-FECHAS-08: tachar todo la completa
+
+- **Cubre:** HU-46 CA-01, SPEC §9, reglas 1 y 4.
+- **Pasos:** crear una sublista con dos productos, tachar los dos, destachar uno.
+- **Resultado:** el estado pasa a "Completada" al tachar el último, y vuelve a "Pendiente" al destachar.
+
+### E2E-FECHAS-09: cancelar no borra
+
+- **Cubre:** HU-46 CA-02, SPEC §9, regla 3.
+- **Pasos:** cancelar una sublista con productos y confirmar.
+- **Resultado:** dice "Cancelada", los productos siguen, el buscador ya no está, y en el calendario sale tachada.
+
+### E2E-FECHAS-10: reactivar
+
+- **Cubre:** SPEC §9, regla 5.
+- **Pasos:** reactivar la sublista cancelada.
+- **Resultado:** vuelve el buscador y el estado se recalcula.

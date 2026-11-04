@@ -17,3 +17,13 @@
 - [x] `DateCalendar` y agenda del mes
 - [x] Estados con color, marca y tachado en la celda
 - [x] E2E y revisión en navegador, desktop y 360 px
+- [x] La carga inicial que llega tarde no borra lo recién creado, con prueba
+
+# Tareas: SCRUM-78
+
+- [x] Migración 043 con su prueba SQL (13 casos, en Postgres local)
+- [x] Prueba de la carrera de los dos últimos productos
+- [x] Tachar, cancelar y reactivar en el detalle, con pruebas de pantalla
+- [ ] Reservar el número 043 con el grupo: Daniel también usa migraciones
+- [ ] Aplicar 043 a la base compartida, con aviso al grupo, y regenerar los tipos
+- [ ] E2E-FECHAS-08 a 10 contra la base y revisión en navegador
