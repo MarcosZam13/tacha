@@ -72,11 +72,11 @@ Pasa lo mismo con los dos aciertos que cita el ticket, que hoy no están asignad
 
 ## 5. Criterios de aceptación (Jira, adaptados)
 
-- [ ] Correr el normalizador dos veces sobre el mismo conjunto de filas da siempre el mismo resultado, incluso en casos de empate, en las dos ramas (criterio de idempotencia ya existente, extendido a este caso).
-- [ ] Un producto bajo un prefijo ancho (`Helado`/`Arroz`) sin ningún `match_keywords` de esa madre en el nombre ya no matchea automáticamente por categoría sola (caso de prueba sintético, ver plan.md §4).
-- [ ] Un producto bajo un prefijo de 3 segmentos (ej. `Leche condensada`) sigue matcheando por categoría sola, como hoy.
-- [ ] Sobre las filas reales de staging, las únicas asignaciones que cambian son las del "efecto conocido" de §4 (plan.md §5).
-- [ ] Migración sigue la regla de SCRUM-134.
+- [x] Correr el normalizador dos veces sobre el mismo conjunto de filas da siempre el mismo resultado, incluso en casos de empate, en las dos ramas (criterio de idempotencia ya existente, extendido a este caso).
+- [x] Un producto bajo un prefijo ancho (`Helado`/`Arroz`) sin ningún `match_keywords` de esa madre en el nombre ya no matchea automáticamente por categoría sola (caso de prueba sintético, ver plan.md §4).
+- [x] Un producto bajo un prefijo de 3 segmentos (ej. `Leche condensada`) sigue matcheando por categoría sola, como hoy.
+- [x] Sobre las filas reales de staging, las únicas asignaciones que cambian son las del "efecto conocido" de §4 (plan.md §5).
+- [x] Migración sigue la regla de SCRUM-134.
 
 ## 6. Aviso al equipo
 
