@@ -9,3 +9,4 @@
 - [x] Revisión en navegador con cuenta con familia y sin familia
 - [x] documento-proyecto §6
 - [x] La carga inicial que llega tarde no borra lo recién creado, con prueba
+- [x] La carga que ya trae lo recién creado no lo duplica, con prueba

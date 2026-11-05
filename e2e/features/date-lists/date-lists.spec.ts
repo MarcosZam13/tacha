@@ -62,6 +62,37 @@ test.describe("Sublistas por fecha", () => {
     await expect(getListCard(page)).toContainText("Pendiente");
   });
 
+  test("E2E-FECHAS-11: la carga que ya trae lo recién creado no lo duplica", async ({ page }) => {
+    // El orden inverso a E2E-FECHAS-07: crear ya guardó en la base, la carga trae la sublista
+    // y responde primero, y la respuesta de crear llega de última.
+    let markSaved = (): void => {};
+    let releaseCreate = (): void => {};
+    const savedInDatabase = new Promise<void>((resolve) => {
+      markSaved = resolve;
+    });
+    const createHeld = new Promise<void>((resolve) => {
+      releaseCreate = resolve;
+    });
+    await page.route(CREATE_RPC_URL, async (route) => {
+      const response = await route.fetch();
+      markSaved();
+      await createHeld;
+      await route.fulfill({ response });
+    });
+    await page.route(LOAD_LISTS_URL, async (route) => {
+      await savedInDatabase;
+      await route.fulfill({ response: await route.fetch() });
+    });
+    await page.goto(DATE_LISTS_PATH);
+
+    await fillCreateForm(page, FUTURE_DATE);
+    await expect(getListCard(page)).toHaveCount(1);
+    releaseCreate();
+    await expect(page.getByRole("button", { name: "Crear sublista" })).toHaveCount(0);
+
+    await expect(getListCard(page)).toHaveCount(1);
+  });
+
   test("E2E-FECHAS-02: una fecha pasada no se acepta", async ({ page }) => {
     await fillCreateForm(page, PAST_DATE);
 

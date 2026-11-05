@@ -35,3 +35,9 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Cubre:** SPEC §5, regla 8.
 - **Pasos:** retener la respuesta de la carga hasta que termine de crearse una sublista.
 - **Resultado:** la sublista sigue en pantalla cuando llega la carga.
+
+### E2E-FECHAS-11: la carga que ya trae lo recién creado no lo duplica
+
+- **Cubre:** SPEC §5, regla 8.
+- **Pasos:** retener la respuesta de crear hasta que la carga, que ya trae la sublista, haya respondido.
+- **Resultado:** la sublista se ve una sola vez.
