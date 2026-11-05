@@ -5,8 +5,8 @@ Ver [SPEC.md](SPEC.md). Skills que aplican: `clean-code-practices` (función plp
 ## 1. Archivos nuevos/tocados
 
 ```
-supabase/migrations/0NN_fix_normalize_staging_tiebreak.sql   ← nuevo (número a coordinar con el grupo al crearlo; al 2026-11-04 el último aplicado en la base y en el repo es 042)
-supabase/tests/0NN_fix_normalize_staging_tiebreak.test.sql    ← nuevo, mismo patrón que 020
+supabase/migrations/044_fix_normalize_staging_tiebreak.sql   ← nuevo (número coordinado con el grupo; la 043 corresponde a otra historia)
+supabase/tests/044_fix_normalize_staging_tiebreak.test.sql    ← nuevo, mismo patrón que 020
 ```
 
 La migración hace `create or replace function normalize_staging_row` con el cuerpo completo de `020`. Solo cambian los dos `select ... into v_product_id` (§2 y §2b). Además, vuelve a aplicar el hardening de `020` (`search_path`, `revoke execute`) después del `create or replace`, igual que hizo `042`.
@@ -94,7 +94,7 @@ limit 1;
 - **`name` (de `product_catalog`)** también sería estable, pero necesita un join que hoy la consulta no tiene, y su orden depende de la collation (tildes: "Jabón", "Repostería").
 - Las tres claves son igual de arbitrarias en cuál gana. La clave final solo garantiza que el resultado sea **el mismo** en cada corrida, no que sea **el correcto** (SPEC §4, efecto conocido). Elegir la madre "correcta" en un empate cambia cómo se puntúan los keywords, y eso queda fuera de alcance.
 
-## 4. Tests (`supabase/tests/0NN_fix_normalize_staging_tiebreak.test.sql`, mismo patrón que `020_curated_mothers.test.sql`)
+## 4. Tests (`supabase/tests/044_fix_normalize_staging_tiebreak.test.sql`, mismo patrón que `020_curated_mothers.test.sql`)
 
 Casos:
 - **Empate en rama de categoría:** con las 12 reglas actuales y el cambio de §2 no se puede armar un empate real en esta rama (verificado 2026-11-04). Los dos pares que comparten prefijo son anchos, así que con 0 hits ninguna regla entra. Con hits, cada par se separa por `exclude_keywords`: Dulces excluye "chocolate" y Leche excluye "coco". Por eso el test inserta, dentro de su transacción, dos madres y reglas sintéticas con el mismo prefijo de 3 segmentos y el mismo keyword, y una fila que matchea las dos. Correr el normalizador 2 veces y confirmar que las 2 veces da la madre de menor `product_catalog_id`.
@@ -108,5 +108,5 @@ No se puede repetir la validación de SCRUM-131 (correr el normalizador en `begi
 
 - **Chequeo estático sobre las filas `matched`:** para cada fila asignada a una madre con prefijo ancho, confirmar que el nombre contiene al menos un `match_keywords` de esa madre. Las que no lo contienen son las que cambian. Resultado esperado: las 10 filas del "efecto conocido" (SPEC §4). Consulta de solo lectura en `.local.md`.
 - **Las 2 filas `pending` con categorías:** correr el normalizador nuevo sobre ellas en `begin...rollback` y reportar el resultado.
-- `supabase/tests/0NN_fix_normalize_staging_tiebreak.test.sql` pasa completo, incluido correr los casos de empate 2+ veces.
+- `supabase/tests/044_fix_normalize_staging_tiebreak.test.sql` pasa completo, incluido correr los casos de empate 2+ veces.
 - `select version, name from supabase_migrations.schema_migrations order by version;` incluye la fila nueva.
