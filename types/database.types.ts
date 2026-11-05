@@ -1087,6 +1087,10 @@ export type Database = {
         }
         Returns: string
       }
+      date_list_status_from_items: {
+        Args: { target_list_id: string }
+        Returns: string
+      }
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
