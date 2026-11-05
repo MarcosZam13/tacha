@@ -14,9 +14,12 @@
 --      prefijo de 3 segmentos y el mismo keyword (con las 12 reglas reales
 --      este empate no se puede armar — SPEC §1). Gana la de menor
 --      product_catalog_id, en dos corridas.
---   2. Empate en la rama de respaldo: nombre real "Chocolate Milka de Leche"
---      (Chocolate | Leche, 1 keyword cada una), sin categorías. Mismo
---      resultado en dos corridas, y es la de menor product_catalog_id.
+--   2. Empate en la rama de respaldo: dos madres sintéticas sin prefijo y con
+--      el mismo keyword, filas sin categorías. Gana la de menor
+--      product_catalog_id, en dos corridas. Además, el nombre real
+--      "Chocolate Milka de Leche" (Chocolate | Leche) da la misma madre en
+--      dos corridas — sin fijar cuál, para que una madre nueva en
+--      madres.json no rompa el test.
 --   3. Over-matching bloqueado: "/Alimentos Congelados/Pizzas/" (prefijo
 --      ancho de "Helado") sin ningún keyword → queda pending.
 --   4. Prefijo ancho con keyword: "Helado de Vainilla" bajo
@@ -25,6 +28,10 @@
 --      "condensada" en el nombre sigue matcheando "Leche condensada".
 --   6. El hardening de 020 (search_path, sin execute para anon/authenticated)
 --      sigue después del create or replace.
+--
+-- En los empates, cada corrida usa una fila distinta con los mismos datos:
+-- correr dos veces la misma fila no sirve, porque la segunda vez ya no está
+-- pending y normalize_staging_row la rechaza sin elegir madre.
 --
 -- Ejecutarlo completo, nunca por partes: sin el begin/rollback quedarían los
 -- datos de prueba en la base compartida.
@@ -35,15 +42,20 @@ begin;
 do $$
 declare
   v_store_id uuid;
-  -- Madre A tiene el id menor. La regla de B se inserta primero, para que
-  -- ganar por orden de inserción no se confunda con ganar por el desempate.
+  -- Madres A y C tienen el id menor de su par. Las reglas de B y D se
+  -- insertan primero, para que ganar por orden de inserción no se confunda
+  -- con ganar por el desempate.
   v_madre_a uuid := '00000000-0000-4000-8000-000000000139';
   v_madre_b uuid := 'ffffffff-ffff-4fff-8fff-000000000139';
+  v_madre_c uuid := '00000000-0000-4000-8000-000000000044';
+  v_madre_d uuid := 'ffffffff-ffff-4fff-8fff-000000000044';
   v_categorias_empate jsonb := '["/Prueba T44/Sub/Hoja/", "/Prueba T44/Sub/", "/Prueba T44/"]';
   v_staging_empate_1 uuid := gen_random_uuid();
   v_staging_empate_2 uuid := gen_random_uuid();
   v_staging_respaldo_1 uuid := gen_random_uuid();
   v_staging_respaldo_2 uuid := gen_random_uuid();
+  v_staging_real_1 uuid := gen_random_uuid();
+  v_staging_real_2 uuid := gen_random_uuid();
   v_staging_pizza uuid := gen_random_uuid();
   v_staging_helado uuid := gen_random_uuid();
   v_staging_condensada uuid := gen_random_uuid();
@@ -52,11 +64,18 @@ begin
 
   insert into product_catalog (id, name) values
     (v_madre_b, 'Madre B Prueba T44'),
-    (v_madre_a, 'Madre A Prueba T44');
+    (v_madre_a, 'Madre A Prueba T44'),
+    (v_madre_d, 'Madre D Prueba T44'),
+    (v_madre_c, 'Madre C Prueba T44');
   insert into product_mother_rules (product_catalog_id, match_keywords, exclude_keywords, vtex_category_prefix)
   values (v_madre_b, array['zzt44'], '{}', '/Prueba T44/Sub/Hoja/');
   insert into product_mother_rules (product_catalog_id, match_keywords, exclude_keywords, vtex_category_prefix)
   values (v_madre_a, array['zzt44'], '{}', '/Prueba T44/Sub/Hoja/');
+  -- Sin prefijo: solo pueden entrar por la rama de respaldo.
+  insert into product_mother_rules (product_catalog_id, match_keywords, exclude_keywords, vtex_category_prefix)
+  values (v_madre_d, array['zzr44'], '{}', null);
+  insert into product_mother_rules (product_catalog_id, match_keywords, exclude_keywords, vtex_category_prefix)
+  values (v_madre_c, array['zzr44'], '{}', null);
 
   -- Caso 1: dos filas iguales, una por corrida.
   insert into product_catalog_staging (id, store_id, raw_json, scraped_name, scraped_brand, scraped_size_text, status)
@@ -68,12 +87,16 @@ begin
      jsonb_build_object('product', jsonb_build_object('categories', v_categorias_empate), 'offer', '{"Price": 1000}'::jsonb),
      'Producto zzt44 Prueba T44', 'Prueba', '100 g', 'pending');
 
-  -- Caso 2: sin categorías, decide el respaldo por keyword.
+  -- Caso 2: sin categorías, decide el respaldo por keyword (sintético y real).
   insert into product_catalog_staging (id, store_id, raw_json, scraped_name, scraped_brand, scraped_size_text, status)
   values
     (v_staging_respaldo_1, v_store_id, '{"offer": {"Price": 1500}}'::jsonb,
-     'Chocolate Milka de Leche Prueba T44', 'Milka', '90 g', 'pending'),
+     'Producto zzr44 Prueba T44', 'Prueba', '90 g', 'pending'),
     (v_staging_respaldo_2, v_store_id, '{"offer": {"Price": 1500}}'::jsonb,
+     'Producto zzr44 Prueba T44', 'Prueba', '90 g', 'pending'),
+    (v_staging_real_1, v_store_id, '{"offer": {"Price": 1500}}'::jsonb,
+     'Chocolate Milka de Leche Prueba T44', 'Milka', '90 g', 'pending'),
+    (v_staging_real_2, v_store_id, '{"offer": {"Price": 1500}}'::jsonb,
      'Chocolate Milka de Leche Prueba T44', 'Milka', '90 g', 'pending');
 
   -- Caso 3: prefijo ancho de "Helado", nombre sin keyword de ninguna madre.
@@ -101,6 +124,9 @@ begin
   );
 
   perform set_config('tacha_test.madre_a', v_madre_a::text, true);
+  perform set_config('tacha_test.madre_c', v_madre_c::text, true);
+  perform set_config('tacha_test.staging_real_1', v_staging_real_1::text, true);
+  perform set_config('tacha_test.staging_real_2', v_staging_real_2::text, true);
   perform set_config('tacha_test.staging_empate_1', v_staging_empate_1::text, true);
   perform set_config('tacha_test.staging_empate_2', v_staging_empate_2::text, true);
   perform set_config('tacha_test.staging_respaldo_1', v_staging_respaldo_1::text, true);
@@ -131,31 +157,34 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
--- 2. Empate en la rama de respaldo: mismo resultado en las dos corridas, y es
---    la de menor product_catalog_id entre "Chocolate" y "Leche".
+-- 2. Empate en la rama de respaldo: gana la madre de menor id, siempre; y el
+--    nombre real empatado da la misma madre en las dos corridas.
 -- ----------------------------------------------------------------------------
 do $$
 declare
+  v_madre_c uuid := current_setting('tacha_test.madre_c')::uuid;
   v_result_1 record;
   v_result_2 record;
-  v_esperada uuid;
+  v_real_1 record;
+  v_real_2 record;
 begin
-  select pmr.product_catalog_id into v_esperada
-  from product_mother_rules pmr
-  join product_catalog pc on pc.id = pmr.product_catalog_id
-  where pc.name in ('Chocolate', 'Leche')
-  order by pmr.product_catalog_id
-  limit 1;
-
   select * into v_result_1 from normalize_staging_row(current_setting('tacha_test.staging_respaldo_1')::uuid);
   select * into v_result_2 from normalize_staging_row(current_setting('tacha_test.staging_respaldo_2')::uuid);
 
   assert v_result_1.success and v_result_2.success,
     'Empate respaldo: se esperaba success=true en las dos corridas';
-  assert v_result_1.product_catalog_id = v_result_2.product_catalog_id,
-    'Empate respaldo: las dos corridas dieron madres distintas';
-  assert v_result_1.product_catalog_id = v_esperada,
-    'Empate respaldo: se esperaba la madre de menor id entre Chocolate y Leche';
+  assert v_result_1.product_catalog_id = v_madre_c,
+    'Empate respaldo, corrida 1: se esperaba la madre de menor id, dio ' || v_result_1.product_catalog_id;
+  assert v_result_2.product_catalog_id = v_madre_c,
+    'Empate respaldo, corrida 2: se esperaba la madre de menor id, dio ' || v_result_2.product_catalog_id;
+
+  select * into v_real_1 from normalize_staging_row(current_setting('tacha_test.staging_real_1')::uuid);
+  select * into v_real_2 from normalize_staging_row(current_setting('tacha_test.staging_real_2')::uuid);
+
+  assert v_real_1.success and v_real_2.success,
+    'Empate respaldo, nombre real: se esperaba success=true en las dos corridas';
+  assert v_real_1.product_catalog_id = v_real_2.product_catalog_id,
+    'Empate respaldo, nombre real: las dos corridas dieron madres distintas';
 end $$;
 
 -- ----------------------------------------------------------------------------

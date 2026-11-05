@@ -9,5 +9,5 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
 - [x] **5. Chequeo estático de regresión** sobre las filas `matched` (plan.md §5): solo cambian las del efecto conocido de SPEC §4.
 - [ ] **6. Aplicar la migración en serio**, con autorización explícita de Daniel y aviso al grupo antes de correrla.
   - Validación: `select version, name from supabase_migrations.schema_migrations order by version;` incluye la fila nueva.
-- [ ] **7. Subagentes de revisión** antes de QA: `code-reviewer` (la función plpgsql y el test SQL).
+- [x] **7. Subagentes de revisión** antes de QA: `code-reviewer` (la función plpgsql y el test SQL).
 - [ ] **8. Completar la PR:** descripción con la plantilla del repo, label `in progress` → `waiting qa`, mover la tarjeta de Jira. Mencionar en la descripción que SCRUM-138 es el otro prerequisito de SCRUM-132 y que ambos se coordinaron juntos.

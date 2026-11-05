@@ -15,8 +15,9 @@
 --
 -- El resto del cuerpo es el de la migración 020, sin cambios. La firma no
 -- cambia (create or replace). Igual que la 042, se vuelve a aplicar al final
--- el hardening de la 020 (search_path, revoke execute) por si create or
--- replace no lo conservara.
+-- el hardening de la 020: el search_path es necesario, porque create or
+-- replace sin cláusula SET reemplaza la configuración de la función y lo
+-- borra; el revoke execute se repite como defensa en profundidad.
 -- ============================================================================
 
 create or replace function normalize_staging_row(staging_id uuid)
@@ -220,7 +221,7 @@ $$ language plpgsql;
 comment on function normalize_staging_row(uuid) is
   'Procesa UNA fila de product_catalog_staging. Asigna a una madre curada (product_mother_rules) por categoría de VTEX (señal principal) o match_keywords (respaldo/desempate) — nunca crea una madre nueva. Sin match, la fila queda pending. Marca matched/rejected según corresponda. SCRUM-131 (supabase/specs/SCRUM-131/SPEC.md §6); SCRUM-139: desempate final por product_catalog_id y prefijo ancho (≤ 2 segmentos) exige keyword (supabase/specs/SCRUM-139/SPEC.md).';
 
--- Repetir el hardening de la migración 020 por si create or replace no lo
--- conservara (defensa en profundidad, sin costo).
+-- Repetir el hardening de la migración 020. El search_path hay que volver a
+-- fijarlo (create or replace lo borra); el revoke es defensa en profundidad.
 alter function normalize_staging_row(uuid) set search_path = public;
 revoke execute on function normalize_staging_row(uuid) from anon, authenticated, public;
