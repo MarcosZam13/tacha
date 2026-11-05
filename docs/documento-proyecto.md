@@ -189,6 +189,7 @@ Ya existía la idea de "producto propio por household" (primer bullet de esta se
   - Es razonable que este componente sea el que más tiempo de desarrollo tome del equipo — vale la pena asignarlo a quien tenga más experiencia con scraping/backend.
 
 - **Decisión 2026-11-01 (SCRUM-138) — convertir galones a `ml` en `parse_size_text` (1 gal ≈ 3785 ml), no una unidad `gal` independiente:** mismo patrón que litros→ml y kilogramos→g, que ya convierten a la unidad base más fina en vez de preservar la unidad original de la etiqueta. Una unidad `gal` aparte rompería esa consistencia y obligaría a toda la capa de agregación de precios/variantes a conocer una unidad más.
+- **Decisión 2026-11-01 (SCRUM-139) — exigir al menos un `match_keywords` también en la rama de categoría de `normalize_staging_row` cuando el `vtex_category_prefix` es ancho, en vez de angostar los prefijos en `supabase/data/madres.json`:** mismo criterio que ya usa la rama de respaldo (solo por keyword, SCRUM-131). Se descarta angostar los prefijos porque requeriría mapear el árbol completo de categorías de VTEX para cada madre con prefijo ancho (ej. "Helado" → `/Alimentos Congelados/`, "Arroz" → `/Abarrotes/Arroz, Frijol y Semillas/`) antes de poder escribirlo, sin tener esa taxonomía completa disponible hoy; exigir keyword no depende de conocerla y reusa una condición que la función ya tiene en la otra rama. Qué cuenta como "ancho" y el desempate final: [supabase/specs/SCRUM-139/SPEC.md](../supabase/specs/SCRUM-139/SPEC.md) §2-§3.
 
 ### 4.8 Sugerencias de dónde comprar
 
