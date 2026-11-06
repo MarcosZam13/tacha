@@ -204,7 +204,7 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
 |---|---|---|
 | CA-01 (selector, Semana por defecto, navegación) | E2E-FIN-01 | `useFinanceDashboardViewModel.test.ts` |
 | CA-02 (recalcular sin recargar, compras sin total aparte) | E2E-FIN-01 | `getPeriodBounds.test.ts`, `summarizeSpending.test.ts`, `usePeriodSpending.test.ts` |
-| CA-03 (presupuesto por periodo, diferencia) | E2E-FIN-02, E2E-FIN-03 | `parseBudgetAmount.test.ts`, `useSpendingBudgets.test.ts`, prueba SQL 027 |
+| CA-03 (presupuesto por periodo, diferencia) | E2E-FIN-02, E2E-FIN-03 | `parseColonesAmount.test.ts`, `useSpendingBudgets.test.ts`, prueba SQL 027 |
 | D6 (solo cuentas registradas) | E2E-FIN-04 (interfaz) | `finance.service.test.ts`, `useFinanceDashboardViewModel.test.ts`, prueba SQL 027 (base), prueba manual (sesión anónima real) |
 | D4 (solo el gasto propio) | — (lo decide la RLS de `purchase_sessions`) | Prueba manual con dos cuentas de la misma familia |
 | HU-59 CA-01 (sub-tab y lista) | E2E-FIN-05 | `finance.service.test.ts`, `usePurchaseHistoryViewModel.test.ts`, `PurchaseHistory.test.tsx`, prueba manual (`stores` real) |
@@ -235,7 +235,9 @@ Mismos reloj, zona horaria y compras del Historial de E2E-FIN-05, con estos camb
 | `POST /rest/v1/rpc/set_purchase_session_total` | La compra con el total nuevo; el helper la recuerda para la siguiente lectura |
 | `POST /rest/v1/rpc/set_period_total` | El ajuste calculado por el helper, o ninguna fila si se quitó |
 
-Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados esperados no cambian.
+Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados esperados no cambian. Sin `savedTimeZone`, `rpc/get_period_finance` responde sin zona y la pantalla lee como antes; con ella, el helper responde desde un estado en memoria que comparten las tres RPC de escritura. Sin zona guardada, las dos RPC de edición responden `TZ001`. Los errores (`500`, `23514`) se encolan por RPC con `purchaseTotalErrors` y `periodTotalErrors`.
+
+**Última corrida:** 2026-11-05, `npx playwright test e2e/features/finance`: 40 de 40 (E2E-FIN-01 a 14, en `chromium` y `mobile-chrome`). Sin commit todavía.
 
 ### E2E-FIN-09: editar el total de una compra (SCRUM-91)
 
@@ -263,7 +265,7 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
   4. Editar otra vez a `15000`.
 - **Resultado esperado:**
   - La petición a `rpc/set_period_total` lleva el periodo y el total deseado, sin dueño, diferencia ni zona.
-  - **₡20 000:** aparece «Ajuste manual» con «+₡5 000» y sin lápiz. Las compras conservan sus montos; «Compras» sigue en 2 y «Sin total» en 1.
+  - **₡20 000:** aparece «Ajuste manual» con «+₡5 000», el nivel «Total de la semana» y sin lápiz. Las compras conservan sus montos; «Compras» sigue en 2 y «Sin total» en 1.
   - **₡18 000:** una sola fila de ajuste, con «+₡3 000».
   - **₡15 000:** la fila de ajuste desaparece.
 
@@ -276,8 +278,8 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
   2. Tocar «Dashboard», sin recargar.
 - **Resultado esperado:**
   - El Dashboard dice ₡20 000, «Incluye ajustes manuales» y «Te quedan ₡10 000»; «Compras» sigue en 2.
-  - La petición de gasto lleva `count=exact` y también se pidieron los ajustes.
-  - No hay ningún lápiz de total.
+  - Con la zona guardada, el gasto sale de `rpc/get_period_finance` (compras, ajustes y total en una sola lectura) y no hay consulta separada a `purchase_sessions`. Sin zona, la consulta de gasto lleva `count=exact` (E2E-FIN-01).
+  - No hay ningún lápiz de total ni fila «Ajuste manual».
 
 ### E2E-FIN-12: validación y errores al guardar (SCRUM-91)
 
