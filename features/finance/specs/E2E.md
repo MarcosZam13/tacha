@@ -204,7 +204,7 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
 |---|---|---|
 | CA-01 (selector, Semana por defecto, navegación) | E2E-FIN-01 | `useFinanceDashboardViewModel.test.ts` |
 | CA-02 (recalcular sin recargar, compras sin total aparte) | E2E-FIN-01 | `getPeriodBounds.test.ts`, `summarizeSpending.test.ts`, `usePeriodSpending.test.ts` |
-| CA-03 (presupuesto por periodo, diferencia) | E2E-FIN-02, E2E-FIN-03 | `parseBudgetAmount.test.ts`, `useSpendingBudgets.test.ts`, prueba SQL 027 |
+| CA-03 (presupuesto por periodo, diferencia) | E2E-FIN-02, E2E-FIN-03 | `parseColonesAmount.test.ts`, `useSpendingBudgets.test.ts`, prueba SQL 027 |
 | D6 (solo cuentas registradas) | E2E-FIN-04 (interfaz) | `finance.service.test.ts`, `useFinanceDashboardViewModel.test.ts`, prueba SQL 027 (base), prueba manual (sesión anónima real) |
 | D4 (solo el gasto propio) | — (lo decide la RLS de `purchase_sessions`) | Prueba manual con dos cuentas de la misma familia |
 | HU-59 CA-01 (sub-tab y lista) | E2E-FIN-05 | `finance.service.test.ts`, `usePurchaseHistoryViewModel.test.ts`, `PurchaseHistory.test.tsx`, prueba manual (`stores` real) |
@@ -216,3 +216,119 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
 | Carga, vacío, error y aviso del Historial | E2E-FIN-07 | `usePeriodPurchases.test.ts`, `PurchaseHistory.test.tsx` |
 | D6 en el Historial | E2E-FIN-08 (interfaz) | `useFinanceAccess.test.ts`, prueba manual (sesión anónima real) |
 | D4 en el Historial | — (lo decide la RLS de `purchase_sessions`) | Prueba manual con dos cuentas de la misma familia |
+
+## SCRUM-91: editar el total de una sesión o periodo
+
+Los tests van en `e2e/features/finance/edit-totals.spec.ts`. Igual que los anteriores, usan una **sesión registrada simulada** y **respuestas de Supabase simuladas**, y validan **solo la interfaz**: ni la autenticación real, ni la RLS, ni las RPC, ni el trigger. Lo real lo cubren la prueba SQL `supabase/tests/040_edit_purchase_totals.test.sql` y el QA manual de SPEC §13.
+
+Las combinaciones de validación, de niveles de ajuste y de códigos de error se prueban en niveles más bajos (plan, "Pruebas"). Acá van casos representativos.
+
+### Datos y entorno
+
+Mismos reloj, zona horaria y compras del Historial de E2E-FIN-05, con estos cambios en `finance.helpers.ts`:
+
+| Petición | Respuesta simulada |
+|---|---|
+| `GET /rest/v1/purchase_sessions?select=total_amount…` | Las compras del periodo, ahora con `Content-Range`, por D19. También cambia lo que necesitan E2E-FIN-01 a 04 |
+| `POST /rest/v1/rpc/get_period_finance` | La zona `America/Costa_Rica`, los límites de la tabla de arriba, las compras, los ajustes que recuerda el escenario (empieza sin ninguno) y el total del periodo; con `time_zone: null` en E2E-FIN-14 hasta confirmar |
+| `POST /rest/v1/rpc/set_spending_time_zone` | La fila guardada; el helper la recuerda |
+| `POST /rest/v1/rpc/set_purchase_session_total` | La compra con el total nuevo; el helper la recuerda para la siguiente lectura |
+| `POST /rest/v1/rpc/set_period_total` | El ajuste calculado por el helper, o ninguna fila si se quitó |
+
+Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados esperados no cambian. Sin `savedTimeZone`, `rpc/get_period_finance` responde sin zona y la pantalla lee como antes; con ella, el helper responde desde un estado en memoria que comparten las tres RPC de escritura. Sin zona guardada, las dos RPC de edición responden `TZ001`. Los errores (`500`, `23514`) se encolan por RPC con `purchaseTotalErrors` y `periodTotalErrors`.
+
+**Última corrida:** 2026-11-05, `npx playwright test e2e/features/finance`: 40 de 40 (E2E-FIN-01 a 14, en `chromium` y `mobile-chrome`). Sin commit todavía.
+
+### E2E-FIN-09: editar el total de una compra (SCRUM-91)
+
+- **Cubre:** CA-01; D12, D21 y reglas 47 y 48.
+- **Precondición:** sesión registrada simulada; compras de la semana de E2E-FIN-05. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial`.
+  2. Tocar el lápiz de MaxiPali, escribir `12000` y tocar «Guardar».
+  3. Tocar el lápiz de Walmart («Sin total»), escribir `0` y tocar «Guardar».
+  4. Abrir un lápiz y, sin guardar, abrir otro.
+- **Resultado esperado:**
+  - La petición a `rpc/set_purchase_session_total` lleva la compra y el total, sin dueño ni zona.
+  - **MaxiPali:** ₡12 000, el total del periodo pasa a ₡17 000 y conserva su fecha, sin recargar. `role="status"` anuncia «Total guardado».
+  - **Walmart:** ₡0; «Compras» pasa de 2 a 3 y «Sin total» de 1 a 0.
+  - **Dos lápices:** solo queda abierto el último y el primero no se guardó.
+
+### E2E-FIN-10: editar el total del periodo (SCRUM-91)
+
+- **Cubre:** CA-02; D10, D16 y regla 50.
+- **Precondición:** la misma. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial` (₡15 000).
+  2. Tocar «Editar total de esta semana», escribir `20000` y tocar «Guardar».
+  3. Editar otra vez a `18000`.
+  4. Editar otra vez a `15000`.
+- **Resultado esperado:**
+  - La petición a `rpc/set_period_total` lleva el periodo y el total deseado, sin dueño, diferencia ni zona.
+  - **₡20 000:** aparece «Ajuste manual» con «+₡5 000», el nivel «Total de la semana» y sin lápiz. Las compras conservan sus montos; «Compras» sigue en 2 y «Sin total» en 1.
+  - **₡18 000:** una sola fila de ajuste, con «+₡3 000».
+  - **₡15 000:** la fila de ajuste desaparece.
+
+### E2E-FIN-11: el Dashboard refleja el cambio (SCRUM-91)
+
+- **Cubre:** CA-03; D11 y D19.
+- **Precondición:** la misma, con presupuesto semanal de ₡30 000. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. En el Historial, editar la semana a `20000`.
+  2. Tocar «Dashboard», sin recargar.
+- **Resultado esperado:**
+  - El Dashboard dice ₡20 000, «Incluye ajustes manuales» y «Te quedan ₡10 000»; «Compras» sigue en 2.
+  - Con la zona guardada, el gasto sale de `rpc/get_period_finance` (compras, ajustes y total en una sola lectura) y no hay consulta separada a `purchase_sessions`. Sin zona, la consulta de gasto lleva `count=exact` (E2E-FIN-01).
+  - No hay ningún lápiz de total ni fila «Ajuste manual».
+
+### E2E-FIN-12: validación y errores al guardar (SCRUM-91)
+
+- **Cubre:** D13, D14, D18 y SPEC §7 de SCRUM-91.
+- **Precondición:** la misma. Corre en desktop y en Pixel 7.
+- **Pasos y resultado esperado:**
+  1. **Inválido:** en una compra, dejar vacío y tocar «Guardar», y después `12.5`: se ve «Escribe el monto en colones, solo números (ej. 50000).», sin petición a la RPC.
+  2. **Error al guardar:** la RPC responde `500`; se ve «No se pudo guardar el total. Intenta de nuevo.» (`role="alert"`), el campo conserva lo escrito y el monto no cambia.
+  3. **Reintento:** la segunda respuesta sale bien y el campo se cierra.
+  4. **Negativo:** `rpc/set_period_total` responde con código `23514`; se ve «Ese monto dejaría un periodo en negativo. Revisa el total del día, la semana y el mes.» y no aparece ningún ajuste.
+  5. **Cancelar:** Escape cierra el campo, sin petición, y el foco vuelve al lápiz.
+
+### E2E-FIN-13: editar un periodo sin compras (SCRUM-91)
+
+- **Cubre:** D17 y reglas 47 y 49.
+- **Precondición:** sin compras en el periodo. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial`: ₡0, mensaje de vacío y lápiz del total.
+  2. Editar a `5000`.
+- **Resultado esperado:**
+  - Se ve ₡5 000 y «Ajuste manual» con «+₡5 000», sin el mensaje de vacío.
+  - «Compras» y «Sin total» siguen en 0.
+
+### E2E-FIN-14: confirmar la zona y que el navegador no cambie los periodos (SCRUM-91)
+
+- **Cubre:** reglas 58 y 59.
+- **Precondición:** sesión registrada simulada, sin zona guardada. Corre en desktop y en Pixel 7.
+- **Pasos y resultado esperado:**
+  1. **Sin zona:** en una compra, escribir `12000` y tocar «Guardar»; `rpc/set_purchase_session_total` responde con código `TZ001`. Se ve «Confirma tu zona horaria para guardar este total.», la zona del navegador y «Confirmar», y el campo conserva `12000`. No hubo ninguna petición a `rpc/set_spending_time_zone`.
+  2. **Confirmar:** al tocar «Confirmar», `rpc/set_spending_time_zone` recibe la zona del navegador, se repite la edición y se ve ₡12 000.
+  3. **Otro navegador:** con zona guardada `America/Costa_Rica` y `timezoneId` `Asia/Tokyo`, la pantalla usa los límites de `rpc/get_period_finance`, y sus peticiones de compras y sus fechas son las de la zona guardada. No se pide confirmar nada.
+
+### Cobertura de SCRUM-91
+
+| Criterio | Escenarios E2E | Otros niveles |
+|---|---|---|
+| HU-60 CA-01 | E2E-FIN-09 | `useTotalEdit.test.ts`, `PurchaseHistory.test.tsx`, prueba SQL 040, manual |
+| HU-60 CA-02 | E2E-FIN-10 | `usePeriodPurchases.test.ts`, `summarizeSpending.test.ts`, prueba SQL 040, manual |
+| HU-60 CA-03 y D19 | E2E-FIN-11 | `finance.service.test.ts`, `usePeriodSpending.test.ts`, `FinanceDashboard.test.tsx`, manual |
+| D12, totales nulos y ₡0 | E2E-FIN-09 | `summarizeSpending.test.ts`, `usePurchaseHistoryViewModel.test.ts` |
+| D13 y D14 | E2E-FIN-12 | `parseColonesAmount.test.ts`, prueba SQL 040 |
+| D17 | E2E-FIN-13 | `usePeriodPurchases.test.ts`, prueba SQL 040 |
+| D18 y regla 54 | E2E-FIN-12 (solo el mensaje del código `23514`) | `finance.service.test.ts` (reconoce el código), prueba SQL 040 (el rechazo real, la transacción y las compras históricas) |
+| Regla 48 (compras históricas) | — (el Historial solo muestra el periodo en curso) | Prueba SQL 040 |
+| Regla 58 (zona guardada) | E2E-FIN-14 | `finance.service.test.ts`, `getPeriodBounds.test.ts`, prueba SQL 040 |
+| Reglas 54, 59 y 60 (D18, confirmar y cambiar la zona) | E2E-FIN-12 (mensaje de `23514`), E2E-FIN-14 (confirmar) | `finance.service.test.ts` (reconoce el código), `useTotalEdit.test.ts`, prueba SQL 040 (el rechazo real, el cambio de zona y la zona no reconocida) |
+| Indicación de ajustes en el Dashboard | E2E-FIN-11 | `FinanceDashboard.test.tsx` |
+| D21 | E2E-FIN-09 | `useTotalEdit.test.ts` |
+| D22 | — | `usePurchaseHistoryViewModel.test.ts`, `useTotalEdit.test.ts` |
+| Regla 52 (dónde cuenta) | — | `finance.service.test.ts`, prueba SQL 040 |
+| Trigger, permisos y RLS | — (no llegan a la base) | Prueba SQL 040, manual |
+| D20 (otra pestaña) | — (fuera de alcance) | Límite declarado |

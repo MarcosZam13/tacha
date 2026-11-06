@@ -168,3 +168,63 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Productos de cada compra.
 - [ ] Editar totales (HU-60), badge y recordatorio (HU-61) y filtros (HU-62).
 - [ ] Deuda de SCRUM-69: `getPeriodSpending` puede sumar un resultado cortado por el servidor, sin avisar (plan, "Deuda de SCRUM-69").
+
+## SCRUM-91: editar el total de una sesión o periodo
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir.
+
+### Etapa 0 — Decisiones y specs
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-11-02): D10 a D22, SPEC §5.
+- [x] 0.2 `SPEC.md`, `plan.md`, `tasks.md` y `E2E.md`, sección SCRUM-91.
+- [ ] 0.3 Revisión y aprobación de la documentación.
+- [ ] 0.4 Commit `docs(SCRUM-91): add total editing planning`, push y abrir el PR hacia `develop` con label `in progress`; SCRUM-91 a In Progress en Jira.
+
+### Etapa 1 — Base
+
+- [x] 1.1 Verificar el número libre en `develop` y en los PRs abiertos. Verificado el 2026-11-03: `040`, el reservado para esta historia, no choca con ningún archivo (`develop` tiene `039` y `042`; las ramas abiertas `037`, `038` y `041`).
+- [x] 1.2 Migración (trigger, tablas, índice, RLS, funciones internas y cinco RPC, con `get_period_finance`) y sus pruebas SQL: `supabase/migrations/040_edit_purchase_totals.sql`, `supabase/tests/040_edit_purchase_totals.test.sql` y `supabase/tests/040_time_zone_sweep.test.sql`. Pasaron en un PostgreSQL 17.5 local con `016`, `018` y `040` reales. El barrido no se corrió contra la base: tarda unos 2 minutos.
+- [x] 1.3 Revisión con `security-reviewer`; aprobación; commit `b101369`.
+- [x] 1.4 Aplicada el 2026-11-03 por la dueña de la historia, con su fila `040` en el historial; las tablas, el índice y las cinco RPC existen. La prueba SQL corrió completa en el SQL Editor y terminó en `set_config = ok`, su última sentencia antes del `rollback`: no la alcanza si algún `assert` falla.
+- [ ] 1.5 Tipos en `types/database.types.ts`, comparados con la base; `documento-proyecto.md` §6. Tipos escritos según la migración (commit `b101369`) y §6 actualizada; falta compararlos con los que genera Supabase desde la base.
+
+### Etapa 2 — Lectura y consistencia
+
+- [x] 2.1 Renombrar `parseBudgetAmount` y `BUDGET_AMOUNT` a `parseColonesAmount` y `COLONES_AMOUNT`, sin cambiar su comportamiento.
+- [x] 2.2 `PeriodAdjustment`, constantes, el mapeo de los ajustes de `get_period_finance` y `summarizeSpending`, con sus tests. El adapter es `toPeriodFinance`; el servicio todavía no llama a la RPC (2.3).
+- [x] 2.3 Lectura con `get_period_finance` (SPEC §12, ya en la `040`): `usePeriodSpending` y `usePeriodPurchases` toman de ahí límites, compras, ajustes y total si hay zona guardada, con fechas en esa zona; sin zona, siguen como hoy; con `TZ002`, piden confirmar. Corrige también D19. Con sus tests. Obligatorio antes de ofrecer la edición (plan, "Riesgos"). Con `TZ002`, los hooks quedan en `failed` sin totales y exponen `needsTimeZoneConfirmation`; el aviso con "Confirmar" es de la 3.2.
+- [x] 2.4 `get_period_finance` entra en la `040` (decisión de la dueña de la historia, 2026-11-03).
+
+### Etapa 3 — Lógica de edición
+
+- [x] 3.1 Payload, Response y error tipado; `setPurchaseTotal` y `setPeriodTotal`, con sus tests. `TotalSaveError` lleva el motivo según `error.code` (`TOTAL_SAVE_ERROR_CODE`); un monto inválido es `RangeError` sin llamar a la base.
+- [x] 3.2 `useTotalEdit` y `usePurchaseHistoryViewModel`, con sus tests, incluida la confirmación de la zona (SPEC regla 59). También `setSpendingTimeZone` en el servicio; `usePeriodPurchases` aplica lo guardado sin recargar; el ViewModel arma lápices, campo y aviso de `TZ002` con `EditTotalButtonProps` e `InlineTotalEditorProps`, que dibujan los componentes de la 4.1. Las filas de ajuste son de la 5.1.
+
+### Etapa 4 — Compra (CA-01)
+
+- [x] 4.1 `EditTotalButton`, `InlineTotalEditor` y `PurchaseSessionRow`, con Page Object y tests. Se adelantó de la 5.1 el lápiz y el campo del periodo en `SpendingTotal` y `PurchaseHistory`.
+
+### Etapa 5 — Periodo y Dashboard (CA-02 y CA-03)
+
+- [x] 5.1 `SpendingTotal`, `formatSignedColones`, `PeriodAdjustmentRow` y `PurchaseHistory`, con tests. La lista junta compras y ajustes por fecha; cada ajuste dice su nivel ("Total de la semana") y no tiene lápiz. El Historial también muestra el aviso de `TZ002` con "Confirmar" (`TimeZoneConfirmation`).
+- [x] 5.2 Test de totales iguales entre pantallas (D19), Dashboard sin lápices (D11) e indicación "Incluye ajustes manuales", sin cambiar "Compras". `FinanceDashboard.test.tsx` y `useFinanceDashboardViewModel.test.ts`; con `TZ002` el Dashboard dice por qué no hay total.
+
+### Etapa 6 — E2E
+
+- [x] 6.1 Ajustar `finance.helpers.ts` (conteo del gasto, ajustes y RPC); confirmar que E2E-FIN-01 a 08 siguen pasando. Sin `get_period_finance` simulada fallaban 8 de los 13; con el helper nuevo pasan los 13 en `chromium` y `mobile-chrome` (2026-11-05).
+- [x] 6.2 `e2e/features/finance/edit-totals.spec.ts` (E2E-FIN-09 a 14); correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`. 2026-11-05: 40 de 40 (20 escenarios en los dos proyectos).
+
+### Etapa 7 — QA y cierre
+
+- [x] 7.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`. 2026-11-05, sin commit todavía: los cinco sin errores; Vitest, 1575 tests en 149 archivos. La suite E2E completa dio 122 pasan y 2 fallan, los dos de `shopping-list` en `mobile-chrome`: usan la base compartida real y no tocan Finanzas.
+- [ ] 7.2 Pruebas manuales de SPEC §13 y `TC-SCRUM-91-01` a `08` (plan), con capturas sin correos.
+- [ ] 7.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
+- [ ] 7.4 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [ ] 7.5 Revisar otra vez el número de la migración, traer `develop`, descripción del PR con la evidencia, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Actualizar otra pestaña abierta (D20).
+- [ ] Editar desde el Dashboard (D11) o periodos anteriores (D15).
+- [ ] Volver una compra a "Sin total" (D13).
+- [ ] Badge y recordatorio (HU-61), y filtros (HU-62).
