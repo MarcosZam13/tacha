@@ -91,6 +91,42 @@ test.describe("Sublistas por fecha", () => {
     await expect(getListCard(page)).toContainText("Pendiente");
   });
 
+  test("E2E-FECHAS-11: la carga que ya trae lo recién creado no lo duplica", async ({ page }) => {
+    // El orden inverso a E2E-FECHAS-07: crear ya guardó en la base, la carga trae la sublista
+    // y responde primero, y la respuesta de crear llega de última.
+    let markSaved = (): void => {};
+    let releaseCreate = (): void => {};
+    const savedInDatabase = new Promise<void>((resolve) => {
+      markSaved = resolve;
+    });
+    const createHeld = new Promise<void>((resolve) => {
+      releaseCreate = resolve;
+    });
+    await page.route(CREATE_RPC_URL, async (route) => {
+      const response = await route.fetch();
+      markSaved();
+      await createHeld;
+      await route.fulfill({ response });
+    });
+    await page.route(LOAD_LISTS_URL, async (route) => {
+      await savedInDatabase;
+      await route.fulfill({ response: await route.fetch() });
+    });
+    const loaded = page.waitForResponse(LOAD_LISTS_URL);
+    await page.goto(DATE_LISTS_PATH);
+
+    await fillCreateForm(page, FUTURE_DATE);
+    // Con el calendario, la agenda solo muestra el mes visible, y salta al mes de la sublista
+    // cuando responde crear. Por eso aquí se espera a que la carga termine, no a la tarjeta.
+    await loaded;
+    await expect(page.getByRole("status")).toHaveCount(0);
+    releaseCreate();
+    // exact: los días del calendario también son botones "Crear sublista el ...".
+    await expect(page.getByRole("button", { name: "Crear sublista", exact: true })).toHaveCount(0);
+
+    await expect(getListCard(page)).toHaveCount(1);
+  });
+
   test("E2E-FECHAS-04: la sublista aparece en su día, en otro mes", async ({ page }) => {
     await fillCreateForm(page, FUTURE_DATE);
 

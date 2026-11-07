@@ -21,6 +21,10 @@ describe("insertByDate", () => {
 
     expect(ids(insertByDate([JANUARY, MARCH], sameDate))).toEqual(["enero", "misma-fecha", "marzo"]);
   });
+
+  it("does not duplicate a list the load already brought", () => {
+    expect(ids(insertByDate([JANUARY, CREATED], CREATED))).toEqual(["enero", "creada"]);
+  });
 });
 
 describe("mergeLoadedLists", () => {

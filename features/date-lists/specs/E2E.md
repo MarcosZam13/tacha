@@ -36,6 +36,12 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Pasos:** retener la respuesta de la carga hasta que termine de crearse una sublista.
 - **Resultado:** la sublista sigue en pantalla cuando llega la carga.
 
+### E2E-FECHAS-11: la carga que ya trae lo recién creado no lo duplica
+
+- **Cubre:** SPEC §5, regla 8.
+- **Pasos:** retener la respuesta de crear hasta que la carga, que ya trae la sublista, haya respondido.
+- **Resultado:** la sublista se ve una sola vez.
+
 ### E2E-FECHAS-04: la sublista aparece en su día
 
 - **Cubre:** HU-44 CA-01, CA-03, SPEC §8, regla 3.
