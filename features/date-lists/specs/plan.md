@@ -6,3 +6,10 @@
 4. Feature `features/date-lists`: servicio, dos hooks ViewModel y componentes de presentación.
 5. Reutiliza `ProductSearch`, `useProductSearch`, `QuantityStepper`, `Modal`, `Input` y `changeListItemQuantity`. Tras agregar, cambiar o eliminar se vuelve a leer la lista: es lo más simple de defender y todavía no hay tachado ni modo compra que pidan actualización fina.
 6. Ruta en `APP_ROUTE` y entrada "Fechas" en la navegación, después de General (DESIGN §3.1).
+
+## SCRUM-76: calendario
+
+- `utils/calendarMonth.ts`: funciones puras del mes, sin React y sin `new Date(texto)`.
+- `hooks/useDateCalendar.ts`: solo guarda el mes visible. Días y agenda se calculan de `lists` en cada render.
+- `components/DateCalendar.tsx`: presentación. Reutiliza `useCreateDateListForm` con una fecha inicial.
+- Sin librería de calendario: una grilla de 7 columnas y una función de 30 líneas alcanzan.
