@@ -93,7 +93,7 @@ No incluye: ver §14.
 
 - Cerrar sesión: SCRUM-55. Va en el pie del sidebar (desktop) y, cuando haya más ítems, en "Más" (mobile); ver plan.md.
 - URL de retorno después del login: SCRUM-136. Entra por `resolvePostLoginRoute()`.
-- Ítems de secciones que no existen (Fechas, Listas privadas) y el menú "Más": se agregan con su pantalla.
+- Ítems de secciones que no existen (Listas privadas): se agregan con su pantalla. Fechas llegó con SCRUM-77; con él son 6 ítems y el menú "Más" queda para el sprint de UI/UX.
 - Íconos en los ítems: el repo no tiene set de íconos; se agregan cuando el equipo elija uno.
 - Sub-tabs internos de Catálogo y Recetas (DESIGN.md §3.1): son de cada pantalla.
 - Proteger las rutas privadas: ya lo hace el session guard (SCRUM-49) detrás de su flag.
