@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { ProductSearch } from "@/components/product-search/ProductSearch";
-import { Spinner } from "@/components/ui";
-import { APP_ROUTE } from "@/constants";
+import { Button, Modal, Spinner } from "@/components/ui";
+import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
 import { DateListItemRow } from "./components/DateListItemRow";
 import { DATE_LIST_STATUS_LABEL, DATE_LIST_TEXT } from "./constants/date-lists.constants";
 import { useDateListDetailViewModel } from "./hooks/useDateListDetailViewModel";
@@ -43,15 +43,24 @@ export const DateListDetailScreen = ({ listId }: DateListDetailScreenProps): Rea
             </p>
           </header>
 
-          <ProductSearch
-            errorMessage={viewModel.searchErrorMessage}
-            hasNoResults={viewModel.hasNoSearchResults}
-            isSearching={viewModel.isSearching}
-            onQueryChange={viewModel.onQueryChange}
-            onSelectOption={viewModel.onSelectSearchOption}
-            options={viewModel.searchOptions}
-            query={viewModel.query}
-          />
+          {viewModel.isCancelled ? (
+            <div className="flex flex-col items-start gap-3">
+              <p className="font-body text-sm text-tacha-textsec">{DATE_LIST_TEXT.CANCELLED_NOTICE}</p>
+              <Button isDisabled={viewModel.isSaving} onClick={viewModel.onReactivate}>
+                {DATE_LIST_TEXT.REACTIVATE}
+              </Button>
+            </div>
+          ) : (
+            <ProductSearch
+              errorMessage={viewModel.searchErrorMessage}
+              hasNoResults={viewModel.hasNoSearchResults}
+              isSearching={viewModel.isSearching}
+              onQueryChange={viewModel.onQueryChange}
+              onSelectOption={viewModel.onSelectSearchOption}
+              options={viewModel.searchOptions}
+              query={viewModel.query}
+            />
+          )}
 
           {viewModel.actionErrorMessage ? (
             <p role="alert" className="font-body text-sm text-tacha-danger">
@@ -66,15 +75,44 @@ export const DateListDetailScreen = ({ listId }: DateListDetailScreenProps): Rea
               {detail.items.map((item) => (
                 <DateListItemRow
                   key={item.id}
-                  isDisabled={viewModel.isSaving}
+                  isDisabled={viewModel.isSaving || viewModel.isCancelled}
                   item={item}
                   onDecrease={() => viewModel.onDecreaseQuantity(item.id)}
                   onIncrease={() => viewModel.onIncreaseQuantity(item.id)}
                   onRemove={() => viewModel.onRemoveItem(item.id)}
+                  onToggle={(isChecked) => viewModel.onToggleItem(item.id, isChecked)}
                 />
               ))}
             </ul>
           )}
+
+          {viewModel.isCancelled ? null : (
+            <div>
+              <Button
+                isDisabled={viewModel.isSaving}
+                variant={BUTTON_VARIANT.SECONDARY}
+                onClick={viewModel.onRequestCancel}
+              >
+                {DATE_LIST_TEXT.CANCEL_LIST}
+              </Button>
+            </div>
+          )}
+
+          <Modal
+            isOpen={viewModel.isCancelConfirmOpen}
+            onClose={viewModel.onDismissCancel}
+            title={DATE_LIST_TEXT.CANCEL_CONFIRM_TITLE}
+          >
+            <p className="font-body text-sm text-tacha-textsec">{DATE_LIST_TEXT.CANCEL_CONFIRM_BODY}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant={BUTTON_VARIANT.SECONDARY} onClick={viewModel.onDismissCancel}>
+                {DATE_LIST_TEXT.CANCEL_KEEP}
+              </Button>
+              <Button variant={BUTTON_VARIANT.DESTRUCTIVE} onClick={viewModel.onConfirmCancel}>
+                {DATE_LIST_TEXT.CANCEL_CONFIRM}
+              </Button>
+            </div>
+          </Modal>
         </>
       ) : null}
     </div>

@@ -19,7 +19,36 @@ const fillCreateForm = async (page: Page, eventDate: string): Promise<void> => {
   await page.getByRole("button", { name: "Crear sublista" }).click();
 };
 
-const getListCard = (page: Page) => page.getByRole("link", { name: new RegExp(LIST_NAME) });
+// La agenda: en desktop la misma sublista también es un enlace dentro de la celda.
+const getListCard = (page: Page) =>
+  page.getByRole("list", { name: "Sublistas del mes" }).getByRole("link", { name: new RegExp(LIST_NAME) });
+
+const getPendingCheckbox = (page: Page) => page.getByRole("checkbox", { checked: false, name: /^Tachar / });
+const getCheckedCheckbox = (page: Page) => page.getByRole("checkbox", { checked: true, name: /^Tachar / });
+
+// Espera a que termine de guardarse el cambio anterior: mientras tanto la fila está deshabilitada.
+const waitForSave = async (page: Page): Promise<void> => {
+  await expect(page.getByRole("checkbox", { name: /^Tachar / }).first()).toBeEnabled();
+};
+
+// Dos productos distintos, para que no se sumen en la misma fila.
+const createListWithTwoProducts = async (page: Page): Promise<void> => {
+  await fillCreateForm(page, FUTURE_DATE);
+  await getListCard(page).click();
+  await expect(page).toHaveURL(DETAIL_URL);
+
+  await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
+  await page.locator("section ul li button").first().click();
+  await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(1);
+  await waitForSave(page);
+
+  await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
+  await page.locator("section ul li button").nth(1).click();
+  await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(2);
+  await waitForSave(page);
+};
+
+const getCalendar = (page: Page) => page.getByRole("region", { name: "Calendario de sublistas" });
 
 const addFirstResult = async (page: Page): Promise<void> => {
   await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
@@ -83,14 +112,41 @@ test.describe("Sublistas por fecha", () => {
       await savedInDatabase;
       await route.fulfill({ response: await route.fetch() });
     });
+    const loaded = page.waitForResponse(LOAD_LISTS_URL);
     await page.goto(DATE_LISTS_PATH);
 
     await fillCreateForm(page, FUTURE_DATE);
-    await expect(getListCard(page)).toHaveCount(1);
+    // Con el calendario, la agenda solo muestra el mes visible, y salta al mes de la sublista
+    // cuando responde crear. Por eso aquí se espera a que la carga termine, no a la tarjeta.
+    await loaded;
+    await expect(page.getByRole("status")).toHaveCount(0);
     releaseCreate();
-    await expect(page.getByRole("button", { name: "Crear sublista" })).toHaveCount(0);
+    // exact: los días del calendario también son botones "Crear sublista el ...".
+    await expect(page.getByRole("button", { name: "Crear sublista", exact: true })).toHaveCount(0);
 
     await expect(getListCard(page)).toHaveCount(1);
+  });
+
+  test("E2E-FECHAS-04: la sublista aparece en su día, en otro mes", async ({ page }) => {
+    await fillCreateForm(page, FUTURE_DATE);
+
+    const calendar = getCalendar(page);
+    await expect(calendar.getByRole("heading")).toContainText("2099");
+    await expect(calendar.getByRole("listitem").filter({ hasText: LIST_NAME })).toContainText("20");
+  });
+
+  test("E2E-FECHAS-05: tocar un día abre el formulario con esa fecha", async ({ page }) => {
+    await page.getByRole("button", { name: "Mes siguiente" }).click();
+    await getCalendar(page).getByRole("button", { name: /Crear sublista el .* 15 de / }).click();
+
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel(/^Fecha/)).toHaveValue(/^\d{4}-\d{2}-15$/);
+  });
+
+  test("E2E-FECHAS-06: un día pasado no se puede tocar", async ({ page }) => {
+    await page.getByRole("button", { name: "Mes anterior" }).click();
+
+    await expect(getCalendar(page).getByRole("button", { name: /Crear sublista el/ })).toHaveCount(0);
   });
 
   test("E2E-FECHAS-02: una fecha pasada no se acepta", async ({ page }) => {
@@ -114,5 +170,37 @@ test.describe("Sublistas por fecha", () => {
 
     await expect(page.getByRole("button", { name: "Agregar uno" }).locator("..")).toContainText("2");
     await expect(removeButtons).toHaveCount(1);
+  });
+
+  test("E2E-FECHAS-08: tachar todo la completa, y destachar la devuelve a pendiente", async ({ page }) => {
+    await createListWithTwoProducts(page);
+
+    await getPendingCheckbox(page).first().click();
+    await expect(getPendingCheckbox(page)).toHaveCount(1);
+    await expect(page.getByText(/· Pendiente$/)).toBeVisible();
+    await waitForSave(page);
+
+    await getPendingCheckbox(page).first().click();
+    await expect(page.getByText(/· Completada$/)).toBeVisible();
+    await waitForSave(page);
+
+    await getCheckedCheckbox(page).first().click();
+    await expect(page.getByText(/· Pendiente$/)).toBeVisible();
+  });
+
+  test("E2E-FECHAS-09 y 10: cancelar no borra, y reactivar la devuelve", async ({ page }) => {
+    await createListWithTwoProducts(page);
+
+    await page.getByRole("button", { name: "Cancelar sublista" }).click();
+    await page.getByRole("button", { name: "Sí, cancelar" }).click();
+
+    await expect(page.getByText(/· Cancelada$/)).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(2);
+    await expect(page.getByRole("textbox", { name: "Buscar producto" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Reactivar sublista" }).click();
+
+    await expect(page.getByText(/· Pendiente$/)).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Buscar producto" })).toBeVisible();
   });
 });

@@ -5,13 +5,16 @@ import type { DateList } from "../models/DateList.interface";
 import { getDateLists } from "../services/date-lists.service";
 import { insertByDate, mergeLoadedLists } from "../utils/mergeDateLists";
 import { useCreateDateListForm } from "./useCreateDateListForm";
+import { useDateCalendar } from "./useDateCalendar";
+import type { DateCalendarViewModel } from "./useDateCalendar";
 import type { CreateDateListFormViewModel } from "./useCreateDateListForm";
 
 interface UseDateListsViewModelReturn {
+  calendar: DateCalendarViewModel;
   form: CreateDateListFormViewModel;
-  isEmpty: boolean;
+  hasLists: boolean;
+  isReady: boolean;
   isLoading: boolean;
-  lists: DateList[];
   loadErrorMessage: NullableRef<string>;
 }
 
@@ -20,7 +23,12 @@ export const useDateListsViewModel = (): UseDateListsViewModelReturn => {
   const [lists, setLists] = useState<DateList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadErrorMessage, setLoadErrorMessage] = useState<NullableRef<string>>(null);
-  const form = useCreateDateListForm((createdList) => setLists((current) => insertByDate(current, createdList)));
+  const calendar = useDateCalendar(lists);
+  const form = useCreateDateListForm((createdList) => {
+    setLists((current) => insertByDate(current, createdList));
+    // Puede ser de otro mes: sin esto no se vería aparecer (CA-02 de SCRUM-77).
+    calendar.showMonthOf(createdList.eventDate);
+  });
 
   useEffect(() => {
     let isCancelled = false;
@@ -42,10 +50,13 @@ export const useDateListsViewModel = (): UseDateListsViewModelReturn => {
   }, []);
 
   return {
+    calendar,
     form,
-    isEmpty: !isLoading && !loadErrorMessage && lists.length === 0,
+    hasLists: lists.length > 0,
     isLoading,
-    lists,
+    // La grilla depende de la fecha local: se dibuja solo en el navegador, después
+    // de cargar. Así el HTML del servidor (en UTC) no choca con el del cliente.
+    isReady: !isLoading && !loadErrorMessage,
     loadErrorMessage,
   };
 };

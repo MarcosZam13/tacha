@@ -41,3 +41,40 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Cubre:** SPEC §5, regla 8.
 - **Pasos:** retener la respuesta de crear hasta que la carga, que ya trae la sublista, haya respondido.
 - **Resultado:** la sublista se ve una sola vez.
+
+### E2E-FECHAS-04: la sublista aparece en su día
+
+- **Cubre:** HU-44 CA-01, CA-03, SPEC §8, regla 3.
+- **Pasos:** con un usuario sin familia, crear una sublista en un mes lejano.
+- **Resultado:** el calendario salta a ese mes y la sublista está en la celda de su día.
+
+### E2E-FECHAS-05: tocar un día abre el formulario con esa fecha
+
+- **Cubre:** HU-45 CA-01, SPEC §8, regla 4.
+- **Pasos:** ir al mes siguiente y tocar el día 15.
+- **Resultado:** se abre el formulario con esa fecha ya escrita.
+
+### E2E-FECHAS-06: un día pasado no se puede tocar
+
+- **Cubre:** SPEC §8, regla 4.
+- **Pasos:** ir al mes anterior.
+- **Resultado:** ningún día de ese mes tiene el botón de crear.
+
+
+### E2E-FECHAS-08: tachar todo la completa
+
+- **Cubre:** HU-46 CA-01, SPEC §9, reglas 1 y 4.
+- **Pasos:** crear una sublista con dos productos, tachar los dos, destachar uno.
+- **Resultado:** el estado pasa a "Completada" al tachar el último, y vuelve a "Pendiente" al destachar.
+
+### E2E-FECHAS-09: cancelar no borra
+
+- **Cubre:** HU-46 CA-02, SPEC §9, regla 3.
+- **Pasos:** cancelar una sublista con productos y confirmar.
+- **Resultado:** dice "Cancelada", los productos siguen, el buscador ya no está, y en el calendario sale tachada.
+
+### E2E-FECHAS-10: reactivar
+
+- **Cubre:** SPEC §9, regla 5.
+- **Pasos:** reactivar la sublista cancelada.
+- **Resultado:** vuelve el buscador y el estado se recalcula.
