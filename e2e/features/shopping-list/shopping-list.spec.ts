@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Locator } from "@playwright/test";
 import { createOwnRecipe, deleteOwnListItems, deleteOwnRecipes } from "../../support/supabase";
 import {
   LIST_PATH,
@@ -13,6 +14,8 @@ import {
   getListSection,
   getShoppingModeBar,
   getShortfallNote,
+  getShortfallPanel,
+  getUndoDialog,
   startPurchaseAt,
 } from "./shopping-list.helpers";
 
@@ -157,5 +160,116 @@ test.describe("Lista general: aviso de faltante de receta", () => {
     await expect(getShortfallNote(getListSection(page, PENDING_SECTION), recipeName)).toBeVisible();
     await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
+  // El máximo que acepta una receta: una unidad más nunca cubre el faltante.
+  const INGREDIENT_MILLILITERS = 100_000;
+  const RECIPE_BASE_SERVINGS = 2;
+  // El botón de tachar de la fila es el único con aria-pressed; pressed: false
+  // de getByRole también encuentra los botones sin ese atributo (cantidad, detalle).
+  const CHECK_BUTTON = "button[aria-pressed]";
+  // La fila de la receta, por el texto de su aviso. first(): los avisos también
+  // son <li> dentro de la fila, y la fila va primero en el orden del DOM.
+  const getRowWithShortfall = (section: Locator, recipeName: string): Locator =>
+    section.getByRole("listitem").filter({ hasText: `necesarios para ${recipeName}` }).first();
+
+  test.afterEach(async ({ page, request }) => {
+    await deleteOwnListItems(page, request);
+    await deleteOwnRecipes(page, request);
+  });
+
+  test("E2E-LISTA-07 — ¿Qué hiciste? al tachar y deshacer al destachar", async ({ page, request }) => {
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    const pendingRow = getRowWithShortfall(pendingSection, recipeName);
+    await expect(pendingRow).toBeVisible();
+
+    // 1. Tachar abre el panel con el aviso.
+    await pendingRow.locator(CHECK_BUTTON).click();
+    const panel = getShortfallPanel(page);
+    await expect(panel).toBeVisible();
+    await expect(getShortfallNote(panel, recipeName)).toBeVisible();
+
+    // 2. Una unidad más no alcanza: el panel sigue abierto.
+    await panel.getByRole("button", { name: "Agregué otra igual" }).click();
+    await expect(panel.getByText("Todavía falta:")).toBeVisible();
+
+    // 3. Cerrar: la fila tachada quedó con 2 y su aviso.
+    await panel.getByRole("button", { name: "Ahora no" }).click();
+    await expect(panel).toHaveCount(0);
+    const checkedSection = getListSection(page, CHECKED_SECTION);
+    const checkedRow = getRowWithShortfall(checkedSection, recipeName);
+    await expect(checkedRow.getByText("2", { exact: true })).toBeVisible();
+
+    // 4. Destachar pide confirmar y deshace: vuelve a 1 en Pendientes, con aviso.
+    await checkedRow.locator(CHECK_BUTTON).click();
+    const undoDialog = getUndoDialog(page);
+    await expect(undoDialog).toContainText("La fila vuelve a 1 ×");
+    await undoDialog.getByRole("button", { name: "Destachar y deshacer" }).click();
+    await expect(undoDialog).toHaveCount(0);
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    const undoneRow = getRowWithShortfall(pendingSection, recipeName);
+    await expect(undoneRow.getByText("1", { exact: true })).toBeVisible();
+
+    // 5. Tachar otra vez y descartar: el aviso desaparece.
+    await undoneRow.locator(CHECK_BUTTON).click();
+    await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Ya tenía suficiente" }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(getShortfallNote(page.locator("main"), recipeName)).toHaveCount(0);
+  });
+
+  test("E2E-LISTA-08 — Después de cerrar la compra, destachar no ofrece deshacer", async ({ page, request }) => {
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    await startPurchaseAt(page, STORE_NAME);
+    await expect(page).toHaveURL(SHOPPING_MODE_URL);
+    // Hasta que la barra muestra el súper la compra no cargó, y tachar antes la dejaría fuera de la compra.
+    await expect(getShoppingModeBar(page)).toContainText(STORE_NAME);
+
+    // 1. En la compra, tachar y elegir "Agregué otra igual": la fila queda con foto de deshacer.
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await getRowWithShortfall(pendingSection, recipeName).locator(CHECK_BUTTON).click();
+    const panel = getShortfallPanel(page);
+    await panel.getByRole("button", { name: "Agregué otra igual" }).click();
+    await expect(panel.getByText("Todavía falta:")).toBeVisible();
+    await panel.getByRole("button", { name: "Ahora no" }).click();
+    await expect(panel).toHaveCount(0);
+
+    // 2. Cerrar la compra vuelve a /lista, sin recargar la página.
+    const closePanel = getClosePurchasePanel(page);
+    await closePanel.getByRole("textbox", { name: "Total gastado (₡)" }).fill("12500");
+    await closePanel.getByRole("button", { name: "Cerrar compra" }).click();
+    await expect(page).toHaveURL(LIST_URL);
+    await expect(getShoppingModeBar(page)).toHaveCount(0);
+
+    // 3. Sin recargar: la compra está cerrada, así que se destacha directo, sin diálogo de deshacer.
+    // En la compra, "Agregué otra igual" sumó a lo comprado (regla 36) y destachar lo borra (018):
+    // la fila vuelve a Pendientes con lo pedido, 1.
+    const checkedRow = getRowWithShortfall(getListSection(page, CHECKED_SECTION), recipeName);
+    await checkedRow.locator(CHECK_BUTTON).click();
+    await expect(getUndoDialog(page)).toHaveCount(0);
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    const uncheckedRow = getRowWithShortfall(pendingSection, recipeName);
+    await expect(uncheckedRow.getByText("1", { exact: true })).toBeVisible();
   });
 });

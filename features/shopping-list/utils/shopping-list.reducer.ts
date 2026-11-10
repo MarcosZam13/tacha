@@ -46,12 +46,15 @@ export const shoppingListReducer = (
       // misma variante: esa conserva su compra (regla 8, SCRUM-156).
       // Por id y no por variante: si otro miembro tachó la pendiente después de
       // cargar la lista, la base devuelve otra fila y no hay que pisar esa.
-      // Añadir no toca los registros de recetas, así que la fila conserva sus
-      // avisos de faltante (SCRUM-114, regla 32).
+      // Añadir no toca los registros de recetas ni la foto de "¿Qué hiciste?",
+      // así que la fila conserva sus avisos y su foto (SCRUM-114/115); los
+      // avisos en vivo se vuelven a pedir después (SHORTFALLS_REFRESHED).
       const isAlreadyListed = state.items.some((item) => item.id === action.item.id);
       const items = isAlreadyListed
         ? state.items.map((item) =>
-            item.id === action.item.id ? { ...action.item, recipeShortfalls: item.recipeShortfalls } : item,
+            item.id === action.item.id
+              ? { ...action.item, recipeShortfalls: item.recipeShortfalls, shortfallSnapshot: item.shortfallSnapshot }
+              : item,
           )
         : [...state.items, action.item];
       return { ...state, addErrorMessage: null, items };
@@ -105,7 +108,16 @@ export const shoppingListReducer = (
       return {
         ...state,
         checkErrorMessage: null,
-        items: state.items.map((item) => (item.id === action.itemId ? { ...item, ...action.check } : item)),
+        // Destachar borra en la base la foto de "¿Qué hiciste?" (trigger de la 037).
+        items: state.items.map((item) =>
+          item.id === action.itemId
+            ? {
+                ...item,
+                ...action.check,
+                shortfallSnapshot: action.check.checkedAt === null ? null : item.shortfallSnapshot,
+              }
+            : item,
+        ),
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
       };
 
@@ -132,6 +144,7 @@ export const shoppingListReducer = (
                   purchaseSessionId: null,
                   quantity: action.quantity,
                   quantityBought: null,
+                  shortfallSnapshot: null,
                 }
               : item,
           ),
@@ -158,6 +171,29 @@ export const shoppingListReducer = (
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
       };
     }
+
+    case SHOPPING_LIST_ACTION.SHORTFALLS_REFRESHED:
+      // El faltante es una cuenta en vivo (SCRUM-115, regla 33): después de un
+      // cambio en la lista se vuelve a pedir y reemplaza los avisos de todas
+      // las filas. Una fila que no viene en la respuesta ya no tiene aviso.
+      return {
+        ...state,
+        items: state.items.map((item) => ({
+          ...item,
+          recipeShortfalls: action.shortfallsByItemId.get(item.id) ?? [],
+        })),
+      };
+
+    case SHOPPING_LIST_ACTION.PURCHASE_CLOSED:
+      // Lo mismo que hace la base desde la 041: una fila de una compra cerrada no tiene foto de
+      // deshacer, así que destacharla no abre el diálogo (regla 45). Cerrar no recarga la
+      // pantalla, y sin esto la fila conservaba la foto de cuando la compra estaba abierta.
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.purchaseSessionId === action.sessionId ? { ...item, shortfallSnapshot: null } : item,
+        ),
+      };
 
     case SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED:
       // checkedAt no se toca: la fila sigue en la sección que confirmó la base.

@@ -27,6 +27,7 @@ const createRow = (overrides: Partial<ShoppingListRowViewModel> = {}): ShoppingL
     quantity: 1,
     quantityBought: null,
     recipeShortfalls: [],
+    shortfallSnapshot: null,
     sizeLabel: "1000 ml",
     variantId: "variant-leche",
   },

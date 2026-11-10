@@ -32,14 +32,22 @@ export const SHOPPING_LIST_DB = {
   // Detalle de una variante: sus marcas y el último precio de cada marca en
   // cada tienda (la vista latest_prices ya se queda con el más reciente).
   ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
+  // Desde una variante, todas las presentaciones de su producto madre con sus
+  // precios (SCRUM-115, "Cambié a otra presentación"). Una sola petición.
+  PRESENTATIONS_SELECT:
+    "product_catalog(product_catalog_variants(id, base_quantity, base_unit, latest_prices(price)))",
   RPC: {
     CHANGE_BOUGHT_QUANTITY: "change_bought_quantity",
     CHECK_LIST_ITEM_IN_SESSION: "check_list_item_in_session",
     // La lista general de quien llama: la de su familia o la personal (024, SCRUM-59).
     FIND_GENERAL_LIST_ID: "find_general_list_id",
-    // Avisos de faltante de receta de la lista general, con el nombre de la receta (033, SCRUM-114).
-    GET_GENERAL_LIST_SHORTFALLS: "get_general_list_shortfalls",
+    // Avisos de faltante en vivo de la lista general, con el nombre de la receta (037, SCRUM-115).
+    GET_GENERAL_LIST_RECIPE_SHORTFALLS: "get_general_list_recipe_shortfalls",
+    // A qué vuelve cada fila resuelta en "¿Qué hiciste?" al destachar (037).
+    GET_GENERAL_LIST_SHORTFALL_SNAPSHOTS: "get_general_list_shortfall_snapshots",
+    RESOLVE_LIST_ITEM_SHORTFALL: "resolve_list_item_shortfall",
     SET_LIST_ITEM_CHECKED: "set_list_item_checked",
+    UNDO_SHORTFALL_RESOLUTION_AND_UNCHECK: "undo_shortfall_resolution_and_uncheck",
   },
   TABLE: {
     LISTS: "lists",
@@ -68,10 +76,14 @@ export const SHOPPING_LIST_ACTION = {
   ITEM_UPSERTED: "itemUpserted",
   LOADED: "loaded",
   LOAD_FAILED: "loadFailed",
+  // La compra se cerró: sus filas ya no se pueden deshacer (SCRUM-115, regla 45, 041).
+  PURCHASE_CLOSED: "purchaseClosed",
   QUANTITY_CHANGED: "quantityChanged",
   QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
   REMOVE_FAILED: "removeFailed",
+  // Los avisos en vivo se volvieron a pedir después de un cambio en la lista (SCRUM-115).
+  SHORTFALLS_REFRESHED: "shortfallsRefreshed",
 } as const;
 
 export const SHOPPING_LIST_TEXT = {
