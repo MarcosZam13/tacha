@@ -108,3 +108,19 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
 - **Oráculo:** como E2E-LISTA-06, la cantidad del faltante depende del catálogo: se valida la forma del texto y las cantidades de la fila, no el número del faltante.
 - **Limpieza:** `deleteOwnListItems` y `deleteOwnRecipes`.
 - **Fuera del navegador:** la cuenta en vivo, "Cambié a otra presentación", modo compra, familia y los rechazos de la base están en `supabase/tests/037_resolve_recipe_shortfalls.test.sql`; el orden por precio en `tests/toPresentationOptions.test.ts`.
+
+### E2E-LISTA-08: después de cerrar la compra, destachar no ofrece deshacer
+
+- **Cubre:** regla 45 de SPEC §18, fila de una compra cerrada (BUG-2 de QA de la PR #82).
+- **Precondición:** como E2E-LISTA-07: usuario anónimo nuevo con una receta propia de **100 000 ml** agregada a la lista.
+- **Pasos:**
+  1. En `/lista`, "Iniciar compra" en MaxiPali y esperar a que la barra del modo compra muestre el súper.
+  2. Tocar la fila (tachar), elegir "Agregué otra igual" y después "Ahora no".
+  3. En "Cerrar compra", escribir un total y tocar "Cerrar compra".
+  4. **Sin recargar**, tocar la fila tachada.
+- **Resultado esperado:**
+  - Paso 3: vuelve a `/lista` y desaparece la barra del modo compra.
+  - Paso 4: no aparece "¿Destachar y deshacer lo que elegiste?"; la fila pasa a "Pendientes" con cantidad 1 (en la compra, "Agregué otra igual" sumó a lo comprado, regla 36, y destachar lo borra, 018).
+- **Sincronización:** tachar antes de que la barra muestre el súper deja la fila fuera de la compra y el escenario deja de probar una compra cerrada.
+- **Oráculo:** lo que distingue el bug es el diálogo: sin la corrección aparece en el paso 4.
+- **Limpieza:** `deleteOwnListItems` y `deleteOwnRecipes`. La compra cerrada queda en la base, como en E2E-LISTA-05.

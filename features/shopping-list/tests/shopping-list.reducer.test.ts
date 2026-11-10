@@ -465,4 +465,37 @@ describe("shoppingListReducer: live shortfalls and undo snapshot (SCRUM-115)", (
 
     expect(state.items[0]).toMatchObject({ quantity: 2, shortfallSnapshot: SNAPSHOT });
   });
+
+  it("drops the undo snapshot of the rows in a purchase once it is closed (041, BUG-2)", () => {
+    const boughtLeche = createItem({
+      checkedAt: "2026-11-01T15:00:00.000Z",
+      purchaseSessionId: "session-maxipali",
+      shortfallSnapshot: SNAPSHOT,
+    });
+
+    const state = shoppingListReducer(createLoadedState([boughtLeche]), {
+      sessionId: "session-maxipali",
+      type: SHOPPING_LIST_ACTION.PURCHASE_CLOSED,
+    });
+
+    expect(state.items[0]).toMatchObject({ checkedAt: boughtLeche.checkedAt, shortfallSnapshot: null });
+  });
+
+  it("keeps the undo snapshot of rows outside the closed purchase", () => {
+    const checkedOutside = createItem({ checkedAt: "2026-11-01T15:00:00.000Z", shortfallSnapshot: SNAPSHOT });
+    const otherPurchase = createItem({
+      checkedAt: "2026-11-01T15:00:00.000Z",
+      id: "item-arroz",
+      purchaseSessionId: "session-otra",
+      shortfallSnapshot: SNAPSHOT,
+      variantId: "variant-arroz",
+    });
+
+    const state = shoppingListReducer(createLoadedState([checkedOutside, otherPurchase]), {
+      sessionId: "session-maxipali",
+      type: SHOPPING_LIST_ACTION.PURCHASE_CLOSED,
+    });
+
+    expect(state.items.map((item) => item.shortfallSnapshot)).toEqual([SNAPSHOT, SNAPSHOT]);
+  });
 });

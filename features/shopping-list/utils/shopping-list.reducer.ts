@@ -184,6 +184,17 @@ export const shoppingListReducer = (
         })),
       };
 
+    case SHOPPING_LIST_ACTION.PURCHASE_CLOSED:
+      // Lo mismo que hace la base desde la 041: una fila de una compra cerrada no tiene foto de
+      // deshacer, así que destacharla no abre el diálogo (regla 45). Cerrar no recarga la
+      // pantalla, y sin esto la fila conservaba la foto de cuando la compra estaba abierta.
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.purchaseSessionId === action.sessionId ? { ...item, shortfallSnapshot: null } : item,
+        ),
+      };
+
     case SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED:
       // checkedAt no se toca: la fila sigue en la sección que confirmó la base.
       return {

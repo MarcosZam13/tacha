@@ -229,4 +229,47 @@ test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
     await expect(panel).toHaveCount(0);
     await expect(getShortfallNote(page.locator("main"), recipeName)).toHaveCount(0);
   });
+
+  test("E2E-LISTA-08 — Después de cerrar la compra, destachar no ofrece deshacer", async ({ page, request }) => {
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    await startPurchaseAt(page, STORE_NAME);
+    await expect(page).toHaveURL(SHOPPING_MODE_URL);
+    // Hasta que la barra muestra el súper la compra no cargó, y tachar antes la dejaría fuera de la compra.
+    await expect(getShoppingModeBar(page)).toContainText(STORE_NAME);
+
+    // 1. En la compra, tachar y elegir "Agregué otra igual": la fila queda con foto de deshacer.
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await getRowWithShortfall(pendingSection, recipeName).locator(CHECK_BUTTON).click();
+    const panel = getShortfallPanel(page);
+    await panel.getByRole("button", { name: "Agregué otra igual" }).click();
+    await expect(panel.getByText("Todavía falta:")).toBeVisible();
+    await panel.getByRole("button", { name: "Ahora no" }).click();
+    await expect(panel).toHaveCount(0);
+
+    // 2. Cerrar la compra vuelve a /lista, sin recargar la página.
+    const closePanel = getClosePurchasePanel(page);
+    await closePanel.getByRole("textbox", { name: "Total gastado (₡)" }).fill("12500");
+    await closePanel.getByRole("button", { name: "Cerrar compra" }).click();
+    await expect(page).toHaveURL(LIST_URL);
+    await expect(getShoppingModeBar(page)).toHaveCount(0);
+
+    // 3. Sin recargar: la compra está cerrada, así que se destacha directo, sin diálogo de deshacer.
+    // En la compra, "Agregué otra igual" sumó a lo comprado (regla 36) y destachar lo borra (018):
+    // la fila vuelve a Pendientes con lo pedido, 1.
+    const checkedRow = getRowWithShortfall(getListSection(page, CHECKED_SECTION), recipeName);
+    await checkedRow.locator(CHECK_BUTTON).click();
+    await expect(getUndoDialog(page)).toHaveCount(0);
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    const uncheckedRow = getRowWithShortfall(pendingSection, recipeName);
+    await expect(uncheckedRow.getByText("1", { exact: true })).toBeVisible();
+  });
 });

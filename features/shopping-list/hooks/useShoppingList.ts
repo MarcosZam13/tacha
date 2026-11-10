@@ -23,6 +23,8 @@ interface UseShoppingListReturn {
   /** Modo compra (SCRUM-67): ±1 a lo comprado de una fila tachada en la compra. */
   changeBoughtQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
   changeQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
+  /** La base cerró esa compra: sus filas dejan de ofrecer deshacer al destachar (SCRUM-115, regla 45). */
+  markPurchaseClosed: (sessionId: string) => void;
   /** Vuelve a pedir la lista entera; devuelve lo que quedó en pantalla, o null si falló (SCRUM-115). */
   reload: () => Promise<NullableRef<ShoppingListItem[]>>;
   removeItem: (itemId: string) => Promise<void>;
@@ -234,10 +236,15 @@ export const useShoppingList = (): UseShoppingListReturn => {
     }
   };
 
+  const markPurchaseClosed = (sessionId: string): void => {
+    dispatch({ sessionId, type: SHOPPING_LIST_ACTION.PURCHASE_CLOSED });
+  };
+
   return {
     addItem,
     changeBoughtQuantity,
     changeQuantity,
+    markPurchaseClosed,
     reload,
     removeItem,
     state: { ...state, items: optimisticItems },

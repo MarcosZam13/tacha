@@ -83,7 +83,8 @@ interface UseShoppingListViewModelReturn {
  * entrega a ShoppingListInner.tsx exactamente lo que dibuja, ya calculado.
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
-  const { addItem, changeBoughtQuantity, changeQuantity, reload, removeItem, state, toggleChecked } = useShoppingList();
+  const { addItem, changeBoughtQuantity, changeQuantity, markPurchaseClosed, reload, removeItem, state, toggleChecked } =
+    useShoppingList();
   const shortfallFlow = useShortfallFlowViewModel({ items: state.items, reload });
   const keptPersonalItems = useKeptPersonalList();
   const search = useProductSearch();
@@ -201,9 +202,15 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const pendingRows = rows.filter((row) => !row.isChecked);
   const checkedRows = rows.filter((row) => row.isChecked);
   const isAllChecked = rows.length > 0 && pendingRows.length === 0;
+  // Cerrar vuelve a /lista sin recargar la página: las filas de la compra pierden la foto de
+  // deshacer en ese momento, porque con la compra cerrada destacharlas ya no revierte nada (regla 45, 041).
+  const onPurchaseClosed = (): void => {
+    if (activeSessionId) markPurchaseClosed(activeSessionId);
+    purchase.leaveClosedSession();
+  };
   const closePurchase = useClosePurchase({
     isAllChecked,
-    onClosed: purchase.leaveClosedSession,
+    onClosed: onPurchaseClosed,
     sessionId: activeSessionId,
   });
 

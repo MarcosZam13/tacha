@@ -112,4 +112,8 @@ Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base
   - [x] Aviso "Otro miembro ya cambió este producto." cuando la base no aplica lo elegido o el deshacer (antes el panel se cerraba sin decir nada).
   - [x] "Cambié a otra presentación" ofrece solo presentaciones en la unidad de los avisos de la fila.
   - [ ] Aplicar la `041` (Roberto: ensayo con la prueba y `rollback`, después con su fila `041`), correr el E2E de la lista y volver a `waiting qa`.
+- [ ] 58. Correcciones del re-QA de la PR #82 (Marcos, 2026-11-07, `qa denied`):
+  - [x] BUG-2: después de cerrar la compra, sin recargar, el diálogo de deshacer seguía prometiendo volver a como estaba. Cerrar no recarga la pantalla y la fila conservaba la foto. Acción `PURCHASE_CLOSED` del reducer: al confirmar el cierre, las filas de esa compra pierden la foto (regla 45). Recargar la lista no alcanzaba: tocar la fila antes de que respondiera seguía abriendo el diálogo.
+  - [x] Tests: reducer (las filas de la compra cerrada pierden la foto, las demás no), `useShoppingListViewModel.test.ts` (cerrar marca la compra y sale del modo compra) y E2E-LISTA-08 (falla sin la corrección, pasa con ella).
+  - [ ] Volver a `waiting qa`.
 

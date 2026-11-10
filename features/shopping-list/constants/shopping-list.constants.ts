@@ -76,6 +76,8 @@ export const SHOPPING_LIST_ACTION = {
   ITEM_UPSERTED: "itemUpserted",
   LOADED: "loaded",
   LOAD_FAILED: "loadFailed",
+  // La compra se cerró: sus filas ya no se pueden deshacer (SCRUM-115, regla 45, 041).
+  PURCHASE_CLOSED: "purchaseClosed",
   QUANTITY_CHANGED: "quantityChanged",
   QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
