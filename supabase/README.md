@@ -98,7 +98,8 @@ supabase functions deploy submit-contact-message
 `scripts/monthly-ingestion.ts` (SCRUM-132) es el único consumidor de las 3 `ingest-*`. Por cada madre de `supabase/data/madres.json` y cada tienda: llama a `ingest-{tienda}`, borra de staging los `itemId` repetidos dentro de la misma corrida, normaliza solo las filas nuevas de ese término (`normalize_staging_row`, fila por fila; las que no tienen madre quedan `pending`) y recorta el `raw_json` de las filas `matched`/`rejected`. Al principio y al final imprime el tamaño aproximado del `raw_json`.
 
 - **Variables** (en `.env.local` o en el entorno): `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` con la **secret key** `sb_secret_...` (ver [Probar en Postman](#probar-en-postman)). Nunca con prefijo `NEXT_PUBLIC_`.
-- **Escribe** en la base compartida: `product_catalog_staging`, y a través del normalizador `product_catalog_variants`, `product_brands` y `product_prices` (las madres de `product_catalog` no se tocan). Se corre a mano, con autorización y avisando al grupo el día antes de una corrida completa.
+- **Escribe** en la base compartida: `product_catalog_staging`, y a través del normalizador `product_catalog_variants`, `product_brands` y `product_prices` (las madres de `product_catalog` no se tocan). Se corre a mano, con autorización y avisando al grupo. **Una sola corrida a la vez**: el dedupe identifica las filas recién insertadas como las últimas `pending` de cada tienda.
+- **Valida** antes de empezar que la key sea `sb_secret_...` y que la URL sea `https://<proyecto>.supabase.co`, para no mandar la key a otro host.
 
 ```
 npx tsx scripts/monthly-ingestion.ts --limit=2   # prueba: solo las primeras 2 madres

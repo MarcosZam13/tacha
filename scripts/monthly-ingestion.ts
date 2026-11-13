@@ -51,6 +51,29 @@ const PACE_BETWEEN_CALLS_MS = 1_500;
 
 const LOCAL_ENV_FILE = ".env.local";
 
+const STAGING_TABLE = "product_catalog_staging";
+
+const STAGING_STATUS = {
+  pending: "pending",
+  matched: "matched",
+  rejected: "rejected",
+} as const;
+
+// La secret key nueva de Supabase; el JWT legacy (eyJ...) da 403 en ingest-*.
+const SECRET_KEY_PREFIX = "sb_secret_";
+
+// La service key solo se manda a un proyecto de Supabase por https.
+const SUPABASE_HOST_SUFFIX = ".supabase.co";
+
+// Tope de caracteres del cuerpo de error de una Edge Function que se imprime.
+const MAX_ERROR_BODY_CHARS = 200;
+
+// PostgREST devuelve como máximo 1000 filas por consulta: el reporte de
+// storage lee por páginas.
+const STORAGE_REPORT_PAGE_SIZE = 1_000;
+
+const BYTES_PER_MB = 1024 * 1024;
+
 // --- Carga de madres.json (mismo esquema que generate-madres-migration.ts) --
 // No se importa ese archivo: su main() corre como efecto de solo importarlo
 // (imprime SQL a stdout), y tocarlo para agregar un guard queda fuera del
@@ -102,11 +125,16 @@ function createAdminClient(): { supabase: SupabaseClient; supabaseUrl: string; s
   const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
   const serviceRoleKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (serviceRoleKey.startsWith("NEXT_PUBLIC")) {
-    // Defensivo: no debería pasar nunca si el nombre de la variable es el
-    // correcto, pero una service role key con ese prefijo terminaría en el
-    // bundle del cliente (security-practices §5) — cortar antes de usarla.
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY no puede tener prefijo NEXT_PUBLIC_.");
+  if (!serviceRoleKey.startsWith(SECRET_KEY_PREFIX)) {
+    throw new Error(
+      `SUPABASE_SERVICE_ROLE_KEY tiene que ser la secret key (${SECRET_KEY_PREFIX}...), no el JWT legacy — ver supabase/README.md.`,
+    );
+  }
+
+  // No mandar la service key a cualquier host por un .env.local equivocado.
+  const { protocol, hostname } = new URL(supabaseUrl);
+  if (protocol !== "https:" || !hostname.endsWith(SUPABASE_HOST_SUFFIX)) {
+    throw new Error(`NEXT_PUBLIC_SUPABASE_URL tiene que ser https://<proyecto>${SUPABASE_HOST_SUFFIX}.`);
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -115,12 +143,26 @@ function createAdminClient(): { supabase: SupabaseClient; supabaseUrl: string; s
 
 // --- Paso 1: ingestar un término contra una tienda ----------------------
 
-interface IngestResult {
-  source: "cache" | "live" | "stale-cache";
-  store: StoreSlug;
-  query: string;
-  stagedCount: number;
-  warning?: string;
+const IngestResultSchema = z.object({
+  source: z.enum(["cache", "live", "stale-cache"]),
+  store: z.enum(STORES),
+  query: z.string(),
+  stagedCount: z.number().int().nonnegative(),
+  warning: z.string().optional(),
+});
+
+type IngestResult = z.infer<typeof IngestResultSchema>;
+
+// Forma de raw_json que lee este script: la completa de stageProducts
+// (product/item/offer) o la ya recortada (itemId/ean/price).
+interface StagingRawJson {
+  item?: { itemId?: string; ean?: string };
+  offer?: { Price?: number };
+}
+
+interface StagingRow {
+  id: string;
+  raw_json: StagingRawJson | null;
 }
 
 async function ingestTerm(
@@ -139,11 +181,11 @@ async function ingestTerm(
   });
 
   if (!response.ok) {
-    const body = await response.text();
+    const body = (await response.text()).slice(0, MAX_ERROR_BODY_CHARS);
     throw new Error(`ingest-${store} devolvió ${response.status} para "${term}": ${body}`);
   }
 
-  return (await response.json()) as IngestResult;
+  return IngestResultSchema.parse(await response.json());
 }
 
 // --- Paso 2: dedupe por itemId dentro de esta corrida --------------------
@@ -177,12 +219,13 @@ async function dedupeJustStaged(
   if (stagedCount === 0) return { deduped: 0, keptIds: [] };
 
   const { data, error } = await supabase
-    .from("product_catalog_staging")
+    .from(STAGING_TABLE)
     .select("id, raw_json")
     .eq("store_id", store.id)
-    .eq("status", "pending")
+    .eq("status", STAGING_STATUS.pending)
     .order("scraped_at", { ascending: false })
-    .limit(stagedCount);
+    .limit(stagedCount)
+    .returns<StagingRow[]>();
 
   if (error) {
     throw new Error(`No se pudieron leer las filas recién staged de '${store.slug}': ${error.message}`);
@@ -195,22 +238,22 @@ async function dedupeJustStaged(
   const keptIds: string[] = [];
 
   for (const row of data ?? []) {
-    const itemId = row.raw_json?.item?.itemId as string | undefined;
+    const itemId = row.raw_json?.item?.itemId;
     // Sin itemId no hay cómo deduplicar con certeza — se deja pasar, igual
     // que ya acepta normalize_staging_row filas con datos incompletos.
     if (itemId && seenItemIds.has(itemId)) {
-      duplicateIds.push(row.id as string);
+      duplicateIds.push(row.id);
       continue;
     }
     if (itemId) seenItemIds.add(itemId);
-    keptIds.push(row.id as string);
+    keptIds.push(row.id);
   }
 
   if (duplicateIds.length > 0) {
     // Seguras de borrar: siguen 'pending', ninguna normalizada todavía, así
     // que no dejan huérfano ningún product_prices.
     const { error: deleteError } = await supabase
-      .from("product_catalog_staging")
+      .from(STAGING_TABLE)
       .delete()
       .in("id", duplicateIds);
     if (deleteError) {
@@ -246,35 +289,39 @@ async function normalizeJustStaged(supabase: SupabaseClient, stagingIds: string[
   // El resultado del RPC no distingue "rechazada" de "sin madre, sigue
   // pending" (ambas devuelven success = false): se cuenta por status final.
   const { data, error } = await supabase
-    .from("product_catalog_staging")
+    .from(STAGING_TABLE)
     .select("status")
-    .in("id", stagingIds);
+    .in("id", stagingIds)
+    .returns<{ status: string }[]>();
   if (error) {
     throw new Error(`No se pudo leer el resultado de la normalización: ${error.message}`);
   }
 
-  const statuses = (data ?? []).map((row) => row.status as string);
+  const statuses = (data ?? []).map((row) => row.status);
   return {
-    matched: statuses.filter((status) => status === "matched").length,
-    rejected: statuses.filter((status) => status === "rejected").length,
-    unmatched: statuses.filter((status) => status === "pending").length,
+    matched: statuses.filter((status) => status === STAGING_STATUS.matched).length,
+    rejected: statuses.filter((status) => status === STAGING_STATUS.rejected).length,
+    unmatched: statuses.filter((status) => status === STAGING_STATUS.pending).length,
   };
 }
 
-// --- Paso 4: recortar raw_json de lo que ya matcheó/rechazó --------------
-// Nunca toca filas 'pending' (plan.md §3): esas necesitan el raw_json
-// completo para cuando se vuelvan a intentar en una corrida futura, o para
-// que un humano revise por qué no matchearon. El filtro `raw_json->'item'`
-// distingue lo sin recortar (forma completa de stageProducts: product/item/
-// offer) de lo ya recortado (solo itemId/ean/price) — así la operación es
-// idempotente y se puede repetir en cada vuelta del ciclo sin reprocesar.
+// --- Paso 4: recortar raw_json de lo que este término matcheó/rechazó ----
+// Solo las filas de este término (plan.md §3), nunca las 'pending': esas
+// necesitan el raw_json completo para cuando se vuelvan a intentar en una
+// corrida futura, o para que un humano revise por qué no matchearon. El
+// filtro `raw_json->'item'` distingue lo sin recortar (forma completa de
+// stageProducts: product/item/offer) de lo ya recortado (itemId/ean/price).
 
-async function trimProcessedRawJson(supabase: SupabaseClient): Promise<number> {
+async function trimProcessedRawJson(supabase: SupabaseClient, stagingIds: string[]): Promise<number> {
+  if (stagingIds.length === 0) return 0;
+
   const { data: candidates, error: selectError } = await supabase
-    .from("product_catalog_staging")
+    .from(STAGING_TABLE)
     .select("id, raw_json")
-    .in("status", ["matched", "rejected"])
-    .not("raw_json->item", "is", null);
+    .in("id", stagingIds)
+    .in("status", [STAGING_STATUS.matched, STAGING_STATUS.rejected])
+    .not("raw_json->item", "is", null)
+    .returns<StagingRow[]>();
 
   if (selectError) {
     throw new Error(`No se pudieron leer las filas a recortar: ${selectError.message}`);
@@ -282,16 +329,14 @@ async function trimProcessedRawJson(supabase: SupabaseClient): Promise<number> {
   if (!candidates || candidates.length === 0) return 0;
 
   for (const row of candidates) {
-    const item = row.raw_json?.item ?? {};
-    const offer = row.raw_json?.offer ?? {};
     const trimmed = {
-      itemId: item.itemId ?? null,
-      ean: item.ean ?? null,
-      price: offer.Price ?? null,
+      itemId: row.raw_json?.item?.itemId ?? null,
+      ean: row.raw_json?.item?.ean ?? null,
+      price: row.raw_json?.offer?.Price ?? null,
     };
 
     const { error: updateError } = await supabase
-      .from("product_catalog_staging")
+      .from(STAGING_TABLE)
       .update({ raw_json: trimmed })
       .eq("id", row.id);
     if (updateError) {
@@ -307,16 +352,28 @@ async function trimProcessedRawJson(supabase: SupabaseClient): Promise<number> {
 // alcanza para ver el efecto del recorte sin necesitar un RPC nuevo.
 
 async function reportStagingStorageUsage(supabase: SupabaseClient, label: string): Promise<void> {
-  const { data, error } = await supabase.from("product_catalog_staging").select("raw_json");
-  if (error) {
-    console.warn(`No se pudo generar el reporte de storage (${label}): ${error.message}`);
-    return;
+  let rowCount = 0;
+  let totalBytes = 0;
+
+  for (let from = 0; ; from += STORAGE_REPORT_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from(STAGING_TABLE)
+      .select("raw_json")
+      .order("id")
+      .range(from, from + STORAGE_REPORT_PAGE_SIZE - 1);
+    if (error) {
+      console.warn(`No se pudo generar el reporte de storage (${label}): ${error.message}`);
+      return;
+    }
+
+    const rows = data ?? [];
+    rowCount += rows.length;
+    totalBytes += rows.reduce((sum, row) => sum + JSON.stringify(row.raw_json ?? {}).length, 0);
+    if (rows.length < STORAGE_REPORT_PAGE_SIZE) break;
   }
 
-  const rows = data ?? [];
-  const totalBytes = rows.reduce((sum, row) => sum + JSON.stringify(row.raw_json ?? {}).length, 0);
   console.log(
-    `[storage ${label}] ${rows.length} filas en product_catalog_staging, ~${(totalBytes / 1024 / 1024).toFixed(2)} MB de raw_json (aproximado)`,
+    `[storage ${label}] ${rowCount} filas en ${STAGING_TABLE}, ~${(totalBytes / BYTES_PER_MB).toFixed(2)} MB de raw_json (aproximado)`,
   );
 }
 
@@ -399,7 +456,7 @@ async function main(): Promise<void> {
     totalMatched += matched;
     totalRejected += rejected;
     totalUnmatched += unmatched;
-    totalTrimmed += await trimProcessedRawJson(supabase);
+    totalTrimmed += await trimProcessedRawJson(supabase, termStagingIds);
   }
 
   await reportStagingStorageUsage(supabase, "después");

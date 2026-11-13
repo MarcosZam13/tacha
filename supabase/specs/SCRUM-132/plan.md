@@ -55,7 +55,7 @@ async function main() {
 
 ## 3. Recorte de `raw_json`
 
-Después de `normalize_pending_staging`, actualizar las filas que pasaron a `matched`/`rejected` (nunca las que quedan `pending` — esas sí necesitan el `raw_json` completo para cuando se vuelvan a intentar en una corrida futura, o para que un humano revise por qué no matchearon):
+Después de normalizar las filas del término, actualizar las que pasaron a `matched`/`rejected` (nunca las que quedan `pending` — esas sí necesitan el `raw_json` completo para cuando se vuelvan a intentar en una corrida futura, o para que un humano revise por qué no matchearon):
 
 ```sql
 update product_catalog_staging
@@ -68,7 +68,7 @@ where id = any($1)  -- ids procesados en este paso del ciclo
   and status in ('matched', 'rejected');
 ```
 
-Correrlo vía RPC con `search_path` fijo (mismo patrón de hardening que SCRUM-131) o directo desde el script con la service role key — a decidir en la implementación según si el equipo prefiere mantener toda escritura a Postgres detrás de funciones (consistente con el resto del proyecto) o permitir este `update` directo por ser un script interno de mantenimiento, no código del cliente. Si se opta por función, documentar su firma acá antes de escribirla.
+**Decisión de implementación:** `update` directo desde el script con la service role key, sin RPC nuevo. Es un script interno de mantenimiento que ya necesita esa key para todo lo demás, no código del cliente. El alcance es `id = any(ids staged por este término)`, nunca toda la tabla.
 
 ## 4. Dedupe por `itemId` dentro de una corrida
 
