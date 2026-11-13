@@ -228,3 +228,62 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Editar desde el Dashboard (D11) o periodos anteriores (D15).
 - [ ] Volver una compra a "Sin total" (D13).
 - [ ] Badge y recordatorio (HU-61), y filtros (HU-62).
+
+## SCRUM-92: ver sesiones sin total ingresado
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir.
+
+### Etapa 0 — Decisiones y specs
+
+- [x] 0.1 Borrador de `SPEC.md`, `plan.md` y `tasks.md`, sección SCRUM-92 (2026-11-13).
+- [x] 0.2 Decisiones de la dueña de la historia (2026-11-13, SPEC §5), aplicadas en SPEC y plan:
+  - [x] D23: recordatorio desde las 24 horas del cierre sin total.
+  - [x] D24: indicador persistente dentro de Finanzas, sin push ni correo.
+  - [x] D25: sección "Compras sin total" con las pendientes de cualquier fecha.
+  - [x] D26: solo en Finanzas (Dashboard e Historial) y sin opción de descartarlo.
+  - [x] D27: badge en WCAG AA (4,5:1). Medido: el tema claro no cumple (2,58:1 a 2,76:1); se resuelve con un token y un tono nuevos.
+- [x] 0.3 `features/finance/specs/E2E.md`, sección SCRUM-92 (E2E-FIN-15 a 18), con el umbral de 24 horas (skill `playwright-e2e`).
+- [ ] 0.4 Revisión y aprobación de la documentación por el equipo, en el PR.
+- [ ] 0.5 Antes de abrir el PR, `gh pr list --author "@me" --label "in progress" --state open`. Commit `docs(SCRUM-92): add sessions without total planning`, push y PR hacia `develop` con un solo label de estado (gitflow); SCRUM-92 a In Progress en Jira.
+
+### Etapa 1 — Badge (CA-01)
+
+- [ ] 1.1 Token `--tacha-terracotta-text` en `app/globals.css` (tema claro, oscuro y `prefers-color-scheme`) y un tono nuevo en `CHIP_TONE` y `Chip`, sin cambiar el tono `TERRACOTTA` ni `--tacha-terracotta` (D27). Test del `Chip`.
+- [ ] 1.2 `PurchaseSessionRow` con el `Chip` de tono accesible para "Sin total" (`FINANCE_TEXT.WITHOUT_TOTAL`, ya existe). ₡0 y los montos no cambian.
+- [ ] 1.3 Tests de componente y de pantalla: badge con texto, sin `role="alert"` ni rojo; ₡0 sin badge; contadores y filas de ajuste sin cambios. Medir el contraste en los dos temas (al menos 4,5:1). Vitest de Finanzas en verde.
+
+### Etapa 2 — Lectura de pendientes
+
+- [ ] 2.1 Constantes: el select, los estados del recordatorio y de la sección, y el umbral de 24 h en milisegundos (`..._MS`). El modelo de una compra pendiente, o `PeriodPurchase` si alcanza.
+- [ ] 2.2 `getPurchasesWithoutTotal` en `finance.service.ts`, con conteo exacto y sin `owner_id`, y sus tests.
+- [ ] 2.3 Función pura del corte (`closed_at ≤ ahora − 24 h`), con sus tests con el reloj fijo: 23 h 59 min no, 24 h sí.
+- [ ] 2.4 `usePendingPurchases`: carga, `empty`/`ready`/`failed`, reintento, respuesta vieja, desmontaje, quitar una compra guardada y volver a leer con `P0002`, con sus tests.
+
+### Etapa 3 — Recordatorio y completar (CA-02 y CA-03)
+
+- [ ] 3.1 `useTotalEdit`: el objetivo de una compra indica su lista de origen, sin cambiar el resto del contrato, con sus tests (D21 entre las dos listas).
+- [ ] 3.2 `usePurchaseHistoryViewModel`: el recordatorio, la sección "Compras sin total" y aplicar lo guardado en las dos listas, con sus tests.
+- [ ] 3.3 `PendingTotalReminder`, sin botón de cerrar (D26), y la sección en `PurchaseHistory`, con Page Object y tests de componente y de pantalla.
+- [ ] 3.4 `useFinanceDashboardViewModel` y `FinanceDashboard`: el recordatorio con el enlace al Historial, sin lápices (D11), con sus tests.
+
+### Etapa 4 — E2E
+
+- [ ] 4.1 `finance.helpers.ts`: la consulta de pendientes, con `[]` por defecto; confirmar que E2E-FIN-01 a 14 siguen pasando.
+- [ ] 4.2 `e2e/features/finance/pending-totals.spec.ts` (E2E-FIN-15 a 18); correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+
+### Etapa 5 — QA y cierre
+
+- [ ] 5.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`.
+- [ ] 5.2 Pruebas manuales de SPEC §13 y `TC-SCRUM-92-01` a `06` (plan), contra la base, con capturas sin correos.
+- [ ] 5.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
+- [ ] 5.4 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [ ] 5.5 Traer `develop`, completar la descripción del PR con la plantilla y la evidencia, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Push web, correo o avisos con la app cerrada (roadmap post-curso).
+- [ ] Ver periodos anteriores en el selector del Historial (D25: D7 no cambia).
+- [ ] Contador en la navegación, o descartar el recordatorio (D26).
+- [ ] Contraste AA del resto de los textos y chips terracota de la app (household, recetas, catálogo): hallazgo para el equipo (D27).
+- [ ] Filtros por supermercado y categoría (HU-62, SCRUM-93).
+- [ ] Pedir el total al cerrar una compra en el modo compra (`shopping-list`).

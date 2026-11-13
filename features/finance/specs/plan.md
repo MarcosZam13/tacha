@@ -778,3 +778,227 @@ Conceptos nuevos: `security definer` frente a `security invoker`; `old` y `new` 
 | Sin backfill, con confirmación | Asignar una zona a los usuarios existentes | Ningún dato existente dice cuál es; una zona inventada movería sus periodos |
 | Los periodos salen de `effective_at` y la zona | Guardar los límites en cada ajuste | Al cambiar de zona habría que reescribirlos, y dos ajustes podrían chocar |
 | `getPeriodSpending` con conteo | Dejar la deuda | Un resultado cortado daría un total distinto entre pantallas y rompería CA-03 |
+
+## SCRUM-92: ver sesiones sin total ingresado
+
+> **Verificado el 2026-11-13** contra `develop` en `87a50ef` (con SCRUM-91 mergeada, #94):
+>
+> - **Política de lectura:** la de `purchase_sessions` (`016`) es `owner_id = auth.uid()`, sin excluir sesiones anónimas. Como en SCRUM-90, el acceso se decide en la pantalla (SPEC regla 7).
+> - **Base:** `040` ya tiene `purchase_sessions_owner_closed_idx` y `set_purchase_session_total`; no hace falta nada nuevo en la base.
+> - **Texto actual:** `PurchaseSessionRow` muestra "Sin total" como texto plano, el mismo estilo que un monto.
+> - **Badge:** `components/ui` tiene `Chip` con tono `TERRACOTTA`, pero en el tema claro su texto da 2,58:1 a 2,76:1 (SPEC D27).
+> - **Notificaciones:** no hay push web, correo ni trabajos programados en el proyecto. Push está en el roadmap post-curso (documento §3).
+
+**Decisiones tomadas el 2026-11-13** (SPEC §5): umbral de 24 horas (D23), indicador persistente en Finanzas (D24), sección "Compras sin total" de cualquier fecha (D25), solo en Finanzas y sin descartar (D26) y contraste AA del badge (D27).
+
+### Qué se reutiliza
+
+| Pieza | Uso en SCRUM-92 |
+|---|---|
+| `Chip` (`components/ui`) | El badge, con un tono nuevo de texto accesible (D27), sin crear un componente nuevo |
+| `PurchaseSessionRow`, `EditTotalButton`, `InlineTotalEditor` | Las filas de pendientes, iguales a las del periodo |
+| `useTotalEdit` y `setPurchaseTotal` (SCRUM-91) | Completar el total, sin lógica nueva de edición (SPEC regla 68) |
+| `usePeriodPurchases.applySavedPurchase` | Actualizar el periodo en curso al completar |
+| `usePeriodPurchases` (patrón) | Clave por carga, respuesta vieja descartada, reintento, desmontaje |
+| `getPeriodPurchases` (patrón) | Conteo exacto y supermercado nulo o en blanco (reglas 29 y 30) |
+| `formatDay` con zona | Fechas en la zona guardada (regla 58) |
+| `useFinanceAccess` y `retryIfRegistered` | Acceso (D6) y reintento |
+
+### Alternativas para el recordatorio (CA-02, D24)
+
+| Alternativa | Qué necesita | Cumple "por un tiempo" | Riesgo | Decisión |
+|---|---|---|---|---|
+| Indicador persistente dentro de la app | Una lectura y estado en la pantalla | Sí, al abrir Finanzas | No avisa con la app cerrada | **Elegida (D24)** |
+| Notificación push web | Service worker, permiso del navegador, claves VAPID y un trabajo programado que decida cuándo avisar | Sí | Fuera del stack actual; está en el roadmap post-curso | No |
+| Correo | Un trabajo programado (`pg_cron` o una Edge Function con horario), un proveedor de correo y consentimiento | Sí | Infraestructura nueva y datos personales en un tercero | No |
+| Toast al cerrar la compra sin total | Cambiar el modo compra (`shopping-list`) | No: avisa en el momento, no después | Toca otra feature y no recuerda nada | No |
+| Contador en la navegación ("Finanzas · 2") | Cambiar `components/app-shell` y leer en cada pantalla privada | Sí, en toda la app | Componente compartido, más lecturas y acuerdo del equipo | No (D26) |
+
+**Elegido:** un indicador persistente solo en Finanzas (Dashboard e Historial), calculado al leer, sin trabajos programados, sin tablas nuevas y sin descartar (D26). El umbral es una duración de 24 horas desde `closed_at` (D23), guardada en una constante con su unidad (`..._MS`), así que no depende de la zona.
+
+### Alternativas para CA-03 (D25)
+
+| Opción | Cambia | Decisión |
+|---|---|---|
+| **A.** Sección "Compras sin total" en el Historial, con todas las pendientes de cualquier fecha | Una lectura nueva y una lista en la pantalla | **Elegida (D25)**: cumple CA-03 sin tocar D7 y da un destino claro al recordatorio |
+| **B.** Ver periodos anteriores | D7, D15, el selector y los límites | No: es una historia propia y se cruza con HU-62 |
+| **C.** Solo el periodo en curso | Nada | No: una compra del mes anterior no se puede completar |
+
+### Contraste del badge (D27)
+
+| Opción | Efecto | Elegida |
+|---|---|---|
+| Cambiar `--tacha-terracotta` | Oscurece todos los textos, bordes y montos terracota de la app | No: cambia pantallas de otras historias |
+| Cambiar el tono `TERRACOTTA` del `Chip` | Afecta los chips de household y recetas | No: cambia pantallas de otras historias |
+| **Token nuevo de texto terracota y tono nuevo del `Chip`** | Solo lo usa el badge; lo demás queda igual | **Sí** |
+
+- **Token:** `--tacha-terracotta-text` en `app/globals.css`, en el tema claro, en el oscuro y en `prefers-color-scheme`, expuesto en `@theme` como `text-tacha-terracotta-text`.
+- **Valores:**
+  - **Tema claro:** un tono que dé al menos 4,5:1 sobre el fondo del chip en `surface` y en `bg`. El primero del mismo matiz es `#9c5939` (4,57:1); se elige uno con algo de margen.
+  - **Tema oscuro:** puede seguir siendo `#e89a6c`, que ya da 5,89:1.
+- **Tono:** `CHIP_TONE` gana un valor nuevo; su clase usa el fondo y el borde terracota de siempre con el texto nuevo.
+- **Medición:** se repite sobre la pantalla real antes de cerrar (SPEC §13).
+- **Hallazgo para el equipo:** los demás chips y textos terracota no cumplen AA en el tema claro. No se corrigen en esta historia.
+
+### Archivos
+
+```
+features/finance/
+  PurchaseHistory.tsx                              + recordatorio y sección "Compras sin total"
+  FinanceDashboard.tsx                             + línea del recordatorio con enlace al Historial
+  components/
+    PurchaseSessionRow.tsx                         "Sin total" como Chip con el tono accesible (D27)
+    PendingTotalReminder.tsx                       nuevo: cantidad, enlace y error con "Reintentar"
+    models/*Props.interface.ts                     nuevos y extendidos
+  constants/finance.constants.ts                   + umbral de 24 h (_MS), estados del recordatorio y de pendientes, textos, select
+  hooks/
+    usePendingPurchases.ts                         nuevo: lectura de pendientes, recordatorio, aplicar lo guardado
+    useTotalEdit.ts                                el objetivo de una compra dice de qué lista viene (regla 68)
+    usePurchaseHistoryViewModel.ts                 compone pendientes, recordatorio y edición
+    useFinanceDashboardViewModel.ts                + recordatorio, sin lápices (D11)
+  models/
+    PendingPurchase.interface.ts                   nuevo, o se reutiliza PeriodPurchase si alcanza
+  services/finance.service.ts                      + getPurchasesWithoutTotal
+  tests/                                           ver "Pruebas"
+
+e2e/features/finance/
+  pending-totals.spec.ts                           nuevo (E2E-FIN-15 a 18)
+  finance.helpers.ts                               + consulta de pendientes
+
+app/globals.css                                    + --tacha-terracotta-text, en los dos temas (D27)
+components/ui/chip/Chip.tsx                        + tono de texto terracota accesible (D27)
+constants/                                         + valor en CHIP_TONE (D27)
+docs/documento-proyecto.md                         §4.6, al cerrar
+```
+
+Sin migración, sin cambios en `supabase/` ni en `types/database.types.ts`: la tabla y la RPC ya existen. Sin cambios en `components/app-shell` (D26).
+
+### Datos
+
+- **Lectura** (`getPurchasesWithoutTotal`, SPEC §12):
+  - **Consulta:** `purchase_sessions`, `select id, closed_at, total_amount, stores(display_name)`, con `closed_at=not.is.null` y `total_amount=is.null`, ordenada por `closed_at.desc,id.asc` y con `count: "exact"`.
+  - **Sin dueño:** no se manda `owner_id`; la RLS deja solo las propias.
+  - **Contrato:** falla como `getPeriodPurchases` si el conteo es nulo o no coincide (regla 30). Un supermercado nulo o en blanco no es un error (regla 29).
+  - **Cada fila** confirma que `total_amount` sigue siendo nulo y que `closed_at` no lo es; si no, es un contrato roto.
+- **Recordatorio:** sale de esas mismas filas, las de `closed_at ≤ ahora − 24 h` (reglas 63 y 66), con una función pura y el umbral en una constante (`24 * 60 * 60 * 1000`, con `_MS` en el nombre). "Ahora" es la hora de la carga, como los límites de SCRUM-69.
+- **Dashboard:** hace la misma lectura para su recordatorio. No muestra la sección ni lápices (D11).
+- **Sin zona:** las fechas se muestran con el navegador. Con zona guardada, con esa zona. La zona sale de la lectura del periodo (`usePeriodPurchases.timeZone`), sin otra consulta.
+
+### Flujo
+
+1. **Abrir el Historial:** `usePeriodPurchases` y `usePendingPurchases` cargan en paralelo, cada uno con su propio estado: el fallo de uno no tapa al otro.
+2. **El recordatorio:** se ve si alguna pendiente pasó el umbral. Su enlace lleva a la sección "Compras sin total", que es un ancla en la misma pantalla.
+3. **Lápiz de una pendiente:** abre el campo en esa fila (D21, un solo campo en toda la pantalla). El objetivo de la edición indica la lista de origen, para no abrir dos campos si la compra está en el periodo y en las pendientes.
+4. **Guardar:** `setPurchaseTotal` (SCRUM-91), y después, sin recargar:
+   - `usePendingPurchases` quita la compra y recalcula el recordatorio;
+   - `usePeriodPurchases.applySavedPurchase` actualiza el periodo si la compra está ahí;
+   - con `TZ001` o `TZ002`, la confirmación de zona de SCRUM-91, sin cambios.
+5. **`P0002`:** la compra ya no está disponible. Se muestra el mensaje de SCRUM-91 y se vuelven a leer las pendientes.
+6. **Cambio de periodo:** no cambia las pendientes, que no dependen del periodo; solo cierra un campo abierto (regla 55).
+
+### Seguridad
+
+- **Quién lee:** sin cuenta registrada no se consulta nada (D6). La RLS de `016` deja solo las compras propias, y el cliente nunca manda `owner_id`.
+- **Escritura:** solo `set_purchase_session_total`, que valida dueño, compra cerrada y monto, y revisa D18 (SCRUM-91). No hay ninguna escritura nueva.
+- **Sin datos nuevos:** no se guardan preferencias, descartes ni marcas de "visto" (D26): ni `localStorage` ni tablas.
+- **Errores:** códigos a textos fijos; los mensajes de Supabase no llegan a la pantalla (SCRUM-91).
+- **Sesión anónima:** con la política de `016`, una sesión anónima podría leer sus propias compras por la API, como ya documenta SCRUM-90 (regla 7). No se amplía nada.
+- **`security-reviewer`:** no hay migraciones que revisar. Se pasa antes de `waiting qa` igual, por la lectura nueva.
+
+### Concurrencia
+
+| Caso | Control |
+|---|---|
+| Doble clic en "Guardar" | `useTotalEdit` (`isSavingRef`), sin cambios |
+| La misma compra en dos listas | Un solo campo (D21) y el origen en el objetivo de la edición |
+| Otra pestaña completa la compra | No se actualiza sola (D20); al guardar de nuevo, la RPC acepta el último total (regla 57) |
+| Respuesta vieja de pendientes | Clave por carga, como `usePeriodPurchases` |
+| Pantalla cerrada mientras carga o guarda | `isMountedRef` / cancelación del efecto |
+
+### Pruebas
+
+**Vitest:**
+
+| Unidad | Casos |
+|---|---|
+| `finance.service` (`getPurchasesWithoutTotal`) | Tabla, `select`, filtros `is.null` y `not.is.null`, orden y `count: "exact"`, sin `owner_id`; conteo nulo o distinto da error; supermercado nulo o en blanco; una fila con total da error; errores que se propagan |
+| Corte del recordatorio (función pura) | 23 h 59 min no cuenta, 24 h exactas sí y varios días también (reloj fijo); ninguna, una y varias; solo cuentan las sin total |
+| `usePendingPurchases` | No pide sin cuenta; `loading`, `empty`, `ready` y `failed`; reintento; respuesta vieja; desmontaje; quitar la compra guardada sin `loading`; el recordatorio baja; `P0002` vuelve a leer |
+| `useTotalEdit` | El origen de la compra en el objetivo; un solo campo entre las dos listas (D21) |
+| `usePurchaseHistoryViewModel` | Filas con badge; recordatorio con la cantidad y el enlace; pendientes con lápiz; completar actualiza las dos listas; error del recordatorio sin tapar el total |
+| `useFinanceDashboardViewModel` | Recordatorio con la cantidad y el enlace al Historial; sin lápices (D11); error sin tapar el total |
+| Componentes (Page Object) | `PurchaseSessionRow` con el `Chip` de tono accesible y sin `role="alert"`; ₡0 sin badge; recordatorio (cantidad en singular y plural, enlace, sin botón de cerrar, error con "Reintentar"); sección como lista con nombre |
+| `Chip` (`components/ui`) | El tono nuevo usa la clase del token nuevo; los tonos existentes no cambian |
+
+**Integración:** `PurchaseHistory.test.tsx` y `FinanceDashboard.test.tsx`, con el servicio simulado y la pantalla, el ViewModel y los hooks reales:
+- completar una pendiente de un mes anterior y verla desaparecer;
+- completar una del periodo en curso y ver cambiar el total, los contadores y las pendientes;
+- el recordatorio desaparece al completar la última.
+
+**E2E** (`e2e/features/finance/pending-totals.spec.ts`, sesión y Supabase simulados, desktop y Pixel 7; detalle en [E2E.md](E2E.md), sección SCRUM-92):
+
+| Escenario | Cubre |
+|---|---|
+| E2E-FIN-15: badge | CA-01: la compra sin total del periodo muestra el badge; una de ₡0 no |
+| E2E-FIN-16: recordatorio | CA-02: con el reloj fijo, una pendiente de 4 días cuenta y una de 11 horas no; el recordatorio se ve en el Historial y en el Dashboard, sin botón de cerrar |
+| E2E-FIN-17: completar una compra anterior | CA-03: desde la sección de pendientes, `rpc/set_purchase_session_total` lleva la compra y el total; la compra sale de la lista y el recordatorio desaparece sin recargar |
+| E2E-FIN-18: error y reintento | Regla 67: la lectura de pendientes falla, el total del periodo sigue visible y "Reintentar" la recupera |
+
+Los escenarios E2E-FIN-01 a 14 tienen que seguir pasando. El helper responde `[]` a la consulta nueva por defecto, así que no cambian.
+
+**Manual** (`TC-SCRUM-92-nn`, contra la base, con capturas sin correos):
+
+| Caso | Qué comprueba | Tipo |
+|---|---|---|
+| 01 | Badge en una compra cerrada sin total, desde el modo compra real | Funcional |
+| 02 | Recordatorio con una compra cerrada sin total hace más de 24 horas, en el Dashboard y en el Historial (D23, D26) | Funcional |
+| 03 | Completar una compra de un periodo anterior y verla en el total de su periodo | Integración |
+| 04 | Otra cuenta no ve las pendientes de esta | Negativo |
+| 05 | Sesión anónima: no se ve ni se pide nada | Negativo |
+| 06 | Teclado, lector de pantalla, mobile y contraste del badge en los dos temas (D27) | Usabilidad |
+
+### Documento del proyecto
+
+Al cerrar: §4.6 con lo implementado (badge, recordatorio y completar). §6 no cambia, porque no hay tablas nuevas.
+
+### Dependencias y Gitflow
+
+- **Rama:** `ticket/SCRUM-92-ver-sesiones-sin-total`, desde `develop` con SCRUM-91 mergeada.
+- **PR:** hacia `develop`, abierta desde el primer commit, con un solo label de estado (gitflow §2). Antes, `gh pr list --author "@me" --label "in progress" --state open`, porque solo puede haber una PR en `in progress` por persona.
+- Commits, título y descripción del PR en inglés, con la plantilla completa.
+
+### Commits y PR
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-92): add sessions without total planning` | `features/finance/specs/SPEC.md`, `plan.md`, `tasks.md` y `E2E.md` |
+| 2 | `feat(SCRUM-92): show the Sin total badge in Historial` | token y tono del `Chip` (D27), `PurchaseSessionRow`, constantes y tests (CA-01) |
+| 3 | `feat(SCRUM-92): read purchases without total` | servicio, modelo, función del corte, `usePendingPurchases` y tests |
+| 4 | `feat(SCRUM-92): remind and complete purchases without total` | componentes, ViewModels, `useTotalEdit` (origen), pantallas y tests (CA-02 y CA-03) |
+| 5 | `test(SCRUM-92): add sessions without total E2E` | `e2e/features/finance/` |
+| 6 | `docs(SCRUM-92): record validation` | `tasks.md`, SPEC §13, `E2E.md`, `documento-proyecto.md` §4.6 |
+
+Staging explícito, nunca `git add .`.
+
+### Riesgos
+
+- **Sin actualizarse solo:** con la pantalla abierta, una compra que cumple 24 horas no aparece en el recordatorio hasta la próxima carga (SPEC regla 65).
+- **El recordatorio no avisa con la app cerrada:** es el límite de un indicador (SPEC regla 65). Si el equipo necesita un aviso real, es infraestructura nueva y una historia propia.
+- **Muchas pendientes:** sin paginación (regla 70). Con cientos de compras sin total el servidor podría cortar la respuesta; el conteo exacto lo convierte en un error visible, no en un dato falso.
+- **Contraste del resto de la app:** el token y el tono nuevos solo cubren el badge; los demás textos y chips terracota siguen sin AA en el tema claro, hasta que el equipo lo decida.
+- **Dos listas con la misma compra:** el objetivo de la edición tiene que llevar el origen; un error ahí abriría dos campos y rompería D21.
+- **Hora del navegador:** el corte usa el reloj del dispositivo. Un reloj mal puesto adelanta o atrasa el recordatorio, pero nunca cambia datos.
+- **Otra pestaña (D20):** una compra completada en otra pestaña sigue en la lista hasta recargar.
+- **Tamaño:** 2 puntos es justo para badge, recordatorio en dos pantallas y la sección. Si hace falta, el recordatorio del Dashboard puede ir después del Historial (decisión del equipo).
+
+### Para la defensa
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Indicador persistente | Push o correo | No requiere infraestructura que el proyecto no tiene, y CA-02 lo permite |
+| Umbral como duración | Límite de calendario | No depende de la zona horaria; una persona sin zona confirmada también lo recibe |
+| Sección de pendientes | Ver periodos anteriores | Cumple CA-03 sin cambiar D7 ni cruzarse con HU-62 |
+| Una lectura para lista y recordatorio | Dos consultas | No pueden contradecirse (regla 66) |
+| Reutilizar `useTotalEdit` | Un editor propio | Un solo campo abierto (D21) y los mismos errores de SCRUM-91 |
+| `Chip` con un tono nuevo | Cambiar el token terracota | Llega a AA sin cambiar pantallas de otras historias (D27) |
+| Sin descartar | Un botón de cerrar | "Persistente" (CA-02); descartar exigiría guardar estado (D26) |
