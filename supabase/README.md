@@ -93,6 +93,20 @@ supabase functions deploy submit-contact-message
 
 `submit-contact-message` usa el mismo secret `RECAPTCHA_SECRET_KEY` y también se despliega con la CLI (resuelve `_shared/`).
 
+## Ingesta mensual del catálogo
+
+`scripts/monthly-ingestion.ts` (SCRUM-132) es el único consumidor de las 3 `ingest-*`. Por cada madre de `supabase/data/madres.json` y cada tienda: llama a `ingest-{tienda}`, borra de staging los `itemId` repetidos dentro de la misma corrida, normaliza lo `pending` (`normalize_pending_staging`) y recorta el `raw_json` de las filas `matched`/`rejected`. Al principio y al final imprime el tamaño aproximado del `raw_json`.
+
+- **Variables** (en `.env.local` o en el entorno): `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` con la **secret key** `sb_secret_...` (ver [Probar en Postman](#probar-en-postman)). Nunca con prefijo `NEXT_PUBLIC_`.
+- **Escribe** en la base compartida: `product_catalog_staging`, y a través del normalizador `product_catalog_variants`, `product_brands` y `product_prices` (las madres de `product_catalog` no se tocan). Se corre a mano, con autorización y avisando al grupo el día antes de una corrida completa.
+
+```
+npx tsx scripts/monthly-ingestion.ts --limit=2   # prueba: solo las primeras 2 madres
+npx tsx scripts/monthly-ingestion.ts             # corrida completa
+```
+
+Detalle en [specs/SCRUM-132/SPEC.md](specs/SCRUM-132/SPEC.md).
+
 ## Probar en Postman
 
 Desde SCRUM-130, `ingest-maxipali`, `ingest-walmart` e `ingest-masxmenos` solo aceptan la **service role key** en `Authorization` — una llamada con la anon key (o sin header) devuelve `403 { "error": "forbidden" }` antes de tocar VTEX o la base. El único consumidor legítimo es un script de servidor (script de ingesta mensual, SCRUM-132); nada en la app de producción las llama.

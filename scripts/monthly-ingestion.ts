@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- CLI de mantenimiento: la consola es su única salida (progreso y reporte de storage). */
 /**
  * Script manual de ingesta mensual del catálogo (SCRUM-132). Ver
  * supabase/specs/SCRUM-132/{SPEC,plan}.md para el detalle completo.

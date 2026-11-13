@@ -13,9 +13,11 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
   - Confirmado 2026-11-02: corrida `--limit=1` recortó 248 filas (matched/rejected) y el storage de `raw_json` bajó de ~3.57 MB/100 filas a ~0.08 MB/250 filas; las `pending` no se tocaron.
 - [ ] **4. Implementar el dedupe por `itemId`** (plan.md §4) y confirmarlo con un caso real o sintético.
   - Implementado y corrido 2026-11-02 (0 duplicados en la corrida `--limit=1`, consistente con pedir solo 1 término) — falta un caso real con duplicado efectivo antes de marcarla hecha.
-- [ ] **5. Documentar el script en `supabase/README.md`**: ubicación, variable de entorno requerida, qué escribe, cómo correrlo.
+- [x] **5. Documentar el script en `supabase/README.md`**: ubicación, variable de entorno requerida, qué escribe, cómo correrlo.
+  - Hecho en la sección «Ingesta mensual del catálogo» de `supabase/README.md`.
 - [ ] **6. Corrida de prueba completa en modo lectura/rollback** si es posible aislar el batch de esa forma, o con un subconjunto chico de madres primero — nunca la corrida completa como primera prueba contra la base compartida.
 - [ ] **7. Primera corrida real** — autorización explícita de Daniel, aviso al grupo el día antes (SPEC §7). Pendiente además: SCRUM-139 (desempate de categoría ancha en `normalize_staging_row`) resuelto primero — la corrida de prueba `--limit=1` del 2026-11-02 ya mostró en "Lista general" variantes de otras madres mezcladas en una búsqueda, consistente con ese bug (ver `to-do.md`).
+  - SCRUM-139 mergeado a `develop` (PR #96, 2026-11-07); su migración `044` ya corre en la base. Dependencia resuelta.
   - Validación: búsqueda de "Arroz" devuelve resultado correcto (único término con madre curada hoy — criterio de Jira queda parcial, 1 de 8, hasta el PR de datos aparte); reporte de `raw_json` antes/después.
 - [ ] **8. Subagentes de revisión** antes de QA: `code-reviewer`, `security-reviewer` (obligatorio — maneja la service role key en un script cliente).
 - [ ] **9. Completar la PR:** descripción con la plantilla del repo, Developer Notes con el aviso del equipo (SPEC §7), label `in progress` → `waiting qa`, mover la tarjeta de Jira.
