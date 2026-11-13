@@ -4,7 +4,7 @@ import { BUDGET_STATUS, FINANCE_TEXT } from "../constants/finance.constants";
 import type { BudgetStatusType, SpendingPeriodType } from "../constants/finance.constants";
 import type { SpendingBudgets } from "../models/SpendingBudgets.type";
 import { getSpendingBudgets, setSpendingBudget } from "../services/finance.service";
-import { parseBudgetAmount } from "../utils/parseBudgetAmount";
+import { parseColonesAmount } from "../utils/parseColonesAmount";
 
 /** Los tres presupuestos, o null si la carga falló, con la carga que los pidió. */
 interface BudgetsResponse {
@@ -152,7 +152,7 @@ export const useSpendingBudgets = (period: SpendingPeriodType, isEnabled: boolea
   const onSave = (): void => {
     if (!currentEdit || isSavingRef.current) return;
 
-    const parsed = parseBudgetAmount(currentEdit.text);
+    const parsed = parseColonesAmount(currentEdit.text);
     if (!parsed.isValid) {
       setEdit({ ...currentEdit, errorMessage: FINANCE_TEXT.BUDGET_INVALID, hasSaveFailed: false });
       return;

@@ -2,14 +2,29 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AUTH_ROUTE } from "@/constants";
+import { EditTotalButton } from "../components/EditTotalButton";
 import { FinanceNoAccount } from "../components/FinanceNoAccount";
+import { InlineTotalEditor } from "../components/InlineTotalEditor";
+import { PeriodAdjustmentRow } from "../components/PeriodAdjustmentRow";
+import { PurchaseSessionRow } from "../components/PurchaseSessionRow";
 import { SpendingBudget } from "../components/SpendingBudget";
 import { SpendingPeriodSelector } from "../components/SpendingPeriodSelector";
 import { SpendingTotal } from "../components/SpendingTotal";
+import { TimeZoneConfirmation } from "../components/TimeZoneConfirmation";
+import type { EditTotalButtonProps } from "../components/models/EditTotalButtonProps.interface";
+import type { InlineTotalEditorProps } from "../components/models/InlineTotalEditorProps.interface";
+import type { PurchaseSessionRowProps } from "../components/models/PurchaseSessionRowProps.interface";
 import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
 import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
-import { BUDGET_STATUS, FINANCE_TEXT, SPENDING_PERIOD, SPENDING_STATUS } from "../constants/finance.constants";
+import {
+  BUDGET_STATUS,
+  FINANCE_TEXT,
+  SPENDING_PERIOD,
+  SPENDING_STATUS,
+  TOTAL_EDIT_STATUS,
+} from "../constants/finance.constants";
 import { createFinanceDashboardPage } from "./FinanceDashboard.page";
+import { createPurchaseHistoryPage } from "./PurchaseHistory.page";
 
 // Sin globals, Testing Library no limpia solo el DOM entre tests.
 afterEach(cleanup);
@@ -297,5 +312,363 @@ describe("SpendingBudget", () => {
 
       expect(page.getBudgetInput(INPUT_LABEL)).toHaveFocus();
     });
+  });
+});
+
+// ----------------------------------------------------------------------------
+// Edición de totales (SCRUM-91). Los componentes solo dibujan: qué se valida y
+// qué se guarda lo decide useTotalEdit.
+// ----------------------------------------------------------------------------
+
+const PURCHASE_PENCIL = "Editar total del domingo 18 de octubre, MaxiPali";
+const PURCHASE_INPUT = FINANCE_TEXT.PURCHASE_TOTAL_INPUT_LABEL;
+
+const createEditProps = (overrides: Partial<EditTotalButtonProps> = {}): EditTotalButtonProps => ({
+  isDisabled: false,
+  label: PURCHASE_PENCIL,
+  onClick: vi.fn(),
+  ...overrides,
+});
+
+const createEditorProps = (overrides: Partial<InlineTotalEditorProps> = {}): InlineTotalEditorProps => ({
+  errorMessage: null,
+  inputLabel: PURCHASE_INPUT,
+  onCancel: vi.fn(),
+  onConfirmTimeZone: vi.fn(),
+  onSave: vi.fn(),
+  onTextChange: vi.fn(),
+  status: TOTAL_EDIT_STATUS.EDITING,
+  text: "10000",
+  timeZoneToConfirm: null,
+  ...overrides,
+});
+
+describe("EditTotalButton", () => {
+  it("is a button with its own name and a decorative icon (SPEC §9)", async () => {
+    const onClick = vi.fn();
+    render(<EditTotalButton {...createEditProps({ onClick })} />);
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getEditButton(PURCHASE_PENCIL)).toHaveTextContent("");
+    await page.openEdit(PURCHASE_PENCIL);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing while disabled (D21)", async () => {
+    const onClick = vi.fn();
+    render(<EditTotalButton {...createEditProps({ isDisabled: true, onClick })} />);
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getEditButton(PURCHASE_PENCIL)).toBeDisabled();
+    await page.openEdit(PURCHASE_PENCIL);
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+});
+
+describe("InlineTotalEditor", () => {
+  it("shows the labelled field with its value and takes the focus on opening (SPEC §9)", () => {
+    render(<InlineTotalEditor {...createEditorProps()} />);
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveValue("10000");
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveFocus();
+    expect(page.getTotalInput(PURCHASE_INPUT)).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("hands over what is written", async () => {
+    const onTextChange = vi.fn();
+    render(<InlineTotalEditor {...createEditorProps({ onTextChange, text: "" })} />);
+    const page = createPurchaseHistoryPage();
+
+    await page.replaceTotal(PURCHASE_INPUT, "5");
+
+    expect(onTextChange).toHaveBeenLastCalledWith("5");
+  });
+
+  it("saves with «Guardar» and with Enter", async () => {
+    const onSave = vi.fn();
+    render(<InlineTotalEditor {...createEditorProps({ onSave })} />);
+    const page = createPurchaseHistoryPage();
+
+    await page.save();
+    await page.pressKey("{Enter}");
+
+    expect(onSave).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancels with «Cancelar» and with Escape", async () => {
+    const onCancel = vi.fn();
+    render(<InlineTotalEditor {...createEditorProps({ onCancel })} />);
+    const page = createPurchaseHistoryPage();
+
+    await page.pressKey("{Escape}");
+    await page.cancel();
+
+    expect(onCancel).toHaveBeenCalledTimes(2);
+  });
+
+  it("disables the field and the buttons while saving (rule 56)", () => {
+    render(<InlineTotalEditor {...createEditorProps({ status: TOTAL_EDIT_STATUS.SAVING })} />);
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getTotalInput(PURCHASE_INPUT)).toBeDisabled();
+    expect(page.getSavingButton()).toBeDisabled();
+    expect(page.getCancelButton()).toBeDisabled();
+    expect(page.getTotalInput(PURCHASE_INPUT).closest("form")).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("links a validation error to the field without announcing it", () => {
+    render(<InlineTotalEditor {...createEditorProps({ errorMessage: FINANCE_TEXT.TOTAL_INVALID })} />);
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveAttribute("aria-invalid", "true");
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveAccessibleDescription(FINANCE_TEXT.TOTAL_INVALID);
+    expect(page.queryAlert()).not.toBeInTheDocument();
+  });
+
+  it("announces a save error and gives the focus back to the field (SPEC §9)", () => {
+    const { rerender } = render(<InlineTotalEditor {...createEditorProps({ status: TOTAL_EDIT_STATUS.SAVING })} />);
+    const page = createPurchaseHistoryPage();
+
+    rerender(
+      <InlineTotalEditor
+        {...createEditorProps({ errorMessage: "No se pudo guardar el total. Intenta de nuevo.", status: TOTAL_EDIT_STATUS.SAVE_FAILED })}
+      />,
+    );
+
+    expect(page.getAlert()).toHaveTextContent("No se pudo guardar el total. Intenta de nuevo.");
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveFocus();
+  });
+
+  it("shows the browser time zone and confirms it only on «Confirmar» (rule 59)", async () => {
+    const onConfirmTimeZone = vi.fn();
+    render(
+      <InlineTotalEditor
+        {...createEditorProps({ onConfirmTimeZone, status: TOTAL_EDIT_STATUS.SAVE_FAILED, timeZoneToConfirm: "America/Costa_Rica" })}
+      />,
+    );
+    const page = createPurchaseHistoryPage();
+
+    expect(page.queryText(`${FINANCE_TEXT.TIME_ZONE_PREFIX}America/Costa_Rica`)).toBeInTheDocument();
+    await page.confirmTimeZone();
+
+    expect(onConfirmTimeZone).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers no time zone without TZ001 nor TZ002, and disables «Confirmar» while saving", () => {
+    const { rerender } = render(<InlineTotalEditor {...createEditorProps()} />);
+    const page = createPurchaseHistoryPage();
+    expect(page.queryConfirmTimeZoneButton()).not.toBeInTheDocument();
+
+    rerender(<InlineTotalEditor {...createEditorProps({ status: TOTAL_EDIT_STATUS.SAVING, timeZoneToConfirm: "UTC" })} />);
+
+    expect(page.getConfirmTimeZoneButton()).toBeDisabled();
+  });
+});
+
+describe("PurchaseSessionRow", () => {
+  const createRowProps = (overrides: Partial<PurchaseSessionRowProps> = {}): PurchaseSessionRowProps => ({
+    amountText: "₡10 000",
+    dateText: "Domingo 18 de octubre",
+    edit: createEditProps(),
+    editor: null,
+    id: "purchase-1",
+    storeText: "MaxiPali",
+    ...overrides,
+  });
+  const renderRow = (props: PurchaseSessionRowProps) =>
+    render(
+      <ul>
+        <PurchaseSessionRow {...props} />
+      </ul>,
+    );
+
+  it("shows the amount with its pencil (CA-01)", async () => {
+    const onClick = vi.fn();
+    renderRow(createRowProps({ edit: createEditProps({ onClick }) }));
+    const page = createPurchaseHistoryPage();
+
+    expect(page.queryText("₡10 000")).toBeInTheDocument();
+    await page.openEdit(PURCHASE_PENCIL);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(page.queryTotalInput(PURCHASE_INPUT)).not.toBeInTheDocument();
+  });
+
+  it("puts the field in place of the amount and the pencil while open", () => {
+    renderRow(createRowProps({ editor: createEditorProps() }));
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getTotalInput(PURCHASE_INPUT)).toBeInTheDocument();
+    expect(page.queryText("₡10 000")).not.toBeInTheDocument();
+    expect(page.queryEditButton(PURCHASE_PENCIL)).not.toBeInTheDocument();
+    expect(page.queryText("Domingo 18 de octubre")).toBeInTheDocument();
+  });
+
+  it("gives the focus back to its pencil when the field closes (SPEC §9)", () => {
+    const { rerender } = renderRow(createRowProps({ editor: createEditorProps() }));
+    const page = createPurchaseHistoryPage();
+
+    rerender(
+      <ul>
+        <PurchaseSessionRow {...createRowProps()} />
+      </ul>,
+    );
+
+    expect(page.getEditButton(PURCHASE_PENCIL)).toHaveFocus();
+  });
+
+  it("does not take the focus from the field of another total (D21)", () => {
+    const { rerender } = renderRow(createRowProps({ editor: createEditorProps() }));
+    const page = createPurchaseHistoryPage();
+
+    rerender(
+      <ul>
+        <PurchaseSessionRow {...createRowProps()} />
+        <PurchaseSessionRow
+          {...createRowProps({
+            edit: createEditProps({ label: "Editar total del lunes 12 de octubre, Walmart" }),
+            editor: createEditorProps({ inputLabel: "Otra compra (₡)" }),
+            id: "purchase-2",
+          })}
+        />
+      </ul>,
+    );
+
+    expect(page.getTotalInput("Otra compra (₡)")).toHaveFocus();
+    expect(page.getEditButton(PURCHASE_PENCIL)).not.toHaveFocus();
+  });
+});
+
+describe("SpendingTotal with a pencil (SCRUM-91, CA-02)", () => {
+  const PERIOD_PENCIL = "Editar total de esta semana";
+  const PERIOD_INPUT = "Total de esta semana (₡)";
+  const createProps = (overrides: Partial<SpendingTotalProps> = {}): SpendingTotalProps => ({
+    closedCount: 2,
+    errorMessage: null,
+    label: "Gastado esta semana",
+    onRetry: vi.fn(),
+    rangeText: "Lunes 12 a domingo 18 de octubre",
+    status: SPENDING_STATUS.READY,
+    totalText: "₡15 000",
+    withoutTotalCount: 1,
+    ...overrides,
+  });
+
+  it("has no pencil without one, as in the Dashboard (D11)", () => {
+    render(<SpendingTotal {...createProps()} />);
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("puts the pencil next to the total", async () => {
+    const onClick = vi.fn();
+    render(<SpendingTotal {...createProps({ edit: createEditProps({ label: PERIOD_PENCIL, onClick }) })} />);
+    const page = createPurchaseHistoryPage();
+
+    await page.openEdit(PERIOD_PENCIL);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the total and the counters visible with the field open, without the pencil", () => {
+    render(
+      <SpendingTotal
+        {...createProps({
+          edit: createEditProps({ label: PERIOD_PENCIL }),
+          editor: createEditorProps({ inputLabel: PERIOD_INPUT, text: "15000" }),
+        })}
+      />,
+    );
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getTotalInput(PERIOD_INPUT)).toHaveValue("15000");
+    expect(page.queryText("₡15 000")).toBeInTheDocument();
+    expect(page.queryText(FINANCE_TEXT.PURCHASES)).toBeInTheDocument();
+    expect(page.queryEditButton(PERIOD_PENCIL)).not.toBeInTheDocument();
+  });
+
+  it("gives the focus back to the pencil when the field closes", () => {
+    const edit = createEditProps({ label: PERIOD_PENCIL });
+    const { rerender } = render(
+      <SpendingTotal {...createProps({ edit, editor: createEditorProps({ inputLabel: PERIOD_INPUT }) })} />,
+    );
+    const page = createPurchaseHistoryPage();
+
+    rerender(<SpendingTotal {...createProps({ edit, editor: null })} />);
+
+    expect(page.getEditButton(PERIOD_PENCIL)).toHaveFocus();
+  });
+});
+
+describe("PeriodAdjustmentRow (D16)", () => {
+  it("shows the date, «Ajuste manual», its level and the signed amount, without a pencil", () => {
+    render(
+      <ul>
+        <PeriodAdjustmentRow amountText="+₡5 000" dateText="Jueves 15 de octubre" id="adjustment-1" scopeText="Total de la semana" />
+      </ul>,
+    );
+    const page = createPurchaseHistoryPage();
+
+    expect(page.queryText("Jueves 15 de octubre")).toBeInTheDocument();
+    expect(page.queryText(FINANCE_TEXT.ADJUSTMENT)).toBeInTheDocument();
+    expect(page.queryText("Total de la semana")).toBeInTheDocument();
+    expect(page.queryText("+₡5 000")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+});
+
+describe("SpendingTotal: adjustments note (SCRUM-91, SPEC §8)", () => {
+  const props: SpendingTotalProps = {
+    closedCount: 2,
+    errorMessage: null,
+    label: "Gastado esta semana",
+    onRetry: vi.fn(),
+    rangeText: null,
+    status: SPENDING_STATUS.READY,
+    totalText: "₡20 000",
+    withoutTotalCount: 1,
+  };
+
+  it("shows «Incluye ajustes manuales» only when it is given, without changing «Compras»", () => {
+    const { rerender } = render(<SpendingTotal {...props} />);
+    const page = createPurchaseHistoryPage();
+    expect(page.queryText(FINANCE_TEXT.INCLUDES_ADJUSTMENTS)).not.toBeInTheDocument();
+
+    rerender(<SpendingTotal {...props} noteText={FINANCE_TEXT.INCLUDES_ADJUSTMENTS} />);
+
+    expect(page.queryText(FINANCE_TEXT.INCLUDES_ADJUSTMENTS)).toBeInTheDocument();
+    expect(screen.getByText(FINANCE_TEXT.PURCHASES).nextSibling).toHaveTextContent("2");
+  });
+});
+
+describe("TimeZoneConfirmation (TZ002, rule 60)", () => {
+  it("shows the browser time zone and confirms it only on «Confirmar»", async () => {
+    const onConfirm = vi.fn();
+    render(<TimeZoneConfirmation errorMessage={null} isSaving={false} onConfirm={onConfirm} timeZone="America/Costa_Rica" />);
+    const page = createPurchaseHistoryPage();
+
+    expect(page.queryText(`${FINANCE_TEXT.TIME_ZONE_PREFIX}America/Costa_Rica`)).toBeInTheDocument();
+    expect(page.queryAlert()).not.toBeInTheDocument();
+    await page.confirmTimeZone();
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables «Confirmar» while saving and announces why the time zone was not saved", () => {
+    render(
+      <TimeZoneConfirmation
+        errorMessage={FINANCE_TEXT.TIME_ZONE_REJECTED}
+        isSaving
+        onConfirm={vi.fn()}
+        timeZone="America/Costa_Rica"
+      />,
+    );
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getConfirmTimeZoneButton()).toBeDisabled();
+    expect(page.getAlert()).toHaveTextContent(FINANCE_TEXT.TIME_ZONE_REJECTED);
   });
 });

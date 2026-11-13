@@ -4,10 +4,12 @@ import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { Spinner } from "@/components/ui";
 import { FinanceNoAccount } from "./components/FinanceNoAccount";
 import { FinanceTabs } from "./components/FinanceTabs";
+import { PeriodAdjustmentRow } from "./components/PeriodAdjustmentRow";
 import { PurchaseSessionRow } from "./components/PurchaseSessionRow";
 import { SpendingPeriodSelector } from "./components/SpendingPeriodSelector";
 import { SpendingTotal } from "./components/SpendingTotal";
-import { FINANCE_ACCESS_STATUS, FINANCE_TAB, FINANCE_TEXT } from "./constants/finance.constants";
+import { TimeZoneConfirmation } from "./components/TimeZoneConfirmation";
+import { FINANCE_ACCESS_STATUS, FINANCE_TAB, FINANCE_TEXT, HISTORY_ROW_KIND } from "./constants/finance.constants";
 import { usePurchaseHistoryViewModel } from "./hooks/usePurchaseHistoryViewModel";
 
 /**
@@ -38,17 +40,22 @@ export const PurchaseHistory = (): React.JSX.Element => {
           <FinanceTabs activeTab={FINANCE_TAB.HISTORY} />
           <SpendingPeriodSelector options={viewModel.periodOptions} />
           <section className="rounded-tacha-card border border-tacha-border bg-tacha-surface p-6">
-            <SpendingTotal {...viewModel.spending} />
+            <SpendingTotal {...viewModel.spending} edit={viewModel.periodEdit} editor={viewModel.periodEditor} />
+            {viewModel.timeZoneConfirmation ? <TimeZoneConfirmation {...viewModel.timeZoneConfirmation} /> : null}
           </section>
           <PriceDisclaimer />
-          {viewModel.purchaseRows.length > 0 ? (
+          {viewModel.listRows.length > 0 ? (
             <ul
               aria-label={FINANCE_TEXT.PURCHASES_LIST_LABEL}
-              className="divide-y divide-tacha-border rounded-tacha-card border border-tacha-border bg-tacha-surface"
+              className="divide-y divide-tacha-border overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface"
             >
-              {viewModel.purchaseRows.map((purchaseRow) => (
-                <PurchaseSessionRow key={purchaseRow.id} {...purchaseRow} />
-              ))}
+              {viewModel.listRows.map((listRow) =>
+                listRow.kind === HISTORY_ROW_KIND.PURCHASE ? (
+                  <PurchaseSessionRow key={listRow.row.id} {...listRow.row} />
+                ) : (
+                  <PeriodAdjustmentRow key={listRow.row.id} {...listRow.row} />
+                ),
+              )}
             </ul>
           ) : null}
         </>
