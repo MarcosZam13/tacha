@@ -49,14 +49,6 @@ type StoreSlug = (typeof STORES)[number];
 // Pausa entre llamadas a los súpers, para no parecer un ataque (SPEC §3).
 const PACE_BETWEEN_CALLS_MS = 1_500;
 
-// Tope por llamada a normalize_pending_staging (mismo default del RPC,
-// ver supabase/migrations/002_add_normalize_staging_functions.sql).
-const NORMALIZE_BATCH_SIZE = 50;
-
-// Salvavidas: nunca más de esta cantidad de vueltas normalizando pending en
-// un solo término — evita un loop infinito si algo deja filas atascadas.
-const MAX_NORMALIZE_ROUNDS_PER_TERM = 200;
-
 const LOCAL_ENV_FILE = ".env.local";
 
 // --- Carga de madres.json (mismo esquema que generate-madres-migration.ts) --
@@ -181,8 +173,8 @@ async function dedupeJustStaged(
   store: StoreContext,
   stagedCount: number,
   seenItemIdsByStore: Map<StoreSlug, Set<string>>,
-): Promise<{ deduped: number }> {
-  if (stagedCount === 0) return { deduped: 0 };
+): Promise<{ deduped: number; keptIds: string[] }> {
+  if (stagedCount === 0) return { deduped: 0, keptIds: [] };
 
   const { data, error } = await supabase
     .from("product_catalog_staging")
@@ -200,18 +192,18 @@ async function dedupeJustStaged(
   seenItemIdsByStore.set(store.slug, seenItemIds);
 
   const duplicateIds: string[] = [];
+  const keptIds: string[] = [];
 
   for (const row of data ?? []) {
     const itemId = row.raw_json?.item?.itemId as string | undefined;
     // Sin itemId no hay cómo deduplicar con certeza — se deja pasar, igual
     // que ya acepta normalize_staging_row filas con datos incompletos.
-    if (!itemId) continue;
-
-    if (seenItemIds.has(itemId)) {
+    if (itemId && seenItemIds.has(itemId)) {
       duplicateIds.push(row.id as string);
-    } else {
-      seenItemIds.add(itemId);
+      continue;
     }
+    if (itemId) seenItemIds.add(itemId);
+    keptIds.push(row.id as string);
   }
 
   if (duplicateIds.length > 0) {
@@ -226,33 +218,47 @@ async function dedupeJustStaged(
     }
   }
 
-  return { deduped: duplicateIds.length };
+  return { deduped: duplicateIds.length, keptIds };
 }
 
-// --- Paso 3: normalizar solo lo pending de esta corrida -------------------
+// --- Paso 3: normalizar solo las filas que staged este término -----------
+// Fila por fila con normalize_staging_row, no con normalize_pending_staging:
+// ese RPC toma las pending más viejas primero, y las filas sin madre curada
+// se quedan pending para siempre — con 50 o más acumuladas, cada lote se
+// llenaría con ellas y las filas nuevas nunca se normalizarían.
 
-async function normalizeAllPending(supabase: SupabaseClient): Promise<{ matched: number; rejected: number }> {
-  let totalMatched = 0;
-  let totalRejected = 0;
+interface NormalizeTotals {
+  matched: number;
+  rejected: number;
+  unmatched: number;
+}
 
-  for (let round = 0; round < MAX_NORMALIZE_ROUNDS_PER_TERM; round++) {
-    const { data, error } = await supabase.rpc("normalize_pending_staging", {
-      batch_size: NORMALIZE_BATCH_SIZE,
-    });
+async function normalizeJustStaged(supabase: SupabaseClient, stagingIds: string[]): Promise<NormalizeTotals> {
+  if (stagingIds.length === 0) return { matched: 0, rejected: 0, unmatched: 0 };
+
+  for (const stagingId of stagingIds) {
+    const { error } = await supabase.rpc("normalize_staging_row", { staging_id: stagingId });
     if (error) {
-      throw new Error(`normalize_pending_staging falló: ${error.message}`);
+      throw new Error(`normalize_staging_row falló para ${stagingId}: ${error.message}`);
     }
-
-    const result = (Array.isArray(data) ? data[0] : data) as
-      | { processed: number; matched: number; rejected: number }
-      | undefined;
-    if (!result || result.processed === 0) break;
-
-    totalMatched += result.matched;
-    totalRejected += result.rejected;
   }
 
-  return { matched: totalMatched, rejected: totalRejected };
+  // El resultado del RPC no distingue "rechazada" de "sin madre, sigue
+  // pending" (ambas devuelven success = false): se cuenta por status final.
+  const { data, error } = await supabase
+    .from("product_catalog_staging")
+    .select("status")
+    .in("id", stagingIds);
+  if (error) {
+    throw new Error(`No se pudo leer el resultado de la normalización: ${error.message}`);
+  }
+
+  const statuses = (data ?? []).map((row) => row.status as string);
+  return {
+    matched: statuses.filter((status) => status === "matched").length,
+    rejected: statuses.filter((status) => status === "rejected").length,
+    unmatched: statuses.filter((status) => status === "pending").length,
+  };
 }
 
 // --- Paso 4: recortar raw_json de lo que ya matcheó/rechazó --------------
@@ -356,9 +362,12 @@ async function main(): Promise<void> {
   let totalDeduped = 0;
   let totalMatched = 0;
   let totalRejected = 0;
+  let totalUnmatched = 0;
   let totalTrimmed = 0;
 
   for (const madre of madres) {
+    const termStagingIds: string[] = [];
+
     for (const store of STORES) {
       const storeContext = storeContexts.get(store)!;
 
@@ -371,24 +380,33 @@ async function main(): Promise<void> {
       // Cache hit: no hay filas nuevas que deduplicar ni normalizar — ya se
       // procesaron en una corrida anterior.
       if (result.source === "live") {
-        const { deduped } = await dedupeJustStaged(supabase, storeContext, result.stagedCount, seenItemIdsByStore);
+        const { deduped, keptIds } = await dedupeJustStaged(
+          supabase,
+          storeContext,
+          result.stagedCount,
+          seenItemIdsByStore,
+        );
         totalDeduped += deduped;
+        termStagingIds.push(...keptIds);
       }
 
       await sleep(PACE_BETWEEN_CALLS_MS);
     }
 
     // Normalizar y recortar por término (plan.md §1), no al final de todo.
-    const { matched, rejected } = await normalizeAllPending(supabase);
+    const { matched, rejected, unmatched } = await normalizeJustStaged(supabase, termStagingIds);
+    console.log(`  ${madre.name}: matched=${matched} rejected=${rejected} sin-madre=${unmatched}`);
     totalMatched += matched;
     totalRejected += rejected;
+    totalUnmatched += unmatched;
     totalTrimmed += await trimProcessedRawJson(supabase);
   }
 
   await reportStagingStorageUsage(supabase, "después");
 
   console.log(
-    `Listo. matched=${totalMatched} rejected=${totalRejected} duplicados-borrados=${totalDeduped} filas-recortadas=${totalTrimmed}`,
+    `Listo. matched=${totalMatched} rejected=${totalRejected} sin-madre=${totalUnmatched} ` +
+      `duplicados-borrados=${totalDeduped} filas-recortadas=${totalTrimmed}`,
   );
 }
 

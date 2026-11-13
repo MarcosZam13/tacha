@@ -11,11 +11,13 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
   - Confirmado 2026-11-02: `tsc --noEmit` limpio; corrida real `--limit=1` contra la base compartida terminó el ciclo completo (ingesta → normalización → recorte) sin errores.
 - [x] **3. Implementar el recorte de `raw_json`** (plan.md §3) y confirmar que nunca toca filas `pending`.
   - Confirmado 2026-11-02: corrida `--limit=1` recortó 248 filas (matched/rejected) y el storage de `raw_json` bajó de ~3.57 MB/100 filas a ~0.08 MB/250 filas; las `pending` no se tocaron.
-- [ ] **4. Implementar el dedupe por `itemId`** (plan.md §4) y confirmarlo con un caso real o sintético.
-  - Implementado y corrido 2026-11-02 (0 duplicados en la corrida `--limit=1`, consistente con pedir solo 1 término) — falta un caso real con duplicado efectivo antes de marcarla hecha.
+- [x] **4. Implementar el dedupe por `itemId`** (plan.md §4) y confirmarlo con un caso real o sintético.
+  - Confirmado 2026-11-13 con un caso real: la corrida `--limit=2` (Leche, Leche condensada) borró 9 `itemId` repetidos entre términos y no quedó ningún duplicado. El dedupe vale dentro de una corrida: dos corridas separadas agregan una fila de precio cada una (historial), y `latest_prices` muestra solo la más reciente.
 - [x] **5. Documentar el script en `supabase/README.md`**: ubicación, variable de entorno requerida, qué escribe, cómo correrlo.
   - Hecho en la sección «Ingesta mensual del catálogo» de `supabase/README.md`.
 - [ ] **6. Corrida de prueba completa en modo lectura/rollback** si es posible aislar el batch de esa forma, o con un subconjunto chico de madres primero — nunca la corrida completa como primera prueba contra la base compartida.
+  - 2026-11-13, `--limit=2`: 198 filas nuevas → 188 matched, 5 rejected (accesorios y alfajores), 5 sin madre. Destapó un bug: el loop sobre `normalize_pending_staging` no terminaba mientras hubiera filas sin madre, y con 50 o más acumuladas las filas nuevas no se hubieran normalizado nunca. Arreglado normalizando fila por fila los IDs recién staged (plan.md §1).
+  - 2026-11-13, `--limit=3` con el arreglo: Leche evaporada dio 25 filas → 25 matched, en 35 s, sin loop.
 - [ ] **7. Primera corrida real** — autorización explícita de Daniel, aviso al grupo el día antes (SPEC §7). Pendiente además: SCRUM-139 (desempate de categoría ancha en `normalize_staging_row`) resuelto primero — la corrida de prueba `--limit=1` del 2026-11-02 ya mostró en "Lista general" variantes de otras madres mezcladas en una búsqueda, consistente con ese bug (ver `to-do.md`).
   - SCRUM-139 mergeado a `develop` (PR #96, 2026-11-07); su migración `044` ya corre en la base. Dependencia resuelta.
   - Validación: búsqueda de "Arroz" devuelve resultado correcto (único término con madre curada hoy — criterio de Jira queda parcial, 1 de 8, hasta el PR de datos aparte); reporte de `raw_json` antes/después.

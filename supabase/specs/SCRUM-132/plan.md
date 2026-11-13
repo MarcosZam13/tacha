@@ -38,7 +38,9 @@ async function main() {
       const { stagedCount } = await ingestTerm(store, mother.name, SERVICE_ROLE_KEY);
 
       // 2. Normalizar solo las filas recién insertadas de esta corrida
-      //    (normalize_pending_staging ya existe, mismo RPC que SCRUM-131 usa).
+      //    (normalize_staging_row fila por fila sobre los IDs recién staged; no
+      //    normalize_pending_staging, que toma las pending más viejas primero y
+      //    se atasca con las filas sin madre, que quedan pending).
       await normalizeJustStaged(supabase, stagedCount);
 
       // 3. Recortar raw_json de las filas que acaban de quedar matched/rejected
