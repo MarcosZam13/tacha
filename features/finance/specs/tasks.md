@@ -254,10 +254,10 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 2 — Lectura de pendientes
 
-- [ ] 2.1 Constantes: el select, los estados del recordatorio y de la sección, y el umbral de 24 h en milisegundos (`..._MS`). El modelo de una compra pendiente, o `PeriodPurchase` si alcanza.
-- [ ] 2.2 `getPurchasesWithoutTotal` en `finance.service.ts`, con conteo exacto y sin `owner_id`, y sus tests.
-- [ ] 2.3 Función pura del corte (`closed_at ≤ ahora − 24 h`), con sus tests con el reloj fijo: 23 h 59 min no, 24 h sí.
-- [ ] 2.4 `usePendingPurchases`: carga, `empty`/`ready`/`failed`, reintento, respuesta vieja, desmontaje, quitar una compra guardada y volver a leer con `P0002`, con sus tests.
+- [x] 2.1 Constantes: el select, los estados del recordatorio y de la sección, y el umbral de 24 h en milisegundos (`..._MS`). El modelo de una compra pendiente, o `PeriodPurchase` si alcanza. Se reutilizan `FINANCE_DB.SELECT.PURCHASES`, `PeriodPurchase` y `SPENDING_STATUS` (sección); nuevos `FINANCE_DB.COLUMN.TOTAL_AMOUNT`, `PENDING_REMINDER_STATUS` y `PENDING_TOTAL_REMINDER.AFTER_MS`.
+- [x] 2.2 `getPurchasesWithoutTotal` en `finance.service.ts`, con conteo exacto y sin `owner_id`, y sus tests. Comparte con `getPeriodPurchases` el mapeo (`toPeriodPurchase`) y el control del conteo (`assertCompleteResult`), sin cambiar su comportamiento.
+- [x] 2.3 Función pura del corte (`closed_at ≤ ahora − 24 h`), con sus tests con el reloj fijo: 23 h 59 min no, 24 h sí. `utils/getOverduePurchases.ts`.
+- [x] 2.4 `usePendingPurchases`: carga, `empty`/`ready`/`failed`, reintento, respuesta vieja, desmontaje, quitar una compra guardada y volver a leer con `P0002`, con sus tests. 2026-11-13: Vitest completo, 1629 en 154 archivos; E2E de Finanzas, 40 de 40. Volver a leer con `P0002` es `onRetry`; conectarlo al error del guardado es de la 3.2.
 
 ### Etapa 3 — Recordatorio y completar (CA-02 y CA-03)
 

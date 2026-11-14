@@ -41,6 +41,7 @@ export const FINANCE_DB = {
   COLUMN: {
     CLOSED_AT: "closed_at",
     ID: "id",
+    TOTAL_AMOUNT: "total_amount",
   },
   RPC: {
     GET_PERIOD_FINANCE: "get_period_finance",
@@ -101,6 +102,14 @@ export const TOTAL_SAVE_ERROR_MESSAGE = {
     "Tu zona horaria guardada ya no es válida. Confirma tu zona para continuar.",
 } as const satisfies Record<TotalSaveErrorType, string>;
 
+// Recordatorio de compras sin total (SCRUM-92, D23): cuenta una compra cerrada
+// sin total desde que cumple 24 horas. Es una duración, no un límite de
+// calendario, así que no depende de la zona horaria.
+const MS_PER_HOUR = 60 * 60 * 1000;
+export const PENDING_TOTAL_REMINDER = {
+  AFTER_MS: 24 * MS_PER_HOUR,
+} as const;
+
 // Los montos de purchase_sessions.total_amount tienen centavos (numeric(12, 2)):
 // se suman en centavos enteros para no arrastrar errores de punto flotante.
 export const CENTS_PER_COLON = 100;
@@ -128,6 +137,17 @@ export const SPENDING_STATUS = {
 } as const;
 
 export type SpendingStatusType = (typeof SPENDING_STATUS)[keyof typeof SPENDING_STATUS];
+
+// El recordatorio de compras sin total (SCRUM-92, SPEC §6). La sección "Compras
+// sin total" usa SPENDING_STATUS.
+export const PENDING_REMINDER_STATUS = {
+  FAILED: "failed",
+  LOADING: "loading",
+  NONE: "none",
+  PENDING: "pending",
+} as const;
+
+export type PendingReminderStatusType = (typeof PENDING_REMINDER_STATUS)[keyof typeof PENDING_REMINDER_STATUS];
 
 // Presupuesto del periodo elegido: su carga y su edición.
 export const BUDGET_STATUS = {
