@@ -11,6 +11,8 @@ import {
   SPENDING_PERIOD_ORDER,
   SPENDING_STATUS,
   SPENT_LABEL,
+  TOTAL_SAVE_ERROR,
+  TOTAL_SAVE_ERROR_MESSAGE,
 } from "../constants/finance.constants";
 import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
 import type { SpendingPeriodOption } from "../components/models/SpendingPeriodSelectorProps.interface";
@@ -66,6 +68,15 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
   const totalText = spending ? formatColones(spending.total) : null;
   const budgetAmount = spendingBudgets.amount;
 
+  // Con TZ002 no hay totales: el mensaje dice por qué, sin caer a otra zona (regla 60).
+  // La zona se confirma desde el Historial.
+  const getSpendingErrorMessage = (): NullableRef<string> => {
+    if (periodSpending.status !== SPENDING_STATUS.FAILED) return null;
+    return periodSpending.needsTimeZoneConfirmation
+      ? TOTAL_SAVE_ERROR_MESSAGE[TOTAL_SAVE_ERROR.TIME_ZONE_UNRECOGNIZED]
+      : FINANCE_TEXT.SPENDING_LOAD_ERROR;
+  };
+
   return {
     accessStatus,
     budget: {
@@ -96,10 +107,15 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
     })),
     spending: {
       closedCount: spending?.closedCount ?? 0,
-      errorMessage: periodSpending.status === SPENDING_STATUS.FAILED ? FINANCE_TEXT.SPENDING_LOAD_ERROR : null,
+      errorMessage: getSpendingErrorMessage(),
       label: SPENT_LABEL[period],
+      // Solo con ajustes; "Compras" y "Sin total" no cambian (D16, SPEC §8). El Dashboard no edita (D11).
+      noteText: spending && spending.adjustmentCount > 0 ? FINANCE_TEXT.INCLUDES_ADJUSTMENTS : null,
       onRetry: () => void retryIfRegistered(periodSpending.onRetry),
-      rangeText: periodSpending.bounds && hasSpending ? formatPeriodRange(period, periodSpending.bounds) : null,
+      rangeText:
+        periodSpending.bounds && hasSpending
+          ? formatPeriodRange(period, periodSpending.bounds, periodSpending.timeZone)
+          : null,
       status: periodSpending.status,
       totalText,
       withoutTotalCount: spending?.withoutTotalCount ?? 0,

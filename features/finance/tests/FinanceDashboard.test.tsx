@@ -4,9 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_NAV_ITEMS } from "@/components/app-shell/constants/app-shell.constants";
 import { APP_ROUTE } from "@/constants";
 import { FinanceDashboard } from "../FinanceDashboard";
+import { PurchaseHistory } from "../PurchaseHistory";
 import { FINANCE_TEXT, SPENDING_PERIOD } from "../constants/finance.constants";
 import type { PeriodBounds } from "../models/PeriodBounds.interface";
+import type { ZonedPeriodFinance } from "../models/PeriodFinance.type";
 import {
+  getPeriodFinance,
   getPeriodSpending,
   getSpendingBudgets,
   hasRegisteredSession,
@@ -17,13 +20,19 @@ import { createPurchaseHistoryPage } from "./PurchaseHistory.page";
 
 // La pantalla con el servicio falso: sin Supabase ni sesión real.
 vi.mock("../services/finance.service", () => ({
+  getPeriodFinance: vi.fn(),
+  getPeriodPurchases: vi.fn(),
   getPeriodSpending: vi.fn(),
   getSpendingBudgets: vi.fn(),
   hasRegisteredSession: vi.fn(),
+  setPeriodTotal: vi.fn(),
+  setPurchaseTotal: vi.fn(),
   setSpendingBudget: vi.fn(),
+  setSpendingTimeZone: vi.fn(),
 }));
 const sessionMock = vi.mocked(hasRegisteredSession);
 const spendingMock = vi.mocked(getPeriodSpending);
+const financeMock = vi.mocked(getPeriodFinance);
 const budgetsMock = vi.mocked(getSpendingBudgets);
 const saveMock = vi.mocked(setSpendingBudget);
 
@@ -38,13 +47,15 @@ const amount = (text: string): RegExp => new RegExp(`^${text.replace(/ /gu, "\\s
 // El día pide desde hoy; la semana, desde el lunes 12.
 const spendingByPeriod = async ({ start }: PeriodBounds) =>
   start.getTime() === DAY_START
-    ? { closedCount: 1, total: 10000, withoutTotalCount: 0 }
-    : { closedCount: 2, total: 15000, withoutTotalCount: 1 };
+    ? { adjustmentCount: 0, closedCount: 1, total: 10000, withoutTotalCount: 0 }
+    : { adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 1 };
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
+  // Sin zona guardada: se lee como antes, con el navegador (SPEC regla 59).
+  financeMock.mockResolvedValue({ timeZone: null });
   sessionMock.mockResolvedValue(true);
   spendingMock.mockImplementation(spendingByPeriod);
   budgetsMock.mockResolvedValue({ day: null, month: null, week: null });
@@ -228,7 +239,7 @@ describe("FinanceDashboard: separate errors (SPEC §7)", () => {
   });
 
   it("shows ₡0 and the empty message when the period has no closed purchases", async () => {
-    spendingMock.mockResolvedValue({ closedCount: 0, total: 0, withoutTotalCount: 0 });
+    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 0, total: 0, withoutTotalCount: 0 });
     render(<FinanceDashboard />);
     const page = createFinanceDashboardPage();
 
@@ -241,5 +252,60 @@ describe("Navigation", () => {
   it("has a «Finanzas» item that leads to /finanzas", () => {
     expect(APP_ROUTE.FINANCE).toBe("/finanzas");
     expect(APP_NAV_ITEMS).toContainEqual({ href: "/finanzas", label: "Finanzas" });
+  });
+});
+
+describe("FinanceDashboard and PurchaseHistory with manual adjustments (SCRUM-91)", () => {
+  // La semana con dos compras, una "Sin total" y un ajuste de +₡5 000: ₡20 000.
+  const ZONED_WEEK: ZonedPeriodFinance = {
+    adjustments: [{ amount: 5000, effectiveAt: NOW.toISOString(), id: "adjustment-1", scope: SPENDING_PERIOD.WEEK }],
+    bounds: { end: new Date(2026, 9, 19), start: new Date(2026, 9, 12) },
+    purchases: [
+      { closedAt: new Date(2026, 9, 18, 10, 0).toISOString(), id: "sunday", storeName: "MaxiPali", totalAmount: 10000 },
+      { closedAt: new Date(2026, 9, 14, 10, 0).toISOString(), id: "wednesday", storeName: "Walmart", totalAmount: null },
+      { closedAt: new Date(2026, 9, 12, 10, 0).toISOString(), id: "monday", storeName: "MasXMenos", totalAmount: 5000 },
+    ],
+    spending: { adjustmentCount: 1, closedCount: 2, total: 20000, withoutTotalCount: 1 },
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+
+  it("shows the same total in both screens with the same data (D19)", async () => {
+    financeMock.mockResolvedValue(ZONED_WEEK);
+
+    const dashboard = render(<FinanceDashboard />);
+    const dashboardPage = createFinanceDashboardPage();
+    expect(await dashboardPage.findText(amount("₡20 000"))).toBeInTheDocument();
+    dashboard.unmount();
+
+    render(<PurchaseHistory />);
+    const historyPage = createPurchaseHistoryPage();
+    expect(await historyPage.findText(amount("₡20 000"))).toBeInTheDocument();
+    expect(spendingMock).not.toHaveBeenCalled();
+  });
+
+  it("says the Dashboard total includes adjustments, keeps «Compras» and has no pencil (D11, SPEC §8)", async () => {
+    financeMock.mockResolvedValue(ZONED_WEEK);
+    render(<FinanceDashboard />);
+    const page = createPurchaseHistoryPage();
+
+    expect(await page.findText(FINANCE_TEXT.INCLUDES_ADJUSTMENTS)).toBeInTheDocument();
+    expect(page.queryText(FINANCE_TEXT.PURCHASES)?.nextSibling).toHaveTextContent("2");
+    expect(page.queryText(FINANCE_TEXT.WITHOUT_TOTAL)?.nextSibling).toHaveTextContent("1");
+    expect(page.queryEditButton(/^Editar total/u)).not.toBeInTheDocument();
+    expect(page.queryText(FINANCE_TEXT.ADJUSTMENT)).not.toBeInTheDocument();
+  });
+
+  it("shows the adjustment in the Historial as its own row, without a pencil (D16)", async () => {
+    financeMock.mockResolvedValue(ZONED_WEEK);
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    const rows = await page.findPurchaseRows();
+    expect(rows).toHaveLength(4);
+    expect(page.queryText(FINANCE_TEXT.ADJUSTMENT)).toBeInTheDocument();
+    expect(page.queryText(amount("\\+₡5 000"))).toBeInTheDocument();
+    // Tres lápices de compra y el del periodo; ninguno del ajuste.
+    expect(page.getAllEditButtons()).toHaveLength(4);
+    expect(page.queryText(FINANCE_TEXT.INCLUDES_ADJUSTMENTS)).not.toBeInTheDocument();
   });
 });

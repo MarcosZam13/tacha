@@ -129,9 +129,61 @@ const toContentRangeHeaders = (rowCount: number): Record<string, string> => ({
 const SERVER_ERROR = { code: "XX000", message: "simulated failure" };
 const OK_STATUS = 200;
 const NO_CONTENT_STATUS = 204;
+const BAD_REQUEST_STATUS = 400;
 const SERVER_ERROR_STATUS = 500;
 
+// ----------------------------------------------------------------------------
+// SCRUM-91: la zona guardada, get_period_finance y las RPC de edición (E2E.md,
+// "Datos y entorno" de SCRUM-91). Imitan el contrato de la 040; lo real lo cubre
+// la prueba SQL.
+// ----------------------------------------------------------------------------
+
+/** Un código de la base, como lo devuelve PostgREST (la app solo mira `code`). */
+export interface SimulatedRpcError {
+  code: string;
+  status: number;
+}
+
+export const SIMULATED_RPC_ERROR = {
+  NEGATIVE_PERIOD: { code: "23514", status: BAD_REQUEST_STATUS },
+  SERVER: { code: SERVER_ERROR.code, status: SERVER_ERROR_STATUS },
+} as const satisfies Record<string, SimulatedRpcError>;
+
+const TIME_ZONE_MISSING_ERROR: SimulatedRpcError = { code: "TZ001", status: BAD_REQUEST_STATUS };
+
+const SCOPES = ["day", "week", "month"] as const;
+type Scope = (typeof SCOPES)[number];
+
+// Los límites de cada periodo en curso en Costa Rica, con el reloj fijo.
+const PERIOD_BOUNDS: Record<Scope, { end: string; start: string }> = {
+  day: { end: "2026-10-19T06:00:00.000Z", start: "2026-10-18T06:00:00.000Z" },
+  month: { end: "2026-11-01T06:00:00.000Z", start: "2026-10-01T06:00:00.000Z" },
+  week: { end: "2026-10-19T06:00:00.000Z", start: "2026-10-12T06:00:00.000Z" },
+};
+
+interface SimulatedAdjustment {
+  amount: number;
+  effective_at: string;
+  id: string;
+  scope: Scope;
+}
+
+const isScope = (value: string): value is Scope => (SCOPES as readonly string[]).includes(value);
+
+// Regla 52: un ajuste cuenta en su nivel y en los mayores.
+const countsIn = (adjustmentScope: Scope, periodScope: Scope): boolean =>
+  SCOPES.indexOf(adjustmentScope) <= SCOPES.indexOf(periodScope);
+
+const sum = (amounts: number[]): number => amounts.reduce((total, amount) => total + amount, 0);
+
+const toRpcError = ({ code, status }: SimulatedRpcError) => ({
+  json: { code, details: null, hint: null, message: "simulated" },
+  status,
+});
+
 export interface FinanceStubOptions {
+  /** Los presupuestos guardados al empezar, por periodo. */
+  budgets?: Partial<Record<Scope, number>>;
   /** Cuántas veces seguidas falla la consulta de compras antes de responder bien. */
   failSpendingTimes?: number;
   /** Si la lectura de presupuestos falla siempre. */
@@ -144,30 +196,118 @@ export interface FinanceStubOptions {
   historyRows?: HistoryRow[];
   /** La consulta del Historial no responde hasta que esta promesa termina. */
   historyGate?: Promise<void>;
+  /** Errores, uno por llamada, de set_period_total antes de responder bien. */
+  periodTotalErrors?: SimulatedRpcError[];
+  /** Errores, uno por llamada, de set_purchase_session_total antes de responder bien. */
+  purchaseTotalErrors?: SimulatedRpcError[];
+  /** La zona guardada al empezar. Sin ella, get_period_finance responde sin zona (regla 59). */
+  savedTimeZone?: string;
 }
 
 /** Lo que la pantalla le pidió a Supabase, para comprobarlo en el test. */
 export interface FinanceStubRecorder {
   budgetRequests: Request[];
   historyRequests: Request[];
+  periodFinanceRequests: Request[];
+  /** set_purchase_session_total y set_period_total. */
+  totalRequests: Request[];
   rpcRequests: Request[];
   spendingRequests: Request[];
+  timeZoneRequests: Request[];
 }
 
 /**
  * Responde desde el test todas las llamadas a Supabase. Va antes de abrir la
- * página. Los presupuestos guardados con la RPC se recuerdan para la
- * siguiente lectura (así se puede recargar y verlos).
+ * página. Los presupuestos, los totales, los ajustes y la zona guardados con
+ * las RPC se recuerdan para la siguiente lectura.
  */
 export const stubFinanceSupabase = async (
   page: Page,
   options: FinanceStubOptions = {},
 ): Promise<FinanceStubRecorder> => {
   const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const recorder: FinanceStubRecorder = { budgetRequests: [], historyRequests: [], rpcRequests: [], spendingRequests: [] };
-  const savedBudgets = new Map<string, number>();
+  const recorder: FinanceStubRecorder = {
+    budgetRequests: [],
+    historyRequests: [],
+    periodFinanceRequests: [],
+    rpcRequests: [],
+    spendingRequests: [],
+    timeZoneRequests: [],
+    totalRequests: [],
+  };
+  const savedBudgets = new Map<string, number>(Object.entries(options.budgets ?? {}));
+  const savedPurchaseTotals = new Map<string, number>();
+  let adjustments: SimulatedAdjustment[] = [];
+  let savedTimeZone: string | null = options.savedTimeZone ?? null;
   let spendingFailuresLeft = options.failSpendingTimes ?? 0;
   let historyFailuresLeft = options.failHistoryTimes ?? 0;
+  const purchaseTotalErrors = [...(options.purchaseTotalErrors ?? [])];
+  const periodTotalErrors = [...(options.periodTotalErrors ?? [])];
+
+  // Las compras del periodo, con los totales editados.
+  const getPeriodRows = (scope: Scope): HistoryRow[] =>
+    (options.historyRows ?? HISTORY_ROWS_BY_PERIOD_START[PERIOD_BOUNDS[scope].start] ?? []).map((row) => ({
+      ...row,
+      total_amount: savedPurchaseTotals.get(row.id) ?? row.total_amount,
+    }));
+  const getCountingAdjustments = (scope: Scope): SimulatedAdjustment[] =>
+    adjustments.filter((adjustment) => countsIn(adjustment.scope, scope));
+  const getPurchasesTotal = (scope: Scope): number =>
+    sum(getPeriodRows(scope).flatMap((row) => (row.total_amount === null ? [] : [row.total_amount])));
+
+  const toPeriodFinance = (scope: Scope) => {
+    if (savedTimeZone === null) {
+      return {
+        adjustment_count: 0,
+        adjustments: [],
+        closed_count: 0,
+        period_end: null,
+        period_start: null,
+        purchases: [],
+        time_zone: null,
+        total: null,
+        without_total_count: 0,
+      };
+    }
+    const rows = getPeriodRows(scope);
+    const countingAdjustments = getCountingAdjustments(scope);
+    return {
+      adjustment_count: countingAdjustments.length,
+      adjustments: countingAdjustments,
+      closed_count: rows.filter((row) => row.total_amount !== null).length,
+      period_end: PERIOD_BOUNDS[scope].end,
+      period_start: PERIOD_BOUNDS[scope].start,
+      purchases: rows.map((row) => ({
+        closed_at: row.closed_at,
+        id: row.id,
+        store_name: row.stores?.display_name ?? null,
+        total_amount: row.total_amount,
+      })),
+      time_zone: savedTimeZone,
+      total: getPurchasesTotal(scope) + sum(countingAdjustments.map((adjustment) => adjustment.amount)),
+      without_total_count: rows.filter((row) => row.total_amount === null).length,
+    };
+  };
+
+  // Regla 50 y 51: la diferencia la calcula la base; uno por periodo; 0 lo quita.
+  const savePeriodTotal = (scope: Scope, total: number): SimulatedAdjustment[] => {
+    const previous = adjustments.find((adjustment) => adjustment.scope === scope);
+    const others = adjustments.filter((adjustment) => adjustment.scope !== scope);
+    const difference =
+      total - getPurchasesTotal(scope) - sum(others.filter((other) => countsIn(other.scope, scope)).map((other) => other.amount));
+    if (difference === 0) {
+      adjustments = others;
+      return [];
+    }
+    const saved: SimulatedAdjustment = {
+      amount: difference,
+      effective_at: previous?.effective_at ?? FIXED_NOW.toISOString(),
+      id: previous?.id ?? `00000000-0000-4000-8000-0000000000a${SCOPES.indexOf(scope)}`,
+      scope,
+    };
+    adjustments = [...others, saved];
+    return [saved];
+  };
 
   await page.route(`${supabaseUrl}/**`, async (route) => {
     const request = route.request();
@@ -192,7 +332,9 @@ export const stubFinanceSupabase = async (
         return route.fulfill({ json: SERVER_ERROR, status: SERVER_ERROR_STATUS });
       }
       const periodStart = searchParams.getAll("closed_at").find((filter) => filter.startsWith("gte."))?.slice(4) ?? "";
-      return route.fulfill({ json: PURCHASES_BY_PERIOD_START[periodStart] ?? [], status: OK_STATUS });
+      const rows = PURCHASES_BY_PERIOD_START[periodStart] ?? [];
+      // D19: el gasto también pide el conteo exacto.
+      return route.fulfill({ headers: toContentRangeHeaders(rows.length), json: rows, status: OK_STATUS });
     }
 
     if (pathname.endsWith("/rest/v1/spending_budgets")) {
@@ -211,6 +353,61 @@ export const stubFinanceSupabase = async (
       };
       savedBudgets.set(period, amount);
       return route.fulfill({ json: { amount, owner_id: buildFakeUser().id, period }, status: OK_STATUS });
+    }
+
+    if (pathname.endsWith("/rest/v1/rpc/get_period_finance")) {
+      recorder.periodFinanceRequests.push(request);
+      const { target_scope: scope } = request.postDataJSON() as { target_scope: string };
+      if (!isScope(scope)) return route.fulfill(toRpcError({ code: "22023", status: BAD_REQUEST_STATUS }));
+      return route.fulfill({ json: toPeriodFinance(scope), status: OK_STATUS });
+    }
+
+    if (pathname.endsWith("/rest/v1/rpc/set_spending_time_zone")) {
+      recorder.timeZoneRequests.push(request);
+      const { new_time_zone: timeZone } = request.postDataJSON() as { new_time_zone: string };
+      savedTimeZone = timeZone;
+      return route.fulfill({ json: { owner_id: buildFakeUser().id, time_zone: timeZone }, status: OK_STATUS });
+    }
+
+    if (pathname.endsWith("/rest/v1/rpc/set_purchase_session_total")) {
+      recorder.totalRequests.push(request);
+      if (savedTimeZone === null) return route.fulfill(toRpcError(TIME_ZONE_MISSING_ERROR));
+      const nextError = purchaseTotalErrors.shift();
+      if (nextError) return route.fulfill(toRpcError(nextError));
+      const { new_total: total, target_session_id: purchaseId } = request.postDataJSON() as {
+        new_total: number;
+        target_session_id: string;
+      };
+      const row = Object.values(HISTORY_ROWS_BY_PERIOD_START).flat().find((candidate) => candidate.id === purchaseId);
+      if (!row) return route.fulfill(toRpcError({ code: "P0002", status: SERVER_ERROR_STATUS }));
+      savedPurchaseTotals.set(purchaseId, total);
+      return route.fulfill({
+        json: {
+          closed_at: row.closed_at,
+          household_id: null,
+          id: row.id,
+          list_id: null,
+          owner_id: buildFakeUser().id,
+          started_at: row.closed_at,
+          store_id: "00000000-0000-4000-8000-0000000000f1",
+          total_amount: total,
+        },
+        status: OK_STATUS,
+      });
+    }
+
+    if (pathname.endsWith("/rest/v1/rpc/set_period_total")) {
+      recorder.totalRequests.push(request);
+      if (savedTimeZone === null) return route.fulfill(toRpcError(TIME_ZONE_MISSING_ERROR));
+      const nextError = periodTotalErrors.shift();
+      if (nextError) return route.fulfill(toRpcError(nextError));
+      const { target_scope: scope, target_total: total } = request.postDataJSON() as {
+        target_scope: string;
+        target_total: number;
+      };
+      if (!isScope(scope)) return route.fulfill(toRpcError({ code: "22023", status: BAD_REQUEST_STATUS }));
+      const saved = savePeriodTotal(scope, total).map((adjustment) => ({ ...adjustment, owner_id: buildFakeUser().id }));
+      return route.fulfill({ json: saved, status: OK_STATUS });
     }
 
     if (pathname.endsWith("/auth/v1/logout")) return route.fulfill({ status: NO_CONTENT_STATUS });
@@ -251,6 +448,15 @@ export const getPurchaseRows = (page: Page): Locator => getPurchaseList(page).ge
 
 export const getPriceDisclaimer = (page: Page): Locator =>
   page.getByRole("complementary", { name: PRICE_DISCLAIMER_NAME });
+
+/** El lápiz de un total, por su nombre propio (SCRUM-91, SPEC §9). */
+export const getEditTotalButton = (page: Page, name: string): Locator => page.getByRole("button", { name, exact: true });
+
+/** Los lápices de total que se ven, de compras y del periodo. */
+export const getEditTotalButtons = (page: Page): Locator => page.getByRole("button", { name: /^Editar total/u });
+
+/** El campo abierto de un total, por su etiqueta. */
+export const getTotalInput = (page: Page, label: string): Locator => page.getByRole("textbox", { name: label });
 
 /** El bloque del total del periodo, con sus contadores. */
 export const getTotalSection = (page: Page): Locator => page.locator("section").filter({ hasText: "Gastado" });

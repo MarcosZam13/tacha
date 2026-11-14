@@ -6,17 +6,31 @@ import { APP_ROUTE } from "@/constants";
 import { PurchaseHistory } from "../PurchaseHistory";
 import { FINANCE_TEXT } from "../constants/finance.constants";
 import type { PeriodBounds } from "../models/PeriodBounds.interface";
+import type { ZonedPeriodFinance } from "../models/PeriodFinance.type";
 import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
-import { getPeriodPurchases, hasRegisteredSession } from "../services/finance.service";
+import {
+  getPeriodFinance,
+  getPeriodPurchases,
+  hasRegisteredSession,
+  setPeriodTotal,
+  setPurchaseTotal,
+} from "../services/finance.service";
 import { createPurchaseHistoryPage } from "./PurchaseHistory.page";
 
 // La pantalla con el servicio falso: sin Supabase ni sesión real.
 vi.mock("../services/finance.service", () => ({
+  getPeriodFinance: vi.fn(),
   getPeriodPurchases: vi.fn(),
   hasRegisteredSession: vi.fn(),
+  setPeriodTotal: vi.fn(),
+  setPurchaseTotal: vi.fn(),
+  setSpendingTimeZone: vi.fn(),
 }));
 const sessionMock = vi.mocked(hasRegisteredSession);
 const purchasesMock = vi.mocked(getPeriodPurchases);
+const financeMock = vi.mocked(getPeriodFinance);
+const purchaseSaveMock = vi.mocked(setPurchaseTotal);
+const periodSaveMock = vi.mocked(setPeriodTotal);
 
 // Domingo 18 de octubre de 2026, 15:00 en hora local.
 const NOW = new Date(2026, 9, 18, 15, 0);
@@ -56,6 +70,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
+  // Sin zona guardada: se lee como antes, con el navegador (SPEC regla 59).
+  financeMock.mockResolvedValue({ timeZone: null });
   sessionMock.mockResolvedValue(true);
   purchasesMock.mockImplementation(purchasesByPeriod);
 });
@@ -236,5 +252,143 @@ describe("PurchaseHistory: states and price notice (§6)", () => {
     expect(await page.findNoAccountNotice()).toBeInTheDocument();
     expect(purchasesMock).toHaveBeenCalledTimes(1);
     expect(createPriceDisclaimerPage().queryAllDisclaimers()).toHaveLength(0);
+  });
+});
+
+describe("PurchaseHistory: editing totals (SCRUM-91)", () => {
+  const SUNDAY_PENCIL = "Editar total del domingo 18 de octubre, MaxiPali";
+  const WEDNESDAY_PENCIL = "Editar total del miércoles 14 de octubre, Walmart";
+  const WEEK_PENCIL = "Editar total de esta semana";
+  const PURCHASE_INPUT = FINANCE_TEXT.PURCHASE_TOTAL_INPUT_LABEL;
+  const WEEK_INPUT = "Total de esta semana (₡)";
+
+  // Con la zona del navegador guardada: las fechas son las mismas de siempre.
+  const ZONED_WEEK: ZonedPeriodFinance = {
+    adjustments: [],
+    bounds: { end: new Date(2026, 9, 19), start: new Date(2026, 9, 12) },
+    purchases: WEEK_PURCHASES,
+    spending: { adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 1 },
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+
+  const renderLoaded = async () => {
+    financeMock.mockResolvedValue(ZONED_WEEK);
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+    await page.findEditButton(SUNDAY_PENCIL);
+    return page;
+  };
+
+  it("gives every purchase and the period total a pencil (CA-01, CA-02, D12)", async () => {
+    const page = await renderLoaded();
+
+    expect(page.getEditButton(SUNDAY_PENCIL)).toBeEnabled();
+    expect(page.getEditButton(WEDNESDAY_PENCIL)).toBeEnabled();
+    expect(page.getEditButton(WEEK_PENCIL)).toBeEnabled();
+  });
+
+  it("opens the field with the amount and the focus, and cancels back to the pencil", async () => {
+    const page = await renderLoaded();
+
+    await page.openEdit(SUNDAY_PENCIL);
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveValue("10000");
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveFocus();
+
+    await page.cancel();
+    expect(page.queryTotalInput(PURCHASE_INPUT)).not.toBeInTheDocument();
+    expect(page.getEditButton(SUNDAY_PENCIL)).toHaveFocus();
+  });
+
+  it("opens a «Sin total» purchase empty and closes it with Escape", async () => {
+    const page = await renderLoaded();
+
+    await page.openEdit(WEDNESDAY_PENCIL);
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveValue("");
+
+    await page.pressKey("{Escape}");
+    expect(page.queryTotalInput(PURCHASE_INPUT)).not.toBeInTheDocument();
+    expect(page.getEditButton(WEDNESDAY_PENCIL)).toHaveFocus();
+  });
+
+  it("keeps a single field open: opening another pencil closes the first (D21)", async () => {
+    const page = await renderLoaded();
+
+    await page.openEdit(SUNDAY_PENCIL);
+    await page.openEdit(WEEK_PENCIL);
+
+    expect(page.getAllTotalInputs()).toHaveLength(1);
+    expect(page.getTotalInput(WEEK_INPUT)).toHaveFocus();
+  });
+
+  it("shows the validation error without calling the database (D13)", async () => {
+    const page = await renderLoaded();
+
+    await page.openEdit(SUNDAY_PENCIL);
+    await page.replaceTotal(PURCHASE_INPUT, "12.5");
+    await page.save();
+
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveAccessibleDescription(FINANCE_TEXT.TOTAL_INVALID);
+    expect(purchaseSaveMock).not.toHaveBeenCalled();
+  });
+
+  it("saves a purchase, shows its new amount and total, and announces it", async () => {
+    purchaseSaveMock.mockResolvedValue({ closedAt: SUNDAY_PURCHASE.closedAt, id: "sunday", totalAmount: 12000 });
+    const page = await renderLoaded();
+
+    await page.openEdit(SUNDAY_PENCIL);
+    await page.replaceTotal(PURCHASE_INPUT, "12000");
+    await page.save();
+
+    await waitFor(() => expect(page.queryTotalInput(PURCHASE_INPUT)).not.toBeInTheDocument());
+    expect(purchaseSaveMock).toHaveBeenCalledWith({ purchaseId: "sunday", total: 12000 });
+    expect(page.queryText(amount("₡12 000"))).toBeInTheDocument();
+    expect(page.queryText(amount("₡17 000"))).toBeInTheDocument();
+    expect(toPlainSpaces(page.getStatusRegion()?.textContent ?? null)).toBe(
+      "Total guardado. Gastado esta semana: ₡17 000",
+    );
+    expect(page.getEditButton(SUNDAY_PENCIL)).toHaveFocus();
+  });
+
+  it("disables the field and every pencil while saving (D21, rule 56)", async () => {
+    purchaseSaveMock.mockReturnValue(new Promise(() => undefined));
+    const page = await renderLoaded();
+
+    await page.openEdit(SUNDAY_PENCIL);
+    await page.save();
+
+    await waitFor(() => expect(page.getSavingButton()).toBeDisabled());
+    expect(page.getTotalInput(PURCHASE_INPUT)).toBeDisabled();
+    expect(page.getEditButton(WEDNESDAY_PENCIL)).toBeDisabled();
+    expect(page.getEditButton(WEEK_PENCIL)).toBeDisabled();
+  });
+
+  it("announces a save error and keeps what was written", async () => {
+    purchaseSaveMock.mockRejectedValue(new Error("network"));
+    const page = await renderLoaded();
+
+    await page.openEdit(SUNDAY_PENCIL);
+    await page.replaceTotal(PURCHASE_INPUT, "12000");
+    await page.save();
+
+    expect(await page.findText("No se pudo guardar el total. Intenta de nuevo.")).toHaveAttribute("role", "alert");
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveValue("12000");
+    expect(page.getTotalInput(PURCHASE_INPUT)).toHaveFocus();
+  });
+
+  it("saves the period total and shows it", async () => {
+    periodSaveMock.mockResolvedValue({
+      adjustment: { amount: 5000, effectiveAt: NOW.toISOString(), id: "adjustment-1", scope: "week" },
+    });
+    const page = await renderLoaded();
+
+    await page.openEdit(WEEK_PENCIL);
+    expect(page.getTotalInput(WEEK_INPUT)).toHaveValue("15000");
+    await page.replaceTotal(WEEK_INPUT, "20000");
+    await page.save();
+
+    await waitFor(() => expect(page.queryTotalInput(WEEK_INPUT)).not.toBeInTheDocument());
+    expect(periodSaveMock).toHaveBeenCalledWith({ period: "week", total: 20000 });
+    expect(page.queryText(amount("₡20 000"))).toBeInTheDocument();
+    expect(page.getEditButton(WEEK_PENCIL)).toHaveFocus();
   });
 });
