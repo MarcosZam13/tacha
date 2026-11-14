@@ -134,6 +134,8 @@ export const usePurchaseHistoryViewModel = (): UsePurchaseHistoryViewModelReturn
         totalAmount,
       ),
       editor: isEditing ? toEditor(FINANCE_TEXT.PURCHASE_TOTAL_INPUT_LABEL) : null,
+      // "Sin total" como badge (SCRUM-92, CA-01); ₡0 es un total real y no lo lleva (D8).
+      hasNoTotal: totalAmount === null,
       id,
       storeText,
     };

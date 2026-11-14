@@ -332,3 +332,90 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
 | Regla 52 (dónde cuenta) | — | `finance.service.test.ts`, prueba SQL 040 |
 | Trigger, permisos y RLS | — (no llegan a la base) | Prueba SQL 040, manual |
 | D20 (otra pestaña) | — (fuera de alcance) | Límite declarado |
+
+## SCRUM-92: ver sesiones sin total ingresado
+
+Los tests van en `e2e/features/finance/pending-totals.spec.ts`. Igual que los anteriores, usan una **sesión registrada simulada** y **respuestas de Supabase simuladas**, y validan **solo la interfaz**: ni la RLS, ni la RPC real, ni el contraste medido (SPEC D27, manual). Lo real lo cubren la prueba SQL `040` y el QA manual de SPEC §13.
+
+Los bordes del umbral (23 h 59 min y 24 h exactas) se prueban en la función pura del corte (plan, "Pruebas"). Acá van casos representativos.
+
+### Datos y entorno
+
+Mismo reloj, zona horaria y compras del Historial de E2E-FIN-05: domingo 18 de octubre de 2026, 15:00 en Costa Rica (`2026-10-18T21:00:00Z`). Cambios en `finance.helpers.ts`:
+
+| Petición | Respuesta simulada |
+|---|---|
+| `GET /rest/v1/purchase_sessions?…total_amount=is.null…` | Las compras cerradas sin total del escenario, de cualquier fecha, con `Content-Range`; `[]` por defecto, así que E2E-FIN-01 a 14 no cambian |
+| `POST /rest/v1/rpc/set_purchase_session_total` | La compra con el total nuevo, como en SCRUM-91; el helper la quita de las pendientes |
+
+Compras sin total que usan los escenarios:
+
+| Compra | Cierre | Hace | Cuenta para el recordatorio (24 h) |
+|---|---|---|---|
+| Walmart | miércoles 14 de octubre, 10:00 (`2026-10-14T16:00:00Z`) | 4 días | Sí |
+| MaxiPali | domingo 18 de octubre, 04:00 (`2026-10-18T10:00:00Z`) | 11 horas | No |
+| Walmart | domingo 20 de septiembre, 10:00 (`2026-09-20T16:00:00Z`) | 28 días, fuera del mes | Sí |
+
+### E2E-FIN-15: badge «Sin total» (SCRUM-92)
+
+- **Cubre:** CA-01; D8 y reglas 61 y 62.
+- **Precondición:** sesión registrada simulada; compras de la semana de E2E-FIN-05 más una de ₡0. Corre en desktop y en Pixel 7.
+- **Pasos:** abrir `/finanzas/historial`.
+- **Resultado esperado:**
+  - La fila de Walmart muestra el badge «Sin total», sin `role="alert"`.
+  - MaxiPali muestra ₡10 000 y la de ₡0 muestra «₡0», las dos sin badge.
+  - Los contadores no cambian: «Compras» y «Sin total» siguen como en E2E-FIN-05, con la de ₡0 en «Compras».
+  - El lápiz de Walmart sigue disponible (D12).
+
+### E2E-FIN-16: recordatorio después de 24 horas (SCRUM-92)
+
+- **Cubre:** CA-02; D23, D24, D26 y reglas 63, 64 y 66.
+- **Precondición:** sesión registrada simulada; pendientes: Walmart del 14 de octubre (4 días) y MaxiPali del 18 de octubre (11 horas). Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial`.
+  2. Tocar «Completarlas».
+  3. Tocar «Dashboard».
+- **Resultado esperado:**
+  - **Historial:** se ve «Tienes 1 compra sin total desde hace más de 24 horas», sin `role="alert"` y sin botón para cerrarlo. La compra de 11 horas no cuenta.
+  - **Sección «Compras sin total»:** lista las dos, de la más reciente a la más antigua, cada una con su badge y su lápiz. «Completarlas» lleva a esta sección.
+  - **Dashboard:** la misma línea, con un enlace al Historial y sin ningún lápiz (D11).
+  - **La petición** de pendientes filtra `total_amount=is.null` y `closed_at=not.is.null`, lleva `count=exact` y no filtra por dueño ni por fecha.
+
+### E2E-FIN-17: completar una compra de un periodo anterior (SCRUM-92)
+
+- **Cubre:** CA-03; D21, D25 y reglas 68 y 69.
+- **Precondición:** sesión registrada simulada, con la zona guardada; pendientes: Walmart del 14 de octubre y Walmart del 20 de septiembre. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial` (₡15 000; la compra de septiembre no está en el periodo).
+  2. En «Compras sin total», tocar «Editar total del domingo 20 de septiembre, Walmart», escribir `8000` y tocar «Guardar».
+  3. Tocar el lápiz de Walmart del 14 de octubre en la sección, escribir `0` y tocar «Guardar».
+- **Resultado esperado:**
+  - **Septiembre:** `rpc/set_purchase_session_total` lleva la compra y `8000`, sin dueño ni zona. La compra sale de la sección sin recargar y el total de la semana sigue en ₡15 000. El recordatorio sigue en 1.
+  - **Un solo campo** abierto en toda la pantalla mientras se edita (D21).
+  - **14 de octubre:** sale de la sección y, en la lista de la semana, pasa a ₡0. «Compras» pasa de 2 a 3 y «Sin total» de 1 a 0. El recordatorio y la sección desaparecen.
+  - No se volvieron a pedir las pendientes.
+
+### E2E-FIN-18: error al leer las pendientes y reintento (SCRUM-92)
+
+- **Cubre:** regla 67 y D6.
+- **Precondición:** sesión registrada simulada; la primera lectura de pendientes responde `500`. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial`.
+  2. Tocar «Reintentar» del recordatorio.
+- **Resultado esperado:**
+  - Se ve «No se pudo revisar si tienes compras sin total. Intenta de nuevo.» y «Reintentar», en el lugar del recordatorio, mientras el total de la semana (₡15 000) y su lista siguen visibles.
+  - Al reintentar, aparece el recordatorio.
+  - **Sin cuenta registrada:** E2E-FIN-04 y 08 también comprueban que no se pidan las pendientes.
+
+### Cobertura de SCRUM-92
+
+| Criterio | Escenarios E2E | Otros niveles |
+|---|---|---|
+| HU-61 CA-01 | E2E-FIN-15 | `FinanceComponents.test.tsx`, `PurchaseHistory.test.tsx`, manual |
+| HU-61 CA-02 y D23 | E2E-FIN-16 | Función del corte (23 h 59 min y 24 h), `usePendingPurchases.test.ts`, ViewModels, manual |
+| HU-61 CA-03 y D25 | E2E-FIN-17 | `usePurchaseHistoryViewModel.test.ts`, `PurchaseHistory.test.tsx`, manual contra la base |
+| D21 entre las dos listas | E2E-FIN-17 | `useTotalEdit.test.ts` |
+| D26 (solo Finanzas, sin descartar) | E2E-FIN-16 | Componentes y ViewModels |
+| D27 (contraste) | — (no se mide en E2E) | Test del `Chip` y medición manual en los dos temas |
+| Regla 67 (error) | E2E-FIN-18 | `usePendingPurchases.test.ts` |
+| D6 | E2E-FIN-04 y 08 | `usePendingPurchases.test.ts` |

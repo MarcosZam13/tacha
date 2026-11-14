@@ -474,6 +474,7 @@ describe("PurchaseSessionRow", () => {
     dateText: "Domingo 18 de octubre",
     edit: createEditProps(),
     editor: null,
+    hasNoTotal: false,
     id: "purchase-1",
     storeText: "MaxiPali",
     ...overrides,
@@ -484,6 +485,36 @@ describe("PurchaseSessionRow", () => {
         <PurchaseSessionRow {...props} />
       </ul>,
     );
+
+  describe("«Sin total» badge (SCRUM-92, CA-01)", () => {
+    it("shows «Sin total» as the strong terracotta badge, never as an error, next to its pencil (D12, D27)", () => {
+      renderRow(createRowProps({ amountText: FINANCE_TEXT.WITHOUT_TOTAL, hasNoTotal: true }));
+      const page = createPurchaseHistoryPage();
+
+      const badge = screen.getByText(FINANCE_TEXT.WITHOUT_TOTAL);
+      expect(badge).toHaveClass("text-tacha-terracotta-text", "bg-tacha-terracotta/10");
+      expect(badge).not.toHaveClass("text-red-600");
+      expect(badge.className).not.toMatch(/danger|red-/u);
+      expect(page.queryAlert()).not.toBeInTheDocument();
+      expect(page.getEditButton(PURCHASE_PENCIL)).toBeEnabled();
+    });
+
+    it.each([
+      ["a total", "₡10 000"],
+      ["a real ₡0 total (D8)", "₡0"],
+    ])("shows %s as a plain amount, without the badge", (_, amountText) => {
+      renderRow(createRowProps({ amountText }));
+
+      expect(screen.getByText(amountText)).not.toHaveClass("text-tacha-terracotta-text");
+      expect(screen.getByText(amountText).tagName).toBe("P");
+    });
+
+    it("hides the badge with the field open, like any amount", () => {
+      renderRow(createRowProps({ amountText: FINANCE_TEXT.WITHOUT_TOTAL, editor: createEditorProps(), hasNoTotal: true }));
+
+      expect(screen.queryByText(FINANCE_TEXT.WITHOUT_TOTAL)).not.toBeInTheDocument();
+    });
+  });
 
   it("shows the amount with its pencil (CA-01)", async () => {
     const onClick = vi.fn();

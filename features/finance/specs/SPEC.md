@@ -5,6 +5,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-69 / HU-37](https://tacha.atlassian.net/browse/SCRUM-69): ver gasto total por periodo. Sprint 3, en planificación.
 - [SCRUM-90 / HU-59](https://tacha.atlassian.net/browse/SCRUM-90): ver historial de sesiones de compra. Implementada, con QA manual parcial (§13).
 - [SCRUM-91 / HU-60](https://tacha.atlassian.net/browse/SCRUM-91): editar el total de una sesión o periodo. En planificación.
+- [SCRUM-92 / HU-61](https://tacha.atlassian.net/browse/SCRUM-92): ver sesiones sin total ingresado. En planificación; decisiones D23 a D27 tomadas el 2026-11-13 (§5).
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md). Producto: [documento-proyecto.md §4.2.1 y §4.6](../../../docs/documento-proyecto.md#42-lista-general-y-dashboard-financiero); diseño: [DESIGN.md §7.9 y §7.11](../../../docs/DESIGN.md).
 
@@ -21,6 +22,10 @@ Que una persona con cuenta revise las compras que cerró en el día, la semana o
 ### SCRUM-91
 
 Que una persona con cuenta corrija el total de una compra o del periodo en curso, sin ingresar precio por producto, para que Finanzas refleje lo que gastó de verdad.
+
+### SCRUM-92
+
+Que una persona con cuenta distinga de un vistazo las compras que cerró sin total, reciba un aviso si alguna queda así por un tiempo y pueda completarla cuando quiera desde el Historial, para que su gasto no quede incompleto sin darse cuenta.
 
 ## 2. Alcance
 
@@ -67,6 +72,18 @@ Incluye:
 
 No incluye ([§14](#14-casos-fuera-de-alcance)): editar desde el Dashboard, periodos anteriores, volver una compra a "Sin total", decimales, actualizar otra pestaña abierta, ni el badge y el recordatorio de HU-61.
 
+### SCRUM-92
+
+**Dentro:**
+
+- Un **badge terracota "Sin total"** en cada compra sin total del Historial, informativo y sin aspecto de error (CA-01). Reemplaza el texto plano de D8.
+- Un **recordatorio persistente dentro de Finanzas** cuando una compra lleva **24 horas o más** cerrada sin total (CA-02, D23, D24 y D26), en el Dashboard y en el Historial, sin opción de descartarlo.
+- Una sección **"Compras sin total"** en el Historial con las pendientes de **cualquier fecha** (D25), para **completar** cualquiera (CA-03) con la edición que ya existe de SCRUM-91: lápiz, campo, validación, errores y `set_purchase_session_total`.
+- El contraste del badge en WCAG AA, 4,5:1 (D27), con un token nuevo de texto terracota y un tono nuevo del `Chip` que solo usa este badge.
+- Sin migración ni RPC nueva: una lectura de `purchase_sessions` con la RLS de `016`.
+
+**Fuera:** §14.
+
 ## 3. Entradas
 
 ### SCRUM-69
@@ -108,6 +125,13 @@ No incluye ([§14](#14-casos-fuera-de-alcance)): editar desde el Dashboard, peri
 
 El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo ni una zona al editar un total.
 
+### SCRUM-92
+
+- La sesión registrada (D6).
+- Las compras **cerradas propias** con `total_amount` nulo, de cualquier fecha (D3, D4, D8).
+- La hora actual del navegador, para comparar con el umbral de 24 horas (D23).
+- La zona guardada, si hay, solo para dar formato a las fechas (regla 58).
+
 ## 4. Salidas
 
 ### SCRUM-69
@@ -140,6 +164,13 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
 - **Si no se puede guardar:** no cambia nada y lo escrito se conserva.
 - **Al confirmar o cambiar la zona:** se guarda solo si ningún periodo con ajustes queda negativo en ella; si no, sigue la anterior.
 - El Historial sigue sin mostrar periodos anteriores.
+
+### SCRUM-92
+
+- **Filas de compra:** las "Sin total" muestran el badge en lugar del texto plano, con su lápiz (D12).
+- **Recordatorio:** la cantidad de compras sin total que llevan 24 horas o más, con un enlace para ir a completarlas. No aparece si no hay ninguna.
+- **Sección "Compras sin total":** todas las pendientes, de cualquier fecha, con fecha, supermercado, badge y lápiz.
+- **Al completar una:** deja de estar pendiente sin recargar. Si cae en el periodo en curso, su fila, el total y los contadores cambian como en SCRUM-91, y el recordatorio baja su cantidad.
 
 ## 5. Reglas de negocio
 
@@ -307,6 +338,45 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
     - **Periodo ya negativo:** solo aparece por un cambio fuera de la aplicación (`service_role`, SQL manual) o por una actualización de la base de zonas de PostgreSQL. Si es el periodo en curso, la persona lo arregla escribiendo su total. Si es un periodo anterior, nada en la aplicación lo arregla, y tampoco subir una compra si el déficit supera el tope de la regla 46: hace falta soporte, con el procedimiento de [plan.md](plan.md#recuperación-de-un-periodo-negativo).
     - **Sin salida desde la aplicación:** además del caso anterior, un ajuste negativo tan grande que ninguna zona nueva lo sostenga.
 
+### SCRUM-92
+
+**Decididas por la dueña de la historia** (2026-11-13). Las alternativas descartadas están en [plan.md](plan.md), "SCRUM-92".
+
+- **D23. Umbral:** **24 horas** desde `closed_at`. Es una duración, no un límite de calendario, así que no depende de la zona horaria ni de que la persona haya confirmado una.
+- **D24. Canal:** un **indicador persistente dentro de Finanzas**. Sin push, sin correo y sin trabajos programados.
+- **D25. Compras de periodos anteriores:** una sección **"Compras sin total"** en el Historial con las pendientes de **cualquier fecha**, no solo del periodo en curso. D7 no cambia: el selector y el total siguen mostrando solo el periodo en curso.
+- **D26. Dónde y cómo:** el recordatorio se ve **solo en Finanzas** (Dashboard e Historial) y **no se puede descartar**: desaparece cuando ya no queda ninguna compra que pase el umbral. Sin contador en la navegación y sin guardar estado de "visto".
+- **D27. Contraste:** el badge cumple **WCAG AA, 4,5:1**, en los dos temas. Medido el 2026-11-13 con los tokens de `app/globals.css`:
+
+  | Tema | Texto | Fondo del `Chip` terracota | Contraste |
+  |---|---|---|---|
+  | Claro | `#d97b4f` | terracota al 10 % sobre `surface` o `bg` | 2,58:1 a 2,76:1, **no cumple** |
+  | Oscuro | `#e89a6c` | terracota al 10 % sobre `surface` o `bg` | 5,89:1 a 6,58:1, cumple |
+
+  En el tema claro hace falta un texto más oscuro: el primer tono del mismo matiz que llega a 4,5:1 en el peor fondo es `#9c5939` (4,57:1). El ajuste va en un **token nuevo de texto terracota** y un **tono nuevo del `Chip`** que lo usa. El tono `TERRACOTTA` existente y `--tacha-terracotta` no cambian, porque los usan otras pantallas.
+
+**Heredadas, sin cambios:** D3, D4, D6 y regla 7, D8 (una compra sin total no suma, y ₡0 es un total real), D12 (las "Sin total" tienen lápiz), D13 (no se vuelve a "Sin total"), D21, D22, reglas 46 a 48 y 58.
+
+**Badge (CA-01):**
+
+61. **Cómo se ve:** el `Chip` de `components/ui` con el tono terracota accesible de D27 y el texto **"Sin total"**, junto al lápiz. Sin rojo, sin ícono de error y sin `role="alert"`. El estado se dice en texto, no solo con color.
+62. **Dónde:** solo en las filas de compra. No cambian el contador "Sin total" de `SpendingTotal`, ni "No incluye N compras sin total" del Dashboard, ni las filas de ajuste. Un total de ₡0 nunca lleva badge (D8).
+
+**Recordatorio (CA-02):**
+
+63. **Qué cuenta:** las compras cerradas propias con `total_amount` nulo y `closed_at` igual o anterior a la hora actual menos 24 horas (D23), de cualquier fecha. Una compra cerrada hace 23 horas y 59 minutos todavía no cuenta; una de 24 horas exactas, sí.
+64. **Persistente y sin descartar (D26):** se ve en el Dashboard y en el Historial cada vez que se abren, mientras quede alguna, y desaparece cuando ya no queda ninguna. No hay botón para cerrarlo ni se guarda que se vio. Es informativo: sin `role="alert"` ni colores de error, con la cantidad en texto y un enlace a la sección "Compras sin total".
+65. **Sin trabajos programados:** se calcula al leer, con la hora del navegador al cargar. No avisa con la app cerrada, que es el límite de un indicador (D24), ni se actualiza solo si la pantalla queda abierta y una compra cumple las 24 horas: se ve en la próxima carga.
+66. **Una sola lectura:** el recordatorio y la sección de pendientes salen de la misma respuesta, para que no se contradigan (como la regla 25).
+67. **Si la lectura falla:** el recordatorio muestra un error discreto con "Reintentar", sin tapar el total del periodo. No se oculta el fallo, porque eso se vería como "no tienes compras sin total".
+
+**Completar (CA-03):**
+
+68. **Sin lógica nueva de edición:** el lápiz, `useTotalEdit` y `set_purchase_session_total` de SCRUM-91, con la misma validación, los mismos errores (incluidos `TZ001`, `TZ002` y `P0002`), el foco y D21. Hay un solo campo abierto en toda la pantalla, aunque la misma compra aparezca en dos listas, y el campo se abre solo en la fila donde se tocó el lápiz.
+69. **Al guardar:** la compra sale de las pendientes y el recordatorio se actualiza sin recargar. Si está en el periodo en curso, se aplica igual que en SCRUM-91 (`applySavedPurchase`).
+70. **Sección "Compras sin total" (D25):** todas las pendientes de cualquier fecha, también las que todavía no cumplen 24 horas; `closed_at` descendente y después `id` (regla 26), fechas en la zona guardada (regla 58), conteo exacto y error si no coincide (regla 30). Sin paginación: son compras personales sin completar, pocas filas; el riesgo está en el plan.
+71. **Solo cuentas registradas** (D6): una compra cerrada sin total en una sesión anónima no recibe recordatorio, porque esa sesión no puede abrir Finanzas.
+
 ## 6. Estados
 
 ### SCRUM-69
@@ -378,6 +448,21 @@ El aviso de precios se ve en los cuatro estados, siempre con cuenta registrada.
 | `ready` | Sí | Sí |
 | Fila "Ajuste manual" | No aplica | Sin lápiz (D16) |
 
+### SCRUM-92
+
+**Recordatorio**, una unión:
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| `loading` | Leyendo las pendientes | Nada, para no mover la pantalla |
+| `none` | Ninguna lleva 24 horas o más | Nada |
+| `pending` | Una o más llevan 24 horas o más | El recordatorio con la cantidad |
+| `failed` | Falló la lectura | El error discreto y "Reintentar" (regla 67) |
+
+**Sección "Compras sin total"**: `loading`, `empty` (no se muestra la sección), `ready` y `failed`, con el patrón de `SPENDING_STATUS`. El recordatorio y la sección salen de la misma lectura (regla 66): si falla, el error se muestra una sola vez, en el lugar del recordatorio.
+
+**Edición:** `TOTAL_EDIT_STATUS` de SCRUM-91, sin cambios.
+
 ## 7. Errores
 
 ### SCRUM-69
@@ -432,6 +517,16 @@ Los errores de Supabase no se muestran crudos. Un error de guardado no cambia lo
 
 **Cómo se identifican todos los errores:** siempre por `error.code`, nunca por el estado HTTP ni por el texto de PostgreSQL. PostgREST puede dar el mismo estado a códigos distintos, y a `P0002` probablemente un 500.
 
+### SCRUM-92
+
+Textos propuestos (se confirman al escribir las constantes):
+
+| Situación | Mensaje visible | Dónde |
+|---|---|---|
+| No se pudo leer las compras sin total | "No se pudo revisar si tienes compras sin total. Intenta de nuevo." + "Reintentar" | En el lugar del recordatorio; no tapa el total |
+| Guardar el total | Los de SCRUM-91 §7, sin cambios | Junto al campo |
+| La compra ya no existe (`P0002`) | El de SCRUM-91 §7; la lista de pendientes se vuelve a leer | Junto al campo |
+
 ## 8. UI esperada
 
 ### SCRUM-69
@@ -478,6 +573,16 @@ Según DESIGN.md §7.9. Textos propuestos:
 
 Ícono: `Pencil` de `lucide-react`, con `Icon` de `@/components/ui`.
 
+### SCRUM-92
+
+Según DESIGN.md §7.9: "Sesiones sin total ingresado deben distinguirse visualmente (ej. badge terracota «Sin total») sin sentirse como un error". Terracota es para etiquetas contextuales y montos (DESIGN.md §2), y nunca compite con el teal de las acciones.
+
+- **Badge:** el `Chip` con el tono terracota accesible (D27) y "Sin total", en el lugar del monto y junto al lápiz.
+- **Recordatorio:** un aviso discreto en tonos crema y terracota (`chipbg` y `chipborder`, texto con el contraste de D27), sin rojo y sin botón de cerrar (D26):
+  - **Historial:** arriba de la lista. Texto propuesto: **"Tienes 1 compra sin total desde hace más de 24 horas"** o **"Tienes 3 compras sin total desde hace más de 24 horas"**, más un enlace **"Completarlas"** que lleva a la sección.
+  - **Dashboard:** la misma línea debajo del total, con el enlace al Historial en la sección. Sin lápices (D11).
+- **Sección "Compras sin total"** (D25), debajo de la lista del periodo: con las mismas filas del Historial (fecha, supermercado, badge y lápiz).
+
 ## 9. Accesibilidad
 
 ### SCRUM-69
@@ -505,6 +610,14 @@ Según DESIGN.md §7.9. Textos propuestos:
 - **Foco:** al abrir, va al campo; al guardar o cancelar, vuelve a su lápiz; si el guardado falla, vuelve al campo. Escape cancela.
 - La zona `role="status"` anuncia "Total guardado" y el total nuevo. Los errores de guardado van en `role="alert"`.
 - "Ajuste manual" y el signo del monto se dicen en texto, no solo con color. "Incluye ajustes manuales" también es texto, cerca del total.
+- Todo se puede hacer solo con teclado, en desktop y en mobile.
+
+### SCRUM-92
+
+- **Badge:** "Sin total" va en texto; el color acompaña. Contraste según D27.
+- **Recordatorio:** no lleva `role="alert"`, porque no es un error ni algo urgente; se lee con el resto de la página. El enlace tiene un nombre que dice adónde lleva.
+- **Sección de pendientes:** un `<ul>` con nombre ("Compras sin total") y un `<li>` por compra.
+- **Lápiz y campo:** SCRUM-91 §9, sin cambios: nombre propio, foco, Escape y `aria-*`.
 - Todo se puede hacer solo con teclado, en desktop y en mobile.
 
 ## 10. Restricciones técnicas
@@ -539,6 +652,18 @@ Según DESIGN.md §7.9. Textos propuestos:
 - Estado con servicios y `useEffect`, sin TanStack Query ni Realtime. Lógica en ViewModels y hooks; los `.tsx` solo presentan.
 - Textos, RPC, códigos de error y estados en `finance.constants.ts`, sin strings sueltos.
 - Tests automáticos obligatorios y E2E según [plan.md](plan.md#scrum-91-editar-el-total-de-una-sesión-o-periodo).
+
+### SCRUM-92
+
+- **Sin migración, RPC ni Edge Function:** la lectura usa la RLS de `016`, y la escritura, `set_purchase_session_total` (`040`).
+- **Sin Realtime, push ni correo:** D24 y regla 65.
+- **Reutiliza sin duplicar:**
+  - `Chip`, de `components/ui`;
+  - `PurchaseSessionRow` y `EditTotalButton`;
+  - `InlineTotalEditor` y `useTotalEdit`;
+  - `formatDay` y `formatColones`.
+- **Textos y umbral en `FINANCE_TEXT` y constantes propias.** El umbral con su unidad en el nombre, como `_MS` (constants-standards).
+- **Fuera de Finanzas, solo lo de D27:** un token nuevo en `app/globals.css` (texto terracota, en los dos temas) y un tono nuevo del `Chip` en `components/ui` y `CHIP_TONE`. Son cambios aditivos: el tono `TERRACOTTA` y `--tacha-terracotta` quedan iguales. No se tocan `shopping-list` ni `components/app-shell` (D26).
 
 ## 11. Dependencias
 
@@ -578,6 +703,15 @@ No depende de ningún PR sin mergear.
 | HU-61 | Sin empezar | Toma el badge y el recordatorio; CA-03 queda adelantado por D12 |
 
 No depende de ningún PR sin mergear.
+
+### SCRUM-92
+
+| Depende de | Estado | Uso |
+|---|---|---|
+| SCRUM-90 (HU-59): Historial, `PurchaseSessionRow`, `usePeriodPurchases` | En `develop` | Se extiende |
+| SCRUM-91 (HU-60): `useTotalEdit`, `EditTotalButton`, `InlineTotalEditor`, `setPurchaseTotal`, migración `040` | En `develop` (#94) | Se reutiliza sin cambiar su contrato |
+| `Chip` de `components/ui` | En `develop` | Badge (D27) |
+| SCRUM-93 (HU-62): filtros | Sin empezar | No se cruza: los filtros no cambian qué compra está pendiente |
 
 ## 12. Contratos externos
 
@@ -724,6 +858,20 @@ purchase_sessions     select total_amount
 Con zona guardada, las dos pantallas leen solo de `get_period_finance`.
 
 **`stamp_purchase_session_close`:** si `old.closed_at` no es nulo, conserva ese valor; si la compra se está cerrando, pone `now()`, como hasta ahora. **Limitación aceptada:** ningún rol puede corregir o reabrir el `closed_at` de una compra cerrada con un update, tampoco soporte, sin deshabilitar el trigger.
+
+### SCRUM-92
+
+**Lectura** (solo con sesión registrada, sin `owner_id`; la RLS de `016` deja solo las propias):
+
+```
+purchase_sessions  select id, closed_at, total_amount, stores(display_name)
+                   where closed_at is not null and total_amount is null
+                   order by closed_at desc, id                          con count: "exact" (regla 30)
+```
+
+- Esta lectura alimenta la sección "Compras sin total" (D25) y el recordatorio, que filtra en el navegador las de `closed_at` igual o anterior a la hora actual menos 24 horas (reglas 63 y 66). El Dashboard hace la misma lectura para su recordatorio.
+- El índice `purchase_sessions_owner_closed_idx` (`040`) cubre el filtro por dueño y fecha.
+- **Escritura:** `set_purchase_session_total(target_session_id, new_total)`, igual que SCRUM-91 §12.
 
 ## 13. Casos de aceptación
 
@@ -873,6 +1021,18 @@ Casos de cada flujo:
 - [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
 - [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
 
+### HU-61 (SCRUM-92)
+
+Ninguno validado todavía.
+
+- [ ] **CA-01, badge:** una compra sin total muestra el badge terracota "Sin total", sin rojo, sin ícono de error y sin `role="alert"`; una de ₡0 no lo lleva. Componente, pantalla, E2E-FIN-15 y manual.
+- [ ] **CA-02, recordatorio:** con una compra sin total cerrada hace 24 horas o más, el recordatorio se ve en el Dashboard y en el Historial con la cantidad y el enlace; una de menos de 24 horas no cuenta. No se puede descartar. Al completar la última, desaparece sin recargar. ViewModel, pantalla, E2E-FIN-16 con el reloj fijo y manual.
+- [ ] **CA-03, completar en cualquier momento:** una compra sin total de un periodo anterior aparece en "Compras sin total", se completa con el lápiz de SCRUM-91 y deja de estar pendiente. Pantalla, E2E-FIN-17 y manual contra la base.
+- [ ] **Errores:** si falla la lectura de pendientes, se ve el error y "Reintentar", y el total del periodo sigue visible (E2E-FIN-18).
+- [ ] **D6:** sin cuenta registrada o con sesión anónima no se lee nada.
+- [ ] **D27:** el badge llega a 4,5:1 en los dos temas, medido otra vez sobre la pantalla real.
+- [ ] Teclado y mobile.
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-69
@@ -918,6 +1078,18 @@ Casos de cada flujo:
 - Asignar una zona a usuarios existentes (regla 59).
 - Una pantalla de configuración para cambiar la zona: la base lo permite, y la acción se define en la Etapa 5.
 
+### SCRUM-92
+
+- Push web, correo, SMS o recordatorios con la app cerrada (D24; roadmap post-curso).
+- Trabajos programados o Edge Functions.
+- Configurar el umbral por persona.
+- Recordatorios para sesiones anónimas (D6) o para compras de la familia (D4).
+- Ver periodos anteriores en el selector del Historial (D25: D7 no cambia).
+- Filtros por supermercado y categoría (HU-62).
+- Cambios en el modo compra (`shopping-list`), como pedir el total al cerrar.
+- Contador en la navegación, descartar el recordatorio o guardar que se vio (D26).
+- Corregir el contraste de los demás chips y textos terracota de la app (household, recetas, catálogo): no cumplen AA en el tema claro y se reporta al equipo (D27).
+
 ## 15. Notas de implementación
 
 ### SCRUM-69
@@ -939,3 +1111,8 @@ Casos de cada flujo:
 - **Por qué RPC y no una política:** la política de `016` solo deja actualizar compras abiertas. Abrirla junto con el permiso de columna existente permitiría cambiar `closed_at` o vaciar el total por API.
 - **La base calcula los límites:** con la zona guardada, para que el navegador no elija otro periodo. Con zona guardada, las pantallas leen esos límites; sin ella, siguen con `getPeriodBounds`, porque no hay ajustes (regla 59).
 - **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.
+
+### SCRUM-92
+
+- **El badge reemplaza el texto:** la nota de SCRUM-90 en `PurchaseSessionRow` ("el badge es de HU-61") se cumple acá; el texto sigue siendo "Sin total" (D8).
+- **Origen del campo:** si una compra aparece en el periodo en curso y en las pendientes, el campo se abre solo en la fila donde se tocó el lápiz. Para eso, el objetivo de la edición tiene que saber de qué lista viene; ver plan, "SCRUM-92".

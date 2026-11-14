@@ -111,6 +111,8 @@ describe("usePurchaseHistoryViewModel: rows", () => {
     const { result } = await renderLoaded();
 
     expect(result.current.purchaseRows.map((row) => row.amountText)).toEqual([FINANCE_TEXT.WITHOUT_TOTAL, "₡0"]);
+    // El badge solo en la que no tiene total (SCRUM-92, CA-01); ₡0 es un total real.
+    expect(result.current.purchaseRows.map((row) => row.hasNoTotal)).toEqual([true, false]);
     expect(result.current.spending.closedCount).toBe(1);
     expect(result.current.spending.withoutTotalCount).toBe(1);
     expect(result.current.spending.totalText).toBe("₡0");

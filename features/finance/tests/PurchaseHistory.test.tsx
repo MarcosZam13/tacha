@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPriceDisclaimerPage } from "@/components/price-disclaimer/tests/PriceDisclaimer.page";
 import { APP_ROUTE } from "@/constants";
@@ -144,6 +144,23 @@ describe("PurchaseHistory: list (CA-01)", () => {
     expect(zeroRow).toHaveTextContent("₡0");
     expect(withoutTotalRow).toHaveTextContent(FINANCE_TEXT.WITHOUT_TOTAL);
     expect(withoutTotalRow).not.toHaveTextContent("₡0");
+  });
+
+  it("shows the «Sin total» badge only on the purchase without a total, as information (SCRUM-92, CA-01)", async () => {
+    purchasesMock.mockResolvedValue([{ ...SUNDAY_PURCHASE, totalAmount: 0 }, WEDNESDAY_PURCHASE, MONDAY_PURCHASE]);
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    const [zeroRow, withoutTotalRow, mondayRow] = await page.findPurchaseRows();
+
+    expect(within(withoutTotalRow).getByText(FINANCE_TEXT.WITHOUT_TOTAL)).toHaveClass("text-tacha-terracotta-text");
+    expect(within(zeroRow).getByText("₡0")).not.toHaveClass("text-tacha-terracotta-text");
+    expect(within(mondayRow).getByText(amount("₡5 000"))).not.toHaveClass("text-tacha-terracotta-text");
+    // Informativo: ninguna alerta, y los contadores no cambian (regla 62).
+    expect(page.queryAlert()).not.toBeInTheDocument();
+    // "Sin total" dos veces: la etiqueta del contador, que sigue en 1, y el badge.
+    expect(screen.getAllByText(FINANCE_TEXT.WITHOUT_TOTAL)).toHaveLength(2);
+    expect(page.getAllEditButtons()).toHaveLength(4);
   });
 
   it("keeps a row without a store name, with its amount in the total (rule 29)", async () => {
