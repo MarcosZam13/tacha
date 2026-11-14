@@ -25,12 +25,12 @@
     "category": "Lácteos",
     "match_keywords": ["leche de coco", "coco"],
     "exclude_keywords": [],
-    "vtex_category_prefix": "/Lácteos/Leche/"
+    "vtex_category_prefix": "/Cervezas, Vinos y Licores/Licores/Brandy/"
   },
   {
     "name": "Crema de leche",
     "category": "Repostería",
-    "match_keywords": ["crema de leche"],
+    "match_keywords": ["crema de leche", "crema"],
     "exclude_keywords": [],
     "vtex_category_prefix": "/Abarrotes/Harinas y Repostería/Repostería/"
   },
@@ -79,8 +79,8 @@
   {
     "name": "Repostería",
     "category": "Repostería",
-    "match_keywords": ["torta", "pastel", "reposteria", "repostería"],
+    "match_keywords": ["torta", "pastel", "reposteria", "repostería", "pasteleria", "pastelería"],
     "exclude_keywords": [],
-    "vtex_category_prefix": "/Panadería y tortillería/Repostería y Pastelería/"
+    "vtex_category_prefix": "/Panadería y Tortillería/Repostería y Pastelería/"
   }
 ]
