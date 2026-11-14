@@ -248,9 +248,9 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 1 — Badge (CA-01)
 
-- [ ] 1.1 Token `--tacha-terracotta-text` en `app/globals.css` (tema claro, oscuro y `prefers-color-scheme`) y un tono nuevo en `CHIP_TONE` y `Chip`, sin cambiar el tono `TERRACOTTA` ni `--tacha-terracotta` (D27). Test del `Chip`.
-- [ ] 1.2 `PurchaseSessionRow` con el `Chip` de tono accesible para "Sin total" (`FINANCE_TEXT.WITHOUT_TOTAL`, ya existe). ₡0 y los montos no cambian.
-- [ ] 1.3 Tests de componente y de pantalla: badge con texto, sin `role="alert"` ni rojo; ₡0 sin badge; contadores y filas de ajuste sin cambios. Medir el contraste en los dos temas (al menos 4,5:1). Vitest de Finanzas en verde.
+- [x] 1.1 Token `--tacha-terracotta-text` en `app/globals.css` (tema claro, oscuro y `prefers-color-scheme`) y un tono nuevo en `CHIP_TONE` y `Chip`, sin cambiar el tono `TERRACOTTA` ni `--tacha-terracotta` (D27). Test del `Chip`. Claro `#945435`, oscuro `#e89a6c`; tono `CHIP_TONE.TERRACOTTA_STRONG`.
+- [x] 1.2 `PurchaseSessionRow` con el `Chip` de tono accesible para "Sin total" (`FINANCE_TEXT.WITHOUT_TOTAL`, ya existe). ₡0 y los montos no cambian. La fila recibe `hasNoTotal` del ViewModel; no compara textos.
+- [x] 1.3 Tests de componente y de pantalla: badge con texto, sin `role="alert"` ni rojo; ₡0 sin badge; contadores y filas de ajuste sin cambios. Medir el contraste en los dos temas (al menos 4,5:1). Vitest de Finanzas en verde. 2026-11-13: `Chip.test.tsx` mide el contraste con los tokens de `globals.css`: 4,98:1 en claro y 5,89:1 en oscuro, en el peor fondo. Vitest completo, 1603 en 152 archivos; E2E de Finanzas, 40 de 40. Falta medirlo en la pantalla real (SPEC §13, D27).
 
 ### Etapa 2 — Lectura de pendientes
 

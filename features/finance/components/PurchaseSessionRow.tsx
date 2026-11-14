@@ -1,3 +1,5 @@
+import { Chip } from "@/components/ui";
+import { CHIP_TONE } from "@/constants";
 import { EditTotalButton, useFocusOnEditorClose } from "./EditTotalButton";
 import { InlineTotalEditor } from "./InlineTotalEditor";
 import type { PurchaseSessionRowProps } from "./models/PurchaseSessionRowProps.interface";
@@ -5,14 +7,17 @@ import type { PurchaseSessionRowProps } from "./models/PurchaseSessionRowProps.i
 /**
  * Una compra del Historial: fecha, supermercado y monto (CA-01), con su lápiz
  * (SCRUM-91, CA-01). Solo presentación: el ViewModel ya trae los textos y la
- * edición. "Sin total" se ve como cualquier monto, sin color de error (D8; el
- * badge es de HU-61). Con el campo abierto, el campo ocupa el lugar del monto.
+ * edición. Una compra sin total muestra "Sin total" como badge terracota, con
+ * texto de contraste AA y sin aspecto de error: ni rojo, ni ícono, ni
+ * role="alert" (SCRUM-92, CA-01, D27). Con el campo abierto, el campo ocupa el
+ * lugar del monto.
  */
 export const PurchaseSessionRow = ({
   amountText,
   dateText,
   edit,
   editor,
+  hasNoTotal,
   storeText,
 }: PurchaseSessionRowProps): React.JSX.Element => {
   const editButtonRef = useFocusOnEditorClose(editor !== null);
@@ -26,7 +31,11 @@ export const PurchaseSessionRow = ({
         </div>
         {editor ? null : (
           <div className="flex shrink-0 items-center gap-1">
-            <p className="text-sm font-semibold text-tacha-text">{amountText}</p>
+            {hasNoTotal ? (
+              <Chip tone={CHIP_TONE.TERRACOTTA_STRONG}>{amountText}</Chip>
+            ) : (
+              <p className="text-sm font-semibold text-tacha-text">{amountText}</p>
+            )}
             <EditTotalButton ref={editButtonRef} {...edit} />
           </div>
         )}

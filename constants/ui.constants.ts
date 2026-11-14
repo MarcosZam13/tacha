@@ -10,6 +10,8 @@ export const CHIP_TONE = {
   NEUTRAL: "neutral",
   TEAL: "teal",
   TERRACOTTA: "terracotta",
+  // Mismo fondo y borde que TERRACOTTA, con texto de contraste AA (SCRUM-92, D27).
+  TERRACOTTA_STRONG: "terracottaStrong",
 } as const;
 
 export type ChipToneType = (typeof CHIP_TONE)[keyof typeof CHIP_TONE];
