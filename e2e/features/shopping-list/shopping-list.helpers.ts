@@ -4,7 +4,8 @@ import type { Locator, Page } from "@playwright/test";
 // eso es del test (playwright-e2e, references/standards.md).
 export const LIST_PATH = "/lista";
 
-export const getSearchBox = (page: Page): Locator => page.getByRole("textbox", { name: "Buscar producto" });
+// Desde SCRUM-149 el buscador es un combobox con los resultados en un listbox flotante.
+export const getSearchBox = (page: Page): Locator => page.getByRole("combobox", { name: "Buscar producto" });
 
 export const getEmptyListMessage = (page: Page): Locator =>
   page.getByText("Tu lista está vacía. Busca un producto para empezar.");
@@ -15,12 +16,12 @@ export const getListRow = (page: Page, productName: string): Locator =>
 
 /**
  * Busca un término y elige el primer resultado. Devuelve el nombre del
- * producto elegido, para ubicar su fila después. Se usa con la lista vacía:
- * así los únicos botones dentro de un <li> son los resultados.
+ * producto elegido, para ubicar su fila después. Los resultados son las
+ * opciones del listbox del buscador (SCRUM-149).
  */
 export const addFirstSearchResult = async (page: Page, searchTerm: string): Promise<string> => {
   await getSearchBox(page).fill(searchTerm);
-  const firstResult = page.getByRole("listitem").getByRole("button").first();
+  const firstResult = page.getByRole("option").first();
   const productName = (await firstResult.locator("span").first().textContent()) ?? "";
   await firstResult.click();
   return productName;

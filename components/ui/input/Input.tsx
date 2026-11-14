@@ -20,6 +20,7 @@ export const Input = ({
   placeholder,
   type = "text",
   isRequired = false,
+  combobox,
 }: InputProps): React.JSX.Element => {
   // useId da un id único y estable entre el servidor y el navegador, aunque haya varios Input en la pantalla.
   const inputId = useId();
@@ -48,6 +49,9 @@ export const Input = ({
         aria-describedby={description ? descriptionId : undefined}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
+        // Sin autocompletar del navegador: taparía el desplegable de resultados.
+        autoComplete={combobox ? "off" : undefined}
+        {...combobox}
         className={`rounded-tacha-badge border bg-tacha-surface px-3 py-2 text-tacha-text outline-none focus:ring-2 ${borderClassName}`}
       />
       {description ? (

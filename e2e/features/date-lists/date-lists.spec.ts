@@ -26,8 +26,8 @@ const getListCard = (page: Page) =>
 const getCalendar = (page: Page) => page.getByRole("region", { name: "Calendario de sublistas" });
 
 const addFirstResult = async (page: Page): Promise<void> => {
-  await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
-  await page.locator("section ul li button").first().click();
+  await page.getByRole("combobox", { name: "Buscar producto" }).fill(SEARCH_TERM);
+  await page.getByRole("option").first().click();
 };
 
 test.describe("Sublistas por fecha", () => {
