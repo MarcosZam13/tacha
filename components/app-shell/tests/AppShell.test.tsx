@@ -45,6 +45,21 @@ describe("AppShell", () => {
     });
   });
 
+  // SCRUM-146: cada sección lleva su ícono, decorativo; el nombre accesible sigue siendo la etiqueta.
+  it("shows a decorative icon in every section link, keeping the label as its name", () => {
+    const page = renderShellAt(APP_ROUTE.LIST);
+
+    page.getNavigations().forEach((navigation) => {
+      APP_NAV_ITEMS.forEach((item) => {
+        const link = page.getLink(navigation, item.label);
+        const icon = link.querySelector("svg");
+        expect(icon).not.toBeNull();
+        expect(icon).toHaveAttribute("aria-hidden", "true");
+        expect(link).toHaveAccessibleName(item.label);
+      });
+    });
+  });
+
   it("marks only the current section, in both navigations", () => {
     const page = renderShellAt(APP_ROUTE.CATALOG);
 
