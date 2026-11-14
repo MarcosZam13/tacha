@@ -18,7 +18,7 @@ Una persona quiere separar las compras de un evento o viaje de su lista general:
 
 ## 4. Fuera de alcance
 
-- La grilla de calendario: SCRUM-76. Mientras tanto la sección es una agenda ordenada por fecha, y CA-02 se cumple sobre esa agenda. El camino "tocar un día" de CA-01 llega con la grilla; el botón ya cumple el criterio.
+- La grilla de calendario: SCRUM-76 (§8). Hasta entonces la sección era una agenda ordenada por fecha, y CA-02 se cumplía sobre esa agenda. El camino "tocar un día" de CA-01 llega con la grilla; el botón ya cumple el criterio.
 - Tachar, modo compra, completar y cancelar: SCRUM-78.
 - Total de gasto: SCRUM-79.
 - Menú "Más" en mobile: con Fechas son 6 tabs. DESIGN §3.2 lo pide; queda para el sprint de UI/UX.
@@ -47,3 +47,25 @@ El acceso sigue la política de 024: la dueña si `household_id` es nulo, los mi
 ## 7. Estados de la pantalla
 
 Cargando, error de carga, vacía (con invitación a crear), con datos, y sublista no encontrada en el detalle.
+
+## 8. Calendario (SCRUM-76 / HU-44)
+
+Una persona quiere ver de un vistazo qué compras tiene por fecha, y crear una tocando el día.
+
+- CA-01: "Fechas" muestra un calendario con las sublistas marcadas en su fecha.
+- CA-02: cada sublista muestra su estado con una diferencia visual clara.
+- CA-03: el usuario sin familia también accede, con sublistas personales. Lo da la RLS de 024, sin cambios.
+
+Reglas:
+
+1. Semanas de lunes a domingo, igual que el periodo semanal de finanzas.
+2. Abre en el mes actual, según la fecha local. La grilla se dibuja solo en el navegador: el servidor corre en UTC y en la noche de Costa Rica ya sería otro día.
+3. Al crear una sublista de otro mes, el calendario salta a ese mes. Si no, CA-02 de SCRUM-77 no se vería.
+4. Tocar un día de hoy en adelante abre el formulario con esa fecha. Un día pasado no tiene botón (§5, regla 2). El formulario igual valida la fecha.
+5. El estado no depende solo del color: lleva marca, y la cancelada además se tacha en la celda. En mobile el punto solo da una pista de color; el estado completo se lee en la agenda.
+6. En desktop la celda muestra hasta 2 sublistas y "+N más". En mobile muestra un punto por sublista, porque el nombre no cabe.
+7. Debajo sigue la agenda, solo del mes visible: en mobile es donde se leen los nombres y se abre cada sublista.
+
+Fuera de alcance: completar y cancelar (SCRUM-78). Hoy toda sublista está pendiente desde la UI, así que los otros dos estados solo se pueden ver con datos simulados.
+
+Sin migración: usa `event_date` y `status`, que ya existen.
