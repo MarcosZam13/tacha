@@ -40,7 +40,7 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
     5. La coma decimal se leía mal y no había tope de tamaño.
   - **Arreglo:**
     - Migración `045_harden_normalize_staging_row` (aplicada y registrada el 2026-11-13; test `supabase/tests/045_harden_normalize_staging_row.test.sql`, 7 casos, pasa). Agrega `matches_mother_keyword` y suma keywords a "Crema de leche" (+ "crema") y "Repostería" (+ "pastelería").
-    - Migración `046_fix_mother_rule_prefixes`: el prefijo de "Repostería" tenía "tortillería" en minúscula y nunca matcheaba por categoría; la leche de coco real está en `/Cervezas, Vinos y Licores/Licores/Brandy/`.
+    - Migración `046_fix_mother_rule_prefixes` (aplicada y registrada; test `supabase/tests/046_fix_mother_rule_prefixes.test.sql`, 4 casos, pasa): el prefijo de "Repostería" tenía "tortillería" en minúscula y nunca matcheaba por categoría; la leche de coco real está en `/Cervezas, Vinos y Licores/Licores/Brandy/`.
     - Recorte de `raw_json` re-normalizable (plan.md §3).
   - **Limpieza** (backup local previo): se borraron las variantes de las madres curadas, salvo las 4 que usan listas de usuarios, y se re-ingestó con la 045.
     - Resultado: 886 matched, 59 rejected, 474 sin madre, 91 duplicados.
