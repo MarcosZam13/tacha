@@ -51,3 +51,13 @@ export const AVATAR_SIZE = {
 } as const;
 
 export type AvatarSizeType = (typeof AVATAR_SIZE)[keyof typeof AVATAR_SIZE];
+
+// Tono de un botón de solo ícono (SCRUM-158): neutro para acciones secundarias
+// (ver detalle) y peligro para las destructivas (eliminar), con el token
+// tacha-danger de SCRUM-145.
+export const ICON_BUTTON_TONE = {
+  DANGER: "danger",
+  NEUTRAL: "neutral",
+} as const;
+
+export type IconButtonToneType = (typeof ICON_BUTTON_TONE)[keyof typeof ICON_BUTTON_TONE];

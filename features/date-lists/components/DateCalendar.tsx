@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Icon } from "@/components/ui";
 import {
   DATE_CALENDAR,
+  DATE_CALENDAR_ICON,
   DATE_LIST_STATUS,
   DATE_LIST_STATUS_DOT,
   DATE_LIST_STATUS_LABEL,
@@ -82,11 +84,11 @@ export const DateCalendar = ({ calendar, onCreateOnDay }: DateCalendarProps): Re
   <section aria-label={DATE_LIST_TEXT.CALENDAR_LABEL} className="flex flex-col gap-3">
     <div className="flex items-center justify-between gap-2">
       <button type="button" aria-label={DATE_LIST_TEXT.PREVIOUS_MONTH} onClick={calendar.onPreviousMonth} className={NAV_BUTTON_CLASS}>
-        <span aria-hidden="true">‹</span>
+        <Icon icon={DATE_CALENDAR_ICON.PREVIOUS_MONTH} />
       </button>
       <h2 aria-live="polite" className="font-display text-xl font-semibold text-tacha-text first-letter:uppercase">{calendar.monthLabel}</h2>
       <button type="button" aria-label={DATE_LIST_TEXT.NEXT_MONTH} onClick={calendar.onNextMonth} className={NAV_BUTTON_CLASS}>
-        <span aria-hidden="true">›</span>
+        <Icon icon={DATE_CALENDAR_ICON.NEXT_MONTH} />
       </button>
     </div>
     <ol aria-hidden="true" className="grid grid-cols-7 gap-1 text-center font-body text-xs font-semibold text-tacha-textsec">

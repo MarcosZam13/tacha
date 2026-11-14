@@ -1,7 +1,11 @@
-import { Button } from "@/components/ui";
+import { IconButton } from "@/components/ui";
 import { QuantityStepper } from "@/components/quantity-stepper/QuantityStepper";
-import { BUTTON_VARIANT } from "@/constants";
-import { SHOPPING_LIST_DOM_ID_PREFIX, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
+import { ICON_BUTTON_TONE } from "@/constants";
+import {
+  SHOPPING_LIST_DOM_ID_PREFIX,
+  SHOPPING_LIST_ICON,
+  SHOPPING_LIST_TEXT,
+} from "../constants/shopping-list.constants";
 import type { ShoppingListRowProps } from "./models/ShoppingListRowProps.interface";
 import { ShoppingListShortfallNotes } from "./ShoppingListShortfallNotes";
 
@@ -19,6 +23,13 @@ import { ShoppingListShortfallNotes } from "./ShoppingListShortfallNotes";
  * Los avisos de faltante (SCRUM-114) van debajo del botón, fuera de él: son
  * solo texto, tocarlos no tacha (HU-76 CA-02). El botón los referencia con
  * aria-describedby para que el lector los lea como descripción del producto.
+ *
+ * Jerarquía (SCRUM-147): la cantidad es la acción principal (un solo control
+ * con borde); ver detalle y eliminar son botones de solo ícono, sin borde, y
+ * eliminar va en el color de peligro.
+ * Celular (SCRUM-148): el nombre ocupa todo el ancho arriba, con máximo dos
+ * líneas (el nombre completo queda en `title`), y los controles van en una
+ * fila debajo. Desde md vuelve a ser una sola línea, como antes.
  */
 export const ShoppingListRow = ({
   onDecrease,
@@ -34,7 +45,7 @@ export const ShoppingListRow = ({
   const shortfallNotesId = `${SHOPPING_LIST_DOM_ID_PREFIX.SHORTFALL_NOTES}${row.item.id}`;
 
   return (
-    <li className="flex items-center gap-3 pr-3">
+    <li className="flex flex-col md:flex-row md:items-center md:gap-3 md:pr-3">
       <div className="flex min-w-0 flex-1 flex-col self-stretch">
         <button
           type="button"
@@ -44,7 +55,9 @@ export const ShoppingListRow = ({
           onClick={onToggleChecked}
           className="flex-1 px-3 py-2 text-left transition-colors hover:bg-tacha-chipbg/40 disabled:cursor-wait"
         >
-          <span className={`block font-body text-sm ${checkedTextClass}`}>{row.item.productName}</span>
+          <span title={row.item.productName} className={`line-clamp-2 font-body text-sm ${checkedTextClass}`}>
+            {row.item.productName}
+          </span>
           <span className={`block font-body text-xs ${checkedTextClass}`}>{row.item.sizeLabel}</span>
           {/* Modo compra (SCRUM-67): el stepper muestra lo comprado; esto recuerda lo pedido. */}
           {row.requestedNote ? (
@@ -58,23 +71,29 @@ export const ShoppingListRow = ({
           />
         ) : null}
       </div>
-      <QuantityStepper
-        canDecrease={row.canDecrease}
-        canIncrease={row.canIncrease}
-        decreaseLabel={SHOPPING_LIST_TEXT.DECREASE_QUANTITY}
-        increaseLabel={SHOPPING_LIST_TEXT.INCREASE_QUANTITY}
-        onDecrease={onDecrease}
-        onIncrease={onIncrease}
-        quantity={row.displayedQuantity}
-      />
-      <Button variant={BUTTON_VARIANT.SECONDARY} onClick={onOpenDetail}>
-        <span aria-hidden="true">{SHOPPING_LIST_TEXT.OPEN_DETAIL_ICON}</span>
-        <span className="sr-only">{SHOPPING_LIST_TEXT.OPEN_DETAIL}</span>
-      </Button>
-      <Button variant={BUTTON_VARIANT.SECONDARY} isDisabled={!row.canRemove} onClick={onRemove}>
-        <span aria-hidden="true">{SHOPPING_LIST_TEXT.REMOVE_ITEM_ICON}</span>
-        <span className="sr-only">{SHOPPING_LIST_TEXT.REMOVE_ITEM}</span>
-      </Button>
+      <div className="flex items-center justify-end gap-1 px-3 pb-2 md:p-0">
+        <QuantityStepper
+          canDecrease={row.canDecrease}
+          canIncrease={row.canIncrease}
+          decreaseLabel={SHOPPING_LIST_TEXT.DECREASE_QUANTITY}
+          increaseLabel={SHOPPING_LIST_TEXT.INCREASE_QUANTITY}
+          onDecrease={onDecrease}
+          onIncrease={onIncrease}
+          quantity={row.displayedQuantity}
+        />
+        <IconButton
+          icon={SHOPPING_LIST_ICON.OPEN_DETAIL}
+          label={SHOPPING_LIST_TEXT.OPEN_DETAIL}
+          onClick={onOpenDetail}
+        />
+        <IconButton
+          icon={SHOPPING_LIST_ICON.REMOVE_ITEM}
+          label={SHOPPING_LIST_TEXT.REMOVE_ITEM}
+          tone={ICON_BUTTON_TONE.DANGER}
+          isDisabled={!row.canRemove}
+          onClick={onRemove}
+        />
+      </div>
     </li>
   );
 };
