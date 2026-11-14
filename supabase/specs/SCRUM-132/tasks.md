@@ -51,5 +51,11 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
     - Staging: 1028 matched / 90 rejected / 398 pending.
     - `raw_json`: 203 kB reales (antes ~17 MB), sin ninguna fila sin recortar.
   - **Aviso para quien corra tests viejos:** `supabase/tests/044_fix_normalize_staging_tiebreak.test.sql`, caso 5, espera que un prefijo de 3 segmentos matchee sin keyword. Desde la 045 eso ya no pasa a propósito: ese test describe la 044, no la función actual.
-  - **Fuera de alcance, sin tocar:** "Dulce de Leche La Lechera" sigue en "Leche" (keyword `leche`, ticket aparte) y "Snickers 21. 5 g" quedó en 5 g (error de tipeo de la tienda).
+  - **Fuera de alcance, sin tocar** (documentado en el PR para valorarlo más adelante):
+    - **Paquetes:** "6 Pack - 250 ml" se lee como 250 ml y su precio se mezcla con el de la unidad ("Leche — 250 ml": ₡460–₡2 380). La mayoría de los paquetes dicen el total y están bien, así que no se arregla multiplicando.
+    - **Búsqueda del catálogo:** no llama a `ensureSession()`. Entrando directo a `/catalogo` sin sesión consulta como `anon` y, desde la 032, no ve nada. Es previo a este ticket.
+    - **Madres viejas:** siguen visibles, incluida una "2838 L" vieja. Las retira SCRUM-133.
+    - **Keyword `leche`:** "Dulce de Leche La Lechera" sigue en "Leche"; va en un ticket aparte.
+    - **Error de tipeo de la tienda:** "Snickers 21. 5 g" quedó en 5 g.
+  - **Verificación con Playwright (2026-11-13):** el chip "Lácteos" y la búsqueda "leche" muestran solo productos de cada madre, sin ningún ₡0, y "Leche — 2838 ml" a ₡3 000.
 - [ ] **9. Completar la PR:** descripción con la plantilla del repo, Developer Notes con el aviso del equipo (SPEC §7), label `in progress` → `waiting qa`, mover la tarjeta de Jira.
