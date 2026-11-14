@@ -60,8 +60,8 @@ export const MORE_INFO_TEXT = {
 // marcador "Aquí va la demo, pendiente". Si algún día llega el video de la
 // demo (HU-07, CA-03 a CA-05), reemplaza a estas imágenes.
 export const DEMO_TEXT = {
-  DESCRIPTION: "La lista de la casa, con lo que falta comprar y lo que ya se tachó, en la compu y en el celular.",
-  DESKTOP_ALT: "La lista general de Tacha en la compu: productos pendientes con su cantidad y el menú de secciones a la izquierda.",
+  DESCRIPTION: "La lista de la casa, con lo que falta comprar y lo que ya se tachó, en la computadora y en el celular.",
+  DESKTOP_ALT: "La lista general de Tacha en la computadora: productos pendientes con su cantidad y el menú de secciones a la izquierda.",
   MOBILE_ALT: "La lista general de Tacha en el celular, con el menú de secciones abajo.",
   TITLE: "Así se ve Tacha",
 } as const;
