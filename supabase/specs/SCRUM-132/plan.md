@@ -55,18 +55,20 @@ async function main() {
 
 ## 3. Recorte de `raw_json`
 
-Después de normalizar las filas del término, actualizar las que pasaron a `matched`/`rejected` (nunca las que quedan `pending` — esas sí necesitan el `raw_json` completo para cuando se vuelvan a intentar en una corrida futura, o para que un humano revise por qué no matchearon):
+Después de normalizar las filas del término, recortar **todas** (también las `pending`) a lo que lee `normalize_staging_row`, con las mismas claves:
 
 ```sql
 update product_catalog_staging
 set raw_json = jsonb_build_object(
-  'itemId', raw_json->'item'->>'itemId',
-  'ean', raw_json->'item'->>'ean',
-  'price', raw_json->'offer'->>'Price'
+  'product', jsonb_build_object('categories', raw_json->'product'->'categories'),
+  'item', jsonb_build_object('itemId', raw_json->'item'->'itemId', 'ean', raw_json->'item'->'ean'),
+  'offer', jsonb_build_object('Price', raw_json->'offer'->'Price', 'IsAvailable', raw_json->'offer'->'IsAvailable')
 )
-where id = any($1)  -- ids procesados en este paso del ciclo
-  and status in ('matched', 'rejected');
+where id = any($1)  -- ids staged por este término
+  and raw_json->'product' ? 'productName';  -- todavía sin recortar
 ```
+
+**Cambio del 2026-11-13** (antes las `pending` conservaban el JSON completo y las demás quedaban solo con `itemId/ean/price`): con ese recorte, ninguna fila procesada se podía volver a normalizar, porque perdía las categorías. Así no hubo forma de corregir en el lugar lo que la primera corrida asignó mal. Además, las 474 `pending` de la corrida completa ocupaban ~17 MB. El recorte nuevo pesa ~0.3 KB por fila en vez de ~11 KB y deja cualquier fila re-normalizable. El nombre, la marca y el tamaño ya están en sus propias columnas, así que alcanza para revisar a mano por qué una fila no matcheó.
 
 **Decisión de implementación:** `update` directo desde el script con la service role key, sin RPC nuevo. Es un script interno de mantenimiento que ya necesita esa key para todo lo demás, no código del cliente. El alcance es `id = any(ids staged por este término)`, nunca toda la tabla.
 

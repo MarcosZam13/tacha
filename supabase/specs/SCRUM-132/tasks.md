@@ -28,4 +28,28 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
 - [x] **8. Subagentes de revisión** antes de QA: `code-reviewer`, `security-reviewer` (obligatorio — maneja la service role key en un script cliente).
   - 2026-11-13: ninguno encontró algo bloqueante. Aplicado: el recorte quedó acotado a los ids del término; la key se valida como `sb_secret_` y la URL como `https://*.supabase.co`; la respuesta de `ingest-*` se valida con zod; el cuerpo de error se trunca; constantes para la tabla y los estados; `.env.example` y README actualizados ("una sola corrida a la vez").
   - Queda como deuda: que `ingest-*` devuelva los ids insertados (el dedupe dejaría de depender de "las últimas N pending") y un reporte de storage con `pg_column_size` en la base.
+- [x] **10. Corregir los datos que dejó la primera corrida completa** (hallazgo de QA del 2026-11-13 en la #82: precios de ₡0, una presentación de 2838 L y productos que no son leche en "Leche").
+  - **Auditoría de las 12 madres:**
+    - Había productos ajenos en casi todas. Por ejemplo, en "Crema de leche" ~22 de 28 variantes eran levadura, harinas y mezclas, y en "Leche de coco" 10 de 12 eran shampoo, acondicionador y gomitas "Cocodrilo". En "Leche" entraron productos de pelo y cremas corporales.
+    - Además: 43 precios de ₡0 en 8 madres, "1,8 kg" leído como 8 kg y "2838 L".
+  - **Causas, en `normalize_staging_row`:**
+    1. El respaldo por keyword corría aunque la fila tuviera categoría de otro departamento.
+    2. Los keywords se buscaban como substring.
+    3. Los prefijos de 3 segmentos no exigían keyword.
+    4. Se aceptaban precio 0 y ofertas agotadas.
+    5. La coma decimal se leía mal y no había tope de tamaño.
+  - **Arreglo:**
+    - Migración `045_harden_normalize_staging_row` (aplicada y registrada el 2026-11-13; test `supabase/tests/045_harden_normalize_staging_row.test.sql`, 7 casos, pasa). Agrega `matches_mother_keyword` y suma keywords a "Crema de leche" (+ "crema") y "Repostería" (+ "pastelería").
+    - Migración `046_fix_mother_rule_prefixes`: el prefijo de "Repostería" tenía "tortillería" en minúscula y nunca matcheaba por categoría; la leche de coco real está en `/Cervezas, Vinos y Licores/Licores/Brandy/`.
+    - Recorte de `raw_json` re-normalizable (plan.md §3).
+  - **Limpieza** (backup local previo): se borraron las variantes de las madres curadas, salvo las 4 que usan listas de usuarios, y se re-ingestó con la 045.
+    - Resultado: 886 matched, 59 rejected, 474 sin madre, 91 duplicados.
+    - 0 precios ≤ 0, 0 variantes sin precio y 0 `list_items` huérfanos.
+    - La presentación "2838 L" que usaban 2 listas se corrigió a 2838 ml.
+  - **Después de aplicar la 046:** se re-normalizaron en el lugar las 476 filas `pending` que tenían el JSON completo y se recortaron al formato nuevo.
+    - Resultado final: 229 variantes en las 12 madres, entre ellas "Leche de coco" (2: Goya y Roland) y "Repostería" (13).
+    - Staging: 1028 matched / 90 rejected / 398 pending.
+    - `raw_json`: 203 kB reales (antes ~17 MB), sin ninguna fila sin recortar.
+  - **Aviso para quien corra tests viejos:** `supabase/tests/044_fix_normalize_staging_tiebreak.test.sql`, caso 5, espera que un prefijo de 3 segmentos matchee sin keyword. Desde la 045 eso ya no pasa a propósito: ese test describe la 044, no la función actual.
+  - **Fuera de alcance, sin tocar:** "Dulce de Leche La Lechera" sigue en "Leche" (keyword `leche`, ticket aparte) y "Snickers 21. 5 g" quedó en 5 g (error de tipeo de la tienda).
 - [ ] **9. Completar la PR:** descripción con la plantilla del repo, Developer Notes con el aviso del equipo (SPEC §7), label `in progress` → `waiting qa`, mover la tarjeta de Jira.

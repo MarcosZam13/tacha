@@ -5,8 +5,8 @@
  *
  * Para cada madre curada de supabase/data/madres.json y cada una de las 3
  * tiendas: llama a la Edge Function `ingest-{tienda}` ya desplegada (exige
- * service role key desde SCRUM-130), normaliza lo que quedó pending, recorta
- * el raw_json de lo que ya matcheó/rechazó, y recién entonces sigue con el
+ * service role key desde SCRUM-130), normaliza las filas nuevas, recorta su
+ * raw_json a lo que el normalizador necesita, y recién entonces sigue con el
  * próximo término — nunca por corrida completa, para no acumular raw_json de
  * filas que no se van a usar si el proceso se corta a la mitad (plan.md §1).
  *
@@ -153,11 +153,12 @@ const IngestResultSchema = z.object({
 
 type IngestResult = z.infer<typeof IngestResultSchema>;
 
-// Forma de raw_json que lee este script: la completa de stageProducts
-// (product/item/offer) o la ya recortada (itemId/ean/price).
+// Forma de raw_json que lee este script: la completa de stageProducts o la
+// recortada (mismas claves, solo los campos que usa el normalizador).
 interface StagingRawJson {
+  product?: { productName?: string; categories?: string[] };
   item?: { itemId?: string; ean?: string };
-  offer?: { Price?: number };
+  offer?: { Price?: number; IsAvailable?: boolean };
 }
 
 interface StagingRow {
@@ -305,12 +306,13 @@ async function normalizeJustStaged(supabase: SupabaseClient, stagingIds: string[
   };
 }
 
-// --- Paso 4: recortar raw_json de lo que este término matcheó/rechazó ----
-// Solo las filas de este término (plan.md §3), nunca las 'pending': esas
-// necesitan el raw_json completo para cuando se vuelvan a intentar en una
-// corrida futura, o para que un humano revise por qué no matchearon. El
-// filtro `raw_json->'item'` distingue lo sin recortar (forma completa de
-// stageProducts: product/item/offer) de lo ya recortado (itemId/ean/price).
+// --- Paso 4: recortar raw_json de las filas de este término --------------
+// Todas, incluidas las 'pending' (plan.md §3): el recorte deja justo lo que
+// lee normalize_staging_row (product.categories, offer.Price e IsAvailable)
+// más item.itemId/ean para el dedupe, así que cualquier fila se puede volver
+// a normalizar después sin el JSON completo de VTEX (~11 KB → ~0.3 KB). El
+// nombre, la marca y el tamaño ya están en sus propias columnas. El filtro
+// `raw_json->product->productName` distingue lo sin recortar.
 
 async function trimProcessedRawJson(supabase: SupabaseClient, stagingIds: string[]): Promise<number> {
   if (stagingIds.length === 0) return 0;
@@ -319,8 +321,7 @@ async function trimProcessedRawJson(supabase: SupabaseClient, stagingIds: string
     .from(STAGING_TABLE)
     .select("id, raw_json")
     .in("id", stagingIds)
-    .in("status", [STAGING_STATUS.matched, STAGING_STATUS.rejected])
-    .not("raw_json->item", "is", null)
+    .not("raw_json->product->productName", "is", null)
     .returns<StagingRow[]>();
 
   if (selectError) {
@@ -329,10 +330,10 @@ async function trimProcessedRawJson(supabase: SupabaseClient, stagingIds: string
   if (!candidates || candidates.length === 0) return 0;
 
   for (const row of candidates) {
-    const trimmed = {
-      itemId: row.raw_json?.item?.itemId ?? null,
-      ean: row.raw_json?.item?.ean ?? null,
-      price: row.raw_json?.offer?.Price ?? null,
+    const trimmed: StagingRawJson = {
+      product: { categories: row.raw_json?.product?.categories ?? [] },
+      item: { itemId: row.raw_json?.item?.itemId, ean: row.raw_json?.item?.ean },
+      offer: { Price: row.raw_json?.offer?.Price, IsAvailable: row.raw_json?.offer?.IsAvailable },
     };
 
     const { error: updateError } = await supabase
