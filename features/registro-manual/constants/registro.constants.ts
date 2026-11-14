@@ -25,6 +25,9 @@ export type RegistroFieldType = (typeof REGISTRO_FIELD)[keyof typeof REGISTRO_FI
 export const REGISTRO_LABEL = {
   CONFIRM_PASSWORD: "Repetir contraseña",
   EMAIL: "Correo electrónico",
+  // SCRUM-144: enlace al login para quien ya tiene cuenta. Voseo, como el resto del registro.
+  HAS_ACCOUNT: "¿Ya tenés cuenta?",
+  LOG_IN: "Iniciá sesión",
   NAME: "Nombre",
   PASSWORD: "Contraseña",
   SUBMIT: "Registrarme",

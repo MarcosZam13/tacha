@@ -28,6 +28,8 @@ export const BRAND_LOGO = {
 
 export const NAVBAR_TEXT = {
   GO_TO_APP: "Ir a mi lista",
+  // SCRUM-144: quien ya tiene cuenta necesita una forma de llegar al login.
+  LOG_IN: "Iniciar sesión",
   NAV_LABEL: "Navegación principal",
   REGISTER: "Registrarse",
 } as const;
@@ -54,9 +56,23 @@ export const MORE_INFO_TEXT = {
   TITLE: "Tacha en detalle",
 } as const;
 
-// Marcador hasta tener el video de la demo (CA-03 a CA-05 de HU-07 pendientes).
+// Sección "Así se ve Tacha" (SCRUM-152): capturas reales de la app en vez del
+// marcador "Aquí va la demo, pendiente". Si algún día llega el video de la
+// demo (HU-07, CA-03 a CA-05), reemplaza a estas imágenes.
 export const DEMO_TEXT = {
-  PLACEHOLDER: "Aquí va la demo, pendiente",
+  DESCRIPTION: "La lista de la casa, con lo que falta comprar y lo que ya se tachó, en la compu y en el celular.",
+  DESKTOP_ALT: "La lista general de Tacha en la compu: productos pendientes con su cantidad y el menú de secciones a la izquierda.",
+  MOBILE_ALT: "La lista general de Tacha en el celular, con el menú de secciones abajo.",
+  TITLE: "Así se ve Tacha",
+} as const;
+
+export const DEMO_IMAGE = {
+  DESKTOP_HEIGHT_PX: 800,
+  DESKTOP_SRC: "/landing/demo-escritorio.png",
+  DESKTOP_WIDTH_PX: 1280,
+  MOBILE_HEIGHT_PX: 844,
+  MOBILE_SRC: "/landing/demo-movil.png",
+  MOBILE_WIDTH_PX: 390,
 } as const;
 
 export const ABOUT_TEXT = {
