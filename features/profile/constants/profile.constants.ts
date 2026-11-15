@@ -9,6 +9,7 @@ export const PROFILE_TEXT = {
   REMOVE_PHOTO: "Quitar foto",
   SAVE: "Guardar cambios",
   SAVING: "Guardando...",
+  SETTINGS: "Configuración",
   TITLE: "Mi perfil",
   UNNAMED: "Sin nombre",
 } as const;
