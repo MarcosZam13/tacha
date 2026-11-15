@@ -3,6 +3,7 @@ import type { NullableRef } from "@/types/nullable.types";
 import {
   ASSIGNEE_LIST_SOURCE,
   ASSIGNEE_TEXT,
+  NO_LIST_ASSIGNEES,
   SET_ITEM_ASSIGNEE_RESULT,
 } from "../constants/assignee-field.constants";
 import type { SetItemAssigneeResultType } from "../constants/assignee-field.constants";
@@ -12,9 +13,12 @@ import type { ListAssigneeViewModel } from "../models/ListAssigneeViewModel.inte
 import { getListAssigneeData, setItemAssignee } from "../services/assignee.service";
 import { toAssigneeName } from "../utils/toAssigneeName";
 
-// Hasta que llega la respuesta, y si falla, el campo no se dibuja: es opcional y no debe estorbar a la lista
-// ni parpadear apagado → encendido (SPEC §5, regla 12).
-const NO_ASSIGNEES: ListAssigneeData = { assignments: {}, candidates: [], isEnabled: false };
+// Lo leído de una lista, con la clave de la lista a la que pertenece: si la pantalla pasa a otra lista (el mismo
+// componente con otro `listId`), lo de la anterior no se ve ni recibe respuestas de la nueva.
+interface LoadedAssignees {
+  data: ListAssigneeData;
+  key: string;
+}
 
 const FAILURE_MESSAGE: Partial<Record<SetItemAssigneeResultType, string>> = {
   [SET_ITEM_ASSIGNEE_RESULT.ERROR]: ASSIGNEE_TEXT.ERROR_SAVE,
@@ -39,14 +43,17 @@ const withAssignee = (
  * guarda de inmediato.
  */
 export const useListAssigneesViewModel = (source: ListAssigneeSource): ListAssigneeViewModel => {
-  const [data, setData] = useState<ListAssigneeData>(NO_ASSIGNEES);
+  // Dependencias primitivas: el objeto `source` cambia de identidad en cada render.
+  const listId = source.kind === ASSIGNEE_LIST_SOURCE.LIST ? source.listId : null;
+  const listKey = listId ?? ASSIGNEE_LIST_SOURCE.GENERAL;
+
+  const [loaded, setLoaded] = useState<LoadedAssignees>({ data: NO_LIST_ASSIGNEES, key: listKey });
   const [errorMessage, setErrorMessage] = useState<NullableRef<string>>(null);
   const [openItemId, setOpenItemId] = useState<NullableRef<string>>(null);
   const [savingItemId, setSavingItemId] = useState<NullableRef<string>>(null);
   const [reloadCount, setReloadCount] = useState(0);
 
-  // Dependencias primitivas: el objeto `source` cambia de identidad en cada render.
-  const listId = source.kind === ASSIGNEE_LIST_SOURCE.LIST ? source.listId : null;
+  const data = loaded.key === listKey ? loaded.data : NO_LIST_ASSIGNEES;
 
   useEffect(() => {
     // Si la pantalla se cierra, o cambia de lista, antes de que responda la base, la respuesta se ignora.
@@ -55,17 +62,17 @@ export const useListAssigneesViewModel = (source: ListAssigneeSource): ListAssig
       listId === null ? { kind: ASSIGNEE_LIST_SOURCE.GENERAL } : { kind: ASSIGNEE_LIST_SOURCE.LIST, listId };
 
     getListAssigneeData(currentSource)
-      .then((loaded) => {
-        if (!isCancelled) setData(loaded);
+      .then((loadedData) => {
+        if (!isCancelled) setLoaded({ data: loadedData, key: listKey });
       })
       .catch(() => {
-        if (!isCancelled) setData(NO_ASSIGNEES);
+        if (!isCancelled) setLoaded({ data: NO_LIST_ASSIGNEES, key: listKey });
       });
 
     return () => {
       isCancelled = true;
     };
-  }, [listId, reloadCount]);
+  }, [listId, listKey, reloadCount]);
 
   const isSaving = savingItemId !== null;
 
@@ -93,7 +100,12 @@ export const useListAssigneesViewModel = (source: ListAssigneeSource): ListAssig
       setSavingItemId(null);
 
       if (result === SET_ITEM_ASSIGNEE_RESULT.SAVED) {
-        setData((previous) => ({ ...previous, assignments: withAssignee(previous.assignments, itemId, assigneeId) }));
+        // Solo si la pantalla sigue en la misma lista: una respuesta tardía no escribe en la lista nueva.
+        setLoaded((previous) =>
+          previous.key === listKey
+            ? { ...previous, data: { ...previous.data, assignments: withAssignee(previous.data.assignments, itemId, assigneeId) } }
+            : previous,
+        );
         setOpenItemId(null);
         return;
       }

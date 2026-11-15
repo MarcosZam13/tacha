@@ -1,6 +1,12 @@
+import type { ListAssigneeData } from "../models/ListAssigneeData.interface";
+
 // El campo "Encargado" de la fila de una lista (SCRUM-108 / HU-78). Lo usan la lista general y el detalle
 // de la sublista por fecha, que no pueden importarse entre sí.
 export const ASSIGNEE_DB = {
+  COLUMN: {
+    ASSIGNED_TO: "assigned_to",
+    LIST_ID: "list_id",
+  },
   RPC: {
     FIND_GENERAL_LIST_ID: "find_general_list_id",
     GET_CANDIDATES: "get_list_assignee_candidates",
@@ -22,7 +28,12 @@ export const ASSIGNEE_LIST_SOURCE = {
   LIST: "list",
 } as const;
 
-export type AssigneeListSourceType = (typeof ASSIGNEE_LIST_SOURCE)[keyof typeof ASSIGNEE_LIST_SOURCE];
+// Hasta que llega la respuesta, y si falla, el campo no se dibuja: es opcional y no debe estorbar a la lista ni
+// parpadear apagado → encendido (SPEC §5, regla 12). Lo usan el servicio (lista sin ajuste) y el ViewModel.
+export const NO_LIST_ASSIGNEES: ListAssigneeData = { assignments: {}, candidates: [], isEnabled: false };
+
+// La clave de la opción "Sin asignar" en el selector: no tiene id de persona.
+export const UNASSIGNED_OPTION_KEY = "unassigned";
 
 // Qué pasó al elegir al encargado. El servicio no lanza: devuelve esto y el ViewModel decide qué mostrar.
 export const SET_ITEM_ASSIGNEE_RESULT = {

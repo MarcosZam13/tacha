@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { LIST_SETTINGS_TEXT } from "../constants/list-settings.constants";
-import type { ListSettingsRow } from "../models/ListSettingsRow.interface";
+import type { ListRecord } from "../models/ListRecord.interface";
 import { toSettableLists } from "../utils/toSettableLists";
 
-const generalRow = (overrides: Partial<ListSettingsRow> = {}): ListSettingsRow => ({
+const generalRow = (overrides: Partial<ListRecord> = {}): ListRecord => ({
   event_date: null,
   household_id: null,
   id: "list-general",
@@ -13,7 +13,7 @@ const generalRow = (overrides: Partial<ListSettingsRow> = {}): ListSettingsRow =
   ...overrides,
 });
 
-const dateRow = (id: string, name: string, eventDate: string, overrides: Partial<ListSettingsRow> = {}): ListSettingsRow => ({
+const dateRow = (id: string, name: string, eventDate: string, overrides: Partial<ListRecord> = {}): ListRecord => ({
   event_date: eventDate,
   household_id: null,
   id,

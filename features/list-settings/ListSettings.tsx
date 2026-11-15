@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useId } from "react";
 import { Button, Spinner } from "@/components/ui";
 import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
 import { ListSettingsRow } from "./components/ListSettingsRow";
@@ -14,6 +15,7 @@ import { useListSettingsViewModel } from "./hooks/useListSettingsViewModel";
  */
 export const ListSettings = (): React.JSX.Element => {
   const { errorByListId, lists, onRetry, onToggle, savingListIds, status } = useListSettingsViewModel();
+  const titleId = useId();
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-8">
@@ -25,9 +27,9 @@ export const ListSettings = (): React.JSX.Element => {
         <p className="font-body text-sm text-tacha-textsec">{LIST_SETTINGS_TEXT.SUBTITLE}</p>
       </header>
 
-      <section className="flex flex-col gap-3" aria-labelledby="assignee-setting-title">
+      <section className="flex flex-col gap-3" aria-labelledby={titleId}>
         <div className="flex flex-col gap-1">
-          <h2 id="assignee-setting-title" className="font-display text-xl font-semibold text-tacha-text">
+          <h2 id={titleId} className="font-display text-xl font-semibold text-tacha-text">
             {LIST_SETTINGS_TEXT.ASSIGNEE_TITLE}
           </h2>
           <p className="font-body text-sm text-tacha-textsec">{LIST_SETTINGS_TEXT.ASSIGNEE_DESCRIPTION}</p>

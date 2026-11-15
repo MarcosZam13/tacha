@@ -1,6 +1,6 @@
 import { Button, Modal } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
-import { ASSIGNEE_TEXT } from "../constants/assignee-field.constants";
+import { ASSIGNEE_TEXT, UNASSIGNED_OPTION_KEY } from "../constants/assignee-field.constants";
 import { toAssigneeOptions } from "../utils/toAssigneeOptions";
 import type { AssigneeFieldProps } from "./models/AssigneeFieldProps.interface";
 
@@ -24,7 +24,7 @@ export const AssigneePicker = ({ itemId, viewModel }: AssigneeFieldProps): React
           const isSelected = option.assigneeId === selectedId;
 
           return (
-            <li key={option.assigneeId ?? ASSIGNEE_TEXT.UNASSIGNED}>
+            <li key={option.assigneeId ?? UNASSIGNED_OPTION_KEY}>
               <button
                 type="button"
                 disabled={isSaving}

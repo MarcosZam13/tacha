@@ -5,13 +5,17 @@ import { getListAssigneeData, setItemAssignee } from "../services/assignee.servi
 // Sin Supabase real: un cliente falso. Cada método de la consulta devuelve la misma consulta (como el builder
 // de supabase-js) y el último la resuelve.
 const rpcMock = vi.fn();
+const fromMock = vi.fn();
 const settingsQuery = { eq: vi.fn(), maybeSingle: vi.fn(), select: vi.fn() };
 const itemsQuery = { eq: vi.fn(), not: vi.fn(), select: vi.fn() };
 
 vi.mock("@/services/supabase.client", () => ({
   ensureSession: () => Promise.resolve({ user: { id: "user-ana" } }),
   getSupabaseClient: () => ({
-    from: (table: string) => (table === "list_settings" ? settingsQuery : itemsQuery),
+    from: (table: string) => {
+      fromMock(table);
+      return table === "list_settings" ? settingsQuery : itemsQuery;
+    },
     rpc: rpcMock,
   }),
 }));
@@ -61,6 +65,17 @@ describe("getListAssigneeData", () => {
     expect(settingsQuery.eq).toHaveBeenCalledWith("list_id", LIST_ID);
     expect(itemsQuery.eq).toHaveBeenCalledWith("list_id", LIST_ID);
     expect(rpcMock).toHaveBeenCalledWith("get_list_assignee_candidates", { target_list_id: LIST_ID });
+  });
+
+  // Fija la tabla, las columnas y el filtro con nombres literales: los mocks no los comprueban solos.
+  it("reads the setting from list_settings and only the items that have an assignee from list_items", async () => {
+    await getListAssigneeData(LIST_SOURCE);
+
+    expect(fromMock).toHaveBeenCalledWith("list_settings");
+    expect(fromMock).toHaveBeenCalledWith("list_items");
+    expect(settingsQuery.select).toHaveBeenCalledWith("assignee_enabled");
+    expect(itemsQuery.select).toHaveBeenCalledWith("id, assigned_to");
+    expect(itemsQuery.not).toHaveBeenCalledWith("assigned_to", "is", null);
   });
 
   it("does not read items or candidates when the setting is off", async () => {

@@ -79,7 +79,7 @@ Se modelan como uniones derivadas de constantes (constants-standards §7), no co
 | Falla al guardar el encargado | "No se pudo asignar al encargado. Intenta de nuevo." dentro del selector, que sigue abierto |
 | El producto ya no está o la persona elegida ya no tiene acceso | El selector sigue abierto con "Tu lista se actualizó." o "Esa persona ya no tiene acceso a la lista. Elige a otra." (`role="alert"`), y se vuelven a leer los encargados |
 | La lista ya no existe al guardar el interruptor | "Esa lista ya no existe. Tu lista se actualizó." junto a la lista, y se vuelve a leer la pantalla |
-| Persona sin sesión | `42501`; la pantalla pasa al estado sin cuenta que ya existe |
+| Persona sin sesión (`42501`) | Se muestra como el error genérico de cada guardado ("No se pudo guardar el ajuste…" o "No se pudo asignar al encargado…"). La sesión vencida la resuelve el guard de sesión que ya envuelve las rutas privadas, no esta pantalla |
 | Falla al cargar el ajuste, los encargados o las personas de la lista | El campo "Encargado" no se muestra y la lista sigue funcionando igual: es opcional y no debe estorbar a la lista |
 
 Se reconoce el error por `error.code` de la RPC, nunca por el texto.
@@ -97,7 +97,7 @@ Se reconoce el error por `error.code` de la RPC, nunca por el texto.
 - El interruptor es un `<button role="switch" aria-checked>` con nombre accesible "Encargado, {nombre de la lista}" (no solo "Activado"); no depende del color.
 - Cada fila de Configuración es un elemento de una lista (`<ul>`), con el nombre de la lista visible como texto.
 - El campo "Encargado" en la fila es un botón con nombre completo ("Encargado: Ana. Cambiar"). El selector usa el `Modal` compartido: `role="dialog"`, `aria-modal`, Escape cierra y el foco vuelve al botón de la fila.
-- Errores con `role="alert"`; los avisos de "Tu lista se actualizó" con `role="status"`.
+- Errores y avisos de cambios ajenos ("Tu lista se actualizó.") con `role="alert"`, igual que en §7.
 - Solo teclado: llegar al interruptor con Tab y activarlo con Espacio o Enter.
 
 ## 10. Restricciones técnicas
@@ -158,6 +158,7 @@ Detalle y decisiones en [plan.md](plan.md). Resumen (migración `047`, **el núm
 - Asignar el encargado de varios productos a la vez, o por defecto a toda la lista.
 - Que el encargado sea alguien sin cuenta o fuera de la familia.
 - Cambiar quién puede modificar el ajuste (hoy cualquiera con acceso a la lista).
+- Exigir una cuenta registrada para configurar: una sesión anónima puede usar las listas, y por tanto sus ajustes, igual que `set_list_item_checked` (035). La pantalla solo se alcanza desde el Perfil.
 - Otros ajustes en Configuración: la pantalla queda preparada para sumarlos, pero esta historia solo agrega "Encargado".
 - Mostrar al encargado en otras pantallas (finanzas, historial, recetas).
 - La lista personal que se mantiene al unirse a una familia (SCRUM-59, D4): su sección en `/lista` no muestra el campo, así que Configuración no la ofrece (un interruptor que no cambia nada confunde).

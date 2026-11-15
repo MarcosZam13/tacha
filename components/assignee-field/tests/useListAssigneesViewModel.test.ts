@@ -141,6 +141,21 @@ describe("useListAssigneesViewModel", () => {
     expect(getListAssigneeDataMock).toHaveBeenCalledTimes(1);
   });
 
+  it("saves on a second try after a failed one, with the picker still open", async () => {
+    setItemAssigneeMock.mockResolvedValueOnce(SET_ITEM_ASSIGNEE_RESULT.ERROR);
+    const { result } = await renderLoaded();
+
+    act(() => result.current.onOpen("item-2"));
+    act(() => result.current.onSelect("item-2", "user-ana"));
+    await waitFor(() => expect(result.current.errorMessage).toBe(ASSIGNEE_TEXT.ERROR_SAVE));
+    act(() => result.current.onSelect("item-2", "user-ana"));
+    await waitFor(() => expect(result.current.nameOf("item-2")).toBe("Ana"));
+
+    expect(setItemAssigneeMock).toHaveBeenCalledTimes(2);
+    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.openItemId).toBeNull();
+  });
+
   it("reads the list again when the person chosen no longer has access", async () => {
     setItemAssigneeMock.mockResolvedValue(SET_ITEM_ASSIGNEE_RESULT.NOT_ALLOWED);
     const { result } = await renderLoaded();
@@ -163,5 +178,39 @@ describe("useListAssigneesViewModel", () => {
     renderHook(() => useListAssigneesViewModel({ kind: ASSIGNEE_LIST_SOURCE.GENERAL }));
 
     await waitFor(() => expect(getListAssigneeDataMock).toHaveBeenCalledWith({ kind: ASSIGNEE_LIST_SOURCE.GENERAL }));
+  });
+});
+
+describe("useListAssigneesViewModel: when the screen moves to another list", () => {
+  it("does not show what was read from the previous list while the new one loads", async () => {
+    const { result, rerender } = renderHook(
+      ({ listId }) => useListAssigneesViewModel({ kind: ASSIGNEE_LIST_SOURCE.LIST, listId }),
+      { initialProps: { listId: "list-1" } },
+    );
+    await waitFor(() => expect(result.current.isEnabled).toBe(true));
+
+    getListAssigneeDataMock.mockReturnValue(new Promise(() => undefined));
+    rerender({ listId: "list-2" });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.nameOf("item-1")).toBe(ASSIGNEE_TEXT.UNASSIGNED);
+  });
+
+  it("does not write a late save of the previous list into the new one", async () => {
+    let finishSaving: (result: SetItemAssigneeResultType) => void = () => undefined;
+    setItemAssigneeMock.mockReturnValue(new Promise((resolve) => (finishSaving = resolve)));
+    const { result, rerender } = renderHook(
+      ({ listId }) => useListAssigneesViewModel({ kind: ASSIGNEE_LIST_SOURCE.LIST, listId }),
+      { initialProps: { listId: "list-1" } },
+    );
+    await waitFor(() => expect(result.current.isEnabled).toBe(true));
+
+    act(() => result.current.onSelect("item-9", "user-ana"));
+    getListAssigneeDataMock.mockResolvedValue({ ...ENABLED_DATA, assignments: {} });
+    rerender({ listId: "list-2" });
+    await waitFor(() => expect(result.current.isEnabled).toBe(true));
+    await act(async () => finishSaving(SET_ITEM_ASSIGNEE_RESULT.SAVED));
+
+    expect(result.current.selectedIdOf("item-9")).toBeNull();
   });
 });

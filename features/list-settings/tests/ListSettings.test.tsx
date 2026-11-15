@@ -98,6 +98,7 @@ describe("ListSettings", () => {
     render(<ListSettings />);
     const page = createListSettingsPage();
 
+    expect(screen.getByRole("status")).toBeInTheDocument();
     expect(page.getSwitchCount()).toBe(0);
   });
 

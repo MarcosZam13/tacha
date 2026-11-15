@@ -20,7 +20,7 @@ export const AssigneeSwitch = ({ isChecked, isDisabled, label, onToggle }: Assig
       className={`relative h-6 w-11 rounded-full transition-colors ${isChecked ? "bg-tacha-teal" : "bg-tacha-border"}`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-tacha-surface transition-all ${isChecked ? "left-[22px]" : "left-0.5"}`}
+        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-tacha-surface transition-transform ${isChecked ? "translate-x-5" : "translate-x-0"}`}
       />
     </span>
     {isChecked ? LIST_SETTINGS_TEXT.SWITCH_ON : LIST_SETTINGS_TEXT.SWITCH_OFF}

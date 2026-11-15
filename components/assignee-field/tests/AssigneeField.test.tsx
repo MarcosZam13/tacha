@@ -106,15 +106,24 @@ describe("AssigneeField", () => {
     expect(viewModel.onSelect).toHaveBeenCalledWith(ITEM_ID, null);
   });
 
-  it("closes with Cancelar and with Escape", async () => {
+  it("closes with Cancelar", async () => {
     const page = createAssigneeFieldPage();
     const viewModel = baseViewModel({ openItemId: ITEM_ID });
     render(<AssigneeField itemId={ITEM_ID} viewModel={viewModel} />);
 
     await page.cancel();
+
+    expect(viewModel.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes with Escape", async () => {
+    const page = createAssigneeFieldPage();
+    const viewModel = baseViewModel({ openItemId: ITEM_ID });
+    render(<AssigneeField itemId={ITEM_ID} viewModel={viewModel} />);
+
     await page.pressEscape();
 
-    expect(viewModel.onClose).toHaveBeenCalledTimes(2);
+    expect(viewModel.onClose).toHaveBeenCalledTimes(1);
   });
 
   it("disables every option while saving", () => {

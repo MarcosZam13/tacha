@@ -1,18 +1,17 @@
 import { POSTGRES_ERROR_CODE } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
-import { ASSIGNEE_DB, ASSIGNEE_LIST_SOURCE, SET_ITEM_ASSIGNEE_RESULT } from "../constants/assignee-field.constants";
+import {
+  ASSIGNEE_DB,
+  ASSIGNEE_LIST_SOURCE,
+  NO_LIST_ASSIGNEES,
+  SET_ITEM_ASSIGNEE_RESULT,
+} from "../constants/assignee-field.constants";
 import type { SetItemAssigneeResultType } from "../constants/assignee-field.constants";
 import type { AssigneeCandidate } from "../models/AssigneeCandidate.interface";
 import type { ListAssigneeData } from "../models/ListAssigneeData.interface";
 import type { ListAssigneeSource } from "../models/ListAssigneeSource.type";
 import type { SetItemAssigneePayload } from "../models/SetItemAssigneePayload.interface";
-
-const NO_LIST_ASSIGNEES: ListAssigneeData = { assignments: {}, candidates: [], isEnabled: false };
-
-// El generador de tipos marca todos los argumentos de una RPC como no nulos, pero set_list_item_assignee
-// acepta null para quitar al encargado (PostgREST manda el null de JSON como un uuid nulo).
-const NO_ASSIGNEE = null as unknown as string;
 
 // La lista general que le toca a quien llama: la de su familia si es miembro, si no la personal. La decide la
 // base; null si todavía no existe (se crea al añadir el primer producto).
@@ -28,7 +27,7 @@ const getAssigneeEnabled = async (listId: string): Promise<boolean> => {
   const { data: settings, error } = await getSupabaseClient()
     .from(ASSIGNEE_DB.TABLE.LIST_SETTINGS)
     .select(ASSIGNEE_DB.SELECT.SETTING)
-    .eq("list_id", listId)
+    .eq(ASSIGNEE_DB.COLUMN.LIST_ID, listId)
     .maybeSingle();
   if (error) throw error;
 
@@ -39,8 +38,8 @@ const getAssignments = async (listId: string): Promise<Record<string, string>> =
   const { data: rows, error } = await getSupabaseClient()
     .from(ASSIGNEE_DB.TABLE.LIST_ITEMS)
     .select(ASSIGNEE_DB.SELECT.ASSIGNMENTS)
-    .eq("list_id", listId)
-    .not("assigned_to", "is", null);
+    .eq(ASSIGNEE_DB.COLUMN.LIST_ID, listId)
+    .not(ASSIGNEE_DB.COLUMN.ASSIGNED_TO, "is", null);
   if (error) throw error;
 
   return Object.fromEntries(
@@ -98,7 +97,9 @@ export const setItemAssignee = async ({
 }: SetItemAssigneePayload): Promise<SetItemAssigneeResultType> => {
   try {
     const { error } = await getSupabaseClient().rpc(ASSIGNEE_DB.RPC.SET_ITEM_ASSIGNEE, {
-      new_assignee: assigneeId ?? NO_ASSIGNEE,
+      // El generador de tipos marca todos los argumentos de una RPC como no nulos, pero esta acepta null para
+      // quitar al encargado (PostgREST manda el null de JSON como un uuid nulo).
+      new_assignee: assigneeId as string,
       target_item_id: itemId,
     });
 

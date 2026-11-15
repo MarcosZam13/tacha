@@ -5,11 +5,18 @@ import { getSettableLists, setAssigneeEnabled } from "../services/list-settings.
 // Sin Supabase real: un cliente falso. select devuelve la misma consulta (como el builder de supabase-js) e in
 // la resuelve.
 const rpcMock = vi.fn();
+const fromMock = vi.fn();
 const query = { in: vi.fn(), select: vi.fn() };
 
 vi.mock("@/services/supabase.client", () => ({
   ensureSession: () => Promise.resolve({ user: { id: "user-ana" } }),
-  getSupabaseClient: () => ({ from: () => query, rpc: rpcMock }),
+  getSupabaseClient: () => ({
+    from: (table: string) => {
+      fromMock(table);
+      return query;
+    },
+    rpc: rpcMock,
+  }),
 }));
 
 // Ids inventados (no son de la base).
@@ -33,7 +40,11 @@ describe("getSettableLists", () => {
     const lists = await getSettableLists();
 
     expect(lists).toEqual([{ id: "list-general", isEnabled: true, label: "Lista general" }]);
-    expect(query.select).toHaveBeenCalledWith(expect.stringContaining("list_settings(assignee_enabled)"));
+    // Tabla y columnas con nombres literales: el mock no los comprueba solo. list_settings va embebida.
+    expect(fromMock).toHaveBeenCalledWith("lists");
+    expect(query.select).toHaveBeenCalledWith(
+      "id, type, name, event_date, household_id, list_settings(assignee_enabled)",
+    );
     expect(query.in).toHaveBeenCalledWith("type", ["date", "general"]);
   });
 
