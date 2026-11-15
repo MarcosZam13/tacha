@@ -26,8 +26,8 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
   - Validación: el test de Perfil muestra el enlace y apunta a `/perfil/configuracion`.
 - [x] **11. El campo de la fila** (`components/assignee-field/`) y conectarlo en `shopping-list` y `date-lists`.
   - Validación: tests de que el campo aparece solo con el ajuste encendido, que elegir guarda y que apagar no borra.
-- [ ] **12. E2E** (`E2E.md` de la feature y `e2e/features/list-settings/`), sin cuentas ni sesiones reales de la base: validan la interfaz.
-  - Validación: `NEXT_PUBLIC_SESSION_GUARD_ENABLED=false npx playwright test e2e/features/list-settings` en `chromium` y `mobile-chrome`.
+- [x] **12. E2E** (`E2E.md` de la feature y `e2e/features/list-settings/`), sin cuentas ni sesiones reales de la base: validan la interfaz.
+  - Validación: `npx playwright test e2e/features/list-settings` en `chromium` y `mobile-chrome`. Hecho: 12 de 12 (E2E-CONF-01 a 06, en los dos proyectos).
 - [x] **13. Documentación:** `docs/documento-proyecto.md` §4.13 y §6 (qué quedó implementado, migración 047).
   - Validación: el documento y el SPEC no se contradicen.
 - [ ] **14. Subagentes de revisión** antes de QA: `code-reviewer` (siempre), `security-reviewer` (toca RLS, RPC y permisos de columna, obligatorio) y `qa-checker`.
