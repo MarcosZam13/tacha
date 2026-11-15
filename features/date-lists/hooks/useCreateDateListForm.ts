@@ -17,7 +17,7 @@ export interface CreateDateListFormViewModel extends DateListFormErrors {
   onClose: () => void;
   onEventDateChange: (eventDate: string) => void;
   onNameChange: (name: string) => void;
-  onOpen: () => void;
+  onOpen: (initialDate?: string) => void;
   onSubmit: () => Promise<void>;
   submitError: NullableRef<string>;
 }
@@ -31,9 +31,10 @@ export const useCreateDateListForm = (onCreated: (createdList: DateList) => void
   const [submitError, setSubmitError] = useState<NullableRef<string>>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onOpen = (): void => {
+  // initialDate: el día que se tocó en el calendario (CA-01 de SCRUM-77).
+  const onOpen = (initialDate = ""): void => {
     setName("");
-    setEventDate("");
+    setEventDate(initialDate);
     setErrors(NO_ERRORS);
     setSubmitError(null);
     setIsOpen(true);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DATE_LIST_STATUS_LABEL } from "../constants/date-lists.constants";
+import { DATE_LIST_STATUS_LABEL, DATE_LIST_STATUS_MARK, DATE_LIST_STATUS_STYLE } from "../constants/date-lists.constants";
 import type { DateList } from "../models/DateList.interface";
 import { formatEventDate } from "../utils/eventDate";
 import { toDateListPath } from "../utils/toDateListPath";
@@ -19,7 +19,8 @@ export const DateListCard = ({ list }: DateListCardProps): React.JSX.Element => 
         <span className="block break-words font-body text-sm font-medium text-tacha-text">{list.name}</span>
         <span className="block font-body text-xs text-tacha-textsec">{formatEventDate(list.eventDate)}</span>
       </span>
-      <span className="shrink-0 rounded-tacha-badge bg-tacha-chipbg px-2 py-1 font-body text-xs text-tacha-teal">
+      <span className={`shrink-0 rounded-tacha-badge px-2 py-1 font-body text-xs ${DATE_LIST_STATUS_STYLE[list.status]}`}>
+        <span aria-hidden="true">{DATE_LIST_STATUS_MARK[list.status]} </span>
         {DATE_LIST_STATUS_LABEL[list.status]}
       </span>
     </Link>
