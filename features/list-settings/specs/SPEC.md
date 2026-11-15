@@ -77,9 +77,10 @@ Se modelan como uniones derivadas de constantes (constants-standards §7), no co
 | Falla al cargar las listas | "No se pudieron cargar tus listas. Intenta de nuevo." con "Reintentar" |
 | Falla al guardar el interruptor | "No se pudo guardar el ajuste. Intenta de nuevo." junto a esa lista; el interruptor vuelve a su valor anterior |
 | Falla al guardar el encargado | "No se pudo asignar al encargado. Intenta de nuevo." dentro del selector, que sigue abierto |
-| La lista o el producto ya no se ve (borrado u otro integrante salió) | Se recarga la lista y aparece "Tu lista se actualizó." (`role="status"`) |
+| El producto ya no está o la persona elegida ya no tiene acceso | El selector sigue abierto con "Tu lista se actualizó." o "Esa persona ya no tiene acceso a la lista. Elige a otra." (`role="alert"`), y se vuelven a leer los encargados |
+| La lista ya no existe al guardar el interruptor | "Esa lista ya no existe. Tu lista se actualizó." junto a la lista, y se vuelve a leer la pantalla |
 | Persona sin sesión | `42501`; la pantalla pasa al estado sin cuenta que ya existe |
-| Falla al cargar las personas con acceso | "No se pudieron cargar las personas de la lista." con "Reintentar" en el selector |
+| Falla al cargar el ajuste, los encargados o las personas de la lista | El campo "Encargado" no se muestra y la lista sigue funcionando igual: es opcional y no debe estorbar a la lista |
 
 Se reconoce el error por `error.code` de la RPC, nunca por el texto.
 
@@ -159,6 +160,7 @@ Detalle y decisiones en [plan.md](plan.md). Resumen (migración `047`, **el núm
 - Cambiar quién puede modificar el ajuste (hoy cualquiera con acceso a la lista).
 - Otros ajustes en Configuración: la pantalla queda preparada para sumarlos, pero esta historia solo agrega "Encargado".
 - Mostrar al encargado en otras pantallas (finanzas, historial, recetas).
+- La lista personal que se mantiene al unirse a una familia (SCRUM-59, D4): su sección en `/lista` no muestra el campo, así que Configuración no la ofrece (un interruptor que no cambia nada confunde).
 
 ## 15. Notas de implementación
 

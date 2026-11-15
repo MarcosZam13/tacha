@@ -124,3 +124,13 @@ La comprobación de acceso se escribe una vez como `list_grants_access(list_id, 
 - Toca `features/shopping-list/` y `features/date-lists/`, que son de Marcos. Los cambios allí son mínimos (leer dos datos y pintar un componente), y Marcos revisa. Puede haber conflicto con los PR abiertos de esas features (`SCRUM-78`, #98): se resuelve manteniendo los dos cambios.
 - El número de migración puede colisionar: se revisa antes del merge.
 - La política `024` de `lists` es la única regla de acceso; si cambia (listas privadas con colaboradores, HU-49), hay que cambiar también las tres RPC. Queda anotado en el comentario de la migración.
+
+## 8. Cómo quedó (diferencias con lo planeado)
+
+- **El campo trae sus propios datos.** `components/assignee-field/` tiene su servicio (`assignee.service.ts`) y su hook (`useListAssigneesViewModel`): lee el ajuste de la lista y, solo si está encendido, `id, assigned_to` de sus productos y los candidatos. Así los ViewModel y los servicios de `shopping-list` y `date-lists` **no cambian**: cada pantalla solo llama al hook y le pasa `<AssigneeField />` a la fila por una ranura opcional (`assigneeSlot`).
+- **La lista general se busca con `find_general_list_id`** (la misma RPC que usa `shopping-list`), sin exponer su id desde el estado de Marcos.
+- **`get_household_members` no servía** (solo la admin la llama): de ahí `get_list_assignee_candidates`.
+- **Si algo falla al cargar el campo, no se muestra** y la lista sigue igual (el campo es opcional).
+- **El selector** usa el `Modal` compartido y devuelve el foco al botón al cerrarse (`useReturnFocus`), porque el `Modal` no lo hace.
+- **La lista personal mantenida al unirse a una familia no se configura** (SPEC §14).
+- **Un parche de tipos:** el generador de tipos marca los argumentos de una RPC como no nulos, y `set_list_item_assignee` acepta `null` para quitar al encargado; el servicio lo declara en una sola constante comentada (`NO_ASSIGNEE`).

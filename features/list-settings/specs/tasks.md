@@ -16,19 +16,19 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
 - [x] **6. Tipos:** actualizar `types/database.types.ts` (tabla, columna y las tres funciones).
   - Validación: `npx tsc --noEmit` sin errores.
   - Hecho a mano (sin la CLI de Supabase): `list_settings`, `list_items.assigned_to` (también en las funciones que devuelven una fila de `list_items`) y las tres funciones. Conviene compararlos con los generados antes de pasar a `waiting qa`.
-- [ ] **7. Constantes y modelos** de `list-settings` y de `assignee-field`; `APP_ROUTE.LIST_SETTINGS`.
+- [x] **7. Constantes y modelos** de `list-settings` y de `assignee-field`; `APP_ROUTE.LIST_SETTINGS`.
   - Validación: sin strings sueltos; `tsc` limpio.
-- [ ] **8. Servicios** `list-settings.service.ts` y `assignee.service.ts` (resultado, sin lanzar), con sus tests.
+- [x] **8. Servicios** `list-settings.service.ts` y `assignee.service.ts` (resultado, sin lanzar), con sus tests.
   - Validación: tests de columnas, RPC y mapeo de errores por código pasan.
-- [ ] **9. ViewModel y pantalla de Configuración** (`useListSettingsViewModel`, `ListSettings`, `ListSettingsRow`, `AssigneeSwitch`) y la ruta `app/(app)/perfil/configuracion/page.tsx`.
+- [x] **9. ViewModel y pantalla de Configuración** (`useListSettingsViewModel`, `ListSettings`, `ListSettingsRow`, `AssigneeSwitch`) y la ruta `app/(app)/perfil/configuracion/page.tsx`.
   - Validación: tests con Page Object (apagado por defecto, encender, error y reversión, estado vacío).
-- [ ] **10. Enlace en el Perfil** (`ProfileSettingsLink`) entre "Cambiar contraseña" y "Cerrar sesión".
+- [x] **10. Enlace en el Perfil** (`ProfileSettingsLink`) entre "Cambiar contraseña" y "Cerrar sesión".
   - Validación: el test de Perfil muestra el enlace y apunta a `/perfil/configuracion`.
-- [ ] **11. El campo de la fila** (`components/assignee-field/`) y conectarlo en `shopping-list` y `date-lists`.
+- [x] **11. El campo de la fila** (`components/assignee-field/`) y conectarlo en `shopping-list` y `date-lists`.
   - Validación: tests de que el campo aparece solo con el ajuste encendido, que elegir guarda y que apagar no borra.
 - [ ] **12. E2E** (`E2E.md` de la feature y `e2e/features/list-settings/`), sin cuentas ni sesiones reales de la base: validan la interfaz.
   - Validación: `NEXT_PUBLIC_SESSION_GUARD_ENABLED=false npx playwright test e2e/features/list-settings` en `chromium` y `mobile-chrome`.
-- [ ] **13. Documentación:** `docs/documento-proyecto.md` §4.13 y §6 (qué quedó implementado, migración 047).
+- [x] **13. Documentación:** `docs/documento-proyecto.md` §4.13 y §6 (qué quedó implementado, migración 047).
   - Validación: el documento y el SPEC no se contradicen.
 - [ ] **14. Subagentes de revisión** antes de QA: `code-reviewer` (siempre), `security-reviewer` (toca RLS, RPC y permisos de columna, obligatorio) y `qa-checker`.
   - Validación: sin hallazgos críticos, altos o medios abiertos.
