@@ -116,8 +116,32 @@ const HISTORY_ROWS_BY_PERIOD_START: Record<string, HistoryRow[]> = {
   "2026-10-01T06:00:00.000Z": [SUNDAY_ROW, WEDNESDAY_ROW, MONDAY_ROW, FIFTH_ROW],
 };
 
+// Compras sin total de los escenarios de SCRUM-92 (E2E.md, "Datos y entorno").
+// La del miércoles 14 es la misma compra de la semana (mismo id).
+export const PENDING_ROWS = {
+  /** Miércoles 14 de octubre, 10:00: hace 4 días, cuenta para el recordatorio. */
+  FOUR_DAYS: WEDNESDAY_ROW,
+  /** Domingo 18 de octubre, 04:00: hace 11 horas, todavía no cuenta. */
+  ELEVEN_HOURS: {
+    closed_at: "2026-10-18T10:00:00+00:00",
+    id: "00000000-0000-4000-8000-000000000011",
+    stores: { display_name: "MaxiPali" },
+    total_amount: null,
+  },
+  /** Domingo 20 de septiembre, 10:00: hace 28 días, fuera del mes; cuenta. */
+  LAST_MONTH: {
+    closed_at: "2026-09-20T16:00:00+00:00",
+    id: "00000000-0000-4000-8000-000000000012",
+    stores: { display_name: "Walmart" },
+    total_amount: null,
+  },
+} as const satisfies Record<string, HistoryRow>;
 // La consulta del Historial se distingue de la del Dashboard por su select.
 const HISTORY_SELECT_COLUMN = "stores(display_name)";
+
+// La de compras sin total (SCRUM-92) usa el mismo select que el Historial; se
+// distingue por este filtro, y se responde antes para que no se confundan.
+const PENDING_TOTAL_FILTER = "is.null";
 
 // El conteo exacto que pide { count: "exact" } llega en este header, y el
 // navegador solo lo deja leer si está expuesto (como hace PostgREST).
@@ -196,6 +220,10 @@ export interface FinanceStubOptions {
   historyRows?: HistoryRow[];
   /** La consulta del Historial no responde hasta que esta promesa termina. */
   historyGate?: Promise<void>;
+  /** Cuántas veces seguidas falla la consulta de compras sin total antes de responder bien (SCRUM-92). */
+  failPendingTimes?: number;
+  /** Las compras sin total de cualquier fecha (SCRUM-92); `[]` si no se dan. */
+  pendingRows?: HistoryRow[];
   /** Errores, uno por llamada, de set_period_total antes de responder bien. */
   periodTotalErrors?: SimulatedRpcError[];
   /** Errores, uno por llamada, de set_purchase_session_total antes de responder bien. */
@@ -208,6 +236,8 @@ export interface FinanceStubOptions {
 export interface FinanceStubRecorder {
   budgetRequests: Request[];
   historyRequests: Request[];
+  /** La consulta de compras sin total (SCRUM-92), aparte de la del Historial. */
+  pendingRequests: Request[];
   periodFinanceRequests: Request[];
   /** set_purchase_session_total y set_period_total. */
   totalRequests: Request[];
@@ -229,6 +259,7 @@ export const stubFinanceSupabase = async (
   const recorder: FinanceStubRecorder = {
     budgetRequests: [],
     historyRequests: [],
+    pendingRequests: [],
     periodFinanceRequests: [],
     rpcRequests: [],
     spendingRequests: [],
@@ -241,6 +272,9 @@ export const stubFinanceSupabase = async (
   let savedTimeZone: string | null = options.savedTimeZone ?? null;
   let spendingFailuresLeft = options.failSpendingTimes ?? 0;
   let historyFailuresLeft = options.failHistoryTimes ?? 0;
+  let pendingFailuresLeft = options.failPendingTimes ?? 0;
+  // Completar una compra la quita de las pendientes (E2E.md, SCRUM-92).
+  let pendingRows: HistoryRow[] = [...(options.pendingRows ?? [])];
   const purchaseTotalErrors = [...(options.purchaseTotalErrors ?? [])];
   const periodTotalErrors = [...(options.periodTotalErrors ?? [])];
 
@@ -313,6 +347,15 @@ export const stubFinanceSupabase = async (
     const request = route.request();
     const { pathname, searchParams } = new URL(request.url());
 
+    if (pathname.endsWith("/rest/v1/purchase_sessions") && searchParams.get("total_amount") === PENDING_TOTAL_FILTER) {
+      recorder.pendingRequests.push(request);
+      if (pendingFailuresLeft > 0) {
+        pendingFailuresLeft -= 1;
+        return route.fulfill({ json: SERVER_ERROR, status: SERVER_ERROR_STATUS });
+      }
+      return route.fulfill({ headers: toContentRangeHeaders(pendingRows.length), json: pendingRows, status: OK_STATUS });
+    }
+
     if (pathname.endsWith("/rest/v1/purchase_sessions") && searchParams.get("select")?.includes(HISTORY_SELECT_COLUMN)) {
       recorder.historyRequests.push(request);
       await options.historyGate;
@@ -378,9 +421,12 @@ export const stubFinanceSupabase = async (
         new_total: number;
         target_session_id: string;
       };
-      const row = Object.values(HISTORY_ROWS_BY_PERIOD_START).flat().find((candidate) => candidate.id === purchaseId);
+      const row = [...Object.values(HISTORY_ROWS_BY_PERIOD_START).flat(), ...pendingRows].find(
+        (candidate) => candidate.id === purchaseId,
+      );
       if (!row) return route.fulfill(toRpcError({ code: "P0002", status: SERVER_ERROR_STATUS }));
       savedPurchaseTotals.set(purchaseId, total);
+      pendingRows = pendingRows.filter((pendingRow) => pendingRow.id !== purchaseId);
       return route.fulfill({
         json: {
           closed_at: row.closed_at,

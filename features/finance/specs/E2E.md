@@ -373,11 +373,11 @@ Compras sin total que usan los escenarios:
 - **Precondición:** sesión registrada simulada; pendientes: Walmart del 14 de octubre (4 días) y MaxiPali del 18 de octubre (11 horas). Corre en desktop y en Pixel 7.
 - **Pasos:**
   1. Abrir `/finanzas/historial`.
-  2. Tocar «Completarlas».
+  2. Tocar «Completarla» (en singular, porque cuenta una sola).
   3. Tocar «Dashboard».
 - **Resultado esperado:**
   - **Historial:** se ve «Tienes 1 compra sin total desde hace más de 24 horas», sin `role="alert"` y sin botón para cerrarlo. La compra de 11 horas no cuenta.
-  - **Sección «Compras sin total»:** lista las dos, de la más reciente a la más antigua, cada una con su badge y su lápiz. «Completarlas» lleva a esta sección.
+  - **Sección «Compras sin total»:** lista las dos, de la más reciente a la más antigua, cada una con su badge y su lápiz. «Completarla» lleva a esta sección (`#compras-sin-total`).
   - **Dashboard:** la misma línea, con un enlace al Historial y sin ningún lápiz (D11).
   - **La petición** de pendientes filtra `total_amount=is.null` y `closed_at=not.is.null`, lleva `count=exact` y no filtra por dueño ni por fecha.
 
@@ -390,7 +390,7 @@ Compras sin total que usan los escenarios:
   2. En «Compras sin total», tocar «Editar total del domingo 20 de septiembre, Walmart», escribir `8000` y tocar «Guardar».
   3. Tocar el lápiz de Walmart del 14 de octubre en la sección, escribir `0` y tocar «Guardar».
 - **Resultado esperado:**
-  - **Septiembre:** `rpc/set_purchase_session_total` lleva la compra y `8000`, sin dueño ni zona. La compra sale de la sección sin recargar y el total de la semana sigue en ₡15 000. El recordatorio sigue en 1.
+  - **Septiembre:** `rpc/set_purchase_session_total` lleva la compra y `8000`, sin dueño ni zona. La compra sale de la sección sin recargar y el total de la semana sigue en ₡15 000. El recordatorio pasa de «Tienes 2 compras…» a «Tienes 1 compra…».
   - **Un solo campo** abierto en toda la pantalla mientras se edita (D21).
   - **14 de octubre:** sale de la sección y, en la lista de la semana, pasa a ₡0. «Compras» pasa de 2 a 3 y «Sin total» de 1 a 0. El recordatorio y la sección desaparecen.
   - No se volvieron a pedir las pendientes.

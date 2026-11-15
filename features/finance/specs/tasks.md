@@ -268,8 +268,8 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 4 — E2E
 
-- [ ] 4.1 `finance.helpers.ts`: la consulta de pendientes, con `[]` por defecto; confirmar que E2E-FIN-01 a 14 siguen pasando.
-- [ ] 4.2 `e2e/features/finance/pending-totals.spec.ts` (E2E-FIN-15 a 18); correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+- [x] 4.1 `finance.helpers.ts`: la consulta de pendientes, con `[]` por defecto; confirmar que E2E-FIN-01 a 14 siguen pasando. Se reconoce por `total_amount=is.null` y se responde antes que la del Historial, que usa el mismo select; tiene sus propias opciones (`pendingRows`, `failPendingTimes`) y su registro (`pendingRequests`). Arregla E2E-FIN-05, 07 y 14. E2E-FIN-04 y 08 también comprueban que no se pidan las pendientes.
+- [x] 4.2 `e2e/features/finance/pending-totals.spec.ts` (E2E-FIN-15 a 18); correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`. 2026-11-14: 48 de 48 (E2E-FIN-01 a 18 en los dos proyectos); tsc, lint y `git diff --check` limpios.
 
 ### Etapa 5 — QA y cierre
 
