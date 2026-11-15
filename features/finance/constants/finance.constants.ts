@@ -105,9 +105,12 @@ export const TOTAL_SAVE_ERROR_MESSAGE = {
 // Recordatorio de compras sin total (SCRUM-92, D23): cuenta una compra cerrada
 // sin total desde que cumple 24 horas. Es una duración, no un límite de
 // calendario, así que no depende de la zona horaria.
+// El texto del recordatorio usa las mismas horas, así no se contradicen.
 const MS_PER_HOUR = 60 * 60 * 1000;
+const PENDING_TOTAL_REMINDER_HOURS = 24;
 export const PENDING_TOTAL_REMINDER = {
-  AFTER_MS: 24 * MS_PER_HOUR,
+  AFTER_HOURS: PENDING_TOTAL_REMINDER_HOURS,
+  AFTER_MS: PENDING_TOTAL_REMINDER_HOURS * MS_PER_HOUR,
 } as const;
 
 // Los montos de purchase_sessions.total_amount tienen centavos (numeric(12, 2)):
@@ -240,9 +243,9 @@ export const FINANCE_TEXT = {
   PENDING_REMINDER_LINK_PLURAL: "Completarlas",
   PENDING_REMINDER_LINK_SINGULAR: "Completarla",
   PENDING_REMINDER_LOAD_ERROR: "No se pudo revisar si tienes compras sin total. Intenta de nuevo.",
-  PENDING_REMINDER_PLURAL_SUFFIX: " compras sin total desde hace más de 24 horas",
+  PENDING_REMINDER_PLURAL_SUFFIX: ` compras sin total desde hace más de ${PENDING_TOTAL_REMINDER_HOURS} horas`,
   PENDING_REMINDER_PREFIX: "Tienes ",
-  PENDING_REMINDER_SINGULAR_SUFFIX: " compra sin total desde hace más de 24 horas",
+  PENDING_REMINDER_SINGULAR_SUFFIX: ` compra sin total desde hace más de ${PENDING_TOTAL_REMINDER_HOURS} horas`,
   PENDING_SECTION_TITLE: "Compras sin total",
   PERIOD_GROUP_LABEL: "Periodo",
   PURCHASES: "Compras",

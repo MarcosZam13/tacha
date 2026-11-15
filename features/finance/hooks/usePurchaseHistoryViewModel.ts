@@ -109,7 +109,9 @@ export const usePurchaseHistoryViewModel = (): UsePurchaseHistoryViewModelReturn
   const pendingPurchases = usePendingPurchases(isRegistered);
   const { bounds, purchases, spending, status, timeZone } = periodPurchases;
   // Con P0002 la lista de pendientes quedó vieja. Se vuelve a leer al cerrar el
-  // campo, para que el mensaje de SCRUM-91 se vea junto al campo hasta entonces.
+  // campo, para que el mensaje de SCRUM-91 se vea junto al campo hasta entonces
+  // (SPEC §7 de SCRUM-92). La lista del periodo sigue como en SCRUM-91: su
+  // mensaje pide recargar, y no se vuelve a leer sola.
   const [isPendingStale, setIsPendingStale] = useState<boolean>(false);
   const totalEdit = useTotalEdit({
     onPeriodTotalSaved: periodPurchases.applySavedPeriodTotal,

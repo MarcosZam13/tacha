@@ -565,6 +565,39 @@ describe("usePurchaseHistoryViewModel: purchases without a total (SCRUM-92)", ()
     await waitFor(() => expect(result.current.pendingRows).toEqual([]));
   });
 
+  it("validates a total written in the section without calling the database (D13, D14)", async () => {
+    pendingMock.mockResolvedValue([LAST_MONTH]);
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+    act(() => result.current.pendingRows[0]?.editor?.onTextChange("12.5"));
+    await act(async () => result.current.pendingRows[0]?.editor?.onSave());
+
+    await waitFor(() => expect(result.current.pendingRows[0]?.editor?.errorMessage).toBe(FINANCE_TEXT.TOTAL_INVALID));
+    expect(purchaseSaveMock).not.toHaveBeenCalled();
+  });
+
+  it("asks to confirm the time zone from the section too, and completes the purchase after it (rule 59)", async () => {
+    pendingMock.mockResolvedValue([LAST_MONTH]);
+    purchaseSaveMock
+      .mockRejectedValueOnce(new TotalSaveError(TOTAL_SAVE_ERROR.TIME_ZONE_MISSING, { code: "TZ001" }))
+      .mockResolvedValueOnce({ closedAt: LAST_MONTH.closedAt, id: "last-month", totalAmount: 8000 });
+    timeZoneSaveMock.mockResolvedValue({ timeZone: BROWSER_TIME_ZONE });
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+    act(() => result.current.pendingRows[0]?.editor?.onTextChange("8000"));
+    await act(async () => result.current.pendingRows[0]?.editor?.onSave());
+    await waitFor(() => expect(result.current.pendingRows[0]?.editor?.timeZoneToConfirm).toBe(BROWSER_TIME_ZONE));
+
+    act(() => result.current.pendingRows[0]?.editor?.onConfirmTimeZone());
+
+    await waitFor(() => expect(result.current.pendingRows).toEqual([]));
+    expect(timeZoneSaveMock).toHaveBeenCalledWith({ timeZone: BROWSER_TIME_ZONE });
+    expect(purchaseSaveMock).toHaveBeenCalledTimes(2);
+  });
   it("does not read the pending purchases again on a normal cancel", async () => {
     pendingMock.mockResolvedValue([LAST_MONTH]);
     const { result } = await renderLoaded();

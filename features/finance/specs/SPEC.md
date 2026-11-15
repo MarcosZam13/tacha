@@ -369,6 +369,9 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
 65. **Sin trabajos programados:** se calcula al leer, con la hora del navegador al cargar. No avisa con la app cerrada, que es el límite de un indicador (D24), ni se actualiza solo si la pantalla queda abierta y una compra cumple las 24 horas: se ve en la próxima carga.
 66. **Una sola lectura:** el recordatorio y la sección de pendientes salen de la misma respuesta, para que no se contradigan (como la regla 25).
 67. **Si la lectura falla:** el recordatorio muestra un error discreto con "Reintentar", sin tapar el total del periodo. No se oculta el fallo, porque eso se vería como "no tienes compras sin total".
+    - **"Discreto"** (decisión H7, 2026-11-14) significa un aviso **inline**, en el lugar del recordatorio, que **no bloquea** el resto de la pantalla y ofrece **"Reintentar"**. No significa ocultar el error ni quitar su anuncio.
+    - **Igual que los demás errores de carga de Finanzas** (`SpendingTotal`, `SpendingBudget`): el texto va con `role="alert"`, para que el lector de pantalla lo anuncie, y con el estilo de error de siempre.
+    - **Solo el error:** el recordatorio con la cantidad (regla 64) sigue sin `role="alert"` ni colores de error, porque es información, no un fallo.
 
 **Completar (CA-03):**
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { FINANCE_TEXT, PENDING_REMINDER_STATUS } from "../constants/finance.constants";
+import { FINANCE_TEXT, PENDING_REMINDER_STATUS, PENDING_TOTAL_REMINDER } from "../constants/finance.constants";
 import { toPendingTotalReminder } from "../utils/toPendingTotalReminder";
 
 const HISTORY_ANCHOR = "#compras-sin-total";
@@ -34,6 +34,13 @@ describe("toPendingTotalReminder (SCRUM-92, SPEC §8)", () => {
       messageText: null,
       status,
     });
+  });
+
+  it("says the same hours that the cut-off uses, so the text never contradicts it (D23)", () => {
+    const { messageText } = toPendingTotalReminder(PENDING_REMINDER_STATUS.PENDING, 2, HISTORY_ANCHOR, vi.fn());
+
+    expect(PENDING_TOTAL_REMINDER.AFTER_MS).toBe(PENDING_TOTAL_REMINDER.AFTER_HOURS * 60 * 60 * 1000);
+    expect(messageText).toContain(`${PENDING_TOTAL_REMINDER.AFTER_HOURS} horas`);
   });
 
   it("keeps where the link goes and the retry it was given", () => {

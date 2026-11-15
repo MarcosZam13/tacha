@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { Spinner } from "@/components/ui";
 import { FinanceNoAccount } from "./components/FinanceNoAccount";
@@ -16,6 +17,7 @@ import {
   FINANCE_TEXT,
   HISTORY_ROW_KIND,
   PENDING_SECTION_ID,
+  SPENDING_STATUS,
 } from "./constants/finance.constants";
 import { usePurchaseHistoryViewModel } from "./hooks/usePurchaseHistoryViewModel";
 
@@ -31,6 +33,21 @@ const PENDING_SECTION_TITLE_ID = `${PENDING_SECTION_ID}-titulo`;
  */
 export const PurchaseHistory = (): React.JSX.Element => {
   const viewModel = usePurchaseHistoryViewModel();
+  const pendingSectionRef = useRef<HTMLElement>(null);
+  const hasScrolledToPendingRef = useRef<boolean>(false);
+  const hasPendingSection = viewModel.pendingRows.length > 0;
+  const isPeriodLoaded = viewModel.spending.status !== SPENDING_STATUS.LOADING;
+
+  // El enlace del recordatorio del Dashboard llega con #compras-sin-total, pero la
+  // sección se dibuja después de leer las pendientes: el navegador ya buscó el
+  // ancla y no la encontró. Se lleva a la sección una vez, cuando ya cargó también
+  // el periodo: antes, la lista del periodo todavía no la empujó a su lugar.
+  useEffect(() => {
+    if (!hasPendingSection || !isPeriodLoaded || hasScrolledToPendingRef.current) return;
+    if (window.location.hash !== `#${PENDING_SECTION_ID}`) return;
+    hasScrolledToPendingRef.current = true;
+    pendingSectionRef.current?.scrollIntoView();
+  }, [hasPendingSection, isPeriodLoaded]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
@@ -72,8 +89,9 @@ export const PurchaseHistory = (): React.JSX.Element => {
           ) : null}
           {/* SCRUM-92 (D25): las pendientes de cualquier fecha, con el mismo editor.
               Es el destino del enlace del recordatorio. */}
-          {viewModel.pendingRows.length > 0 ? (
+          {hasPendingSection ? (
             <section
+              ref={pendingSectionRef}
               id={PENDING_SECTION_ID}
               aria-labelledby={PENDING_SECTION_TITLE_ID}
               className="flex scroll-mt-6 flex-col gap-3"

@@ -469,6 +469,32 @@ describe("PurchaseHistory: purchases without a total (SCRUM-92)", () => {
     expect(page.queryText("Tienes 1 compra sin total desde hace más de 24 horas")).not.toBeInTheDocument();
   });
 
+  it("takes the screen to the section when arriving from the reminder link, once both lists loaded", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    const scrollIntoView = vi.fn();
+    // jsdom no implementa scrollIntoView.
+    Element.prototype.scrollIntoView = scrollIntoView;
+    window.location.hash = "#compras-sin-total";
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    await page.findPurchaseList();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.contexts[0]).toBe(getPendingSection());
+    window.location.hash = "";
+  });
+
+  it("does not move the screen without the section link in the URL", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    await page.findPurchaseList();
+    await screen.findByRole("region", { name: FINANCE_TEXT.PENDING_SECTION_TITLE });
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
   it("shows the read error with a retry, keeping the period total visible (rule 67)", async () => {
     pendingMock.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce([OLD_PENDING]);
     render(<PurchaseHistory />);

@@ -952,7 +952,7 @@ Los escenarios E2E-FIN-01 a 14 tienen que seguir pasando. El helper responde `[]
 |---|---|---|
 | 01 | Badge en una compra cerrada sin total, desde el modo compra real | Funcional |
 | 02 | Recordatorio con una compra cerrada sin total hace más de 24 horas, en el Dashboard y en el Historial (D23, D26) | Funcional |
-| 03 | Completar una compra de un periodo anterior y verla en el total de su periodo | Integración |
+| 03 | Completar desde "Compras sin total" una compra del mes en curso y verla en el total de Mes; una de un periodo anterior solo sale de la sección y baja el recordatorio, porque los periodos anteriores no se ven (D7) | Integración |
 | 04 | Otra cuenta no ve las pendientes de esta | Negativo |
 | 05 | Sesión anónima: no se ve ni se pide nada | Negativo |
 | 06 | Teclado, lector de pantalla, mobile y contraste del badge en los dos temas (D27) | Usabilidad |

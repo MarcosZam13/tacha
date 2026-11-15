@@ -139,6 +139,11 @@ test.describe("Finanzas: compras sin total (SCRUM-92)", () => {
       `${FINANCE_HISTORY_PATH}#compras-sin-total`,
     );
     await expect(getEditTotalButtons(page)).toHaveCount(0);
+
+    // Desde el Dashboard, el enlace lleva a la sección aunque se dibuje después de cargar.
+    await page.getByRole("link", { name: "Completarla", exact: true }).click();
+    await expect(page).toHaveURL(`${FINANCE_HISTORY_PATH}#compras-sin-total`);
+    await expect(getPendingSection(page)).toBeInViewport();
   });
 
   test("E2E-FIN-17 — Completar una compra de un periodo anterior", async ({ page }) => {

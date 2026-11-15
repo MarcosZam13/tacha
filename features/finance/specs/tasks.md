@@ -273,10 +273,13 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 5 — QA y cierre
 
-- [ ] 5.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`.
-- [ ] 5.2 Pruebas manuales de SPEC §13 y `TC-SCRUM-92-01` a `06` (plan), contra la base, con capturas sin correos.
-- [ ] 5.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
-- [ ] 5.4 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [x] 5.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`. 2026-11-14, sin commit todavía: los cinco sin errores; Vitest, 1681 en 156 archivos; E2E de Finanzas, 48 de 48 en `chromium` y `mobile-chrome`.
+- [ ] 5.2 Pruebas manuales de SPEC §13 y `TC-SCRUM-92-01` a `06` (plan), contra la base, con capturas sin correos. Casos redactados por `qa-checker` (2026-11-14); sin ejecutar.
+- [ ] 5.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6. §4.6 actualizado (2026-11-14); SPEC §13 queda sin marcar hasta ejecutar 5.2.
+- [x] 5.4 `code-reviewer`, `security-reviewer` y `qa-checker` (2026-11-14), sobre `f723637..HEAD`:
+  - `security-reviewer`: sin hallazgos críticos, altos ni medios. Uno bajo, fuera de alcance: la RLS de `016` deja a una sesión anónima leer sus propias compras por la API (D6 se aplica en la pantalla, como en SCRUM-90); cerrarlo es una migración nueva.
+  - `code-reviewer`: sin bloqueantes. Corregido: el texto "24 horas" sale de la misma constante que el umbral, con un test. Documentado: con `P0002` solo se relee la lista de pendientes.
+  - `qa-checker`: el enlace del Dashboard no llevaba a la sección, porque se dibuja después de cargar y la lista del periodo la empujaba fuera de la pantalla. Corregido en `PurchaseHistory`, con tests de pantalla y E2E-FIN-16. Agregados los tests de validación y de `TZ001` desde la sección, y corregido el caso manual 03 del plan. Decisión H7 (2026-11-14): el error de lectura del recordatorio conserva `role="alert"` y el estilo de error, como los demás errores de carga; "discreto" quedó definido en SPEC regla 67. Sin cambios de código.
 - [ ] 5.5 Traer `develop`, completar la descripción del PR con la plantilla y la evidencia, `waiting qa` y Jira.
 
 ### Fuera de esta historia
