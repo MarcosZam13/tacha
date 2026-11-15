@@ -261,10 +261,10 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 3 — Recordatorio y completar (CA-02 y CA-03)
 
-- [ ] 3.1 `useTotalEdit`: el objetivo de una compra indica su lista de origen, sin cambiar el resto del contrato, con sus tests (D21 entre las dos listas).
-- [ ] 3.2 `usePurchaseHistoryViewModel`: el recordatorio, la sección "Compras sin total" y aplicar lo guardado en las dos listas, con sus tests.
-- [ ] 3.3 `PendingTotalReminder`, sin botón de cerrar (D26), y la sección en `PurchaseHistory`, con Page Object y tests de componente y de pantalla.
-- [ ] 3.4 `useFinanceDashboardViewModel` y `FinanceDashboard`: el recordatorio con el enlace al Historial, sin lápices (D11), con sus tests.
+- [x] 3.1 `useTotalEdit`: el objetivo de una compra indica su lista de origen, sin cambiar el resto del contrato, con sus tests (D21 entre las dos listas). `PURCHASE_LIST` y `onPurchaseUnavailable` para `P0002`.
+- [x] 3.2 `usePurchaseHistoryViewModel`: el recordatorio, la sección "Compras sin total" y aplicar lo guardado en las dos listas, con sus tests. Con `P0002` el mensaje queda junto al campo y las pendientes se vuelven a leer al cerrarlo.
+- [x] 3.3 `PendingTotalReminder`, sin botón de cerrar (D26), y la sección en `PurchaseHistory`, con Page Object y tests de componente y de pantalla. Los textos del recordatorio salen de `toPendingTotalReminder`, compartido con el Dashboard.
+- [x] 3.4 `useFinanceDashboardViewModel` y `FinanceDashboard`: el recordatorio con el enlace al Historial, sin lápices (D11), con sus tests. 2026-11-14: Vitest completo, 1666 en 155 archivos; tsc, lint y `git diff --check` limpios. E2E de Finanzas: 34 pasan y 6 fallan (E2E-FIN-05, 07 y 14) porque `finance.helpers.ts` todavía responde la consulta de pendientes como la del Historial; se arregla en la 4.1.
 
 ### Etapa 4 — E2E
 

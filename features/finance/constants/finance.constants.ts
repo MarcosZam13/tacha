@@ -180,6 +180,19 @@ export const TOTAL_EDIT_TARGET = {
 
 export type TotalEditTargetType = (typeof TOTAL_EDIT_TARGET)[keyof typeof TOTAL_EDIT_TARGET];
 
+// En qué lista del Historial se tocó el lápiz de una compra (SCRUM-92, regla 68):
+// la misma compra puede estar en el periodo y en "Compras sin total", y el campo
+// se abre solo en la fila tocada (D21).
+export const PURCHASE_LIST = {
+  PENDING: "pending",
+  PERIOD: "period",
+} as const;
+
+export type PurchaseListType = (typeof PURCHASE_LIST)[keyof typeof PURCHASE_LIST];
+
+// El ancla de la sección "Compras sin total", destino del recordatorio (SCRUM-92).
+export const PENDING_SECTION_ID = "compras-sin-total";
+
 // Qué es cada fila de la lista del Historial: una compra o un ajuste manual (D16).
 export const HISTORY_ROW_KIND = {
   ADJUSTMENT: "adjustment",
@@ -222,6 +235,15 @@ export const FINANCE_TEXT = {
   // "No incluye 1 compra sin total" / "No incluye 2 compras sin total".
   NOT_INCLUDED_PREFIX: "No incluye ",
   OVER_BUDGET_PREFIX: "Te pasaste por ",
+  // El recordatorio (SCRUM-92, SPEC §8): "Tienes 1 compra sin total desde hace
+  // más de 24 horas" / "Tienes 3 compras sin total desde hace más de 24 horas".
+  PENDING_REMINDER_LINK_PLURAL: "Completarlas",
+  PENDING_REMINDER_LINK_SINGULAR: "Completarla",
+  PENDING_REMINDER_LOAD_ERROR: "No se pudo revisar si tienes compras sin total. Intenta de nuevo.",
+  PENDING_REMINDER_PLURAL_SUFFIX: " compras sin total desde hace más de 24 horas",
+  PENDING_REMINDER_PREFIX: "Tienes ",
+  PENDING_REMINDER_SINGULAR_SUFFIX: " compra sin total desde hace más de 24 horas",
+  PENDING_SECTION_TITLE: "Compras sin total",
   PERIOD_GROUP_LABEL: "Periodo",
   PURCHASES: "Compras",
   PURCHASES_LIST_LABEL: "Compras del periodo",

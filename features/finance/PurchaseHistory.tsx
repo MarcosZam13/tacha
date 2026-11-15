@@ -4,19 +4,30 @@ import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { Spinner } from "@/components/ui";
 import { FinanceNoAccount } from "./components/FinanceNoAccount";
 import { FinanceTabs } from "./components/FinanceTabs";
+import { PendingTotalReminder } from "./components/PendingTotalReminder";
 import { PeriodAdjustmentRow } from "./components/PeriodAdjustmentRow";
 import { PurchaseSessionRow } from "./components/PurchaseSessionRow";
 import { SpendingPeriodSelector } from "./components/SpendingPeriodSelector";
 import { SpendingTotal } from "./components/SpendingTotal";
 import { TimeZoneConfirmation } from "./components/TimeZoneConfirmation";
-import { FINANCE_ACCESS_STATUS, FINANCE_TAB, FINANCE_TEXT, HISTORY_ROW_KIND } from "./constants/finance.constants";
+import {
+  FINANCE_ACCESS_STATUS,
+  FINANCE_TAB,
+  FINANCE_TEXT,
+  HISTORY_ROW_KIND,
+  PENDING_SECTION_ID,
+} from "./constants/finance.constants";
 import { usePurchaseHistoryViewModel } from "./hooks/usePurchaseHistoryViewModel";
+
+const PENDING_SECTION_TITLE_ID = `${PENDING_SECTION_ID}-titulo`;
 
 /**
  * Sub-tab "Historial" de Finanzas (SCRUM-90 / HU-59): las compras cerradas del
  * periodo en curso con su total, solo para cuentas registradas (SPEC D6). El
  * aviso de precios se ve en todos los estados de una cuenta registrada (§6).
- * "use client" porque usa hooks y lee la sesión del navegador.
+ * Con SCRUM-92, el recordatorio de compras sin total arriba de la lista y la
+ * sección "Compras sin total" debajo. "use client" porque usa hooks y lee la
+ * sesión del navegador.
  */
 export const PurchaseHistory = (): React.JSX.Element => {
   const viewModel = usePurchaseHistoryViewModel();
@@ -44,6 +55,7 @@ export const PurchaseHistory = (): React.JSX.Element => {
             {viewModel.timeZoneConfirmation ? <TimeZoneConfirmation {...viewModel.timeZoneConfirmation} /> : null}
           </section>
           <PriceDisclaimer />
+          <PendingTotalReminder {...viewModel.pendingReminder} />
           {viewModel.listRows.length > 0 ? (
             <ul
               aria-label={FINANCE_TEXT.PURCHASES_LIST_LABEL}
@@ -57,6 +69,27 @@ export const PurchaseHistory = (): React.JSX.Element => {
                 ),
               )}
             </ul>
+          ) : null}
+          {/* SCRUM-92 (D25): las pendientes de cualquier fecha, con el mismo editor.
+              Es el destino del enlace del recordatorio. */}
+          {viewModel.pendingRows.length > 0 ? (
+            <section
+              id={PENDING_SECTION_ID}
+              aria-labelledby={PENDING_SECTION_TITLE_ID}
+              className="flex scroll-mt-6 flex-col gap-3"
+            >
+              <h2 id={PENDING_SECTION_TITLE_ID} className="font-display text-xl font-semibold text-tacha-text">
+                {FINANCE_TEXT.PENDING_SECTION_TITLE}
+              </h2>
+              <ul
+                aria-label={FINANCE_TEXT.PENDING_SECTION_TITLE}
+                className="divide-y divide-tacha-border overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface"
+              >
+                {viewModel.pendingRows.map((pendingRow) => (
+                  <PurchaseSessionRow key={pendingRow.id} {...pendingRow} />
+                ))}
+              </ul>
+            </section>
           ) : null}
         </>
       ) : null}

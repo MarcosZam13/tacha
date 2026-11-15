@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { APP_ROUTE } from "@/constants";
 import type { NullableRef } from "@/types/nullable.types";
 import {
   BUDGET_INPUT_LABEL,
@@ -7,6 +8,7 @@ import {
   DEFAULT_SPENDING_PERIOD,
   FINANCE_TEXT,
   NO_BUDGET_LABEL,
+  PENDING_SECTION_ID,
   SPENDING_PERIOD_LABEL,
   SPENDING_PERIOD_ORDER,
   SPENDING_STATUS,
@@ -14,6 +16,7 @@ import {
   TOTAL_SAVE_ERROR,
   TOTAL_SAVE_ERROR_MESSAGE,
 } from "../constants/finance.constants";
+import type { PendingTotalReminderProps } from "../components/models/PendingTotalReminderProps.interface";
 import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
 import type { SpendingPeriodOption } from "../components/models/SpendingPeriodSelectorProps.interface";
 import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
@@ -21,13 +24,17 @@ import type { FinanceAccessStatusType, SpendingPeriodType } from "../constants/f
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
 import { formatColones } from "../utils/formatColones";
 import { formatPeriodRange } from "../utils/formatPeriodRange";
+import { toPendingTotalReminder } from "../utils/toPendingTotalReminder";
 import { useFinanceAccess } from "./useFinanceAccess";
+import { usePendingPurchases } from "./usePendingPurchases";
 import { usePeriodSpending } from "./usePeriodSpending";
 import { useSpendingBudgets } from "./useSpendingBudgets";
 
 interface UseFinanceDashboardViewModelReturn {
   accessStatus: FinanceAccessStatusType;
   budget: SpendingBudgetProps;
+  /** El recordatorio de compras sin total, con el enlace a la sección del Historial (SCRUM-92, D26). */
+  pendingReminder: PendingTotalReminderProps;
   periodOptions: SpendingPeriodOption[];
   spending: SpendingTotalProps;
   /** Lo que anuncia la zona role="status" (SPEC §9): el total nuevo o "Presupuesto guardado". */
@@ -53,8 +60,9 @@ const toDifferenceText = (budgetAmount: number, spending: PeriodSpending): strin
 /**
  * Facade del dashboard de Finanzas (SCRUM-69). Decide el acceso (D6: sin
  * cuenta registrada no se pide ningún dato), guarda el periodo elegido (D2,
- * arranca en Semana), compone usePeriodSpending y useSpendingBudgets, y le
- * entrega a la pantalla exactamente lo que dibuja.
+ * arranca en Semana), compone usePeriodSpending, useSpendingBudgets y el
+ * recordatorio de compras sin total (SCRUM-92), y le entrega a la pantalla
+ * exactamente lo que dibuja.
  */
 export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelReturn => {
   const { accessStatus, isRegistered, retryIfRegistered } = useFinanceAccess();
@@ -62,6 +70,8 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
 
   const periodSpending = usePeriodSpending(period, isRegistered);
   const spendingBudgets = useSpendingBudgets(period, isRegistered);
+  // El mismo recordatorio que el Historial; acá no se edita ni se listan las compras (D11).
+  const pendingPurchases = usePendingPurchases(isRegistered);
 
   const { spending } = periodSpending;
   const hasSpending = spending !== null;
@@ -99,6 +109,12 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
       status: spendingBudgets.status,
       text: spendingBudgets.editText,
     },
+    pendingReminder: toPendingTotalReminder(
+      pendingPurchases.reminderStatus,
+      pendingPurchases.overdueCount,
+      `${APP_ROUTE.FINANCE_HISTORY}#${PENDING_SECTION_ID}`,
+      () => void retryIfRegistered(pendingPurchases.onRetry),
+    ),
     periodOptions: SPENDING_PERIOD_ORDER.map((optionPeriod) => ({
       isSelected: optionPeriod === period,
       label: SPENDING_PERIOD_LABEL[optionPeriod],
