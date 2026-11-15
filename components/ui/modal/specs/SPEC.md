@@ -139,7 +139,7 @@ Del navegador:
       - vuelve al elemento del diálogo que lo tenía, si sigue conectado y habilitado;
       - si no, al primer enfocable;
       - y si no hay ninguno, al diálogo.
-    - **Lo mismo vale para cualquier foco que salga del diálogo abierto,** por ejemplo un botón con foco que se deshabilita mientras guarda, si el navegador avisa la salida (plan, duda 4).
+    - **Lo mismo vale para cualquier foco que salga del diálogo abierto,** por ejemplo un botón con foco que se deshabilita mientras guarda. Chromium avisa la salida con `focusout` (plan, duda 4).
     - **Nada de esto corre cuando el diálogo se está cerrando,** para no competir con la regla 9 ni con SCRUM-61.
 12. **Reabrir:** cada apertura guarda su propio elemento. Abrir desde otro botón devuelve el foco a ese.
 13. **Sin reemplazar el `Modal`:** esta historia no lo cambia por una librería (por ejemplo `focus-trap`) ni por el elemento nativo `<dialog>` (fuera de alcance en Jira). Cualquiera de los dos se puede proponer en otra historia. El plan propone lógica propia, porque AGENTS.md pide no sumar "librerías o wrappers innecesarios".
@@ -161,11 +161,9 @@ No hay errores que se muestren. Los casos que no pueden romper nada:
 - **El elemento guardado ya no existe:** no se llama a `focus`, así que no falla (regla 9).
 - **El diálogo no tiene enfocables:** no hay un bucle ni una excepción; el foco se queda en el contenedor (regla 7).
 - **El `Modal` se desmonta abierto** (navegar, o que el padre deje de dibujarlo): los oyentes se quitan y se aplica la regla 9.
-- **Los botones se deshabilitan mientras guarda:** el navegador puede sacar el foco del botón deshabilitado y mandarlo a `body`.
-  - Si avisa la salida, el foco vuelve al diálogo (regla 11).
-  - Si no avisa, lo trae el siguiente Tab (regla 7).
-
-  Se comprueba en el navegador (plan, duda 4).
+- **Los botones se deshabilitan mientras guarda:** en Chromium, el foco del botón deshabilitado pasa a `body` en el siguiente cuadro, con un aviso `focusout` (plan, duda 4).
+  - El foco vuelve al diálogo: al primer enfocable habilitado o, si todos están deshabilitados, al diálogo (regla 11).
+  - Si otro navegador no avisa, lo trae el siguiente Tab (regla 7).
 
 ## 8. UI esperada
 
@@ -233,17 +231,24 @@ No aplica: no hay base, API ni almacenamiento. El único contrato es el del DOM:
 
 ## 13. Casos de aceptación
 
-Ninguno validado. Criterios de SCRUM-142 en Jira, con su texto traducido y cómo se verifica cada uno:
+Estado al 2026-11-15:
 
-- [ ] **CA-01:** al abrir un `Modal`, el foco va a su primer elemento enfocable, o al propio diálogo.
+- **CA-01 a CA-06:** validados.
+  - **Automático:** tests unitarios, tests de pantalla y E2E en `/ui-kit`.
+  - **Manual:** la dueña de la historia verificó a mano `TC-SCRUM-142-01` a `17`, y todos pasaron. No se registró el navegador, la versión ni el dispositivo (plan, "Verificación manual con teclado").
+- **Única casilla abierta:** volver a correr los E2E existentes que abren diálogos (tasks 5.3).
+
+Criterios de SCRUM-142 en Jira, con su texto traducido y cómo se verifica cada uno:
+
+- [x] **CA-01:** al abrir un `Modal`, el foco va a su primer elemento enfocable, o al propio diálogo.
   - D1: el primer enfocable y, si no hay ninguno, el diálogo.
   - En los pasos de reproducción, el foco ya no se queda en "Eliminar integrante" de la fila.
   - **Se verifica con:** casos 1 y 2 del plan, y manual.
-- [ ] **CA-02:** mientras está abierto, Tab y Shift+Tab recorren solo los elementos del diálogo.
+- [x] **CA-02:** mientras está abierto, Tab y Shift+Tab recorren solo los elementos del diálogo.
   - En los pasos de reproducción, el foco no pasa por "Copiar enlace", "Generar nuevo enlace" ni "Salir de la familia".
   - Ver la regla 7.
   - **Se verifica con:** casos 2 a 6 del plan, y manual.
-- [ ] **CA-03:** al cerrarlo, el foco vuelve al elemento que lo tenía antes de abrir, salvo que la feature lo mueva a propósito.
+- [x] **CA-03:** al cerrarlo, el foco vuelve al elemento que lo tenía antes de abrir, salvo que la feature lo mueva a propósito.
   - SCRUM-61 enfoca el título de la sección después de eliminar, y eso tiene que seguir funcionando.
   - En el planificador lo hace ahora el `Modal` (D4).
   - Ver las reglas 8 y 9 y D2.
@@ -252,52 +257,53 @@ Ninguno validado. Criterios de SCRUM-142 en Jira, con su texto traducido y cómo
     - el test existente de `features/household/tests/HouseholdRemoveMember.test.tsx` ("keeps the focus stable"), que sigue pasando sin cambios;
     - las pruebas de pantalla del planificador (plan, "Regresión");
     - manual.
-- [ ] **CA-04:** Escape y el clic fuera siguen funcionando igual que hoy.
+- [x] **CA-04:** Escape y el clic fuera siguen funcionando igual que hoy.
   - Llaman a `onClose`, y quien usa el `Modal` decide si cierra.
   - Un clic dentro del diálogo no lo cierra.
   - Si el clic fuera no cierra, el foco vuelve de inmediato al diálogo (D3).
   - Ver las reglas 10 y 11.
   - **Se verifica con:** casos 7, 8, 9, 15, 16 y 17 del plan, los tests de las features y manual.
-- [ ] **CA-05:** los tests de `components/ui` cubren el foco al abrir, la trampa y el foco al cerrar.
+- [x] **CA-05:** los tests de `components/ui` cubren el foco al abrir, la trampa y el foco al cerrar. Validado el 2026-11-15: `components/ui/modal/tests/` tiene 30 tests que pasan, con mutaciones que confirman las condiciones clave (tasks 2.4, 3.2 y 5.6).
   - `components/ui/modal/tests/Modal.test.tsx` con Page Object.
   - `getFocusableElements.test.ts`.
   - **Se verifica con:** plan, "Pruebas".
-- [ ] **CA-06:** cada pantalla que usa `Modal` se revisa una vez con el teclado después del cambio.
+- [x] **CA-06:** cada pantalla que usa `Modal` se revisa una vez con el teclado después del cambio.
   - Las 14 instancias de §11.
-  - **Se verifica con:** `TC-SCRUM-142-01` a `13`, en plan, "Verificación manual".
+  - **Se verifica con:** `TC-SCRUM-142-01` a `17`, en plan, "Verificación manual". TC-01 está automatizado (E2E-MODAL-01 a 04); TC-02 y TC-14 se validaron en la 3.3; TC-03 a 13 y TC-15 a 17 pasaron en la verificación manual de la dueña de la historia (2026-11-15).
 
 Casos de cada flujo:
 
-- [ ] **Reproducción de Jira:** con los pasos de §1, después del cambio:
+- [x] **Reproducción de Jira:** con los pasos de §1, después del cambio:
   - el foco entra al diálogo al pulsar Enter;
   - Tab no llega a nada del fondo.
-- [ ] **SCRUM-61 (CA-03):** después de eliminar un integrante, el foco queda en el título "Integrantes" y la devolución no lo pisa. Se verifica a mano en `TC-SCRUM-142-02`.
-- [ ] **SCRUM-61, cancelar:** cerrar el diálogo de eliminar sin eliminar devuelve el foco a "Eliminar integrante {nombre}".
-- [ ] **Escape bloqueado (regla 10):** mientras elimina, Escape no cierra y el foco sigue en el diálogo.
-- [ ] **Clic fuera bloqueado (D3):** mientras elimina, un clic o toque en el fondo no cierra el diálogo, y el foco vuelve de inmediato a él, sin esperar a Tab. El toque en mobile depende de la duda 3 del plan (verificación manual pendiente).
-- [ ] **SCRUM-61 con D3:** al eliminar, el diálogo se cierra y el foco queda en el título. La vuelta de D3 no se activa durante el cierre (regla 11).
-- [ ] **Enfocables que cambian (regla 6):** un botón que se deshabilita o aparece mientras el diálogo está abierto entra o sale del ciclo de Tab.
-- [ ] **Elemento guardado que desaparece (regla 9):**
+- [x] **SCRUM-61 (CA-03):** después de eliminar un integrante, el foco queda en el título "Integrantes" y la devolución no lo pisa. Se verifica a mano en `TC-SCRUM-142-02`.
+- [x] **SCRUM-61, cancelar:** cerrar el diálogo de eliminar sin eliminar devuelve el foco a "Eliminar integrante {nombre}".
+- [x] **Escape bloqueado (regla 10):** mientras elimina, Escape no cierra y el foco sigue en el diálogo.
+- [x] **Clic fuera bloqueado (D3):** mientras elimina, un clic o toque en el fondo no cierra el diálogo, y el foco vuelve de inmediato a él, sin esperar a Tab. La duda 3 del plan (clic y toque en el fondo) está resuelta por verificación manual en desktop y mobile.
+- [x] **SCRUM-61 con D3:** al eliminar, el diálogo se cierra y el foco queda en el título. La vuelta de D3 no se activa durante el cierre (regla 11).
+- [x] **Enfocables que cambian (regla 6):** un botón que se deshabilita o aparece mientras el diálogo está abierto entra o sale del ciclo de Tab.
+- [x] **Elemento guardado que desaparece (regla 9):**
   - salir de la familia quita el botón "Salir";
   - empezar una compra puede reemplazar "Iniciar compra".
 
   En los dos casos, cerrar no da error y no fuerza el foco.
-- [ ] **Desmontaje abierto:** navegar con el diálogo abierto (por ejemplo, confirmar el cierre de sesión) no deja oyentes ni errores en la consola.
-- [ ] **Reabrir (regla 12):** abrir desde dos botones distintos devuelve el foco a cada uno.
-- [ ] **Renders (regla 5):** escribir en un campo del diálogo (Salir de la familia o Crear producto) no mueve el foco al primer campo en cada render.
-- [ ] **Planificador, espacios (D4):**
+- [x] **Desmontaje abierto:** navegar con el diálogo abierto (por ejemplo, confirmar el cierre de sesión) no deja oyentes ni errores en la consola.
+- [x] **Reabrir (regla 12):** abrir desde dos botones distintos devuelve el foco a cada uno.
+- [x] **Renders (regla 5):** escribir en un campo del diálogo (Salir de la familia o Crear producto) no mueve el foco al primer campo en cada render.
+- [x] **Planificador, espacios (D4)**, automatizado en jsdom (tasks 4.3 y 4.4), y verificado a mano en TC-05 y TC-17:
   - **Sin devolución propia:** `useMealSlotDialog` ya no tiene `openerRef` ni el efecto de foco.
   - **El foco sigue volviendo al espacio** que abrió el diálogo:
     - al cancelar;
     - después de guardar o quitar una comida, si el espacio sigue siendo el mismo elemento (duda 8 del plan, verificación manual pendiente).
   - **Tests:** los de foco de `useMealSlotDialog` se quitan o pasan a otro nivel, y `MealPlannerAssign.test.tsx` ("gives the focus back to the slot that opened it") sigue pasando.
-- [ ] **Planificador, "Agregar semana a la lista" (D4, fuera de alcance):**
+- [x] **Planificador, "Agregar semana a la lista" (D4, fuera de alcance):**
   - `useWeekListAddition`, su botón y sus tests no cambian.
   - Con la devolución del hook y la del `Modal`, el foco sigue volviendo al botón al cerrar.
   - `useWeekListAddition.test.ts` y `MealPlannerWeekList.test.tsx` ("gives the focus back to the button when it closes") siguen pasando sin cambios.
   - En Safari con mouse no vuelve: es el comportamiento conocido, no una regresión.
   - **Safari (opción B):** un clic sobre un espacio que no lo enfoca (como en Safari) igual deja el foco en el espacio antes de abrir, y al cerrar el foco vuelve ahí. Se verifica con un test de pantalla y, si hay un Safari disponible, a mano.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan. La suite E2E que abre diálogos (`date-lists`, `meal-planner`, `shopping-list`) sigue pasando.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan (2026-11-15).
+- [ ] La suite E2E que abre diálogos (`date-lists`, `meal-planner`, `shopping-list`) sigue pasando. La primera corrida pasó en `chromium`. Las siguientes fallaron por errores de carga del backend compartido, antes de abrir cualquier diálogo (tasks 5.3); hay que volver a correrla. El E2E nuevo del `Modal` pasa (8 de 8).
 
 ## 14. Casos fuera de alcance
 
@@ -312,7 +318,7 @@ Casos de cada flujo:
 - **"Agregar semana a la lista" (opción A y D4):** no se cambian su hook (`useWeekListAddition`), su botón, su comportamiento ni sus tests.
   - Conserva su devolución de foco propia.
   - Que en Safari con mouse el foco no vuelva al botón es un comportamiento conocido de hoy, no una regresión ni trabajo de esta historia.
-- **E2E nuevos de foco** (ver plan, "Pruebas").
+- **E2E de foco por pantalla.** Solo se agregó un E2E del `Modal` sobre `/ui-kit` ([E2E.md](E2E.md)). Cada pantalla se revisa a mano (CA-06).
 
 ## 15. Notas de implementación
 
@@ -321,8 +327,8 @@ Casos de cada flujo:
   - **Si la devolución corre al limpiar el efecto del `Modal`:** se ejecuta antes que los efectos nuevos del mismo commit, así que el título gana.
   - **Si corre como efecto nuevo, o después** (`setTimeout`, `requestAnimationFrame`): puede pisar el título.
 
-  La regla 9 lo evita en cualquier orden, porque con el título enfocado el foco ya no está "perdido". Igual hay que comprobar el orden real (plan, "Dudas").
-- **D3 y el cierre:** al cerrar, el botón con foco sale del DOM, y el navegador puede avisar que el foco salió del diálogo.
+  La regla 9 lo evita en cualquier orden, porque con el título enfocado el foco ya no está "perdido". El orden real se comprobó con una simulación con React 19.2.8: la limpieza corre primero y el título gana (plan, duda 1). La regresión de la 3.3 lo confirma en Chrome.
+- **D3 y el cierre:** al cerrar, el botón con foco sale del DOM. Chromium avisa que el foco salió del diálogo (`focusout`), y en ese momento el diálogo todavía está conectado (plan, duda 4, hallazgo adicional).
   - **Qué no puede pasar:** la vuelta de D3 no puede actuar entonces. Si actuara, intentaría enfocar un diálogo que se está quitando, o competiría con el título de SCRUM-61.
-  - **Cuándo actúa:** solo si el diálogo sigue en el documento y abierto después de ese aviso (plan, "Diseño propuesto", punto 3).
+  - **Cuándo actúa:** solo si el diálogo sigue en el documento y abierto después de ese aviso. Se comprueba en la vuelta agendada (un `setTimeout` de 0 ms, en la próxima tarea), no al recibir el evento; además, la limpieza del efecto cancela la vuelta al cerrar (plan, "Diseño propuesto", punto 3).
 - **Dónde va la spec:** las piezas de `components/` con spec propia la tienen en su carpeta (`components/sign-out-button/specs/`, `components/price-disclaimer/specs/`). La spec general de `components/ui/specs/SPEC.md` es del formato anterior y no se migra (component-architecture, "Specs existentes"). Al implementar se actualiza su línea del `Modal` para que enlace a esta.
