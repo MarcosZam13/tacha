@@ -6,6 +6,8 @@ import { DATE_LIST_TEXT } from "../constants/date-lists.constants";
 import type { DateListItem } from "../models/DateList.interface";
 
 interface DateListItemRowProps {
+  /** El campo "Encargado" (SCRUM-108), que arma la pantalla; la fila solo le da su lugar. */
+  assigneeSlot?: React.ReactNode;
   isDisabled: boolean;
   item: DateListItem;
   onDecrease: () => void;
@@ -15,6 +17,7 @@ interface DateListItemRowProps {
 
 /** Un producto de la sublista. Sin tachar todavía: llega con SCRUM-78. */
 export const DateListItemRow = ({
+  assigneeSlot,
   isDisabled,
   item,
   onDecrease,
@@ -22,10 +25,11 @@ export const DateListItemRow = ({
   onRemove,
 }: DateListItemRowProps): React.JSX.Element => (
   <li className="flex items-center gap-3 px-3 py-2">
-    <span className="min-w-0 flex-1">
+    <div className="flex min-w-0 flex-1 flex-col">
       <span className="block font-body text-sm text-tacha-text">{item.productName}</span>
       <span className="block font-body text-xs text-tacha-textsec">{item.sizeLabel}</span>
-    </span>
+      {assigneeSlot}
+    </div>
     <QuantityStepper
       canDecrease={!isDisabled && item.quantity > ITEM_QUANTITY.MIN}
       canIncrease={!isDisabled}
