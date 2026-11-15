@@ -1,5 +1,4 @@
 import { useEffect, useReducer, useRef, useState } from "react";
-import type { NullableRef } from "@/types/nullable.types";
 import {
   COOK_CHOICE,
   MEAL_SLOT_DIALOG_ACTION,
@@ -48,9 +47,6 @@ export const useMealSlotDialog = ({
   // Cambia con "Reintentar" para que el efecto vuelva a pedir las recetas.
   const [optionsReloadKey, setOptionsReloadKey] = useState(0);
   const isRequestInFlightRef = useRef(false);
-  // El botón que abrió el diálogo: al cerrarlo el foco vuelve ahí (SPEC §9).
-  const openerRef = useRef<NullableRef<HTMLElement>>(null);
-  const wasOpenRef = useRef(false);
 
   const isOpen = state.status !== MEAL_SLOT_DIALOG_STATUS.CLOSED;
 
@@ -73,22 +69,17 @@ export const useMealSlotDialog = ({
     };
   }, [isOpen, optionsReloadKey]);
 
-  useEffect(() => {
-    if (wasOpenRef.current && !isOpen) openerRef.current?.focus();
-    wasOpenRef.current = isOpen;
-  }, [isOpen]);
-
   const reloadRecipeOptions = (): void => {
     setOptionsState(LOADING_OPTIONS);
     setOptionsReloadKey((currentKey) => currentKey + 1);
   };
 
-  const onSlotOpen = (target: MealSlotTarget, opener?: HTMLElement): void => {
+  // El foco de vuelta al espacio al cerrar lo hace el Modal compartido (SCRUM-142, D4): guarda el
+  // elemento enfocado al abrir, y MealSlot enfoca su botón antes de llamar acá (también en Safari).
+  const onSlotOpen = (target: MealSlotTarget): void => {
     // Ya abierto (o guardando): un Enter sobre el espacio que quedó detrás del
     // fondo no reabre el diálogo ni pierde el resultado del guardado en curso.
     if (isOpen) return;
-    // El botón tocado, si lo mandan: en Safari un clic no lo enfoca y activeElement sería el body.
-    openerRef.current = opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     // Las recetas se piden de nuevo en cada apertura: pueden haber cambiado desde la última vez.
     setOptionsState(LOADING_OPTIONS);
     dispatch({

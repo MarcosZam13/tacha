@@ -409,63 +409,7 @@ describe("useMealSlotDialog", () => {
       expect(saveMealSlotMock).not.toHaveBeenCalled();
     });
 
-    it("gives the focus back to the button that opened it", async () => {
-      const opener = document.createElement("button");
-      document.body.appendChild(opener);
-      opener.focus();
-      const hook = renderDialog();
-      await openAndWaitForRecipes(hook);
-      opener.blur();
-
-      act(() => hook.result.current.onClose());
-
-      expect(document.activeElement).toBe(opener);
-      opener.remove();
-    });
-
-    it("gives the focus back to the button it was opened with even when the click did not focus it", async () => {
-      const opener = document.createElement("button");
-      document.body.appendChild(opener);
-      const hook = renderDialog();
-      act(() => hook.result.current.onSlotOpen(TARGET, opener));
-      await waitFor(() => expect(hook.result.current.recipesStatus).toBe(RECIPE_OPTIONS_STATUS.READY));
-      expect(document.activeElement).not.toBe(opener);
-
-      act(() => hook.result.current.onClose());
-
-      expect(document.activeElement).toBe(opener);
-      opener.remove();
-    });
-
-    it("gives the focus back to the opener after saving", async () => {
-      saveMealSlotMock.mockResolvedValue({ slotId: "slot-9" });
-      const opener = document.createElement("button");
-      document.body.appendChild(opener);
-      opener.focus();
-      const hook = renderDialog();
-      await openAndWaitForRecipes(hook);
-      opener.blur();
-      act(() => hook.result.current.onRecipeChoose("recipe-flan"));
-
-      await act(async () => hook.result.current.onSave());
-
-      expect(document.activeElement).toBe(opener);
-      opener.remove();
-    });
-
-    it("gives the focus back to the opener after removing", async () => {
-      clearMealSlotMock.mockResolvedValue(TARGET);
-      const opener = document.createElement("button");
-      document.body.appendChild(opener);
-      opener.focus();
-      const hook = renderDialog(ARROZ_ENTRY);
-      await openAndWaitForRecipes(hook);
-      opener.blur();
-
-      await act(async () => hook.result.current.onRemove());
-
-      expect(document.activeElement).toBe(opener);
-      opener.remove();
-    });
+    // El foco de vuelta al espacio ya no es de este hook: lo hace el Modal compartido (SCRUM-142, D4),
+    // y se prueba en components/ui/modal/tests/ y en MealPlannerAssign.test.tsx.
   });
 });
