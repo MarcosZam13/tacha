@@ -36,7 +36,7 @@ La función es opcional a propósito: la mayoría de las listas no la necesita, 
 | Lista a configurar | id de una lista visible (`uuid`) | la fila de la lista en Configuración |
 | Encargado de un producto | id de usuario (`uuid`) o ninguno | selector del campo "Encargado" en la fila |
 | Ajuste de la lista abierta | `assigneeEnabled: boolean` | lectura de `list_settings` al abrir `/lista` o `/fechas/[listId]` |
-| Personas con acceso a la lista | `{ userId, displayName, isCurrentUser }[]` | `get_household_members` (con familia) o la propia persona (sin familia) |
+| Personas con acceso a la lista | `{ userId, displayName, isCurrentUser }[]` | `get_list_assignee_candidates` (la familia con familia, o la propia persona sin ella) |
 
 ## 4. Salidas
 
@@ -111,12 +111,12 @@ Se reconoce el error por `error.code` de la RPC, nunca por el texto.
 ## 11. Dependencias
 
 - `features/shopping-list/` (la fila y el ViewModel de la lista general) y `features/date-lists/` (la fila de la sublista): se les agrega el campo. **Son de Marcos**: él revisa.
-- `get_household_members` (011) para los nombres; `lists` y la política 024 para el acceso; `features/profile/` para el enlace.
+- `get_list_assignee_candidates` (nueva) para los nombres: `get_household_members` (023) solo la puede llamar la admin y aquí lo necesita cualquier integrante; `lists` y la política 024 para el acceso; `features/profile/` para el enlace.
 - `@/components/ui` (`Modal`, `Button`, `Spinner`), `@/constants` (`APP_ROUTE`) y `@/services/supabase.client`.
 
 ## 12. Contratos externos
 
-Detalle y decisiones en [plan.md](plan.md). Resumen (migración propuesta `045`, **el número se confirma contra la base y los PR abiertos antes de crearla**):
+Detalle y decisiones en [plan.md](plan.md). Resumen (migración `047`, **el número ya se confirmó con el equipo; se vuelve a revisar contra la base y los PR abiertos antes de crearla**):
 
 - **`list_settings`** (`list_id` PK → `lists` `on delete cascade`, `assignee_enabled boolean not null default false`): RLS activada, `select` solo para quien ve la lista, **sin permisos de escritura** para el cliente.
 - **`list_items.assigned_to uuid null`** → `auth.users` con `on delete set null`; sin permiso de escritura directo para el cliente.

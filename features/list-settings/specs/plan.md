@@ -8,7 +8,7 @@ Ver [SPEC.md](SPEC.md) para el qué y el por qué. Este archivo es el cómo.
 - Las migraciones llegan a la `044`; las `037` y `041` son de SCRUM-115 (en QA) y puede haber otras en PR abiertos.
 - El acceso a las listas sale de una sola regla, la política de `lists` de la `024`: la dueña si `household_id` es nulo, los integrantes si no. Las demás RPC `security definer` la repiten a mano (`set_list_item_checked`, 035; también `resolve_list_item_shortfall` y su auxiliar `lock_visible_list_item`, 037, que todavía está en el PR de SCRUM-115 y se toma como referencia).
 - La fila de la lista general es `features/shopping-list/components/ShoppingListRow.tsx`; la de la sublista es `features/date-lists/components/DateListItemRow.tsx`. Son de dos features que no pueden importarse entre sí.
-- Los nombres de los integrantes salen de `get_household_members` (`display_name`, `is_current_user`, `user_id`), ya usada por `features/household/`.
+- `get_household_members` (023) devuelve los nombres (`display_name`, `is_current_user`, `user_id`), pero **solo la admin la puede llamar**: no sirve para que cualquier integrante elija un encargado. Por eso la migración trae su propia `get_list_assignee_candidates`, que lee `household_members` y los metadatos del registro y nunca devuelve el correo.
 - El Perfil (`features/profile/Profile.tsx`) ya tiene el enlace a "Cambiar contraseña" y el botón de cerrar sesión. `APP_ROUTE` está en `constants/routes.constants.ts`.
 
 ## 2. Estructura
@@ -16,9 +16,9 @@ Ver [SPEC.md](SPEC.md) para el qué y el por qué. Este archivo es el cómo.
 ```
 supabase/
   migrations/
-    045_list_assignee_settings.sql        (número a confirmar)  list_settings + assigned_to + 3 RPC
+    047_list_assignee_settings.sql        (confirmado: 047)  list_settings + assigned_to + 3 RPC
   tests/
-    045_list_assignee_settings.test.sql
+    047_list_assignee_settings.test.sql
 app/(app)/perfil/configuracion/page.tsx    ruta delgada: <ListSettings />
 features/list-settings/
   ListSettings.tsx                         presentación de la pantalla
@@ -50,7 +50,7 @@ docs/documento-proyecto.md                 §4.13 y §6 actualizados
 
 ## 3. Migración
 
-Una sola, `045` (**número a confirmar** contra `develop`, los PR abiertos y la base justo antes de crearla y otra vez antes del merge; si alguien lo tomó, se renombra mientras no esté aplicada).
+Una sola, `047` (número confirmado; se vuelve a revisar contra `develop`, los PR abiertos y la base justo antes de crearla y otra vez antes del merge; si alguien lo tomó, se renombra mientras no esté aplicada).
 
 **Tabla `list_settings`**
 
@@ -86,9 +86,9 @@ Sin `grant update (assigned_to)`: la política de `list_items` de la `024` deja 
 | `get_list_assignee_candidates(target_list_id uuid)` → `table(user_id, display_name, is_current_user)` | Las personas con acceso a la lista: con `household_id`, los integrantes; sin él, solo `auth.uid()` si es la dueña | sin sesión `42501`; lista no visible `P0002` |
 | `set_list_item_assignee(target_item_id uuid, new_assignee uuid)` → `list_items` | Comprueba que el producto está en una lista visible, que `new_assignee` es nulo o tiene acceso a esa lista (regla anterior) y lo escribe | sin sesión `42501`; producto no visible `P0002`; encargado sin acceso `22023` |
 
-La comprobación de acceso se escribe una vez como función auxiliar interna (sin `execute` para el cliente, como `lock_visible_list_item` de la `037`) y la usan las tres RPC. **No se reciben ids de persona para decidir el acceso**: solo `new_assignee`, que se valida contra la lista.
+La comprobación de acceso se escribe una vez como `list_grants_access(list_id, user_id)`, función interna (sin `execute` para el cliente, como `lock_visible_list_item` de la `037`): la usan las tres RPC con `auth.uid()` y con el encargado elegido. Además, el trigger `list_items_check_assignee` (`before insert or update of assigned_to`) rechaza con `22023` un encargado sin acceso por **cualquier** camino (un insert directo del cliente, SQL manual o `service_role`), y no corre al poner `null`, que es lo que hace la FK al borrar una cuenta. **No se reciben ids de persona para decidir el acceso**: solo `new_assignee`, que se valida contra la lista.
 
-**Prueba SQL** (`supabase/tests/045_...test.sql`, `begin ... rollback`, como las demás): sin sesión; lista ajena; encender, apagar y recargar; un encargado de la familia y uno sin acceso; apagar no borra `assigned_to`; `update` directo del cliente a `list_settings` y a `assigned_to` falla; `anon` sin `execute`; el candidato de una lista personal es solo la dueña; salir de la familia deja de listarlo como candidato.
+**Prueba SQL** (`supabase/tests/047_list_assignee_settings.test.sql`, `begin ... rollback`, como las demás): sin sesión; lista ajena; encender, apagar y recargar; un encargado de la familia y uno sin acceso; apagar no borra `assigned_to`; `update` directo del cliente a `list_settings` y a `assigned_to` falla; `anon` sin `execute`; el candidato de una lista personal es solo la dueña; salir de la familia deja de listarlo como candidato.
 
 ## 4. Flujo
 
@@ -115,7 +115,7 @@ La comprobación de acceso se escribe una vez como función auxiliar interna (si
 ## 6. Pruebas
 
 - **Vitest:** `list-settings.service` (columnas y RPC con nombres literales, mapeo de errores por código), `useListSettingsViewModel` (carga, guardar, revertir si falla), `ListSettings` y `AssigneeSwitch` con un Page Object (`ListSettings.page.ts`), `useAssigneeFieldViewModel` y `AssigneeField` (abrir, elegir, "Sin asignar", error), y los ViewModel de `shopping-list` y `date-lists` (el campo aparece solo con el ajuste encendido; apagarlo no borra).
-- **SQL:** `045_list_assignee_settings.test.sql`, lo anotado en la sección 3.
+- **SQL:** `047_list_assignee_settings.test.sql`, lo anotado en la sección 3.
 - **E2E** (`features/list-settings/specs/E2E.md` y `e2e/features/list-settings/`), con las reglas de `playwright-e2e`: encender el ajuste y ver el campo en la fila; elegir y recargar; apagar sin perder el valor. Las pruebas de la base real y la familia son manuales.
 - **Manual (acceso real):** dos cuentas de la misma familia para ver el ajuste y los encargados compartidos; mobile y teclado.
 
