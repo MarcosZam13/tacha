@@ -50,7 +50,7 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
     - Resultado final: 229 variantes en las 12 madres, entre ellas "Leche de coco" (2: Goya y Roland) y "Repostería" (13).
     - Staging: 1028 matched / 90 rejected / 398 pending.
     - `raw_json`: 203 kB reales (antes ~17 MB), sin ninguna fila sin recortar.
-  - **Aviso para quien corra tests viejos:** `supabase/tests/044_fix_normalize_staging_tiebreak.test.sql`, caso 5, espera que un prefijo de 3 segmentos matchee sin keyword. Desde la 045 eso ya no pasa a propósito: ese test describe la 044, no la función actual.
+  - **Test de la 044:** el caso 5 de `supabase/tests/044_fix_normalize_staging_tiebreak.test.sql` esperaba que un prefijo de 3 segmentos matcheara sin keyword. Desde la 045 eso no pasa, a propósito; el caso se actualizó en la tarea 11.
   - **Fuera de alcance, sin tocar** (documentado en el PR para valorarlo más adelante):
     - **Paquetes:** "6 Pack - 250 ml" se lee como 250 ml y su precio se mezcla con el de la unidad ("Leche — 250 ml": ₡460–₡2 380). La mayoría de los paquetes dicen el total y están bien, así que no se arregla multiplicando.
     - **Búsqueda del catálogo:** no llama a `ensureSession()`. Entrando directo a `/catalogo` sin sesión consulta como `anon` y, desde la 032, no ve nada. Es previo a este ticket.
@@ -58,4 +58,11 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Orden sugerido; cada tarea termina 
     - **Keyword `leche`:** "Dulce de Leche La Lechera" sigue en "Leche"; va en un ticket aparte.
     - **Error de tipeo de la tienda:** "Snickers 21. 5 g" quedó en 5 g.
   - **Verificación con Playwright (2026-11-13):** el chip "Lácteos" y la búsqueda "leche" muestran solo productos de cada madre, sin ningún ₡0, y "Leche — 2838 ml" a ₡3 000.
+- [x] **11. Corregir los hallazgos de la segunda revisión de QA** (2026-11-14, PR #99).
+  - **Staging con el recorte viejo:** 1040 filas (952 `matched` y 88 `rejected`) tenían `raw_json = {ean, price, itemId}`, sin categorías y con el precio en una clave que la 045 no lee, así que no se podían volver a normalizar. 945 venían de la corrida completa del 2026-11-13, que se hizo con el recorte anterior; 95, de corridas previas (2026-09-04, 10-02 y 11-02).
+    - Re-ingesta completa de las 12 madres el 2026-11-14 (36 llamadas, todas en vivo): 965 matched, 60 rejected, 392 sin madre, 93 duplicados; 1417 filas nuevas, todas con la forma final y con categorías.
+    - Después se borraron las 1040 filas viejas. Ninguna tabla tiene FK a staging, y ninguna entrada de `search_cache` apuntaba a ellas después de la re-ingesta. Los precios que generaron se quedan en `product_prices` como historial.
+    - Resultado: 0 filas con la forma vieja, sin `offer` o sin categorías. Staging: 1041 matched / 62 rejected / 790 pending, `raw_json` de 511 kB. 249 variantes en las 12 madres, 0 precios ≤ 0, 0 variantes curadas sin precio, 0 `list_items` huérfanos.
+    - Comprobado: una copia `pending` de una fila `matched` recortada vuelve a matchear la misma variante (bloque que termina en `raise`, no deja nada).
+  - **Test de la 044:** el caso 5 ahora espera `pending` sin madre (regla de la 045).
 - [ ] **9. Completar la PR:** descripción con la plantilla del repo, Developer Notes con el aviso del equipo (SPEC §7), label `in progress` → `waiting qa`, mover la tarjeta de Jira.
