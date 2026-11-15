@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { APP_ROUTE } from "@/constants";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Profile } from "../Profile";
 import { PROFILE_ERROR_MESSAGE, SAVE_PROFILE_RESULT } from "../constants/profile.constants";
 import { saveProfile } from "../services/profile.service";
 import { createProfilePage } from "./Profile.page";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("@/hooks/useUserProfile", () => ({ useUserProfile: vi.fn() }));
 vi.mock("../services/profile.service", () => ({ saveProfile: vi.fn() }));
 const useUserProfileMock = vi.mocked(useUserProfile);
@@ -31,6 +33,41 @@ const renderProfile = (): ReturnType<typeof createProfilePage> => {
 };
 
 describe("Profile", () => {
+  // SCRUM-55, CA-01: en mobile el cierre de sesión se alcanza desde el perfil.
+  it("offers sign out at the end of the screen", () => {
+    const page = renderProfile();
+
+    expect(page.getSignOutButton()).toBeEnabled();
+  });
+
+  // SCRUM-55, CA-03
+  it("asks before signing out while the name has unsaved changes", async () => {
+    const page = renderProfile();
+    await page.replaceName("Ana María");
+
+    await page.clickSignOut();
+
+    expect(page.queryConfirmDialog()).toBeInTheDocument();
+  });
+
+  it("signs out without asking when nothing was edited", async () => {
+    const page = renderProfile();
+
+    await page.clickSignOut();
+
+    expect(page.queryConfirmDialog()).not.toBeInTheDocument();
+  });
+
+  it("stops asking once the changes are saved", async () => {
+    const page = renderProfile();
+    await page.replaceName("Ana María");
+    await page.save();
+
+    await page.clickSignOut();
+
+    expect(page.queryConfirmDialog()).not.toBeInTheDocument();
+  });
+
   // CA-02
   it("shows the current name, ready to edit", () => {
     const page = renderProfile();
@@ -55,6 +92,13 @@ describe("Profile", () => {
     const page = renderProfile();
 
     expect(page.queryRemovePhotoButton()).toBeInTheDocument();
+  });
+
+  // SCRUM-54, CA-01
+  it("links to the change-password screen", () => {
+    const page = renderProfile();
+
+    expect(page.getChangePasswordLink()).toHaveAttribute("href", APP_ROUTE.CHANGE_PASSWORD);
   });
 
   it("shows a spinner while the session loads, not an empty form", () => {

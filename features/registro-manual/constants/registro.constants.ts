@@ -76,10 +76,6 @@ export const REGISTRO_FORM_FIELDS = [
   VERIFIED: "/registro/verificado",
 } as const;
 
-export const HTTP_STATUS = {
-  TOO_MANY_REQUESTS: 429,
-} as const;
-
 // Segundos que "Reenviar correo" queda deshabilitado: es el mínimo que Supabase exige entre
 // dos correos al mismo usuario.
 export const VERIFICATION_RESEND_COOLDOWN_SECONDS = 60;

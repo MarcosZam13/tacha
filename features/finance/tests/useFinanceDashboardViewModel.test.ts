@@ -10,6 +10,7 @@ import {
 } from "../constants/finance.constants";
 import { useFinanceDashboardViewModel } from "../hooks/useFinanceDashboardViewModel";
 import {
+  getPeriodFinance,
   getPeriodSpending,
   getSpendingBudgets,
   hasRegisteredSession,
@@ -17,6 +18,7 @@ import {
 } from "../services/finance.service";
 
 vi.mock("../services/finance.service", () => ({
+  getPeriodFinance: vi.fn(),
   getPeriodSpending: vi.fn(),
   getSpendingBudgets: vi.fn(),
   hasRegisteredSession: vi.fn(),
@@ -24,6 +26,7 @@ vi.mock("../services/finance.service", () => ({
 }));
 const sessionMock = vi.mocked(hasRegisteredSession);
 const spendingMock = vi.mocked(getPeriodSpending);
+const financeMock = vi.mocked(getPeriodFinance);
 const budgetsMock = vi.mocked(getSpendingBudgets);
 const saveMock = vi.mocked(setSpendingBudget);
 
@@ -45,8 +48,10 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
+  // Sin zona guardada: se lee como antes, con el navegador (SPEC regla 59).
+  financeMock.mockResolvedValue({ timeZone: null });
   sessionMock.mockResolvedValue(true);
-  spendingMock.mockResolvedValue({ closedCount: 2, total: 15000, withoutTotalCount: 0 });
+  spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 0 });
   budgetsMock.mockResolvedValue({ day: null, month: null, week: 50000 });
 });
 
@@ -122,7 +127,7 @@ describe("useFinanceDashboardViewModel: period (CA-01, CA-02)", () => {
 
   it("asks for the new period without asking for the budgets again", async () => {
     const { result } = await renderLoaded();
-    spendingMock.mockResolvedValue({ closedCount: 1, total: 10000, withoutTotalCount: 0 });
+    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 1, total: 10000, withoutTotalCount: 0 });
 
     act(() => result.current.periodOptions[0].onSelect());
 
@@ -170,7 +175,7 @@ describe("useFinanceDashboardViewModel: budget (CA-03)", () => {
   });
 
   it("warns that purchases without a total are not included", async () => {
-    spendingMock.mockResolvedValue({ closedCount: 2, total: 15000, withoutTotalCount: 2 });
+    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 2 });
     const { result } = await renderLoaded();
 
     expect(result.current.budget.notIncludedText).toBe("No incluye 2 compras sin total");
@@ -178,7 +183,7 @@ describe("useFinanceDashboardViewModel: budget (CA-03)", () => {
   });
 
   it("never says the budget was exceeded by ₡0 because of cents", async () => {
-    spendingMock.mockResolvedValue({ closedCount: 1, total: 50000.4, withoutTotalCount: 0 });
+    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 1, total: 50000.4, withoutTotalCount: 0 });
     const { result } = await renderLoaded();
 
     expect(toPlainSpaces(result.current.budget.differenceText)).toBe("Te quedan ₡0");
@@ -202,5 +207,52 @@ describe("useFinanceDashboardViewModel: budget (CA-03)", () => {
 
     await waitFor(() => expect(result.current.budget.status).toBe(BUDGET_STATUS.LOAD_FAILED));
     expect(result.current.budget.errorMessage).toBe(FINANCE_TEXT.BUDGET_LOAD_ERROR);
+  });
+});
+
+describe("useFinanceDashboardViewModel: manual adjustments (SCRUM-91)", () => {
+  const zonedSpending = (adjustmentCount: number) => ({
+    adjustments: [],
+    bounds: { end: new Date(2026, 9, 19), start: new Date(2026, 9, 12) },
+    purchases: [],
+    spending: { adjustmentCount, closedCount: 2, total: 20000, withoutTotalCount: 1 },
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+
+  it("says the total includes manual adjustments, without counting them as purchases (SPEC §8, D16)", async () => {
+    financeMock.mockResolvedValue(zonedSpending(1));
+    const { result } = await renderLoaded();
+
+    expect(result.current.spending.noteText).toBe(FINANCE_TEXT.INCLUDES_ADJUSTMENTS);
+    expect(result.current.spending.closedCount).toBe(2);
+    expect(result.current.spending.withoutTotalCount).toBe(1);
+    expect(toPlainSpaces(result.current.budget.differenceText)).toBe("Te quedan ₡30 000");
+  });
+
+  it("says nothing about adjustments without any", async () => {
+    financeMock.mockResolvedValue(zonedSpending(0));
+    const { result } = await renderLoaded();
+
+    expect(result.current.spending.noteText).toBeNull();
+  });
+
+  it("gives no pencil nor field: the Dashboard does not edit totals (D11)", async () => {
+    financeMock.mockResolvedValue(zonedSpending(1));
+    const { result } = await renderLoaded();
+
+    expect(result.current.spending.edit).toBeUndefined();
+    expect(result.current.spending.editor).toBeUndefined();
+  });
+
+  it("shows why there is no total with TZ002, never falling back (rule 60)", async () => {
+    financeMock.mockResolvedValue(null);
+    const { result } = renderHook(() => useFinanceDashboardViewModel());
+
+    await waitFor(() => expect(result.current.spending.status).toBe(SPENDING_STATUS.FAILED));
+    expect(result.current.spending.errorMessage).toBe(
+      "Tu zona horaria guardada ya no es válida. Confirma tu zona para continuar.",
+    );
+    expect(result.current.spending.totalText).toBeNull();
+    expect(spendingMock).not.toHaveBeenCalled();
   });
 });

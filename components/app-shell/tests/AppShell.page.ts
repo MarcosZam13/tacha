@@ -24,5 +24,9 @@ export const createAppShellPage = () => {
   const getTopBarProfileLink = (): HTMLElement =>
     within(screen.getByRole("banner")).getByRole("link", { name: new RegExp(`^${APP_SHELL_TEXT.PROFILE_LINK_LABEL}`) });
 
-  return { getCurrentLinks, getLink, getMain, getNavigations, getProfileLinks, getSidebarProfileName, getTopBarProfileLink };
+  // SCRUM-55: cerrar sesión al pie del sidebar de desktop.
+  const getSidebarSignOutButton = (): HTMLElement =>
+    within(screen.getByRole("complementary")).getByRole("button", { name: "Cerrar sesión" });
+
+  return { getCurrentLinks, getLink, getMain, getNavigations, getProfileLinks, getSidebarProfileName, getSidebarSignOutButton, getTopBarProfileLink };
 };

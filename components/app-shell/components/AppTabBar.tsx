@@ -5,7 +5,8 @@ import type { AppNavigationProps } from "./models/AppNavigationProps.interface";
 
 /**
  * Navegación de mobile: tabs fijos abajo, al alcance del pulgar (DESIGN.md §3.2).
- * Con más de 5 ítems el último pasa a ser "Más"; hoy son 4.
+ * Con más de 5 ítems el último pasa a ser "Más" (§3.2); hoy son 6 y ese menú
+ * queda para el sprint de UI/UX.
  */
 export const AppTabBar = ({ navItems }: AppNavigationProps): React.JSX.Element => (
   <nav

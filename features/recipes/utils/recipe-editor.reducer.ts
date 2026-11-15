@@ -11,6 +11,7 @@ const NO_ERRORS: RecipeEditorErrors = { quantityByProductId: {} };
  */
 export const createInitialRecipeEditorState = (isEditingExistingRecipe: boolean): RecipeEditorState => ({
   errors: NO_ERRORS,
+  hasChanges: false,
   ingredientNotice: null,
   saveErrorMessage: null,
   status: isEditingExistingRecipe ? RECIPE_EDITOR_STATUS.LOADING : RECIPE_EDITOR_STATUS.EDITING,
@@ -41,7 +42,7 @@ const updateIngredient = (
 export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEditorAction): RecipeEditorState => {
   switch (action.type) {
     case RECIPE_EDITOR_ACTION.LOADED:
-      return { ...state, status: RECIPE_EDITOR_STATUS.EDITING, values: action.values };
+      return { ...state, hasChanges: false, status: RECIPE_EDITOR_STATUS.EDITING, values: action.values };
 
     case RECIPE_EDITOR_ACTION.NOT_FOUND:
       return { ...state, status: RECIPE_EDITOR_STATUS.NOT_FOUND };
@@ -53,6 +54,7 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
       return {
         ...state,
         errors: { ...state.errors, name: undefined },
+        hasChanges: true,
         values: { ...state.values, name: action.name },
       };
 
@@ -60,6 +62,7 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
       return {
         ...state,
         errors: { ...state.errors, baseServings: undefined },
+        hasChanges: true,
         values: { ...state.values, baseServings: action.baseServings },
       };
 
@@ -73,6 +76,7 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
       return {
         ...state,
         errors: { ...state.errors, ingredients: undefined },
+        hasChanges: true,
         ingredientNotice: null,
         values: { ...state.values, ingredients: [...state.values.ingredients, action.ingredient] },
       };
@@ -82,6 +86,7 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
       return {
         ...state,
         errors: withoutQuantityError(state.errors, action.productId),
+        hasChanges: true,
         ingredientNotice: null,
         values: {
           ...state.values,
@@ -93,6 +98,7 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
       return {
         ...state,
         errors: withoutQuantityError(state.errors, action.productId),
+        hasChanges: true,
         values: {
           ...state.values,
           ingredients: updateIngredient(state.values.ingredients, action.productId, { quantity: action.quantity }),
@@ -102,6 +108,7 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
     case RECIPE_EDITOR_ACTION.INGREDIENT_UNIT_CHANGED:
       return {
         ...state,
+        hasChanges: true,
         values: {
           ...state.values,
           ingredients: updateIngredient(state.values.ingredients, action.productId, { unit: action.unit }),

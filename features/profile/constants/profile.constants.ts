@@ -1,6 +1,7 @@
 import type { NullableUndefined } from "@/types/nullable.types";
 
 export const PROFILE_TEXT = {
+  CHANGE_PASSWORD: "Cambiar contraseña",
   CHANGE_PHOTO: "Cambiar foto",
   NAME_LABEL: "Nombre",
   PHOTO_LABEL: "Foto de perfil",

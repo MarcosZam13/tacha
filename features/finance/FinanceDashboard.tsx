@@ -2,17 +2,18 @@
 
 import { Spinner } from "@/components/ui";
 import { FinanceNoAccount } from "./components/FinanceNoAccount";
+import { FinanceTabs } from "./components/FinanceTabs";
 import { SpendingBudget } from "./components/SpendingBudget";
 import { SpendingPeriodSelector } from "./components/SpendingPeriodSelector";
 import { SpendingTotal } from "./components/SpendingTotal";
-import { FINANCE_ACCESS_STATUS, FINANCE_TEXT } from "./constants/finance.constants";
+import { FINANCE_ACCESS_STATUS, FINANCE_TAB, FINANCE_TEXT } from "./constants/finance.constants";
 import { useFinanceDashboardViewModel } from "./hooks/useFinanceDashboardViewModel";
 
 /**
  * Pantalla "Finanzas" (SCRUM-69 / HU-37): el gasto del periodo en curso y su
- * presupuesto, solo para cuentas registradas (SPEC D6). Hoy es solo el
- * Dashboard, sin sub-tabs hasta que exista "Historial" (D5). "use client"
- * porque usa hooks y lee la sesión del navegador.
+ * presupuesto, solo para cuentas registradas (SPEC D6). Es el sub-tab
+ * "Dashboard"; "Historial" es PurchaseHistory (SCRUM-90). "use client" porque
+ * usa hooks y lee la sesión del navegador.
  */
 export const FinanceDashboard = (): React.JSX.Element => {
   const viewModel = useFinanceDashboardViewModel();
@@ -35,6 +36,7 @@ export const FinanceDashboard = (): React.JSX.Element => {
 
       {viewModel.accessStatus === FINANCE_ACCESS_STATUS.REGISTERED ? (
         <>
+          <FinanceTabs activeTab={FINANCE_TAB.DASHBOARD} />
           <SpendingPeriodSelector options={viewModel.periodOptions} />
           <div className="grid gap-4 md:grid-cols-2">
             <section className="rounded-tacha-card border border-tacha-border bg-tacha-surface p-6">

@@ -62,6 +62,8 @@ export interface RecipeEditorErrors {
 
 export interface RecipeEditorState {
   errors: RecipeEditorErrors;
+  /** La persona ya tocó el formulario (SCRUM-55: cerrar sesión pide confirmación). Se apaga al cargar la receta. */
+  hasChanges: boolean;
   /** Aviso no bloqueante del buscador, ej. "ese producto ya está". */
   ingredientNotice: NullableRef<string>;
   saveErrorMessage: NullableRef<string>;

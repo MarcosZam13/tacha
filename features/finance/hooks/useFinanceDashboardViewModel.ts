@@ -1,26 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
 import {
   BUDGET_INPUT_LABEL,
   BUDGET_LABEL,
   BUDGET_STATUS,
   DEFAULT_SPENDING_PERIOD,
-  FINANCE_ACCESS_STATUS,
   FINANCE_TEXT,
   NO_BUDGET_LABEL,
   SPENDING_PERIOD_LABEL,
   SPENDING_PERIOD_ORDER,
   SPENDING_STATUS,
   SPENT_LABEL,
+  TOTAL_SAVE_ERROR,
+  TOTAL_SAVE_ERROR_MESSAGE,
 } from "../constants/finance.constants";
 import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
 import type { SpendingPeriodOption } from "../components/models/SpendingPeriodSelectorProps.interface";
 import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
 import type { FinanceAccessStatusType, SpendingPeriodType } from "../constants/finance.constants";
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
-import { hasRegisteredSession } from "../services/finance.service";
 import { formatColones } from "../utils/formatColones";
 import { formatPeriodRange } from "../utils/formatPeriodRange";
+import { useFinanceAccess } from "./useFinanceAccess";
 import { usePeriodSpending } from "./usePeriodSpending";
 import { useSpendingBudgets } from "./useSpendingBudgets";
 
@@ -56,51 +57,25 @@ const toDifferenceText = (budgetAmount: number, spending: PeriodSpending): strin
  * entrega a la pantalla exactamente lo que dibuja.
  */
 export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelReturn => {
-  // Arranca en "checking": el efecto nunca hace un setState síncrono para empezar.
-  const [accessStatus, setAccessStatus] = useState<FinanceAccessStatusType>(FINANCE_ACCESS_STATUS.CHECKING);
+  const { accessStatus, isRegistered, retryIfRegistered } = useFinanceAccess();
   const [period, setPeriod] = useState<SpendingPeriodType>(DEFAULT_SPENDING_PERIOD);
-  const isMountedRef = useRef<boolean>(true);
 
-  const isRegistered = accessStatus === FINANCE_ACCESS_STATUS.REGISTERED;
   const periodSpending = usePeriodSpending(period, isRegistered);
   const spendingBudgets = useSpendingBudgets(period, isRegistered);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    let isCancelled = false;
-
-    // Si no se puede leer la sesión, se trata como "sin cuenta": nunca se
-    // piden datos sin saber que la sesión es registrada.
-    hasRegisteredSession()
-      .catch(() => false)
-      .then((isRegisteredSession) => {
-        if (!isCancelled) {
-          setAccessStatus(isRegisteredSession ? FINANCE_ACCESS_STATUS.REGISTERED : FINANCE_ACCESS_STATUS.NO_ACCOUNT);
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Antes de reintentar se vuelve a leer la sesión: si venció o ya no es
-  // registrada, se pasa a "sin cuenta" en vez de volver a pedir datos (SPEC §7).
-  const retryIfRegistered = async (retry: () => void): Promise<void> => {
-    const isRegisteredSession = await hasRegisteredSession().catch(() => false);
-    if (!isMountedRef.current) return;
-    if (!isRegisteredSession) {
-      setAccessStatus(FINANCE_ACCESS_STATUS.NO_ACCOUNT);
-      return;
-    }
-    retry();
-  };
 
   const { spending } = periodSpending;
   const hasSpending = spending !== null;
   const totalText = spending ? formatColones(spending.total) : null;
   const budgetAmount = spendingBudgets.amount;
+
+  // Con TZ002 no hay totales: el mensaje dice por qué, sin caer a otra zona (regla 60).
+  // La zona se confirma desde el Historial.
+  const getSpendingErrorMessage = (): NullableRef<string> => {
+    if (periodSpending.status !== SPENDING_STATUS.FAILED) return null;
+    return periodSpending.needsTimeZoneConfirmation
+      ? TOTAL_SAVE_ERROR_MESSAGE[TOTAL_SAVE_ERROR.TIME_ZONE_UNRECOGNIZED]
+      : FINANCE_TEXT.SPENDING_LOAD_ERROR;
+  };
 
   return {
     accessStatus,
@@ -132,10 +107,15 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
     })),
     spending: {
       closedCount: spending?.closedCount ?? 0,
-      errorMessage: periodSpending.status === SPENDING_STATUS.FAILED ? FINANCE_TEXT.SPENDING_LOAD_ERROR : null,
+      errorMessage: getSpendingErrorMessage(),
       label: SPENT_LABEL[period],
+      // Solo con ajustes; "Compras" y "Sin total" no cambian (D16, SPEC §8). El Dashboard no edita (D11).
+      noteText: spending && spending.adjustmentCount > 0 ? FINANCE_TEXT.INCLUDES_ADJUSTMENTS : null,
       onRetry: () => void retryIfRegistered(periodSpending.onRetry),
-      rangeText: periodSpending.bounds && hasSpending ? formatPeriodRange(period, periodSpending.bounds) : null,
+      rangeText:
+        periodSpending.bounds && hasSpending
+          ? formatPeriodRange(period, periodSpending.bounds, periodSpending.timeZone)
+          : null,
       status: periodSpending.status,
       totalText,
       withoutTotalCount: spending?.withoutTotalCount ?? 0,

@@ -1,6 +1,6 @@
 # Spec: Preferencias de Tienda por Household
 
-> **Estado (2026-10-02):** la escritura está cerrada. La migración 009 (SCRUM-123) borró las políticas de escritura abiertas y todavía no existe la de membresía (SCRUM-127). Hoy el componente lee bien, pero cualquier upsert falla con `42501`. El requerimiento 2 y los criterios de escritura quedan bloqueados hasta SCRUM-127.
+> **Estado (2026-10-30):** la base ya permite el requerimiento 2. La migración 034 (SCRUM-127) deja leer y escribir solo a los miembros del household (antes: lectura pública y escritura cerrada desde 009). Lo que falta está en el cliente: `useHouseholdStorePreferences` manda la anon key como `Authorization`, así que la base lo ve como visitante, lee 0 filas (todo visible) y el upsert falla con `42501`. Para que guarde, el hook tiene que usar el cliente de Supabase con la sesión del usuario.
 
 ## Intención
 
@@ -34,7 +34,7 @@ Componente de UI + lógica que permite al usuario elegir cuáles de las 3 tienda
 - Household sin filas previas → todas tiendas visibles
 - Doble click rápido en toggle → upsert maneja sin error de duplicado
 - Usuario sin household → no mostrar componente (not render)
-- Escritura cerrada hasta la política de membresía (SCRUM-127) → el upsert falla con `42501`; la lectura funciona
+- Quien no es miembro del household (o un visitante) → no lee filas (ve todo visible) y el upsert falla con `42501` (034, SCRUM-127)
 
 ## Restricciones
 
@@ -45,7 +45,7 @@ Componente de UI + lógica que permite al usuario elegir cuáles de las 3 tienda
 ## Criterios de aceptación
 
 - [ ] Household nuevo sin filas muestra 3 tiendas con toggle activado
-- [ ] Desactivar toggle de Walmart → crea/actualiza fila `(household_id, store_id_walmart, visible=false)` *(bloqueado por SCRUM-127)*
-- [ ] Activar toggle actualiza a `visible=true`, sin duplicado *(bloqueado por SCRUM-127)*
-- [ ] `search_catalog(term, household_id)` excluye precios de tienda oculta
-- [ ] Doble click rápido no genera error de clave duplicada *(bloqueado por SCRUM-127)*
+- [ ] Desactivar toggle de Walmart → crea/actualiza fila `(household_id, store_id_walmart, visible=false)` *(la base lo permite desde 034; falta que el hook use la sesión)*
+- [ ] Activar toggle actualiza a `visible=true`, sin duplicado *(la base lo permite desde 034; falta que el hook use la sesión)*
+- [ ] `search_catalog(term, household_id)` excluye precios de tienda oculta *(hoy falla: con un `household_id` responde `42702`, "column reference household_id is ambiguous", el mismo bug que 030 arregló en `list_catalog_by_category`; ticket SCRUM-157)*
+- [ ] Doble click rápido no genera error de clave duplicada *(la base lo permite desde 034; falta que el hook use la sesión)*

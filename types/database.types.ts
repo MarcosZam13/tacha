@@ -312,24 +312,30 @@ export type Database = {
       lists: {
         Row: {
           created_at: string
+          event_date: string | null
           household_id: string | null
           id: string
+          name: string | null
           owner_id: string
           status: string
           type: string
         }
         Insert: {
           created_at?: string
+          event_date?: string | null
           household_id?: string | null
           id?: string
+          name?: string | null
           owner_id?: string
           status?: string
           type: string
         }
         Update: {
           created_at?: string
+          event_date?: string | null
           household_id?: string | null
           id?: string
+          name?: string | null
           owner_id?: string
           status?: string
           type?: string
@@ -847,6 +853,30 @@ export type Database = {
           },
         ]
       }
+      spending_adjustments: {
+        Row: {
+          amount: number
+          effective_at: string
+          id: string
+          owner_id: string
+          scope: string
+        }
+        Insert: {
+          amount: number
+          effective_at: string
+          id?: string
+          owner_id: string
+          scope: string
+        }
+        Update: {
+          amount?: number
+          effective_at?: string
+          id?: string
+          owner_id?: string
+          scope?: string
+        }
+        Relationships: []
+      }
       spending_budgets: {
         Row: {
           amount: number
@@ -862,6 +892,21 @@ export type Database = {
           amount?: number
           owner_id?: string
           period?: string
+        }
+        Relationships: []
+      }
+      spending_time_zones: {
+        Row: {
+          owner_id: string
+          time_zone: string
+        }
+        Insert: {
+          owner_id: string
+          time_zone: string
+        }
+        Update: {
+          owner_id?: string
+          time_zone?: string
         }
         Relationships: []
       }
@@ -928,6 +973,26 @@ export type Database = {
       accept_household_invite: {
         Args: { invite_token: string }
         Returns: string
+      }
+      add_item_to_date_list: {
+        Args: { target_list_id: string; target_variant_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
@@ -1066,6 +1131,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_date_list: {
+        Args: { list_event_date: string; list_name: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_household: { Args: { household_name: string }; Returns: string }
       create_household_invite: {
         Args: never
@@ -1145,6 +1229,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_period_finance: { Args: { target_scope: string }; Returns: Json }
       get_personal_lists_decision_state: { Args: never; Returns: string }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
@@ -1162,6 +1247,13 @@ export type Database = {
       get_recipe_coverage_today: {
         Args: { local_day_start: string; target_recipe_id: string }
         Returns: Json
+      }
+      get_spending_period_bounds: {
+        Args: { target_scope: string }
+        Returns: {
+          period_end: string
+          period_start: string
+        }[]
       }
       leave_household: { Args: { new_admin_user_id?: string }; Returns: string }
       list_catalog_by_category: {
@@ -1295,6 +1387,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_period_total: {
+        Args: { target_scope: string; target_total: number }
+        Returns: {
+          amount: number
+          effective_at: string
+          id: string
+          owner_id: string
+          scope: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "spending_adjustments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      set_purchase_session_total: {
+        Args: { new_total: number; target_session_id: string }
+        Returns: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "purchase_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_spending_budget: {
         Args: { budget_amount: number; budget_period: string }
         Returns: {
@@ -1305,6 +1432,19 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "spending_budgets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_spending_time_zone: {
+        Args: { new_time_zone: string }
+        Returns: {
+          owner_id: string
+          time_zone: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "spending_time_zones"
           isOneToOne: true
           isSetofReturn: false
         }

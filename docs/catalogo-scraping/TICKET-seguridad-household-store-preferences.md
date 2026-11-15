@@ -3,11 +3,18 @@
 tipo: ticket de seguimiento (no bloqueante para PR actual)
 origen: QA review de @MarcosZam13 sobre Specs 1-4, punto 6 ("deuda técnica a documentar")
 fecha: 2026-09-04
-bloquea: no debe llegar a producción sin resolverse — bloquea el lanzamiento, no el merge de este PR
+bloquea: ya no (resuelto en SCRUM-127, migración 034)
+estado: resuelto en SCRUM-127 (migración 034)
 ---
 # Endurecer RLS de `household_store_preferences` cuando exista el módulo de auth/households
 
-## Estado (2026-10-01, SCRUM-123)
+## Estado (2026-10-30, SCRUM-127): resuelto
+
+La migración `034_harden_household_store_preferences.sql` cierra la deuda: revoca los permisos de tabla (`anon` queda solo con `SELECT`, nadie del cliente con `TRUNCATE`), agrega la FK `household_id → households(id) on delete cascade` y reemplaza la lectura pública temporal por la política `household member manages store preferences` (`for all`, `using` + `with check` por `household_members`). También entra B3: un no miembro ya no lee las filas de otro household. Prueba: `supabase/tests/034_harden_household_store_preferences.test.sql`.
+
+Queda fuera: el hook `useHouseholdStorePreferences` manda la anon key en `Authorization`, así que el demo `/debug/preferences-demo` sigue sin poder guardar hasta que use la sesión del usuario.
+
+## Estado anterior (2026-10-01, SCRUM-123)
 
 En la QA del entregable 1 se cerró la parte que no podía llegar a `main`: la migración `009_close_store_preferences_writes.sql` borra las policies de escritura abiertas. Hoy nadie escribe en la tabla desde el cliente (RLS sin policy de escritura) y la lectura sigue pública. El demo `/debug/preferences-demo` ya no puede guardar.
 

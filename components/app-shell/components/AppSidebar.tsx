@@ -1,3 +1,4 @@
+import { SignOutButton } from "@/components/sign-out-button/SignOutButton";
 import { APP_NAV_LINK_VARIANT } from "../constants/app-nav-link.constants";
 import { APP_SHELL_TEXT } from "../constants/app-shell.constants";
 import { AppNavLink } from "./AppNavLink";
@@ -17,7 +18,10 @@ export const AppSidebar = ({ navItems, profileLink }: AppSidebarProps): React.JS
         ))}
       </ul>
     </nav>
-    {/* Pie del sidebar: el perfil (SCRUM-53). "Cerrar sesión" (SCRUM-55) va debajo. */}
-    <AppProfileLink isNameVisible profileLink={profileLink} />
+    {/* Pie del sidebar: el perfil (SCRUM-53) y, debajo, cerrar sesión (SCRUM-55), siempre a la vista. */}
+    <div className="flex flex-col gap-2">
+      <AppProfileLink isNameVisible profileLink={profileLink} />
+      <SignOutButton />
+    </div>
   </aside>
 );

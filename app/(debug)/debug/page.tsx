@@ -21,29 +21,6 @@ export default function DebugPage(): JSX.Element {
 
         {/* Grid de features */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Spec 1: Demo Scraping */}
-          <a
-            href="/debug/scraping-demo"
-            className="group block p-6 bg-white rounded-lg shadow hover:shadow-lg transition border-l-4 border-blue-500"
-          >
-            <div className="mb-2">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                Spec 1
-              </span>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">
-              📦 Demo: Ingesta Scraping
-            </h2>
-            <p className="text-gray-700 mb-4">
-              Prueba el comportamiento cache-first del scraping. Busca un producto y ve cómo la primera búsqueda es en vivo y la segunda desde cache.
-            </p>
-            <div className="text-sm text-gray-600">
-              <p>✅ Formulario de búsqueda</p>
-              <p>✅ Indicador visual de cache</p>
-              <p>✅ Tabla de staging</p>
-            </div>
-          </a>
-
           {/* Spec 2: Búsqueda Catálogo */}
           <a
             href="/debug/search-demo"

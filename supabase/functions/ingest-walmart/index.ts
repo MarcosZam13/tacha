@@ -6,10 +6,14 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { parseSearchRequest, jsonResponse } from "../_shared/http.ts";
+import { requireServiceRole } from "../_shared/requireServiceRole.ts";
 import { getStoreBySlug } from "../_shared/catalogRepository.ts";
 import { ingestProducts } from "../_shared/ingestUseCase.ts";
 
 Deno.serve(async (req) => {
+  const denied = requireServiceRole(req);
+  if (denied) return denied;
+
   const parsed = await parseSearchRequest(req);
   if (parsed instanceof Response) return parsed;
 

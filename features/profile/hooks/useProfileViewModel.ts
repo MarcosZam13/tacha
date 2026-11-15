@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { UNSAVED_CHANGES_SOURCE } from "@/constants";
+import { useReportUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import { toInitials } from "@/utils/toInitials";
@@ -56,6 +58,9 @@ export const useProfileViewModel = (): ProfileViewModel => {
 
   const avatarUrl =
     pendingPhoto.change.kind === PROFILE_PHOTO_CHANGE.KEEP ? savedAvatarUrl : pendingPhoto.previewUrl;
+
+  // Cerrar sesión (SCRUM-55) pide confirmación mientras haya algo sin guardar acá.
+  useReportUnsavedChanges(UNSAVED_CHANGES_SOURCE.PROFILE, hasChanges);
 
   // Cualquier edición descarta el "guardado" o el fallo del intento anterior; no toca `saving`.
   const clearSaveFeedback = (): void => {

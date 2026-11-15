@@ -8,7 +8,7 @@ import { AppShell } from "../AppShell";
 import { APP_NAV_ITEMS } from "../constants/app-shell.constants";
 import { createAppShellPage } from "./AppShell.page";
 
-vi.mock("next/navigation", () => ({ usePathname: vi.fn() }));
+vi.mock("next/navigation", () => ({ usePathname: vi.fn(), useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("@/hooks/useUserProfile", () => ({ useUserProfile: vi.fn() }));
 const usePathnameMock = vi.mocked(usePathname);
 const useUserProfileMock = vi.mocked(useUserProfile);
@@ -86,6 +86,13 @@ describe("AppShell", () => {
     const page = renderShellAt(APP_ROUTE.LIST);
 
     page.getProfileLinks().forEach((link) => expect(link).toHaveAccessibleName("Mi perfil"));
+  });
+
+  // SCRUM-55, CA-01
+  it("offers sign out at the bottom of the sidebar", () => {
+    const page = renderShellAt(APP_ROUTE.LIST);
+
+    expect(page.getSidebarSignOutButton()).toBeEnabled();
   });
 
   it("renders the screen inside the only main landmark", () => {

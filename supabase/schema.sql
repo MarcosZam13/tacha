@@ -53,7 +53,7 @@ on conflict (slug) do nothing;
 -- arbitrarias, el scraper no soporta eso). Sin fila = visible por defecto.
 -- ----------------------------------------------------------------------------
 create table if not exists household_store_preferences (
-  household_id  uuid not null, -- FK real hacia households(id) cuando ese módulo exista en este proyecto
+  household_id  uuid not null, -- FK hacia households(id): la agrega la migración 034 (SCRUM-127)
   store_id      uuid not null references stores(id) on delete cascade,
   visible       boolean not null default true,
   primary key (household_id, store_id)
@@ -211,13 +211,11 @@ create policy "public read variants"          on product_catalog_variants for se
 create policy "public read brands"            on product_brands           for select using (true);
 create policy "public read product_prices"    on product_prices           for select using (true);
 
--- household_store_preferences: lectura pública temporal (using(true)) porque
--- el módulo `households`/auth de otro integrante todavía no existe en este
--- proyecto para poder filtrar por dueño real. La escritura pública se cerró en
--- la migración 009 (SCRUM-123): sin política de escritura, nadie escribe desde
--- el cliente. TODO del equipo: cuando `households`/`household_members` exista,
--- agregar políticas que verifiquen membresía del household (household_id in
--- (select household_id from household_members where user_id = auth.uid())).
+-- household_store_preferences: línea base con lectura pública temporal. La
+-- escritura pública se cerró en la migración 009 (SCRUM-123) y la migración 034
+-- (SCRUM-127) reemplaza esta política por una de membresía en household_members
+-- (leer y escribir solo las filas del propio household), revoca permisos de
+-- tabla y agrega la FK a households. El estado vigente es el de 034.
 create policy "temp read household_store_preferences"  on household_store_preferences for select using (true);
 
 -- product_catalog_staging, search_cache y search_log NO son de lectura/escritura
