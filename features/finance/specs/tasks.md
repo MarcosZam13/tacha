@@ -228,3 +228,99 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Editar desde el Dashboard (D11) o periodos anteriores (D15).
 - [ ] Volver una compra a "Sin total" (D13).
 - [ ] Badge y recordatorio (HU-61), y filtros (HU-62).
+
+## SCRUM-93: consultar frecuencia e historial de compra por producto
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir.
+
+**Las etapas 1 a 6 están bloqueadas** hasta que se cumpla todo esto:
+
+- las tareas 0.2 a 0.5 cerradas;
+- la tarea 0.7 aprobada;
+- SCRUM-92 en `develop`.
+
+### Etapa 0 — Decisiones y specs
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-11-14): D28 a D38, SPEC §5.
+  - D28 B: producto madre.
+  - D29 B: cada fila cuenta.
+  - D30 A: todo el historial.
+  - D31 A: selector "Compras / Productos".
+  - D32 A: detalle en la misma pantalla.
+  - D33 A: orden y buscador.
+  - D34 A: solo lectura.
+  - D35 B: paginación por bloques.
+  - D36 A: `security invoker`.
+  - D37 A: "Producto no disponible".
+  - D38 A: los filtros, como funcionalidad futura.
+- [ ] 0.2 **Pendiente:** D36 revisada con `security-reviewer` antes de escribir la migración. Los puntos a revisar están en el plan, "Seguridad".
+- [ ] 0.3 **Pendiente:** el equipo confirma D38. Después se actualiza documento-proyecto §4.6 (plan, "Documento del proyecto").
+- [ ] 0.4 **Pendiente:** acordar con HU-42 (SCRUM-74) si usa el mismo conteo por fila y por producto madre.
+- [ ] 0.5 **Pendiente:** los problemas del modelo de SPEC §15.
+  - Problema 1: si se distinguen dos productos madre con el mismo nombre.
+  - Problema 3: si `unaccent` está disponible o la búsqueda distingue tildes.
+  - Problemas 2, 4 y 5: quedan como límites declarados, salvo que se decida otra cosa.
+- [x] 0.6 `SPEC.md`, `plan.md`, `tasks.md` y `E2E.md`, sección SCRUM-93, y HU-62 en `docs/historias-usuario.md` y `docs/sprints.md` con el texto de Jira. Actualizados con las decisiones el 2026-11-14.
+- [ ] 0.7 Revisión y aprobación de la documentación.
+- [ ] 0.8 Commits de documentación, push y PR hacia `develop` con un solo label (`on hold` mientras SCRUM-92 siga en `in progress`); Jira en el estado equivalente.
+
+### Etapa 1 — Base (bloqueada)
+
+- [ ] 1.1 Traer `develop` con SCRUM-92 y resolver los conflictos de `specs/` (SCRUM-92 primero).
+- [ ] 1.2 Verificar el número libre de la migración en `develop` y en los PRs abiertos.
+- [ ] 1.3 Migración con `get_purchased_products` (búsqueda y bloques) y `get_product_purchases`, `security invoker` (SPEC §12), y su prueba SQL (plan, "Pruebas"). Incluye:
+  - agrupar por producto madre;
+  - contar por fila;
+  - una presentación aparte cuando el producto no está disponible (regla 96);
+  - escapar los comodines;
+  - acotar los parámetros.
+- [ ] 1.4 Revisión con `security-reviewer`; aprobación; aplicarla con su fila en el historial (`supabase/README.md#migraciones`) antes de `waiting qa`.
+- [ ] 1.5 Tipos en `types/database.types.ts`.
+
+### Etapa 2 — Lectura
+
+- [ ] 2.1 Modelos, constantes (tamaño de bloque, largo de búsqueda, espera), `getPurchasedProducts` y `getProductPurchases`, con sus tests (conteo exacto, recorte de la búsqueda).
+- [ ] 2.2 `mergeProductPages`, con sus tests (sin repetidos).
+- [ ] 2.3 `usePurchasedProducts` y `useProductPurchases`, con sus tests:
+  - bloques y fin de la lista;
+  - búsqueda que reinicia los bloques;
+  - respuestas viejas;
+  - fallo de "Cargar más" que conserva lo cargado.
+
+### Etapa 3 — Selector y lista de productos (CA-01)
+
+- [ ] 3.1 `HistoryViewSwitch` en `PurchaseHistory` y en la ruta nueva; `ROUTES.FINANCE_HISTORY_PRODUCTS`. Tests: "Compras" no cambia y el selector usa `aria-current`.
+- [ ] 3.2 `useProductPurchaseHistoryViewModel` (búsqueda, selección, foco y estados), con sus tests.
+- [ ] 3.3 `ProductPurchaseHistory`, `ProductSearch`, `ProductPurchaseList` y `ProductPurchaseRow`, con Page Object y tests:
+  - "1 vez" y "N veces";
+  - "Producto no disponible";
+  - "Sin resultados";
+  - "Cargar más".
+
+### Etapa 4 — Compras de un producto (CA-02)
+
+- [ ] 4.1 `ProductPurchaseDetail`, con tests:
+  - una fila por compra, con presentaciones y apariciones (regla 89);
+  - la aclaración del monto (regla 85);
+  - "Sin total" y "Supermercado no disponible";
+  - foco y errores.
+
+### Etapa 5 — E2E
+
+- [ ] 5.1 Respuestas simuladas en `finance.helpers.ts` (bloques, búsqueda y detalle); confirmar que los escenarios anteriores siguen pasando.
+- [ ] 5.2 `e2e/features/finance/product-history.spec.ts` (E2E-FIN-19 a 23) en `chromium` y `mobile-chrome`.
+
+### Etapa 6 — QA y cierre
+
+- [ ] 6.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`.
+- [ ] 6.2 Pruebas manuales de SPEC §13 y `TC-SCRUM-93-01` a `07` (plan), con capturas sin correos.
+- [ ] 6.3 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.6.
+- [ ] 6.4 `code-reviewer`, `security-reviewer` y `qa-checker`.
+- [ ] 6.5 Revisar otra vez el número de la migración, traer `develop`, descripción del PR con la evidencia, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Filtros por supermercado y categoría (D38, funcionalidad futura).
+- [ ] Productos más comprados y más costosos del Dashboard (HU-42).
+- [ ] Precio o gasto por producto.
+- [ ] Paginar el detalle de un producto y juntar los "Producto no disponible" bajo su producto madre.

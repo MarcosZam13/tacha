@@ -778,3 +778,272 @@ Conceptos nuevos: `security definer` frente a `security invoker`; `old` y `new` 
 | Sin backfill, con confirmación | Asignar una zona a los usuarios existentes | Ningún dato existente dice cuál es; una zona inventada movería sus periodos |
 | Los periodos salen de `effective_at` y la zona | Guardar los límites en cada ajuste | Al cambiar de zona habría que reescribirlos, y dos ajustes podrían chocar |
 | `getPeriodSpending` con conteo | Dejar la deuda | Un resultado cortado daría un total distinto entre pantallas y rompería CA-03 |
+
+## SCRUM-93: consultar frecuencia e historial de compra por producto
+
+El qué está en [SPEC.md](SPEC.md) (§1 a §15, subsecciones SCRUM-93). Las decisiones D28 a D38 se tomaron el 2026-11-14 (SPEC §5).
+
+**Siguen pendientes:**
+
+- la revisión de seguridad de D36;
+- la confirmación del equipo de D38;
+- los cinco problemas del modelo de datos de SPEC §15.
+
+### Qué se reutiliza
+
+- **Acceso:** `useFinanceAccess` y `FinanceNoAccount`, la misma puerta de cuentas registradas (D6).
+- **Navegación:** `FinanceTabs`, con "Historial" activo en las dos vistas.
+- **Selector "Compras / Productos":** con el mismo patrón de links y `aria-current` que `FinanceTabs`.
+- **Formato:** `formatColones` y el formato de fecha y supermercado de `PurchaseSessionRow` (reglas 29 y 58). Si no se puede reutilizar entera, porque trae lápiz, se extrae el formato y no se copia.
+- **Patrón de lectura:** el del servicio y los hooks de Finanzas (`usePeriodPurchases`): respuesta vieja descartada, estado como unión y `Reintentar`.
+- **Validación de la respuesta:** `assertCompleteResult` está en la rama de SCRUM-92. Si ya está en `develop` al implementar, se reutiliza; si no, se usa el mismo patrón de conteo exacto de la regla 30.
+
+No se reutiliza `CatalogCategoryChips` ni `getStores`: eran del alcance anterior (filtros, D38).
+
+### Archivos
+
+```
+supabase/migrations/0NN_product_purchase_history.sql   RPC get_purchased_products y get_product_purchases (SPEC §12)
+supabase/tests/0NN_product_purchase_history.test.sql   Prueba SQL (ver "Pruebas")
+types/database.types.ts                                 Firma de las dos RPC
+app/(app)/finanzas/historial/productos/page.tsx        Ruta delgada de la vista "Productos" (D31)
+constants/routes.constants.ts                           ROUTES.FINANCE_HISTORY_PRODUCTS
+features/finance/
+  PurchaseHistory.tsx                                   Solo agrega el selector arriba de la vista "Compras"
+  ProductPurchaseHistory.tsx                            Entrada: puerta de acceso → vista "Productos"
+  components/
+    HistoryViewSwitch.tsx                               "Compras / Productos" (D31)
+    ProductSearch.tsx                                   Buscador (D33)
+    ProductPurchaseList.tsx                             Lista, "Cargar más" y conteo (CA-01, D35)
+    ProductPurchaseRow.tsx                              Botón de un producto, con su detalle debajo en mobile (D32)
+    ProductPurchaseDetail.tsx                           Compras del producto (CA-02) y aclaración del monto
+    models/*.interface.ts                               Props
+  hooks/
+    useProductPurchaseHistoryViewModel.ts               Búsqueda, selección, foco y estados
+    usePurchasedProducts.ts                             Bloques, búsqueda, repetidos y respuesta vieja
+    useProductPurchases.ts                              Lectura del detalle
+  models/PurchasedProduct.interface.ts, ProductPurchase.interface.ts, PurchasedProductsPage.interface.ts
+  utils/mergeProductPages.ts                            Une bloques sin repetir (regla 94)
+  services/finance.service.ts                           getPurchasedProducts, getProductPurchases
+  constants/finance.constants.ts                        Textos, estados, tamaño de bloque, largo de búsqueda, RPC
+  tests/                                                Ver "Pruebas"
+e2e/features/finance/product-history.spec.ts           E2E-FIN-19 a 23
+e2e/features/finance/finance.helpers.ts                 Respuestas simuladas de las dos RPC
+```
+
+`PurchaseHistory.tsx` cambia solo para mostrar el selector. Es el único archivo de pantalla que se cruza con SCRUM-92.
+
+### Datos
+
+**Lo que existe** (verificado en las migraciones):
+
+| Dato | Dónde |
+|---|---|
+| Compra cerrada y propia | `purchase_sessions` (`owner_id`, `closed_at`, `total_amount`, `store_id`), RLS del dueño (`016`) |
+| Artículo de una compra | `list_items.purchase_session_id` + `quantity_bought` (`016`), que van juntos por un check; RLS por lista visible (`024`) |
+| Presentación y producto madre | `list_items.product_catalog_variant_id → product_catalog_variants(name, product_catalog_id) → product_catalog(name, owner_id, household_id)`; RLS de la `032` |
+| Supermercado | `stores.display_name` |
+| Precio por artículo | **No existe.** `list_items` no tiene precio ni marca; `product_prices` es precio de mercado |
+
+**Lista** (D28 producto madre, D29 filas, D30 todo el historial, D33 orden y búsqueda, D35 bloques). Es un esquema y no la migración final:
+
+```sql
+with appearances as (
+  select li.id, li.product_catalog_variant_id, s.id as purchase_id, s.closed_at,
+         pcv.product_catalog_id, pc.name as product_name
+  from public.purchase_sessions s
+  join public.list_items li on li.purchase_session_id = s.id          -- RLS de list_items (D36)
+  left join public.product_catalog_variants pcv on pcv.id = li.product_catalog_variant_id
+  left join public.product_catalog pc on pc.id = pcv.product_catalog_id
+  where s.owner_id = auth.uid() and s.closed_at is not null
+),
+products as (
+  select product_catalog_id,
+         -- regla 96: sin producto madre visible, cada presentación va aparte
+         case when product_catalog_id is null then product_catalog_variant_id end as unavailable_variant_id,
+         max(product_name) as product_name,
+         count(*) as appearance_count,                                -- D29: filas
+         max(closed_at) as last_purchased_at
+  from appearances
+  group by product_catalog_id,
+           case when product_catalog_id is null then product_catalog_variant_id end
+)
+select * from products
+where search_text = '' or product_name ilike '%' || escaped(search_text) || '%'
+order by appearance_count desc, last_purchased_at desc, product_name asc nulls last,
+         coalesce(product_catalog_id, unavailable_variant_id)
+limit page_limit offset page_offset;
+```
+
+- **`total_count`:** sale de la misma consulta, sin `limit` ni `offset`.
+- **`escaped`:** representa escapar `%`, `_` y `\` (SPEC §12).
+- **Tildes:** con o sin `unaccent`, según SPEC §15, problema 3.
+- **`max(product_name)`:** todas las filas de un mismo producto madre tienen el mismo nombre, así que `max` solo sirve para poder agruparlas.
+
+**Detalle:** las mismas `appearances` filtradas por `product_catalog_id` (o por `product_catalog_variant_id` si no está disponible), agrupadas por compra. Por cada compra devuelve:
+
+- `count(*)` como `appearance_count`;
+- `array_agg(distinct pcv.name)` como `variant_names`;
+- `total_amount` y `store_name`.
+
+Va en el orden de la regla 88, sin paginar (SPEC §15, problema 4).
+
+**Por qué una RPC y no PostgREST:** un `select` con `purchase_sessions!inner` desde `list_items` trae todas las filas del historial completo. Obliga a agrupar, buscar y paginar en el cliente, choca con el tope de filas de PostgREST y no puede ordenar por valores agregados.
+
+**Índices:** `list_items_purchase_session_id_idx` (`016`), `idx_variants_product_catalog` y la PK de `purchase_sessions` alcanzan para la unión. La agrupación se hace sobre todas las apariciones de la persona en cada página; con el volumen de una persona no hace falta un índice nuevo. Se mide en la prueba manual.
+
+### Flujo
+
+1. **Entrada:** en `/finanzas/historial`, "Productos" del selector lleva a `/finanzas/historial/productos`. `useFinanceAccess` confirma la cuenta registrada; sin ella, `FinanceNoAccount` y ninguna petición.
+2. **Primer bloque:** `usePurchasedProducts` pide el bloque 0 con la búsqueda vacía (`rpc/get_purchased_products`).
+3. **Búsqueda:**
+   - Escribir cambia la búsqueda en el ViewModel, con una espera corta antes de pedir: es una constante.
+   - Se vuelve al bloque 0 y se cierra el detalle.
+   - La respuesta de una búsqueda anterior se descarta.
+4. **"Cargar más":** pide el bloque siguiente con la misma búsqueda. `mergeProductPages` lo agrega sin repetir; el botón desaparece cuando lo cargado iguala `total_count`.
+5. **Detalle:**
+   - Tocar un producto guarda su id en el ViewModel, y `useProductPurchases` llama a `get_product_purchases`; la respuesta de un producto elegido antes se descarta.
+   - El detalle se abre en la misma pantalla y el foco va a su título.
+   - Volver a tocar el producto lo cierra y devuelve el foco.
+6. **Volver a "Compras":** el selector vuelve a `/finanzas/historial`. No se conserva nada (regla 92).
+
+### Seguridad
+
+- **Quién llega:** solo una cuenta registrada. Una sesión anónima recibe `42501` de la RPC y no ve la vista.
+- **Qué pasa si falta el control:** se verían productos y compras de otra persona.
+  - El dueño sale de `auth.uid()` en la RPC y ningún parámetro lo recibe.
+  - Además, la RLS de `purchase_sessions` ya limita a las propias.
+- **D36, `security invoker` (decidida, pendiente de `security-reviewer`):** las políticas de `purchase_sessions`, `list_items`, `product_catalog` y `product_catalog_variants` deciden qué se ve. La RPC no amplía ningún acceso.
+- **Lo que tiene que revisar `security-reviewer`:**
+  1. **Ids ajenos:** un `target_product_id` o `target_variant_id` ajeno devuelve vacío, sin revelar si existe.
+  2. **Búsqueda:** va como parámetro, con los comodines escapados y un largo máximo, sin SQL armado con texto.
+  3. **Límites de página:** `page_limit` y `page_offset` están acotados (`22023`), para que no se pueda pedir todo de una vez.
+  4. **Sesión anónima:** la comprobación no puede usar `require_registered_user()`, que tiene `execute` revocado a `authenticated`. La RPC tiene que comprobar `is_anonymous` desde `auth.jwt()`, o hay que justificar otra forma.
+  5. **Grants:** `execute` solo para `authenticated`; revocado a `public` y `anon`.
+- Sin cambios en la RLS existente, sin datos nuevos y sin escritura.
+
+### Pruebas
+
+**SQL** (`supabase/tests/0NN_product_purchase_history.test.sql`, dentro de `begin … rollback`):
+
+- **Conteo y agrupación:**
+  - dos presentaciones del mismo producto madre se agrupan (D28);
+  - dos filas en una compra suman 2, y una fila con `quantity_bought` 3 suma 1 (D29).
+- **Lo que no cuenta:** compras abiertas y artículos sin compra (reglas 83 y 84).
+- **Orden y empates (D33):** por conteo, después por fecha, después por nombre.
+- **Búsqueda:**
+  - coincidencia parcial sin distinguir mayúsculas;
+  - `%` y `_` se buscan como texto;
+  - vacía devuelve todo.
+- **Bloques:**
+  - `total_count`, el último bloque y un `offset` más allá del final;
+  - `page_limit` fuera de rango da `22023`.
+- **Aislamiento:**
+  - entre dos usuarios;
+  - un id ajeno devuelve vacío;
+  - un anónimo recibe `42501`.
+- **Visibilidad (D36 y D37):**
+  - un artículo de una lista que ya no se ve no cuenta;
+  - un producto personal no visible sale como "no disponible" con su presentación.
+- **Datos que cambian (regla 90):** un artículo destachado de una compra cerrada deja de contar.
+- **Detalle:**
+  - una fila por compra con `appearance_count` y `variant_names`;
+  - la suma de apariciones es igual al conteo (regla 89);
+  - orden de la regla 88;
+  - `total_amount` nulo devuelto como nulo.
+
+**Vitest:**
+
+- `finance.service.test.ts`: nombres de las RPC y parámetros, mapeo, recorte de la búsqueda y conteo incompleto como error.
+- `mergeProductPages.test.ts`: unir bloques sin repetir.
+- `usePurchasedProducts`:
+  - primer bloque, "Cargar más" y fin de la lista;
+  - búsqueda que reinicia los bloques;
+  - respuesta vieja de un bloque o de una búsqueda;
+  - fallo de "Cargar más" que conserva lo cargado.
+- `useProductPurchases`: respuesta vieja, reintento y vacío.
+- ViewModel: selección y cierre, cierre del detalle al buscar, foco y estados.
+- Componentes, con Page Object (`ProductPurchaseHistory.page.ts`):
+  - "1 vez" y "N veces";
+  - "Producto no disponible", "Sin total" y "Supermercado no disponible";
+  - presentaciones por compra y aclaración del monto;
+  - sin lápiz;
+  - el selector con `aria-current`.
+- `PurchaseHistory.test.tsx`: el selector aparece y "Compras" no cambia.
+
+**E2E:** [E2E.md](E2E.md#scrum-93-consultar-frecuencia-e-historial-de-compra-por-producto), E2E-FIN-19 a 23, con respuestas simuladas.
+
+**Manual (`TC-SCRUM-93-01` a `07`):**
+
+1. Conteo contra la base, con dos presentaciones y dos filas en una compra.
+2. Detalle contra el Historial.
+3. Búsqueda y "Cargar más" con más productos que un bloque.
+4. Destachar en una compra cerrada.
+5. Dos cuentas de la misma familia, y salir de ella con un producto personal comprado (D36 y D37).
+6. Sesión anónima real.
+7. Mobile y teclado.
+
+### Número de la migración
+
+Se elige al implementar. Hay que revisar `develop` y los PRs abiertos: en `develop` está hasta la `044`, con `037`, `041` y `043` sin archivo. Se vuelve a revisar antes del merge.
+
+### Documento del proyecto
+
+- **`docs/historias-usuario.md`:** HU-62 ya tiene el texto de Jira.
+- **`docs/documento-proyecto.md` §4.6:**
+  - Cuando el equipo confirme D38, la línea "Filtrado de compra" se marca como funcionalidad futura sin historia. Las menciones a "filtros (HU-62)" de las notas de SCRUM-90 y SCRUM-91 se corrigen en el mismo cambio.
+  - Al terminar, se agrega la nota "Implementado (SCRUM-93 / HU-62)".
+- **`docs/DESIGN.md`:** no cambia. Los sub-tabs siguen siendo Dashboard e Historial (D31).
+
+### Dependencias y Gitflow
+
+- **SCRUM-92 no está en `develop`:**
+  - Mientras su PR siga abierta, esta PR va con `on hold` si SCRUM-92 está en `in progress` (una sola PR en curso por persona).
+  - La implementación empieza después del merge de SCRUM-92, trayendo `develop`.
+  - Conflictos esperados: los cuatro documentos de `specs/`, `finance.constants.ts` y `PurchaseHistory.tsx` (solo el selector).
+- **HU-42 (SCRUM-74)** también cuenta "productos más comprados". Si usa la RPC de esta historia, hereda el conteo por fila y el producto madre. Tiene que decidirlo esa historia, porque "por frecuencia" puede leerse como compras distintas.
+
+### Commits y PR
+
+- `docs(SCRUM-93): add product purchase history planning`
+- `docs(SCRUM-93): record product history decisions` (este paso)
+- `feat(SCRUM-93): read purchased products and their purchases` (migración, prueba SQL, tipos y servicio)
+- `feat(SCRUM-93): show purchased products with search and paging` (CA-01)
+- `feat(SCRUM-93): show the purchases of a product` (CA-02)
+- `test(SCRUM-93): add product purchase history E2E`
+
+### Riesgos
+
+- **Leer el monto como precio del producto:** la regla 85 exige la aclaración visible y "Total de la compra". QA lo revisa en cada pantalla.
+- **Leer "veces" como "compras":** con el conteo por fila (D29) los números pueden no coincidir con las filas del detalle. La regla 89 pide mostrar las apariciones en cada compra (SPEC §15, problema 2).
+- **Datos que desaparecen** (reglas 90 y 96, D36): el conteo puede bajar sin que la persona edite nada. Es un límite declarado.
+- **Paginación con `offset`:** repetidos o saltos si los datos cambian entre bloques (SPEC §15, problema 4).
+- **Detalle sin paginar:** un producto comprado en cientos de compras devuelve todas.
+- **Búsqueda con tildes:** depende de `unaccent` (SPEC §15, problema 3).
+- **Costo de la agrupación:** cada bloque vuelve a agrupar todas las apariciones de la persona. Si crece mucho, se puede pasar a una vista materializada o a otro diseño en otra historia.
+- **Contraste:** el chip `TEAL` activo da 4.09:1 en claro. Si se usa, se corrige con un token de texto, como `TERRACOTTA_STRONG` en SCRUM-92.
+- **Contrato simulado en E2E:** lo mitigan los tests del servicio y la prueba SQL.
+
+### Para la defensa
+
+Conceptos nuevos:
+
+- `group by` con una expresión `case`;
+- `count(*)` frente a `count(distinct …)`;
+- `left join` con RLS;
+- `security invoker` frente a `definer` en una lectura;
+- paginación con `limit`/`offset` frente a un cursor;
+- escapar comodines de `ilike`;
+- descartar la respuesta de un bloque o una búsqueda anteriores.
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Contar, buscar y paginar en una RPC | Traer los artículos y hacerlo en el cliente | Con todo el historial, el tope de filas daría conteos cortados y la búsqueda no vería lo no cargado |
+| Producto madre (D28) | Presentación | Lo decidió la dueña; "Leche" se ve una vez aunque se compre en dos tamaños |
+| Filas (D29) | Compras distintas | Lo decidió la dueña; por eso el texto dice "veces" y el detalle muestra las apariciones por compra |
+| Presentación aparte si no hay producto visible | Juntar todos los no disponibles | Juntar mezclaría productos distintos en un solo conteo |
+| `offset` | Cursor sobre conteo y fecha | El cursor sobre valores agregados es complejo; los repetidos se descartan en el cliente |
+| `security invoker` (D36) | `security definer` | No amplía lo que la persona puede leer; la RLS existente decide |
+| Total de la compra con aclaración | Repartir el total entre productos | Un reparto inventa un precio que nunca se guardó |
+| Detalle sin lápiz (D34) | Reutilizar `useTotalEdit` | Obligaría a mantener dos listas iguales al guardar y acopla la historia a SCRUM-92 |
+| Vista "Productos" en su ruta, con selector (D31) | Sección dentro de `PurchaseHistory` | `PurchaseHistory` solo recibe el selector; la vista nueva se prueba por separado |

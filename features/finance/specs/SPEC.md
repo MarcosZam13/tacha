@@ -5,6 +5,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-69 / HU-37](https://tacha.atlassian.net/browse/SCRUM-69): ver gasto total por periodo. Sprint 3, en planificación.
 - [SCRUM-90 / HU-59](https://tacha.atlassian.net/browse/SCRUM-90): ver historial de sesiones de compra. Implementada, con QA manual parcial (§13).
 - [SCRUM-91 / HU-60](https://tacha.atlassian.net/browse/SCRUM-91): editar el total de una sesión o periodo. En planificación.
+- [SCRUM-93 / HU-62](https://tacha.atlassian.net/browse/SCRUM-93): consultar frecuencia e historial de compra por producto. En planificación: decisiones tomadas el 2026-11-14, con la revisión de seguridad de D36, la confirmación del equipo de D38 y los problemas de §15 pendientes.
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md). Producto: [documento-proyecto.md §4.2.1 y §4.6](../../../docs/documento-proyecto.md#42-lista-general-y-dashboard-financiero); diseño: [DESIGN.md §7.9 y §7.11](../../../docs/DESIGN.md).
 
@@ -21,6 +22,14 @@ Que una persona con cuenta revise las compras que cerró en el día, la semana o
 ### SCRUM-91
 
 Que una persona con cuenta corrija el total de una compra o del periodo en curso, sin ingresar precio por producto, para que Finanzas refleje lo que gastó de verdad.
+
+### SCRUM-93
+
+Que una persona con cuenta sepa cuántas veces compró cada producto y, al elegir uno, vea las compras en las que aparece, con su fecha, su supermercado y su total, para conocer con qué frecuencia lo compra.
+
+El monto que se muestra es siempre el **total de la compra completa**. Tacha guarda el total de cada compra, no el precio de cada producto, así que ese monto no se le atribuye al producto.
+
+**Cambio de alcance (Jira, 2026-11-14):** HU-62 era "Filtrar historial por supermercado y categoría". Ahora es "Consultar frecuencia e historial de compra por producto". Esta sección describe solo el alcance nuevo. Los filtros quedan como funcionalidad futura (D38).
 
 ## 2. Alcance
 
@@ -67,6 +76,28 @@ Incluye:
 
 No incluye ([§14](#14-casos-fuera-de-alcance)): editar desde el Dashboard, periodos anteriores, volver una compra a "Sin total", decimales, actualizar otra pestaña abierta, ni el badge y el recordatorio de HU-61.
 
+### SCRUM-93
+
+Incluye:
+
+- Un **selector "Compras / Productos"** dentro del sub-tab Historial (D31).
+- La **lista de productos comprados** de todo el historial (D30).
+  - Agrupada por **producto madre** (D28), cada uno con la **cantidad de veces que aparece** (CA-01, D29).
+  - Ordenada según D33, con **buscador** y **carga por bloques** (D35).
+- Al **elegir un producto**, el detalle en la misma pantalla (D32): las compras que lo incluyen, con fecha, supermercado y monto total de cada compra (CA-02).
+- Una **aclaración visible** de que el monto es el total de la compra y no lo que costó el producto (regla 85).
+- "Sin total", "Supermercado no disponible" y "Producto no disponible" (D8, regla 29 y D37).
+- Carga, vacío, error y reintento, por separado para la lista y para el detalle.
+- Solo cuentas registradas (D6), y solo compras propias (D4) y cerradas (D3).
+- Una lectura nueva en la base (§12), sin tablas ni columnas nuevas y sin cambiar las políticas existentes.
+
+No incluye ([§14](#14-casos-fuera-de-alcance)):
+
+- precio, gasto o monto por producto;
+- los filtros por supermercado y categoría (D38, funcionalidad futura);
+- editar totales (D34);
+- los productos más comprados y más costosos del Dashboard (HU-42).
+
 ## 3. Entradas
 
 ### SCRUM-69
@@ -108,6 +139,16 @@ No incluye ([§14](#14-casos-fuera-de-alcance)): editar desde el Dashboard, peri
 
 El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo ni una zona al editar un total.
 
+### SCRUM-93
+
+- **Sesión:** la sesión de Supabase. `useFinanceAccess` decide si es una cuenta registrada (D6).
+- **Vista:** "Compras" o "Productos" en el selector de Historial (D31).
+- **Texto de búsqueda:** `string`, por nombre del producto madre (D33, regla 93).
+- **"Cargar más":** pide el bloque siguiente de productos (D35).
+- **Producto elegido:** `productCatalogId: string` (D28). Para un producto no disponible es su presentación, `productCatalogVariantId: string` (regla 96).
+- **Cerrar o cambiar la selección:** volver a tocar el producto o tocar otro (D32).
+- **"Reintentar":** uno por lectura, en la lista y en el detalle.
+
 ## 4. Salidas
 
 ### SCRUM-69
@@ -140,6 +181,19 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
 - **Si no se puede guardar:** no cambia nada y lo escrito se conserva.
 - **Al confirmar o cambiar la zona:** se guarda solo si ningún periodo con ajustes queda negativo en ella; si no, sigue la anterior.
 - El Historial sigue sin mostrar periodos anteriores.
+
+### SCRUM-93
+
+- **Lista de productos:** cada uno con su nombre y la cantidad de veces que aparece, en el orden de D33.
+  - Se carga por bloques y dice cuántos hay en total (D35).
+  - El buscador la filtra.
+- **Detalle del producto elegido:**
+  - una fila por compra, con fecha, supermercado y total o "Sin total";
+  - en cada compra, las presentaciones de ese producto y cuántas veces aparece.
+
+  La suma de las apariciones de las filas coincide con el conteo del producto (regla 89).
+- Los anuncios de carga, vacío y error de cada lectura.
+- No escribe nada en la base.
 
 ## 5. Reglas de negocio
 
@@ -307,6 +361,90 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
     - **Periodo ya negativo:** solo aparece por un cambio fuera de la aplicación (`service_role`, SQL manual) o por una actualización de la base de zonas de PostgreSQL. Si es el periodo en curso, la persona lo arregla escribiendo su total. Si es un periodo anterior, nada en la aplicación lo arregla, y tampoco subir una compra si el déficit supera el tope de la regla 46: hace falta soporte, con el procedimiento de [plan.md](plan.md#recuperación-de-un-periodo-negativo).
     - **Sin salida desde la aplicación:** además del caso anterior, un ajuste negativo tan grande que ninguna zona nueva lo sostenga.
 
+### SCRUM-93
+
+**Numeración:** las reglas 61 a 71, las decisiones D23 a D27 y los escenarios E2E-FIN-15 a 18 son de SCRUM-92, que todavía no está en `develop`. SCRUM-93 sigue después para no repetir números cuando se junten las dos ramas.
+
+**Decididas por la dueña de la historia** (2026-11-14):
+
+72. **D28. Qué es "un producto":** el **producto madre** (`product_catalog`), con todas sus presentaciones y tamaños juntos. "Leche — 1 L" y "Leche — 2 L" son "Leche".
+    - **Qué no lo identifica:**
+      - **La marca.** La compra no la guarda: `list_items` no tiene marca.
+      - **El nombre.** Un producto personal (`owner_id` o `household_id`) es otro producto madre aunque se llame igual que uno global, así que pueden verse dos "Leche" (§15, problema 1).
+    - **Producto no visible:** si el producto madre ya no se puede leer, no se puede saber a cuál pertenece la presentación (regla 96).
+73. **D29. Qué cuenta como "una vez":**
+    - **Cada fila** de `list_items` en una compra cerrada propia cuenta como una aparición, aunque varias filas sean de la misma compra.
+    - **También cuentan aparte** dos presentaciones del mismo producto en una misma compra.
+    - **No cuentan las unidades:** una fila con `quantity_bought` 3 es una aparición.
+    - **Consecuencias:** se ven en la regla 89 y en §15, problema 2.
+74. **D30. Periodo:** **todo el historial propio**, sin selector de periodo. D7, que deja solo el periodo en curso, sigue valiendo para la vista "Compras".
+75. **D31. Dónde se ve:** un **selector "Compras / Productos"** dentro del sub-tab Historial. Los sub-tabs de Finanzas siguen siendo Dashboard e Historial (DESIGN.md §3), y "Historial" queda activo en las dos vistas.
+76. **D32. Detalle:** se ve en la **misma pantalla**. Tocar un producto lo abre; volver a tocarlo lo cierra, y tocar otro lo cambia. Solo hay un detalle abierto a la vez.
+77. **D33. Orden y buscador:**
+    - **Orden:**
+      1. por cantidad de apariciones, de más a menos;
+      2. si empatan, por la compra más reciente (`max(closed_at)`);
+      3. si siguen empatando, por nombre;
+      4. al final, por id, para que el orden sea estable.
+    - **Buscador:** filtra por nombre del producto madre (regla 93).
+78. **D34. Solo lectura:** sin lápiz ni edición. Los totales se editan en la vista "Compras" (SCRUM-91).
+79. **D35. Paginación:** la lista de productos se carga **por bloques**, con "Cargar más" (regla 94). El detalle de un producto no se pagina (§15, problema 4).
+80. **D36. Seguridad de la lectura:**
+    - **Decidido:** la lectura es **`security invoker`** y respeta la RLS.
+    - **Consecuencia:** los artículos de una lista que la persona ya no ve (por ejemplo, de una familia de la que salió, `024`) **no cuentan**.
+    - **Pendiente:** la revisión de `security-reviewer` antes de escribir la migración (tasks 0.2).
+81. **D37. Producto no disponible:** cuando el producto madre no se puede leer, se muestra "Producto no disponible" (regla 96). Por ejemplo, un producto personal de una familia de la que la persona salió (`032`).
+82. **D38. Filtros del alcance anterior:**
+    - **Decidido:** los filtros por supermercado y categoría se **mantienen como funcionalidad futura**, fuera de SCRUM-93. Siguen siendo el requisito "Filtrado de compra" de documento-proyecto §4.6, sin historia.
+    - **Pendiente:** la confirmación del equipo (tasks 0.3).
+
+**Reglas que salen del modelo de datos y de esas decisiones:**
+
+83. **Qué es una compra:** una fila de `purchase_sessions` **cerrada** (`closed_at` no nulo) y **propia** (`owner_id` = quien consulta), como D3 y D4. Una compra abierta no cuenta hasta que se cierra.
+84. **Qué artículo está en una compra:** una fila de `list_items` con el `purchase_session_id` de esa compra, que la persona puede leer (D36). Lo tachado fuera del modo compra no tiene compra, así que no aparece, igual que no aparece en el Historial.
+85. **El monto es el de la compra:**
+    - Es `total_amount` de la compra entera. No se divide entre los productos, no se suma por producto y no se presenta como el precio del producto.
+    - El texto lo dice: "Total de la compra".
+    - Una compra sin total dice "Sin total" (D8); una de ₡0 dice ₡0.
+    - Los ajustes manuales (D10) no aparecen: no son compras ni tienen productos.
+86. **Supermercado:** `stores.display_name` de la compra. Si es nulo o está en blanco, "Supermercado no disponible" (regla 29).
+87. **Fechas:** se formatean igual que las filas del Historial, con la zona de la regla 58.
+88. **Orden del detalle:** `closed_at` descendente y después `id` (regla 26).
+89. **Conteo y detalle** (consecuencia de D29):
+    - **Una fila por compra en el detalle.** Cada fila dice cuántas veces aparece el producto en esa compra y con qué presentaciones; la compra no se repite.
+    - **La suma coincide.** La suma de esas apariciones es el conteo del producto en la lista.
+    - **El texto es "veces", no "compras".** El conteo puede ser mayor que la cantidad de compras: "Leche · 4 veces" con 3 compras en el detalle. Así no se confunde con "Compras" del Historial, que cuenta compras.
+    - **Si los datos cambian entre las dos lecturas,** el detalle muestra lo que encuentra.
+90. **Los datos cambian sin editar la compra.** Es un límite declarado, no un error. En todos estos casos el total de la compra no cambia:
+    - **Destachar un artículo de una compra cerrada** lo saca de esa compra (`018`) y baja el conteo.
+    - **Borrar el artículo o su lista** tiene el mismo efecto. La lista se borra, por ejemplo, en cascada al borrar la familia (`024`).
+    - **Dejar de ver la lista** (D36) también lo saca del conteo.
+91. **Solo cuentas registradas** (D6): sin sesión, o con una sesión anónima, no se pide nada a la base.
+92. **Selector Compras / Productos** (D31):
+    - Cada vista mantiene su comportamiento. "Compras" es el Historial de SCRUM-90 a SCRUM-92, sin cambios.
+    - Cambiar de vista no guarda la búsqueda, los bloques cargados ni el producto elegido. Es igual que D9 con el periodo.
+93. **Búsqueda** (D33):
+    - **Dónde se busca:** en la base, sobre el nombre del producto madre, dentro de todo el historial. No se busca solo en los bloques cargados, porque con paginación faltarían productos.
+    - **Qué coincide:** una coincidencia parcial; no distingue mayúsculas y minúsculas.
+    - **Texto que se envía:** se recorta. Un texto vacío muestra la lista completa. El texto tiene un largo máximo y se manda como parámetro, nunca dentro del SQL.
+    - **Al cambiar la búsqueda:** se vuelve al primer bloque y se cierra el detalle.
+    - **"Producto no disponible"** no tiene nombre, así que no aparece cuando hay una búsqueda.
+    - **Pendiente de definir al implementar:** si se ignoran las tildes (§15, problema 3).
+94. **Bloques** (D35):
+    - **Tamaño:** cada bloque tiene un tamaño fijo (constante). La respuesta trae el total de productos que coinciden.
+    - **"Cargar más":** desaparece cuando ya se cargaron todos.
+    - **Respuestas viejas:** la de un bloque o una búsqueda anteriores se descarta.
+    - **Repetidos:** si los datos cambian entre bloques y un producto llega repetido, se muestra una sola vez (§15, problema 4).
+95. **Agrupación por producto madre** (D28):
+    - **Cuenta lo de todas las presentaciones:** el conteo, la compra más reciente y el detalle de un producto suman todas sus presentaciones.
+    - **Presentaciones en el detalle:** se nombran con `product_catalog_variants.name` en cada compra.
+96. **Producto no disponible** (D37):
+    - **Por qué pasa:** con la RLS (D36), si el producto madre no se puede leer, tampoco se puede leer su presentación (`032`). Solo se conoce el id de la presentación, que guarda `list_items`, y no se sabe a qué producto madre pertenece.
+    - **Cómo se muestra:** cada presentación no visible es un elemento "Producto no disponible" aparte, con su propio conteo y su propio detalle.
+    - **Por qué no se juntan:** juntarlas mezclaría productos distintos en un solo conteo.
+    - **Límite declarado:** un mismo producto madre no visible puede aparecer como varios "Producto no disponible".
+    - **Orden:** el de D33, con el nombre vacío al final de los empates.
+
 ## 6. Estados
 
 ### SCRUM-69
@@ -378,6 +516,25 @@ El aviso de precios se ve en los cuatro estados, siempre con cuenta registrada.
 | `ready` | Sí | Sí |
 | Fila "Ajuste manual" | No aplica | Sin lápiz (D16) |
 
+### SCRUM-93
+
+Uniones derivadas de constantes, como las de SCRUM-90:
+
+- **Lista de productos:**
+  - `loading`: el primer bloque o una búsqueda nueva;
+  - `ready`;
+  - `empty`: no hay apariciones;
+  - `noMatches`: la búsqueda no encontró nada;
+  - `failed`.
+- **Bloque siguiente:** `idle` · `loadingMore` · `moreFailed`. Si falla, los bloques ya cargados se conservan.
+- **Detalle:**
+  - `idle`: sin producto elegido;
+  - `loading`;
+  - `ready`;
+  - `empty`: el producto ya no tiene apariciones, por la regla 90;
+  - `failed`.
+- **Acceso:** el de `useFinanceAccess` (`checking` · `registered` · `noAccount`).
+
 ## 7. Errores
 
 ### SCRUM-69
@@ -432,6 +589,16 @@ Los errores de Supabase no se muestran crudos. Un error de guardado no cambia lo
 
 **Cómo se identifican todos los errores:** siempre por `error.code`, nunca por el estado HTTP ni por el texto de PostgreSQL. PostgREST puede dar el mismo estado a códigos distintos, y a `P0002` probablemente un 500.
 
+### SCRUM-93
+
+- **Falla el primer bloque o una búsqueda:** mensaje de error con "Reintentar" y sin lista.
+- **Falla "Cargar más":** los productos ya cargados siguen visibles, con un error junto al botón y "Reintentar".
+- **Falla el detalle:** el error aparece dentro del detalle con "Reintentar", y la lista sigue visible.
+- **Respuesta que no coincide con su conteo:** se trata como un error y no se muestra cortada (como la regla 30).
+- **Búsqueda demasiado larga:** se recorta al máximo antes de enviarla, sin error.
+- **Sesión vencida o anónima:** pasa a `noAccount`, como en el resto de Finanzas.
+- **El producto ya no tiene apariciones** (regla 90): mensaje de vacío en el detalle, no de error.
+
 ## 8. UI esperada
 
 ### SCRUM-69
@@ -478,6 +645,21 @@ Según DESIGN.md §7.9. Textos propuestos:
 
 Ícono: `Pencil` de `lucide-react`, con `Icon` de `@/components/ui`.
 
+### SCRUM-93
+
+- La barra de sub-tabs de Finanzas con "Historial" activo, y el selector "Compras / Productos" (D31).
+- **Buscador** con su etiqueta, encima de la lista.
+- **Lista:**
+  - por producto, el nombre (o "Producto no disponible") y "1 vez" o "N veces";
+  - el producto elegido se distingue;
+  - "Cargar más" mientras falten productos.
+- **Detalle** (en la misma pantalla, D32):
+  - el nombre del producto y su conteo;
+  - una fila por compra, con fecha, supermercado, presentaciones y apariciones, y "Total de la compra" o "Sin total";
+  - la aclaración de la regla 85, por ejemplo: "Es el total de cada compra completa, no el precio de este producto".
+- Vacío, sin resultados, carga y error de cada lectura.
+- Sin lápices (D34).
+
 ## 9. Accesibilidad
 
 ### SCRUM-69
@@ -506,6 +688,18 @@ Según DESIGN.md §7.9. Textos propuestos:
 - La zona `role="status"` anuncia "Total guardado" y el total nuevo. Los errores de guardado van en `role="alert"`.
 - "Ajuste manual" y el signo del monto se dicen en texto, no solo con color. "Incluye ajustes manuales" también es texto, cerca del total.
 - Todo se puede hacer solo con teclado, en desktop y en mobile.
+
+### SCRUM-93
+
+- **Selector "Compras / Productos":** es navegación, así que la vista activa se anuncia con `aria-current`. Su forma exacta se define en el plan.
+- **Buscador:** tiene `label` asociado. La cantidad de resultados se anuncia con `role="status"` sin mover el foco.
+- **Producto:** cada uno es un botón con nombre accesible completo (por ejemplo "Leche, 4 veces") y `aria-expanded`.
+- **Foco:**
+  - al abrir un detalle va a su título, y al cerrarlo vuelve al producto;
+  - "Cargar más" deja el foco en el botón, o en el primer producto nuevo si el botón desaparece.
+- **Anuncios:** la carga y el vacío con `role="status"`; los errores con `role="alert"`, como el resto de Finanzas.
+- **Contraste:** el producto elegido y la vista activa cumplen AA. El chip `TEAL` activo midió 4.09:1 en modo claro, menos que 4.5:1. Si se usa ese tono, hay que corregirlo (plan, "Riesgos").
+- **Monto:** la aclaración de la regla 85 es texto visible, no solo un `title` o un tooltip.
 
 ## 10. Restricciones técnicas
 
@@ -539,6 +733,19 @@ Según DESIGN.md §7.9. Textos propuestos:
 - Estado con servicios y `useEffect`, sin TanStack Query ni Realtime. Lógica en ViewModels y hooks; los `.tsx` solo presentan.
 - Textos, RPC, códigos de error y estados en `finance.constants.ts`, sin strings sueltos.
 - Tests automáticos obligatorios y E2E según [plan.md](plan.md#scrum-91-editar-el-total-de-una-sesión-o-periodo).
+
+### SCRUM-93
+
+- TypeScript estricto, ViewModel, constantes en `finance.constants.ts` y tokens `tacha-*`, como las demás historias de Finanzas.
+- **Constantes:** el tamaño del bloque y el largo máximo de la búsqueda.
+- **Sin cambios en otras features:** nada en `features/shopping-list/` ni en el catálogo.
+- **Base:**
+  - sin tablas ni columnas nuevas;
+  - sin cambiar la RLS de `list_items`, `purchase_sessions` ni del catálogo;
+  - la lectura entra por una migración nueva, sin tocar las aplicadas;
+  - las RPC son `security invoker` (D36).
+- **Sin librerías nuevas.**
+- **La base hace el trabajo:** cuenta, agrupa, busca y pagina. El cliente no recibe todos los artículos de todas las compras.
 
 ## 11. Dependencias
 
@@ -578,6 +785,12 @@ No depende de ningún PR sin mergear.
 | HU-61 | Sin empezar | Toma el badge y el recordatorio; CA-03 queda adelantado por D12 |
 
 No depende de ningún PR sin mergear.
+
+### SCRUM-93
+
+- **De Finanzas:** `useFinanceAccess`, `FinanceTabs`, `formatColones`, el formato de fecha de `PurchaseSessionRow`, `finance.service.ts` y `finance.constants.ts`.
+- `@/constants` (`ROUTES`, para la ruta de la vista "Productos") y `@/components/ui`.
+- **Tablas que se leen:** `purchase_sessions`, `list_items`, `product_catalog_variants`, `product_catalog` y `stores`.
 
 ## 12. Contratos externos
 
@@ -724,6 +937,59 @@ purchase_sessions     select total_amount
 Con zona guardada, las dos pantallas leen solo de `get_period_finance`.
 
 **`stamp_purchase_session_close`:** si `old.closed_at` no es nulo, conserva ese valor; si la compra se está cerrando, pone `now()`, como hasta ahora. **Limitación aceptada:** ningún rol puede corregir o reabrir el `closed_at` de una compra cerrada con un update, tampoco soporte, sin deshabilitar el trigger.
+
+### SCRUM-93
+
+Los nombres son provisionales; la firma se fija en la migración.
+
+**`get_purchased_products(search_text text, page_limit int, page_offset int)`**
+
+- Devuelve:
+  - `total_count`: los productos que coinciden con la búsqueda;
+  - `products`: el bloque pedido, en el orden de D33.
+- Cada producto tiene:
+  - `product_catalog_id`: `null` si no está disponible;
+  - `product_catalog_variant_id`: solo si no está disponible (regla 96);
+  - `product_name`: `null` si no está disponible;
+  - `appearance_count`: filas, según D29;
+  - `last_purchased_at`: el `closed_at` más reciente.
+- **Validación de los parámetros:**
+  - `page_limit` entre 1 y el tope de la constante;
+  - `page_offset` mayor o igual a 0;
+  - `search_text` recortado y con un largo máximo;
+  - si no cumplen, `22023`.
+
+**`get_product_purchases(target_product_id uuid, target_variant_id uuid)`**
+
+- Recibe exactamente uno de los dos: el producto madre, o la presentación de un "Producto no disponible".
+- Devuelve una fila por compra cerrada propia que lo incluye (regla 89):
+  - `id`, `closed_at`, `total_amount`, `store_name`;
+  - `appearance_count`;
+  - `variant_names`: las presentaciones que se pueden leer.
+- Orden de la regla 88.
+- Un id que no está en ninguna compra propia devuelve una lista vacía, no un error.
+
+**Contrato común:**
+
+- `language sql` o `plpgsql`, `stable`, **`security invoker`** (D36, pendiente de `security-reviewer`), `set search_path = ''`.
+- Permisos: `execute` solo para `authenticated`; revocado a `public` y `anon`.
+- Rechazan una sesión anónima con `42501`.
+  - No pueden usar `require_registered_user()` de la `040`, que tiene `execute` revocado a `authenticated`.
+  - La comprobación se escribe en la migración (plan, "Seguridad").
+- El dueño sale de `auth.uid()`; ningún parámetro lo recibe.
+- La búsqueda es un parámetro. Los comodines de `ilike` (`%`, `_`, `\`) se escapan.
+- No devuelven precios ni montos por producto.
+
+**Relaciones que usan** (verificadas en `004`, `016`, `018`, `024`, `032`, `035` y `schema.sql`):
+
+- `list_items.purchase_session_id → purchase_sessions.id` (`on delete set null`), junto con `quantity_bought` (`list_items_purchase_pair_check`).
+- `list_items.product_catalog_variant_id → product_catalog_variants.id → product_catalog_variants.product_catalog_id → product_catalog.id`.
+- `purchase_sessions.store_id → stores.id`.
+
+**Lo que no existe:**
+
+- No hay precio por artículo: `list_items` no tiene precio ni marca.
+- `product_prices` es el precio de mercado obtenido por scraping, no lo que se pagó, y esta historia no lo usa.
 
 ## 13. Casos de aceptación
 
@@ -873,6 +1139,63 @@ Casos de cada flujo:
 - [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
 - [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
 
+### HU-62 (SCRUM-93)
+
+Ninguno validado. **No está lista para implementar:**
+
+- falta la revisión de seguridad de D36;
+- falta la confirmación del equipo de D38;
+- falta resolver los problemas de §15;
+- SCRUM-92 todavía no está en `develop`.
+
+Criterios de la historia, según Jira (2026-11-14), con cómo se verifica cada uno (con una cuenta registrada):
+
+- [ ] **CA-01:** el sistema muestra los productos comprados y cuántas veces aparece cada uno en el historial.
+  - **Agrupación (D28):** "Leche — 1 L" en 2 compras y "Leche — 2 L" en otra dan un solo producto "Leche".
+  - **Conteo por fila (D29):** dos filas de leche en una misma compra suman 2. Una fila con 3 unidades suma 1.
+  - **Lo que no cuenta:** compras abiertas, lo tachado fuera del modo compra y lo de listas que ya no se ven (reglas 83, 84 y D36).
+  - **Orden (D33):** el de esa decisión, con empates resueltos por la compra más reciente y por nombre.
+  - **Texto:** "N veces", no "N compras" (regla 89).
+  - **Cómo se verifica:** ViewModel, pantalla, prueba SQL, E2E-FIN-19 y manual.
+- [ ] **CA-02:** al seleccionar un producto se muestra el historial de las compras que lo incluyen, con fecha, supermercado y monto total de cada compra.
+  - **Dónde:** el detalle se abre en la misma pantalla (D32).
+  - **Filas:** una por compra, de la más reciente a la más antigua, cada una con sus presentaciones y apariciones. La suma de las apariciones es el conteo del producto (regla 89).
+  - **Monto:** cada fila muestra el total completo de la compra, con la aclaración de la regla 85.
+  - **Textos especiales:** "Sin total" y "Supermercado no disponible" se ven como en el Historial.
+  - **Cómo se verifica:** ViewModel, pantalla, prueba SQL, E2E-FIN-20 y manual.
+
+Casos de cada flujo:
+
+- [ ] **Búsqueda (D33, regla 93):**
+  - busca en todo el historial y no solo en los bloques cargados;
+  - vuelve al primer bloque y cierra el detalle;
+  - "Sin resultados" cuando no encuentra nada;
+  - los comodines `%` y `_` se buscan como texto;
+  - se verifica en E2E-FIN-21 y con la prueba SQL.
+- [ ] **Bloques (D35, regla 94):**
+  - "Cargar más" agrega el bloque siguiente y desaparece al final;
+  - si un bloque falla, se conservan los anteriores;
+  - un producto repetido entre bloques se ve una vez;
+  - se verifica en E2E-FIN-21 y con el ViewModel.
+- [ ] **Producto no disponible (D37, regla 96):** contra la base, después de salir de una familia con un producto personal comprado. Se ve "Producto no disponible" con su conteo y su detalle.
+- [ ] **Monto sin atribuir (regla 85):** el monto de cada fila es igual al total de esa compra en "Compras", y ninguna pantalla muestra un precio del producto.
+- [ ] **Ajustes (regla 85):** un ajuste manual no aparece en el detalle.
+- [ ] **Datos que cambian (regla 90):** destachar un artículo de una compra cerrada baja el conteo y no cambia el total de la compra.
+- [ ] **Selector (D31, regla 92):** "Compras" sigue igual que antes, y cambiar de vista no conserva la búsqueda ni la selección.
+- [ ] **Vacío y errores:** se verifican en E2E-FIN-22.
+  - Sin apariciones se ve el vacío.
+  - Si falla la lista, error y "Reintentar".
+  - Si falla el detalle, la lista sigue visible.
+- [ ] **Acceso (D6):**
+  - sin sesión o con una sesión anónima no se pide nada (E2E-FIN-23);
+  - la RPC le responde `42501` a una sesión anónima real.
+- [ ] **Aislamiento (D4, D36):** una cuenta no ve los productos ni las compras de otra, tampoco desde la consola con la RPC. `security-reviewer` lo aprueba.
+- [ ] **Base (prueba SQL):** los casos de [plan.md](plan.md#scrum-93-consultar-frecuencia-e-historial-de-compra-por-producto).
+- [ ] **E2E (interfaz):** E2E-FIN-19 a 23 pasan en `chromium` y `mobile-chrome`. Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
+- [ ] **Manual:** CA-01 y CA-02 contra la base compartida, mobile y teclado, con capturas sin correos.
+- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-69
@@ -918,6 +1241,21 @@ Casos de cada flujo:
 - Asignar una zona a usuarios existentes (regla 59).
 - Una pantalla de configuración para cambiar la zona: la base lo permite, y la acción se define en la Etapa 5.
 
+### SCRUM-93
+
+- **Precio, gasto o subtotal por producto o por categoría.** La compra guarda solo su total, y estimarlo con `product_prices` no es lo que se pagó.
+- **Filtros por supermercado y categoría** (el alcance anterior de HU-62): funcionalidad futura (D38, pendiente de confirmar por el equipo).
+  - Las menciones a "filtros (HU-62)" en el §14 de SCRUM-90 y de SCRUM-91 se refieren a ese alcance anterior.
+- **Productos más comprados y más costosos del Dashboard** (HU-42, SCRUM-74), incluido el enlace al detalle del catálogo.
+- **Editar totales desde esta vista** (D34).
+- **Unidades compradas, cantidad pedida frente a comprada, y marca.**
+- **Selector de periodo en la vista "Productos"** (D30).
+- **Compras de otros integrantes de la familia** (D4), artículos de listas que ya no se ven (D36) y cambios en la RLS existente.
+- **Artículos tachados fuera del modo compra** (regla 84) y recuperar artículos borrados (regla 90).
+- **Juntar "Producto no disponible" bajo su producto madre** (regla 96).
+- **Paginar el detalle de un producto** (D35, §15 problema 4).
+- **El recordatorio y la sección "Compras sin total"** (HU-61). No cambian.
+
 ## 15. Notas de implementación
 
 ### SCRUM-69
@@ -939,3 +1277,46 @@ Casos de cada flujo:
 - **Por qué RPC y no una política:** la política de `016` solo deja actualizar compras abiertas. Abrirla junto con el permiso de columna existente permitiría cambiar `closed_at` o vaciar el total por API.
 - **La base calcula los límites:** con la zona guardada, para que el navegador no elija otro periodo. Con zona guardada, las pantallas leen esos límites; sin ella, siguen con `getPeriodBounds`, porque no hay ajustes (regla 59).
 - **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.
+
+### SCRUM-93
+
+**Viabilidad:** viable con los datos que existen, **sin precios por producto**. Los conteos y los detalles salen de la relación compra → artículos → presentación → producto madre. Los límites son las reglas 84, 90 y 96.
+
+**Problemas del modelo de datos con las decisiones tomadas.** Están documentados, no resueltos:
+
+1. **Dos productos madre con el mismo nombre (D28).**
+   - **Qué pasa:** un producto personal y uno global, o dos personales, se ven como dos "Leche" con conteos separados. El modelo no los une y esta historia no los junta por nombre, porque juntar por nombre mezclaría productos distintos.
+   - **Pendiente:** decidir si se distinguen en pantalla, por ejemplo con "Agregado por mí", como en el catálogo.
+2. **El conteo por fila depende de cómo se usó la lista (D29).**
+   - **Qué pasa:** el mismo hecho, comprar leche, puede dar 1 o 2 apariciones.
+     - Comprar 2 unidades en una fila es **1** aparición.
+     - Tachar, volver a añadir y tachar otra vez en la misma compra crea otra fila desde la `035`: son **2**.
+     - Destachar una fila cuando ya hay otra pendiente de esa presentación las junta (`035`).
+   - **Por qué importa:** el número no es "cuántas compras".
+   - **Qué se hace:** se documenta como límite y el texto dice "veces" (regla 89).
+3. **Búsqueda sin tildes.**
+   - **Qué pasa:** `ilike` no ignora las tildes, así que "azucar" no encuentra "Azúcar". Ignorarlas necesita `unaccent` o la normalización que ya use el catálogo.
+   - **Pendiente:** no se verificó si esa extensión está disponible en la base. Se revisa al escribir la migración. Si no está, la búsqueda distingue tildes y se declara como límite.
+4. **Paginación con datos que cambian (D35).**
+   - **Qué pasa:** el orden de D33 depende de valores calculados (conteo y fecha), que pueden cambiar entre un bloque y otro si se destacha o se cierra una compra. Con `offset`, un producto puede repetirse o saltarse.
+   - **Por qué `offset`:** una paginación por cursor sobre valores agregados es más compleja que lo que piden los criterios.
+   - **Qué se hace:**
+     - los repetidos se descartan en el cliente (regla 94);
+     - un salto se corrige al recargar o buscar, y se declara como límite.
+   - **El detalle no se pagina:** crece con las compras de un producto y es un riesgo declarado en el plan.
+5. **Agrupar con productos no visibles (D28 con D36 y D37).** Una presentación cuyo producto madre no se puede leer no se puede agrupar (regla 96). Puede verse como varios "Producto no disponible".
+
+**Pendientes de validación:**
+
+- **D36:** la revisión de `security-reviewer` antes de escribir la migración (tasks 0.2).
+- **D38:** la confirmación del equipo (tasks 0.3).
+- **HU-42 (SCRUM-74):** también cuenta "más comprados". Tiene que decidir si usa este mismo conteo por fila y por producto madre (tasks 0.4).
+
+**Dependencia con SCRUM-92:** SCRUM-92 todavía no está en `develop`.
+
+- Los cuatro documentos de `specs/` van a dar conflictos en los mismos puntos: cada historia agrega su subsección después de SCRUM-91. Se resuelven dejando las dos, SCRUM-92 primero.
+- El código se cruza en `finance.constants.ts` y en `PurchaseHistory.tsx`, que recibe el selector (D31).
+
+**Número de la migración:** se elige al implementar. `develop` llega a la `044`, con huecos en `037`, `041` y `043`. Hay que revisar las ramas y PRs abiertos antes de crear el archivo y otra vez antes del merge.
+
+**Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.

@@ -332,3 +332,102 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
 | Regla 52 (dónde cuenta) | — | `finance.service.test.ts`, prueba SQL 040 |
 | Trigger, permisos y RLS | — (no llegan a la base) | Prueba SQL 040, manual |
 | D20 (otra pestaña) | — (fuera de alcance) | Límite declarado |
+
+## SCRUM-93: consultar frecuencia e historial de compra por producto
+
+Deriva de SPEC §13 (HU-62) y de las decisiones D28 a D38 (SPEC §5).
+
+- **Archivo:** `e2e/features/finance/product-history.spec.ts`.
+- **Qué validan:** igual que los anteriores, usan una **sesión registrada simulada** y **respuestas de Supabase simuladas**, y validan **solo la interfaz**: ni la autenticación real, ni la RLS, ni las RPC.
+- **Qué cubre lo real:** la prueba SQL de la migración de SCRUM-93 y el QA manual de SPEC §13.
+- **IDs:** siguen a E2E-FIN-15 a 18, de SCRUM-92.
+
+**Lo que no se prueba en el navegador:** la agrupación por producto madre, el conteo por fila, las compras abiertas, la visibilidad (D36) y el escape de comodines. Lo hace la base. Con respuestas simuladas el navegador solo vería lo que el test le manda. Acá se prueba lo que la pantalla hace con esos datos: textos, orden recibido, búsqueda, bloques, detalle y errores.
+
+### Datos y entorno
+
+Mismo reloj y zona horaria de E2E-FIN-05. El tamaño del bloque se toma de la constante del producto en el helper, no se repite como número suelto. Respuestas nuevas en `finance.helpers.ts`:
+
+| Petición | Respuesta simulada |
+|---|---|
+| `POST /rest/v1/rpc/get_purchased_products` | Según `search_text`, `page_limit` y `page_offset`. Hay más productos que un bloque, para que exista "Cargar más". Incluyen "Leche" con 4 apariciones, "Arroz" con 1 y un no disponible (`product_name: null`, con `product_catalog_variant_id`) con 1. Con `search_text` = "zzz", `total_count: 0` |
+| `POST /rest/v1/rpc/get_product_purchases` | Para "Leche", tres compras de la más reciente a la más antigua: MaxiPali ₡15 000 con 2 apariciones ("1 L" y "2 L"); Walmart con `total_amount: null` y 1 aparición; y una con `store_name: null` y 1 aparición |
+
+Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
+
+### E2E-FIN-19: ver los productos comprados y su conteo (SCRUM-93)
+
+- **Cubre:** CA-01; D28, D29 (solo el texto), D31, D37 y reglas 89, 91 y 92.
+- **Precondición:** sesión registrada simulada. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas/historial`.
+  2. Tocar "Productos" en el selector.
+- **Resultado esperado:**
+  - La URL es la de la vista "Productos", "Historial" sigue activo en los sub-tabs y "Productos" tiene `aria-current`.
+  - Se ven "Leche, 4 veces" y "Arroz, 1 vez", en el orden recibido.
+  - El no disponible dice "Producto no disponible".
+  - La petición a `rpc/get_purchased_products` pide el primer bloque con la búsqueda vacía y no lleva dueño.
+  - Al volver a "Compras", el Historial se ve como antes.
+
+### E2E-FIN-20: ver las compras de un producto (SCRUM-93)
+
+- **Cubre:** CA-02; D32, D34 y reglas 85, 86, 88 y 89.
+- **Precondición:** la misma.
+- **Pasos:**
+  1. En "Productos", tocar "Leche".
+  2. Volver a tocarlo.
+- **Resultado esperado:**
+  - La petición a `rpc/get_product_purchases` lleva el producto madre elegido.
+  - El detalle se abre en la misma pantalla, sin cambiar la URL.
+  - Muestra 3 compras, de la más reciente a la más antigua, cada una con su total, sus presentaciones y sus apariciones:
+    - ₡15 000, "1 L, 2 L" y "2 veces";
+    - "Sin total";
+    - "Supermercado no disponible".
+  - Las apariciones suman 4, el conteo del producto.
+  - Se ve la aclaración de que el monto es el total de la compra y no el precio del producto. No hay lápices.
+  - El foco va al título del detalle y, al cerrarlo, vuelve a "Leche".
+
+### E2E-FIN-21: buscar y cargar más (SCRUM-93)
+
+- **Cubre:** D33 y D35; reglas 93 y 94.
+- **Precondición:** la misma.
+- **Pasos:**
+  1. Tocar "Cargar más" hasta que desaparezca.
+  2. Abrir el detalle de "Leche" y escribir "lec" en el buscador.
+  3. Escribir "zzz".
+  4. Vaciar el buscador.
+- **Resultado esperado:**
+  - **Cargar más:** cada toque pide el bloque siguiente con la misma búsqueda. Los productos se agregan sin repetirse y el botón desaparece al llegar a `total_count`.
+  - **Buscar "lec":** la petición lleva la búsqueda y vuelve al primer bloque. El detalle se cierra y la cantidad de resultados se anuncia en `role="status"`.
+  - **Buscar "zzz":** "Sin resultados".
+  - **Buscador vacío:** vuelve la lista completa desde el primer bloque.
+
+### E2E-FIN-22: vacío y errores (SCRUM-93)
+
+- **Cubre:** SPEC §6 y §7 de SCRUM-93.
+- **Pasos y resultado esperado:**
+  - **Sin productos** (`total_count: 0`, sin búsqueda): se ve el mensaje de vacío.
+  - **Falla el primer bloque:** se ven el error y "Reintentar"; reintentar vuelve a pedirlo.
+  - **Falla "Cargar más":** los productos cargados siguen visibles, con el error y "Reintentar" junto al botón.
+  - **Falla el detalle:** el error aparece dentro del detalle y la lista sigue visible; reintentar pide el mismo producto.
+
+### E2E-FIN-23: sin cuenta registrada (SCRUM-93)
+
+- **Cubre:** D6 y regla 91.
+- **Pasos:** abrir la vista "Productos" sin sesión y con una sesión anónima simulada.
+- **Resultado esperado:** se ve el aviso de Finanzas y no se pide ninguna de las dos RPC.
+
+### Cobertura de SCRUM-93
+
+| Criterio | Escenarios E2E | Otros niveles |
+|---|---|---|
+| HU-62 CA-01 | E2E-FIN-19 | ViewModel, `finance.service.test.ts`, prueba SQL (D28, D29, reglas 83 y 84), manual |
+| HU-62 CA-02 | E2E-FIN-20 | Componentes, ViewModel, prueba SQL (reglas 88 y 89), manual |
+| D31 y regla 92 (selector) | E2E-FIN-19 | `PurchaseHistory.test.tsx`, componentes |
+| D33 y regla 93 (orden y búsqueda) | E2E-FIN-21 (la pantalla) | Prueba SQL (orden, empates, comodines), `usePurchasedProducts` |
+| D35 y regla 94 (bloques) | E2E-FIN-21, E2E-FIN-22 | `mergeProductPages.test.ts`, `usePurchasedProducts`, prueba SQL |
+| Regla 85 (monto sin atribuir) | E2E-FIN-20 | Componentes, manual |
+| D36, D37 y regla 96 (visibilidad) | E2E-FIN-19 (solo cómo se muestra) | Prueba SQL, manual con dos cuentas, `security-reviewer` |
+| Regla 90 (datos que cambian) | — (no llegan a la base) | Prueba SQL, manual |
+| Aislamiento y anónimo | E2E-FIN-23 (solo la interfaz) | Prueba SQL, manual |
+| Errores y vacío | E2E-FIN-22 | Hooks de lectura |
