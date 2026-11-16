@@ -3,7 +3,8 @@
 --
 -- Todavía no se pueden crear recetas desde la app (SCRUM-95), así que esto
 -- le da 4 recetas de ejemplo a CADA usuario que ya existe, con ingredientes
--- que están en el catálogo actual (que por ahora es solo lácteos).
+-- que son madres curadas del catálogo (SCRUM-131; nombres actualizados en
+-- SCRUM-133, cuando se retiraron las madres viejas a nivel SKU).
 --
 -- Cómo usarlo (SQL editor de Supabase, que corre sin RLS):
 --   1. Abrir /recetas al menos una vez, para que tu usuario exista.
@@ -55,17 +56,17 @@ begin
     recipe_name text, product_name text, quantity_value numeric, quantity_unit text, position integer
   ) on commit drop;
   insert into demo_ingredients values
-    ('Tres leches',         'Leche entera Sabemas - 1 L',                   500, 'ml', 0),
-    ('Tres leches',         'Leche Condensada La Lechera Original -335g',  335, 'g',  1),
-    ('Tres leches',         'Leche Evaporada Ideal Nestlé lata -360g',     360, 'g',  2),
-    ('Tres leches',         'Crema de Leche Nestlé - 236g',                236, 'g',  3),
-    ('Arroz con leche',     'Leche entera Sabemas - 1 L',                  1000, 'ml', 0),
-    ('Arroz con leche',     'Leche condensada El Ángel doypack - 385 g',   200, 'g',  1),
-    ('Arroz con leche',     'Leche De Coco Goya Lata - 400ml',             400, 'ml', 2),
-    ('Batido de chocolate', 'Leche Dos Pinos Pinito - 1000 ml',            500, 'ml', 0),
-    ('Batido de chocolate', 'Chocolate Milka de Leche - 90 g',              45, 'g',  1),
-    ('Cereal con leche',    'Froot Loops Mas Leche Pinito 520 g',           40, 'g',  0),
-    ('Cereal con leche',    'Leche Semidescremada Dos Pinos -1 L',         250, 'ml', 1);
+    ('Tres leches',         'Leche',             500, 'ml', 0),
+    ('Tres leches',         'Leche condensada',  335, 'g',  1),
+    ('Tres leches',         'Leche evaporada',   360, 'g',  2),
+    ('Tres leches',         'Crema de leche',    236, 'g',  3),
+    ('Arroz con leche',     'Leche',            1000, 'ml', 0),
+    ('Arroz con leche',     'Leche condensada',  200, 'g',  1),
+    ('Arroz con leche',     'Leche de coco',     400, 'ml', 2),
+    ('Batido de chocolate', 'Leche',             500, 'ml', 0),
+    ('Batido de chocolate', 'Chocolate',          45, 'g',  1),
+    ('Cereal con leche',    'Cereal',             40, 'g',  0),
+    ('Cereal con leche',    'Leche',             250, 'ml', 1);
 
   -- Una copia de cada receta por usuario, marcada con demo_marker.
   insert into public.recipes (owner_id, name, base_servings, created_at)
@@ -80,7 +81,11 @@ begin
   join public.recipes r
     on r.name = i.recipe_name
    and r.created_at >= demo_marker and r.created_at < demo_marker + interval '1 hour'
-  join public.product_catalog p on p.name = i.product_name;
+  join public.product_catalog p
+    on p.name = i.product_name
+   -- Solo el catálogo global: un producto propio puede llamarse igual ("Leche").
+   and p.owner_id is null
+   and p.household_id is null;
 
   get diagnostics inserted_ingredients = row_count;
   select count(*) * user_count into expected_ingredients from demo_ingredients;

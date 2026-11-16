@@ -11,7 +11,7 @@ supabase/seed-demo-recipes.sql                             nombres de producto �
 docs/catalogo-scraping/reporte-reset-SCRUM-133.md          nuevo: registro de lo borrado, movido y verificado
 ```
 
-`NNN` = siguiente número libre al crear el archivo (048 al 2026-11-15). Revisar `develop`, los PRs abiertos y `supabase_migrations.schema_migrations` justo antes de crearlo y antes del merge (regla de [supabase/README.md#migraciones](../../README.md#migraciones)).
+`NNN` = 048 (libre al 2026-11-15). Revisar `develop`, los PRs abiertos y `supabase_migrations.schema_migrations` justo antes de crearlo y antes del merge (regla de [supabase/README.md#migraciones](../../README.md#migraciones)).
 
 ## 2. La migración, paso a paso (una transacción)
 
