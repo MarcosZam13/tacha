@@ -22,6 +22,10 @@
 -- recetas reales aunque se llamen igual.
 --
 -- No es una migración: son datos de prueba y no van a producción.
+--
+-- Ojo en la base compartida: correrlo borra y vuelve a crear las recetas de
+-- ejemplo de TODOS los usuarios, y con ellas (en cascada) sus comidas del plan
+-- semanal y los pedidos de receta en sus listas. Avisar al grupo antes.
 -- ============================================================================
 
 do $$

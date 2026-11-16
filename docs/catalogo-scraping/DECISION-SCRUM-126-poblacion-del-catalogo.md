@@ -98,7 +98,7 @@ Con el keyword decidiendo primero, los 4 se habrían fusionado incorrectamente e
 
 - La lista curada es trabajo manual y hay que mantenerla. Lo que no esté en ella no aparece en el catálogo.
 - Los precios pueden tener hasta un mes de antigüedad. La app ya los muestra como aproximados (HU-51 CA-02).
-- Mientras no se ejecute SCRUM-133, las 28 madres actuales conviven con el normalizador nuevo; las recetas y listas existentes siguen funcionando.
+- Mientras no se ejecute SCRUM-133, las 28 madres actuales conviven con el normalizador nuevo; las recetas y listas existentes siguen funcionando. **Ejecutado el 2026-11-16** (migración 048): ver [reporte-reset-SCRUM-133.md](reporte-reset-SCRUM-133.md); las recetas demo se remapearon en el lugar en vez de re-crearse.
 - El reset toca la base compartida: se borran las recetas de demo y hay que reasignar a mano los ingredientes y los ítems de lista reales. Las cifras de recetas, ingredientes y listas cambian a diario, así que se vuelven a contar el día del reset.
 - Cada ticket agrega una migración o un cambio de despliegue en la base compartida. Las migraciones de SCRUM-131 y SCRUM-133 siguen la regla de [SCRUM-134](https://tacha.atlassian.net/browse/SCRUM-134): una sola convención de nombres y siempre registradas en el historial de la base, sin usar el SQL Editor sin dejar la fila del historial. Se avisa al equipo en las notas de desarrollador de cada PR.
 - El tope de 50 resultados por término y el riesgo de bloqueo por parte de las tiendas son límites conocidos; se mitigan con ritmo controlado.

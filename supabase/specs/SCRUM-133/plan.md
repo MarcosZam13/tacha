@@ -45,7 +45,8 @@ Cada escritura con autorización explícita del dueño del ticket y aviso al gru
 
 ## 4. Verificación
 
-- Test SQL (SPEC §5): 0 recetas en la ventana demo; 0 `recipe_ingredients`/`list_items`/staging en madres viejas; 0 madres viejas; las 718 recetas del seed siguen ahí (mismos ids) con sus 1975 ingredientes en madres curadas; las recetas reales con sus ingredientes en las madres esperadas; ningún (lista, variante) con dos ítems pendientes.
+- Test SQL (SPEC §5): 0 madres viejas; 0 recetas en la ventana demo; los ingredientes del seed solo en sus 7 madres curadas y sin recetas del seed duplicadas; 0 ítems en variantes globales sin madre curada; `search_catalog` y `list_catalog_by_category` sin madres viejas; ningún (lista, variante) con dos ítems pendientes.
+- A mano, con consultas de solo lectura (resultado en el reporte): las 718 recetas del seed siguen ahí con sus 1975 ingredientes (178 × 11 + 17); las recetas reales con sus ingredientes en las madres esperadas; el ítem fusionado con la cantidad sumada.
 - `search_catalog('leche')`, `('cereal')`, `('chocolate')` y `('arroz')` devuelven solo madres curadas.
 - Por la interfaz: una lista que tenía un producto movido (ej. la de la fusión) muestra "Leche — 1000 ml" con cantidad 2 y precios.
 - `select version, name from supabase_migrations.schema_migrations order by version;` incluye la fila nueva.

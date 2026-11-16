@@ -3,7 +3,7 @@
 Ticket: [SCRUM-133](https://tacha.atlassian.net/browse/SCRUM-133) · Dueño: Daniel Salas · Sprint 4
 Origen: respuesta del líder de proyecto al reporte de SCRUM-126 (2026-10-03): el reset va en su propio ticket, con aviso al grupo antes de correrlo, porque borra datos que recetas y listas referencian.
 
-Ver también: [SCRUM-131/SPEC.md](../SCRUM-131/SPEC.md) (madres curadas, prerequisito) · [SCRUM-132/SPEC.md](../SCRUM-132/SPEC.md) (ingesta mensual, prerequisito: tiene que haber corrido) · [supabase/README.md#migraciones](../../README.md#migraciones) (regla de migraciones de SCRUM-134) · [docs/documento-proyecto.md §4.5](../../../docs/documento-proyecto.md#45-catálogo-de-productos-y-categorías) (variante = madre + tamaño; la marca es detalle)
+Ver también: [SCRUM-131/SPEC.md](../SCRUM-131/SPEC.md) (madres curadas, prerequisito) · [SCRUM-132](https://tacha.atlassian.net/browse/SCRUM-132) (ingesta mensual, prerequisito: tiene que haber corrido; su spec queda en `supabase/specs/SCRUM-132/` al mergear su PR) · [supabase/README.md#migraciones](../../README.md#migraciones) (regla de migraciones de SCRUM-134) · [docs/documento-proyecto.md §4.5](../../../docs/documento-proyecto.md#45-catálogo-de-productos-y-categorías) (variante = madre + tamaño; la marca es detalle)
 
 ## 1. Intención
 
@@ -37,7 +37,7 @@ Dependencias que no existían al escribir el ticket: borrar una receta borra en 
 
 1. **Recetas del seed vigente (718) y del resto (20): se remapean en el lugar**, no se borran ni se re-crean. Cada ingrediente pasa de su madre vieja a la madre curada equivalente (tabla §3.1). Se desvía del "re-correr el seed" del ticket: re-correrlo borraría y re-crearía las 718 recetas (perdiendo en cascada 5 `meal_plans` y 10 requisitos de lista) y crearía 3560 recetas nuevas (4 × 890 usuarios). El remapeo deja el mismo resultado final (cada receta demo apunta a madres curadas) sin perder nada.
 2. **`supabase/seed-demo-recipes.sql` se actualiza** a los nombres de las madres curadas (mismo mapeo §3.1), para que correrlo en el futuro dé exactamente las recetas que quedan después del remapeo. No se corre en este ticket.
-3. **Las 36 recetas demo originales se borran** (ventana de tiempo), como decide el ticket: el seed no las reconoce (no tienen el marcador `2000-01-01`) y sus dueños ya tienen las 4 del seed vigente. Arrastran en cascada 5 requisitos de lista y 0 `meal_plans`.
+3. **Las 36 recetas demo originales se borran** (ventana de tiempo), como decide el ticket: el seed no las reconoce (no tienen el marcador `2000-01-01`) y sus dueños ya tienen las 4 del seed vigente. Arrastran en cascada 5 requisitos de lista y 0 `meal_plans`. El borrado es solo por la ventana de tiempo: se verificó contra la base compartida que en ella hay exactamente esas 36 recetas. En una base nueva la migración no encuentra ninguna; no se debe correr sobre otra copia de datos sin repetir esa verificación.
 4. **Las recetas de prueba no se borran**: se remapean igual que las demás (no tocar datos de otros usuarios más de lo necesario).
 5. **`list_items`: mismo producto o nada.** Cada ítem pasa a la variante curada en la que el normalizador de SCRUM-131/132 puso **ese mismo producto** (mismo nombre de súper) en la ingesta del 2026-11-15, identificada por madre + tamaño (tabla §3.2). Así el ítem queda con la misma marca y con precios que la ingesta mantiene; la lista muestra madre + tamaño (ej. "Leche — 1000 ml"), nunca el nombre interno de la variante. Nunca se reemplaza por un producto "parecido".
 6. **Ítems sin equivalente se borran**: productos que la ingesta no volvió a encontrar (Arrollado Moofy, Froot Loops Mas Leche, Rice Krispies) o que el normalizador no asignó a ninguna madre (Burbujakisses), y la Leche de Magnesia (medicamento). Dejarlos implicaría conservar variantes con precio congelado del 2026-09-04.
@@ -93,8 +93,8 @@ Cómo se obtuvo: para cada variante vieja, la `matched_variant_id` de las filas 
 ## 4. Alcance
 
 **Sí incluye:**
-- Migración de datos `supabase/migrations/NNN_reset_catalog_old_mothers.sql` (siguiente número libre; 048 al 2026-11-15) con las decisiones §3, en una transacción, con guardas que abortan si queda alguna referencia a una madre vieja.
-- Test SQL `supabase/tests/NNN_reset_catalog_old_mothers.test.sql` con las verificaciones de §5.
+- Migración de datos `supabase/migrations/048_reset_catalog_old_mothers.sql` con las decisiones §3, en una transacción, con guardas que abortan si queda alguna referencia a una madre vieja.
+- Test SQL `supabase/tests/048_reset_catalog_old_mothers.test.sql` con las verificaciones de §5.
 - `supabase/seed-demo-recipes.sql` actualizado a madres curadas.
 - Backup local (fuera del repo) de las filas que se tocan, antes de aplicar.
 - Registro corto de lo borrado, movido y verificado: `docs/catalogo-scraping/reporte-reset-SCRUM-133.md`.
@@ -108,7 +108,7 @@ Cómo se obtuvo: para cada variante vieja, la `matched_variant_id` de las filas 
 ## 5. Criterios de aceptación
 
 - [ ] No queda ninguna receta en la ventana demo original; las recetas del seed vigente no cambian de cantidad (718: 4 por usuario en 178 usuarios y 3 en 2 que borraron una), no hay duplicadas y todos sus ingredientes apuntan a madres curadas. Los usuarios creados después de la última corrida del seed (710) siguen sin recetas demo: el remapeo no crea recetas (SPEC §3 punto 1); quien las necesite puede correr el seed actualizado.
-- [ ] Las recetas reales ("Flan", "cereal desayuno") y todos los `list_items` que quedan apuntan a madres/variantes curadas, según §3.1 y §3.2.
+- [ ] Las recetas reales ("Flan", "cereal desayuno") apuntan a madres curadas según §3.1, y ningún `list_item` queda en una variante del catálogo global que no sea de una madre curada (los de productos propios no se tocan), según §3.2.
 - [ ] Ninguna madre vieja queda en `product_catalog` (madre global sin regla en `product_mother_rules`); `search_catalog` solo devuelve madres curadas.
 - [ ] Registro corto de lo borrado, movido y verificado (reporte).
 - [ ] La migración está en `supabase/migrations/`, se aplicó con su fila en `supabase_migrations.schema_migrations` y su test pasa.
