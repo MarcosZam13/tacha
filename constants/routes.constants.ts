@@ -17,9 +17,11 @@ export const APP_ROUTE = {
 
 export type AppRouteType = (typeof APP_ROUTE)[keyof typeof APP_ROUTE];
 
-// Rutas públicas de la cuenta: el login, pedir el enlace de recuperación y fijar la nueva
-// contraseña. Las usan el enlace del login, el guard de sesión y la feature de recuperación.
+// Rutas de la cuenta: el login, el registro, pedir el enlace de recuperación y fijar la nueva
+// contraseña. Son públicas salvo COMPLETE_SIGN_UP (SCRUM-43), que necesita la sesión recién creada
+// por el proveedor; cuáles se ven sin sesión lo decide PUBLIC_ROUTES del guard.
 export const AUTH_ROUTE = {
+  COMPLETE_SIGN_UP: "/registro/completar",
   FORGOT_PASSWORD: "/recuperar-contrasena",
   LOGIN: "/login",
   REGISTER: "/registro",
