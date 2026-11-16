@@ -3,6 +3,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FINANCE_TEXT,
+  PURCHASE_LIST,
   SPENDING_PERIOD,
   TOTAL_EDIT_STATUS,
   TOTAL_EDIT_TARGET,
@@ -26,8 +27,10 @@ const periodSaveMock = vi.mocked(setPeriodTotal);
 const timeZoneSaveMock = vi.mocked(setSpendingTimeZone);
 
 const BROWSER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-const PURCHASE_A: TotalEditTarget = { purchaseId: "purchase-a", type: TOTAL_EDIT_TARGET.PURCHASE };
-const PURCHASE_B: TotalEditTarget = { purchaseId: "purchase-b", type: TOTAL_EDIT_TARGET.PURCHASE };
+const PURCHASE_A: TotalEditTarget = { list: PURCHASE_LIST.PERIOD, purchaseId: "purchase-a", type: TOTAL_EDIT_TARGET.PURCHASE };
+const PURCHASE_B: TotalEditTarget = { list: PURCHASE_LIST.PERIOD, purchaseId: "purchase-b", type: TOTAL_EDIT_TARGET.PURCHASE };
+// La misma compra A, tocada en "Compras sin total" (SCRUM-92).
+const PENDING_A: TotalEditTarget = { list: PURCHASE_LIST.PENDING, purchaseId: "purchase-a", type: TOTAL_EDIT_TARGET.PURCHASE };
 const WEEK: TotalEditTarget = { period: SPENDING_PERIOD.WEEK, type: TOTAL_EDIT_TARGET.PERIOD };
 const SAVED_PURCHASE: SetPurchaseTotalResponse = { closedAt: "2026-10-18T16:00:00Z", id: "purchase-a", totalAmount: 12000 };
 
@@ -43,12 +46,14 @@ const createPending = <Value>() => {
 };
 
 const onPurchaseSaved = vi.fn();
+const onPurchaseUnavailable = vi.fn();
 const onPeriodTotalSaved = vi.fn();
 const onReadTimeZoneConfirmed = vi.fn();
 
 const renderEdit = (period: SpendingPeriodType = SPENDING_PERIOD.WEEK) =>
   renderHook(
-    ({ hookPeriod }) => useTotalEdit({ onPeriodTotalSaved, onPurchaseSaved, onReadTimeZoneConfirmed, period: hookPeriod }),
+    ({ hookPeriod }) =>
+      useTotalEdit({ onPeriodTotalSaved, onPurchaseSaved, onPurchaseUnavailable, onReadTimeZoneConfirmed, period: hookPeriod }),
     { initialProps: { hookPeriod: period } },
   );
 
@@ -419,4 +424,58 @@ describe("useTotalEdit: time zone confirmation from the read (TZ002, rule 60)", 
     await waitFor(() => expect(onReadTimeZoneConfirmed).toHaveBeenCalledTimes(1));
     expect(timeZoneSaveMock).toHaveBeenCalledTimes(1);
   });
+});
+
+describe("useTotalEdit: the list where a purchase was opened (SCRUM-92, rule 68)", () => {
+  it("keeps the list of the purchase in the open target", () => {
+    const { result } = renderEdit();
+
+    act(() => result.current.onEdit(PENDING_A, ""));
+
+    expect(result.current.editTarget).toEqual(PENDING_A);
+  });
+
+  it("treats the same purchase in another list as another field: only one stays open (D21)", () => {
+    const { result } = renderEdit();
+    act(() => result.current.onEdit(PURCHASE_A, "10000"));
+
+    act(() => result.current.onEdit(PENDING_A, ""));
+
+    expect(result.current.editTarget).toEqual(PENDING_A);
+    expect(result.current.editText).toBe("");
+  });
+
+  it("saves the purchase the same way from either list", async () => {
+    const { result } = renderEdit();
+
+    editAndSave(result, PENDING_A, "12000");
+
+    await waitFor(() => expect(result.current.status).toBe(TOTAL_EDIT_STATUS.VIEWING));
+    expect(purchaseSaveMock).toHaveBeenCalledWith({ purchaseId: "purchase-a", total: 12000 });
+    expect(onPurchaseSaved).toHaveBeenCalledWith(SAVED_PURCHASE);
+  });
+
+  it("tells that the purchase is no longer available with P0002, keeping its message", async () => {
+    purchaseSaveMock.mockRejectedValueOnce(saveError(TOTAL_SAVE_ERROR.PURCHASE_UNAVAILABLE));
+    const { result } = renderEdit();
+
+    editAndSave(result, PENDING_A, "12000");
+
+    await waitFor(() => expect(onPurchaseUnavailable).toHaveBeenCalledTimes(1));
+    expect(result.current.editErrorMessage).toBe(TOTAL_SAVE_ERROR_MESSAGE[TOTAL_SAVE_ERROR.PURCHASE_UNAVAILABLE]);
+    expect(result.current.editTarget).toEqual(PENDING_A);
+  });
+
+  it.each([TOTAL_SAVE_ERROR.GENERAL, TOTAL_SAVE_ERROR.NEGATIVE_PERIOD, TOTAL_SAVE_ERROR.TIME_ZONE_MISSING])(
+    "does not tell that the purchase is unavailable with %s",
+    async (reason) => {
+      purchaseSaveMock.mockRejectedValueOnce(saveError(reason));
+      const { result } = renderEdit();
+
+      editAndSave(result, PENDING_A, "12000");
+
+      await waitFor(() => expect(result.current.status).toBe(TOTAL_EDIT_STATUS.SAVE_FAILED));
+      expect(onPurchaseUnavailable).not.toHaveBeenCalled();
+    },
+  );
 });

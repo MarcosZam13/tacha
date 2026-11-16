@@ -185,6 +185,7 @@ test.describe("Finanzas", () => {
     await expect(page.getByText(/presupuesto/iu)).toHaveCount(0);
     expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
+    expect(recorder.pendingRequests).toHaveLength(0);
     expect(recorder.budgetRequests).toHaveLength(0);
     expect(recorder.rpcRequests).toHaveLength(0);
 
@@ -202,6 +203,7 @@ test.describe("Finanzas", () => {
     await expect(page.getByText(/presupuesto/iu)).toHaveCount(0);
     expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
+    expect(recorder.pendingRequests).toHaveLength(0);
     expect(recorder.budgetRequests).toHaveLength(0);
     expect(recorder.rpcRequests).toHaveLength(0);
   });

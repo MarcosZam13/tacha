@@ -13,8 +13,10 @@ import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
 import { ShoppingListSection } from "./components/ShoppingListSection";
 import { ShoppingModeBar } from "./components/ShoppingModeBar";
+import { ShortfallResolutionPanel } from "./components/ShortfallResolutionPanel";
 import { StorePicker } from "./components/StorePicker";
 import { UndoToast } from "./components/UndoToast";
+import { UndoResolutionDialog } from "./components/UndoResolutionDialog";
 import { useShoppingListViewModel } from "./hooks/useShoppingListViewModel";
 import type { ShoppingListRowViewModel } from "./models/ShoppingListRowViewModel.interface";
 
@@ -61,6 +63,11 @@ export const ShoppingListInner = (): React.JSX.Element => {
       {viewModel.sessionNoticeMessage ? (
         <p role="status" className="font-body text-sm text-tacha-textsec">
           {viewModel.sessionNoticeMessage}
+        </p>
+      ) : null}
+      {viewModel.shortfallNoticeMessage ? (
+        <p role="status" className="font-body text-sm text-tacha-textsec">
+          {viewModel.shortfallNoticeMessage}
         </p>
       ) : null}
       {viewModel.closePurchase.isVisible ? <ClosePurchasePanel panel={viewModel.closePurchase} /> : null}
@@ -132,6 +139,10 @@ export const ShoppingListInner = (): React.JSX.Element => {
       >
         <StorePicker picker={viewModel.storePicker} />
       </Modal>
+
+      {/* SCRUM-115: "¿Qué hiciste?" al tachar con aviso, y la confirmación para deshacerlo al destachar. */}
+      <ShortfallResolutionPanel panel={viewModel.shortfallPanel} />
+      <UndoResolutionDialog dialog={viewModel.undoUncheck} />
     </div>
   );
 };

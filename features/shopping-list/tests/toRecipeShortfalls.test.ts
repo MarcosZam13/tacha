@@ -4,9 +4,9 @@ import { toRecipeShortfalls } from "../utils/toRecipeShortfalls";
 describe("toRecipeShortfalls", () => {
   it("groups the shortfalls by list row, one per recipe, in the database order", () => {
     const shortfallsByItemId = toRecipeShortfalls([
-      { list_item_id: "item-leche", quantity_missing: 600, quantity_unit: "ml", recipe_name: "Tres leches" },
-      { list_item_id: "item-harina", quantity_missing: 150, quantity_unit: "g", recipe_name: "Queque" },
-      { list_item_id: "item-leche", quantity_missing: 200, quantity_unit: "ml", recipe_name: "Flan" },
+      { list_item_id: "item-leche", quantity_missing: 600, quantity_unit: "ml", recipe_id: "recipe-tres-leches", recipe_name: "Tres leches" },
+      { list_item_id: "item-harina", quantity_missing: 150, quantity_unit: "g", recipe_id: "recipe-queque", recipe_name: "Queque" },
+      { list_item_id: "item-leche", quantity_missing: 200, quantity_unit: "ml", recipe_id: "recipe-flan", recipe_name: "Flan" },
     ]);
 
     expect(shortfallsByItemId.get("item-leche")).toEqual([

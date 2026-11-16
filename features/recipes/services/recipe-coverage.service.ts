@@ -2,6 +2,7 @@ import { REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import { POSTGRES_ERROR_CODE } from "@/constants";
 import type { NullableRef } from "@/types/nullable.types";
+import { startOfLocalDay } from "@/utils/startOfLocalDay";
 import {
   RECIPE_COVERAGE_REALTIME,
   RECIPES_DB,
@@ -16,8 +17,10 @@ let channelCounter = 0;
 
 /**
  * Pide a la base qué ingredientes de la receta están cubiertos y cuáles
- * faltan, con una sola llamada a get_recipe_coverage (reglas 29 a 31 de la
- * SPEC). Solo lee: no escribe nada.
+ * faltan, con una sola llamada a get_recipe_coverage_today (reglas 29 a 31 de
+ * la SPEC). Solo lee: no escribe nada. Desde SCRUM-115 el faltante es el
+ * mismo que muestra la lista (en vivo, solo lo pendiente o tachado hoy), así
+ * que la RPC recibe la medianoche local como "Tachados hoy".
  * Devuelve null si la receta no se encontró (se borró en otra pestaña o es
  * ajena): la RPC responde P0002 en los dos casos.
  */
@@ -26,13 +29,14 @@ export const getRecipeCoverage = async (
 ): Promise<NullableRef<CoverageIngredient[]>> => {
   await ensureSession();
 
-  const { data: coverageRows, error } = await getSupabaseClient().rpc(RECIPES_DB.RPC.GET_RECIPE_COVERAGE, {
+  const { data: coverageRows, error } = await getSupabaseClient().rpc(RECIPES_DB.RPC.GET_RECIPE_COVERAGE_TODAY, {
+    local_day_start: startOfLocalDay(new Date()),
     target_recipe_id: payload.recipeId,
   });
   if (error?.code === POSTGRES_ERROR_CODE.NO_DATA_FOUND) return null;
   if (error) throw error;
 
-  // La RPC devuelve jsonb: la base no le da tipo, lo fija el contrato de la función (017).
+  // La RPC devuelve jsonb: la base no le da tipo, lo fija el contrato de la función (017, y su versión en vivo de la 037).
   return toCoverageIngredients(coverageRows as unknown as CoverageRow[]);
 };
 
