@@ -13,8 +13,8 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Cada tarea termina en un punto de v
 - [x] **6. Backup** local fuera del repo (plan §3 paso 1), tomado el 2026-11-16 05:27 UTC: 74 ítems de lista con 34 requisitos; 36 recetas demo con 99 ingredientes y 5 requisitos; 28 madres viejas con 39 variantes, 40 marcas y 44 precios; 2096 ingredientes en madres viejas.
 - [x] **7. Ensayo** migración + test en una transacción que termina en un `raise exception` a propósito, así nada queda escrito (plan §3 paso 2), 2026-11-16: cifras iguales a las esperadas; después: 0 recetas en la ventana, 0 madres viejas, 68 ítems, 1998 ingredientes, 738 recetas, el ítem fusionado con cantidad 2; base sin cambios confirmada.
   - Validación: el `raise notice` da 36 recetas demo; ingredientes 1996 movidos y 1 borrado (2096 − 99 de las recetas demo − Magnesia); ítems 1 fusionado, 48 movidos y 25 borrados; 28 madres. El test imprime `048: 6 casos OK`. Cifras al 2026-11-15: si cambian, explicar la diferencia antes de aplicar.
-- [ ] **8. Aviso al grupo y aplicar** la migración con su fila del historial (plan §3 pasos 3-4).
-- [ ] **9. Verificar** (plan §4).
-- [ ] **10. Reporte** `docs/catalogo-scraping/reporte-reset-SCRUM-133.md`.
+- [x] **8. Aviso al grupo y aplicar** la migración con su fila del historial (plan §3 pasos 3-4): aviso enviado y migración aplicada el 2026-11-16, fila `048 reset_catalog_old_mothers SCRUM-133`.
+- [x] **9. Verificar** (plan §4): test 6 casos OK sobre la base aplicada; cifras y `search_catalog` en el reporte. El requisito de receta del ítem fusionado se fue con su receta demo original (paso 1), como corresponde. Pendiente: mirar por la interfaz una lista con un ítem movido.
+- [x] **10. Reporte** `docs/catalogo-scraping/reporte-reset-SCRUM-133.md`.
 - [ ] **11. Revisión**: subagentes `code-reviewer` y `security-reviewer`.
 - [ ] **12. PR**: plantilla completa, Developer Notes con el aviso (SPEC §6), `in progress` → `waiting qa` y tarjeta de Jira.
