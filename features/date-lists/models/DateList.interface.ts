@@ -10,6 +10,7 @@ export interface DateList {
 
 export interface DateListItem {
   id: string;
+  isChecked: boolean;
   productName: string;
   quantity: number;
   sizeLabel: string;
