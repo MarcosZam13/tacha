@@ -1,5 +1,5 @@
 // Constantes de las sublistas por fecha (SCRUM-77, SPEC.md).
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 
 // Espejo del check de lists.status (004). "active" se muestra como "Pendiente".
 export const DATE_LIST_STATUS = {
@@ -48,6 +48,11 @@ export const DATE_CALENDAR = {
 export const DATE_CALENDAR_ICON = {
   NEXT_MONTH: ChevronRight,
   PREVIOUS_MONTH: ChevronLeft,
+} as const;
+
+// Ícono de la fila de un producto (SCRUM-158): el mismo basurero que la lista general.
+export const DATE_LIST_ITEM_ICON = {
+  REMOVE_ITEM: Trash2,
 } as const;
 
 // Espejo del check lists_date_fields_check (038).

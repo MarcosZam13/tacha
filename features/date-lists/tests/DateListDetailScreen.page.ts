@@ -19,6 +19,7 @@ export const createDateListDetailPage = () => {
     getCheckbox: (productName: string) =>
       screen.getByRole("checkbox", { name: `${DATE_LIST_TEXT.CHECK_ITEM} ${productName}` }),
     getCheckboxes: () => screen.getAllByRole("checkbox"),
+    getRemoveButtons: () => screen.getAllByRole("button", { name: DATE_LIST_TEXT.REMOVE_ITEM }),
     queryCancelDialog: () => screen.queryByRole("dialog"),
     queryCancelList: () => screen.queryByRole("button", { name: DATE_LIST_TEXT.CANCEL_LIST }),
     queryDecrease: () => screen.queryByRole("button", { name: DATE_LIST_TEXT.DECREASE_QUANTITY }),
