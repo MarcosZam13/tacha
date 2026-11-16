@@ -10,8 +10,8 @@ Ver [SPEC.md](SPEC.md) y [plan.md](plan.md). Cada tarea termina en un punto de v
 - [x] **4. Test SQL** `supabase/tests/048_reset_catalog_old_mothers.test.sql` (plan §4).
 - [x] **5. Seed** `supabase/seed-demo-recipes.sql` con madres curadas (SPEC §3.1); el `join` ahora se limita al catálogo global (un producto propio puede llamarse "Leche").
   - Validación: los 7 nombres existen exactamente una vez en el catálogo global.
-- [ ] **6. Backup** local fuera del repo (plan §3 paso 1).
-- [ ] **7. Ensayo** migración + test dentro de `begin ... rollback` (plan §3 paso 2).
+- [x] **6. Backup** local fuera del repo (plan §3 paso 1), tomado el 2026-11-16 05:27 UTC: 74 ítems de lista con 34 requisitos; 36 recetas demo con 99 ingredientes y 5 requisitos; 28 madres viejas con 39 variantes, 40 marcas y 44 precios; 2096 ingredientes en madres viejas.
+- [x] **7. Ensayo** migración + test en una transacción que termina en un `raise exception` a propósito, así nada queda escrito (plan §3 paso 2), 2026-11-16: cifras iguales a las esperadas; después: 0 recetas en la ventana, 0 madres viejas, 68 ítems, 1998 ingredientes, 738 recetas, el ítem fusionado con cantidad 2; base sin cambios confirmada.
   - Validación: el `raise notice` da 36 recetas demo; ingredientes 1996 movidos y 1 borrado (2096 − 99 de las recetas demo − Magnesia); ítems 1 fusionado, 48 movidos y 25 borrados; 28 madres. El test imprime `048: 6 casos OK`. Cifras al 2026-11-15: si cambian, explicar la diferencia antes de aplicar.
 - [ ] **8. Aviso al grupo y aplicar** la migración con su fila del historial (plan §3 pasos 3-4).
 - [ ] **9. Verificar** (plan §4).
