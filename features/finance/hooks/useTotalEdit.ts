@@ -7,15 +7,25 @@ import {
   TOTAL_SAVE_ERROR,
   TOTAL_SAVE_ERROR_MESSAGE,
 } from "../constants/finance.constants";
-import type { SpendingPeriodType, TotalEditStatusType, TotalSaveErrorType } from "../constants/finance.constants";
+import type {
+  PurchaseListType,
+  SpendingPeriodType,
+  TotalEditStatusType,
+  TotalSaveErrorType,
+} from "../constants/finance.constants";
 import type { SetPeriodTotalResponse, SetPurchaseTotalResponse } from "../models/TotalMutations.interface";
 import { toTotalSaveErrorReason } from "../models/TotalMutations.interface";
 import { setPeriodTotal, setPurchaseTotal, setSpendingTimeZone } from "../services/finance.service";
 import { parseColonesAmount } from "../utils/parseColonesAmount";
 
-/** Qué total está abierto: el de una compra (CA-01) o el del periodo en curso (CA-02). */
+/**
+ * Qué total está abierto: el de una compra (CA-01) o el del periodo en curso
+ * (CA-02). Una compra lleva la lista donde se tocó su lápiz: puede estar en el
+ * periodo y en "Compras sin total" a la vez, y el campo se abre solo en esa fila
+ * (SCRUM-92, regla 68). Se guarda igual desde cualquiera de las dos.
+ */
 export type TotalEditTarget =
-  | { purchaseId: string; type: typeof TOTAL_EDIT_TARGET.PURCHASE }
+  | { list: PurchaseListType; purchaseId: string; type: typeof TOTAL_EDIT_TARGET.PURCHASE }
   | { period: SpendingPeriodType; type: typeof TOTAL_EDIT_TARGET.PERIOD };
 
 /** El campo abierto: qué total, en qué periodo, qué se escribió y cómo va. */
@@ -47,6 +57,8 @@ interface UseTotalEditOptions {
   onPeriodTotalSaved: (period: SpendingPeriodType, saved: SetPeriodTotalResponse, total: number) => void;
   /** Aplica la compra guardada, sin recargar la pantalla. */
   onPurchaseSaved: (saved: SetPurchaseTotalResponse) => void;
+  /** La compra ya no está disponible (P0002): lo que se muestra de ella quedó viejo (SCRUM-92). */
+  onPurchaseUnavailable: () => void;
   /** La zona quedó confirmada desde el aviso de TZ002: hay que volver a leer. */
   onReadTimeZoneConfirmed: () => void;
   period: SpendingPeriodType;
@@ -82,7 +94,9 @@ const needsTimeZone = (reason: TotalSaveErrorType): boolean =>
 
 const isSameTarget = (first: TotalEditTarget, second: TotalEditTarget): boolean =>
   first.type === TOTAL_EDIT_TARGET.PURCHASE
-    ? second.type === TOTAL_EDIT_TARGET.PURCHASE && first.purchaseId === second.purchaseId
+    ? second.type === TOTAL_EDIT_TARGET.PURCHASE &&
+      first.purchaseId === second.purchaseId &&
+      first.list === second.list
     : second.type === TOTAL_EDIT_TARGET.PERIOD && first.period === second.period;
 
 /**
@@ -100,6 +114,7 @@ const isSameTarget = (first: TotalEditTarget, second: TotalEditTarget): boolean 
 export const useTotalEdit = ({
   onPeriodTotalSaved,
   onPurchaseSaved,
+  onPurchaseUnavailable,
   onReadTimeZoneConfirmed,
   period,
 }: UseTotalEditOptions): UseTotalEditReturn => {
@@ -178,6 +193,7 @@ export const useTotalEdit = ({
     } catch (error) {
       if (!isMountedRef.current) return;
       failSave(target, error, false);
+      if (toTotalSaveErrorReason(error) === TOTAL_SAVE_ERROR.PURCHASE_UNAVAILABLE) onPurchaseUnavailable();
     } finally {
       isSavingRef.current = false;
     }

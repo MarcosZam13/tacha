@@ -5,6 +5,7 @@ import { AUTH_ROUTE } from "@/constants";
 import { EditTotalButton } from "../components/EditTotalButton";
 import { FinanceNoAccount } from "../components/FinanceNoAccount";
 import { InlineTotalEditor } from "../components/InlineTotalEditor";
+import { PendingTotalReminder } from "../components/PendingTotalReminder";
 import { PeriodAdjustmentRow } from "../components/PeriodAdjustmentRow";
 import { PurchaseSessionRow } from "../components/PurchaseSessionRow";
 import { SpendingBudget } from "../components/SpendingBudget";
@@ -13,12 +14,14 @@ import { SpendingTotal } from "../components/SpendingTotal";
 import { TimeZoneConfirmation } from "../components/TimeZoneConfirmation";
 import type { EditTotalButtonProps } from "../components/models/EditTotalButtonProps.interface";
 import type { InlineTotalEditorProps } from "../components/models/InlineTotalEditorProps.interface";
+import type { PendingTotalReminderProps } from "../components/models/PendingTotalReminderProps.interface";
 import type { PurchaseSessionRowProps } from "../components/models/PurchaseSessionRowProps.interface";
 import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
 import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
 import {
   BUDGET_STATUS,
   FINANCE_TEXT,
+  PENDING_REMINDER_STATUS,
   SPENDING_PERIOD,
   SPENDING_STATUS,
   TOTAL_EDIT_STATUS,
@@ -474,6 +477,7 @@ describe("PurchaseSessionRow", () => {
     dateText: "Domingo 18 de octubre",
     edit: createEditProps(),
     editor: null,
+    hasNoTotal: false,
     id: "purchase-1",
     storeText: "MaxiPali",
     ...overrides,
@@ -484,6 +488,36 @@ describe("PurchaseSessionRow", () => {
         <PurchaseSessionRow {...props} />
       </ul>,
     );
+
+  describe("«Sin total» badge (SCRUM-92, CA-01)", () => {
+    it("shows «Sin total» as the strong terracotta badge, never as an error, next to its pencil (D12, D27)", () => {
+      renderRow(createRowProps({ amountText: FINANCE_TEXT.WITHOUT_TOTAL, hasNoTotal: true }));
+      const page = createPurchaseHistoryPage();
+
+      const badge = screen.getByText(FINANCE_TEXT.WITHOUT_TOTAL);
+      expect(badge).toHaveClass("text-tacha-terracotta-text", "bg-tacha-terracotta/10");
+      expect(badge).not.toHaveClass("text-red-600");
+      expect(badge.className).not.toMatch(/danger|red-/u);
+      expect(page.queryAlert()).not.toBeInTheDocument();
+      expect(page.getEditButton(PURCHASE_PENCIL)).toBeEnabled();
+    });
+
+    it.each([
+      ["a total", "₡10 000"],
+      ["a real ₡0 total (D8)", "₡0"],
+    ])("shows %s as a plain amount, without the badge", (_, amountText) => {
+      renderRow(createRowProps({ amountText }));
+
+      expect(screen.getByText(amountText)).not.toHaveClass("text-tacha-terracotta-text");
+      expect(screen.getByText(amountText).tagName).toBe("P");
+    });
+
+    it("hides the badge with the field open, like any amount", () => {
+      renderRow(createRowProps({ amountText: FINANCE_TEXT.WITHOUT_TOTAL, editor: createEditorProps(), hasNoTotal: true }));
+
+      expect(screen.queryByText(FINANCE_TEXT.WITHOUT_TOTAL)).not.toBeInTheDocument();
+    });
+  });
 
   it("shows the amount with its pencil (CA-01)", async () => {
     const onClick = vi.fn();
@@ -670,5 +704,66 @@ describe("TimeZoneConfirmation (TZ002, rule 60)", () => {
 
     expect(page.getConfirmTimeZoneButton()).toBeDisabled();
     expect(page.getAlert()).toHaveTextContent(FINANCE_TEXT.TIME_ZONE_REJECTED);
+  });
+});
+
+describe("PendingTotalReminder (SCRUM-92, CA-02)", () => {
+  const MESSAGE = "Tienes 2 compras sin total desde hace más de 24 horas";
+  const createProps = (overrides: Partial<PendingTotalReminderProps> = {}): PendingTotalReminderProps => ({
+    errorMessage: null,
+    linkHref: "#compras-sin-total",
+    linkText: "Completarlas",
+    messageText: MESSAGE,
+    onRetry: vi.fn(),
+    status: PENDING_REMINDER_STATUS.PENDING,
+    ...overrides,
+  });
+
+  it("says how many purchases are pending, with a link to complete them (D24)", () => {
+    render(<PendingTotalReminder {...createProps()} />);
+
+    expect(screen.getByText(MESSAGE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Completarlas" })).toHaveAttribute("href", "#compras-sin-total");
+  });
+
+  it("is information, not an error: no alert, and it cannot be dismissed (D26)", () => {
+    render(<PendingTotalReminder {...createProps()} />);
+    const page = createPurchaseHistoryPage();
+
+    expect(page.queryAlert()).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("uses the AA terracotta text for its link (D27)", () => {
+    render(<PendingTotalReminder {...createProps()} />);
+
+    expect(screen.getByRole("link", { name: "Completarlas" })).toHaveClass("text-tacha-terracotta-text");
+  });
+
+  it.each([PENDING_REMINDER_STATUS.LOADING, PENDING_REMINDER_STATUS.NONE])("draws nothing while %s", (status) => {
+    const { container } = render(<PendingTotalReminder {...createProps({ messageText: null, status })} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("announces a failed read and retries it (rule 67)", async () => {
+    const onRetry = vi.fn();
+    render(
+      <PendingTotalReminder
+        {...createProps({
+          errorMessage: FINANCE_TEXT.PENDING_REMINDER_LOAD_ERROR,
+          messageText: null,
+          onRetry,
+          status: PENDING_REMINDER_STATUS.FAILED,
+        })}
+      />,
+    );
+    const page = createPurchaseHistoryPage();
+
+    expect(page.getAlert()).toHaveTextContent(FINANCE_TEXT.PENDING_REMINDER_LOAD_ERROR);
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    await page.retry();
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

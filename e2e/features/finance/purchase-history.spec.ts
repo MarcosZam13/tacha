@@ -214,6 +214,7 @@ test.describe("Finanzas: Historial", () => {
     expect(recorder.historyRequests).toHaveLength(0);
     expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
+    expect(recorder.pendingRequests).toHaveLength(0);
 
     await page.getByRole("link", { name: "Iniciar sesión" }).click();
     await expect(page).toHaveURL(LOGIN_PATH);
@@ -231,5 +232,6 @@ test.describe("Finanzas: Historial", () => {
     expect(recorder.historyRequests).toHaveLength(0);
     expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
+    expect(recorder.pendingRequests).toHaveLength(0);
   });
 });

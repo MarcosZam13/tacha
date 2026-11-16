@@ -2,6 +2,7 @@
 
 import { PasswordStrengthMeter } from "@/components/password-strength-meter/PasswordStrengthMeter";
 import { Button, Checkbox, Input, Modal } from "@/components/ui";
+import { SocialSignUpButtons } from "@/features/social-sign-up/components/SocialSignUpButtons";
 import {
   REGISTRO_FIELD,
   REGISTRO_FORM_FIELDS,
@@ -43,6 +44,7 @@ export const RegistroManual = (): React.JSX.Element => {
         {isSuccess ? (
         <VerificacionPendiente email={registeredEmail} />
       ) : (
+        <>
         <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
           {REGISTRO_FORM_FIELDS.map(({ field, label, type }) => (
             <div key={field} className="flex flex-col gap-2">
@@ -87,6 +89,8 @@ export const RegistroManual = (): React.JSX.Element => {
             {isSubmitting ? REGISTRO_LABEL.SUBMITTING : REGISTRO_LABEL.SUBMIT}
           </Button>
         </form>
+        <SocialSignUpButtons />
+        </>
       )}
 
       <Modal isOpen={isTermsModalOpen} onClose={handleTermsModalClose} title={TERMS_LABEL.MODAL_TITLE}>

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_NAV_ITEMS } from "@/components/app-shell/constants/app-shell.constants";
 import { APP_ROUTE } from "@/constants";
@@ -11,6 +11,7 @@ import type { ZonedPeriodFinance } from "../models/PeriodFinance.type";
 import {
   getPeriodFinance,
   getPeriodSpending,
+  getPurchasesWithoutTotal,
   getSpendingBudgets,
   hasRegisteredSession,
   setSpendingBudget,
@@ -23,6 +24,7 @@ vi.mock("../services/finance.service", () => ({
   getPeriodFinance: vi.fn(),
   getPeriodPurchases: vi.fn(),
   getPeriodSpending: vi.fn(),
+  getPurchasesWithoutTotal: vi.fn(),
   getSpendingBudgets: vi.fn(),
   hasRegisteredSession: vi.fn(),
   setPeriodTotal: vi.fn(),
@@ -33,6 +35,7 @@ vi.mock("../services/finance.service", () => ({
 const sessionMock = vi.mocked(hasRegisteredSession);
 const spendingMock = vi.mocked(getPeriodSpending);
 const financeMock = vi.mocked(getPeriodFinance);
+const pendingMock = vi.mocked(getPurchasesWithoutTotal);
 const budgetsMock = vi.mocked(getSpendingBudgets);
 const saveMock = vi.mocked(setSpendingBudget);
 
@@ -56,6 +59,8 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   // Sin zona guardada: se lee como antes, con el navegador (SPEC regla 59).
   financeMock.mockResolvedValue({ timeZone: null });
+  // Sin compras sin total: el recordatorio y la sección no se ven (SCRUM-92).
+  pendingMock.mockResolvedValue([]);
   sessionMock.mockResolvedValue(true);
   spendingMock.mockImplementation(spendingByPeriod);
   budgetsMock.mockResolvedValue({ day: null, month: null, week: null });
@@ -307,5 +312,21 @@ describe("FinanceDashboard and PurchaseHistory with manual adjustments (SCRUM-91
     // Tres lápices de compra y el del periodo; ninguno del ajuste.
     expect(page.getAllEditButtons()).toHaveLength(4);
     expect(page.queryText(FINANCE_TEXT.INCLUDES_ADJUSTMENTS)).not.toBeInTheDocument();
+  });
+});
+
+describe("FinanceDashboard: pending purchases reminder (SCRUM-92)", () => {
+  it("reminds with a link to «Compras sin total» of the Historial, without a pencil (D11, D26)", async () => {
+    pendingMock.mockResolvedValue([
+      { closedAt: new Date(2026, 9, 14, 10, 0).toISOString(), id: "old", storeName: "Walmart", totalAmount: null },
+      { closedAt: new Date(2026, 8, 20, 10, 0).toISOString(), id: "last-month", storeName: "Walmart", totalAmount: null },
+    ]);
+    render(<FinanceDashboard />);
+    const page = createPurchaseHistoryPage();
+
+    expect(await page.findText("Tienes 2 compras sin total desde hace más de 24 horas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Completarlas" })).toHaveAttribute("href", "/finanzas/historial#compras-sin-total");
+    expect(page.getAllEditButtons()).toHaveLength(0);
+    expect(screen.queryByRole("region", { name: FINANCE_TEXT.PENDING_SECTION_TITLE })).not.toBeInTheDocument();
   });
 });
