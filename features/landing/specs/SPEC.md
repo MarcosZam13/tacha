@@ -54,7 +54,7 @@ No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
 ## 8. UI esperada
 - Intro: título, descripción, 3 tarjetas, enlace "Leer más".
 - Información ampliada: un bloque por cada punto de la intro y "Volver arriba".
-- Demo: recuadro con el texto "Aquí va la demo".
+- Demo: "Así se ve Tacha", con capturas reales de la lista general en computadora y celular (SCRUM-152, en SCRUM-158). En celular solo se ve la captura del celular. Reemplazó el recuadro "Aquí va la demo".
 - Testimonios: inicial, nombre, ubicación, cita, flechas y posición "1 de 3".
 - Footer: enlaces "Términos y condiciones" y "Nosotros".
 - /terminos: botón "Volver", título, fecha y secciones numeradas.
@@ -96,7 +96,7 @@ No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
 - Caso 1 (HU-03): / muestra "¿Qué es Tacha?" con 3 puntos, sin sesión.
 - Caso 2 (HU-04): "Leer más" baja a la información ampliada con los mismos 3 puntos; "Volver arriba" e "Inicio" regresan.
 - Caso 3 (HU-05): se ve un testimonio con nombre y ubicación; las flechas cambian de testimonio en forma circular.
-- Caso 4 (HU-07): la sección de demo se ve sin sesión con el texto "Aquí va la demo". CA-03 a CA-05 quedan pendientes hasta tener el video.
+- Caso 4 (HU-07): la sección de demo se ve sin sesión, con las capturas de la app y su texto alternativo (SCRUM-152). CA-03 a CA-05 (video) siguen pendientes; si llega el video, reemplaza a las capturas.
 - Caso 5 (HU-10): el footer lleva a /terminos sin sesión; "Volver" regresa a la página anterior.
 - Caso 6 (HU-12): /nosotros muestra Misión y Visión en bloques separados.
 - Caso 7 (HU-13): /nosotros muestra el origen, el propósito y las características de la organización.

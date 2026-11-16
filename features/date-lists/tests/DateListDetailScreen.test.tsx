@@ -72,6 +72,20 @@ const renderScreen = async (): Promise<ReturnType<typeof createDateListDetailPag
 };
 
 describe("DateListDetailScreen", () => {
+  describe("fila del producto (SCRUM-158)", () => {
+    it("removes with an icon button whose accessible name is still Eliminar", async () => {
+      const page = await renderScreen();
+
+      const removeButtons = page.getRemoveButtons();
+      expect(removeButtons).toHaveLength(2);
+      // El texto queda solo para lectores de pantalla; lo que se ve es el ícono.
+      for (const button of removeButtons) {
+        expect(button.querySelector(".sr-only")).toHaveTextContent(DATE_LIST_TEXT.REMOVE_ITEM);
+        expect(button.querySelector("svg")).not.toBeNull();
+      }
+    });
+  });
+
   describe("tachar (HU-46 CA-01)", () => {
     it("shows which items are checked, and only pending ones can change quantity", async () => {
       getDetailMock.mockResolvedValue(buildDetail({ items: [buildItem("Leche", true)] }));

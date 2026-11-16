@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter/PasswordStrengthMeter";
 import { Button, Checkbox, Input, Modal } from "@/components/ui";
+import { AUTH_ROUTE } from "@/constants";
 import { SocialSignUpButtons } from "@/features/social-sign-up/components/SocialSignUpButtons";
 import {
   REGISTRO_FIELD,
@@ -40,6 +42,13 @@ export const RegistroManual = (): React.JSX.Element => {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 bg-tacha-bg px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{REGISTRO_LABEL.TITLE}</h1>
+      {/* SCRUM-144: antes no había camino de /registro a /login. */}
+      <p className="-mt-4 font-body text-sm text-tacha-textsec">
+        {REGISTRO_LABEL.HAS_ACCOUNT}{" "}
+        <Link href={AUTH_ROUTE.LOGIN} className="font-semibold text-tacha-teal hover:underline">
+          {REGISTRO_LABEL.LOG_IN}
+        </Link>
+      </p>
 
         {isSuccess ? (
         <VerificacionPendiente email={registeredEmail} />

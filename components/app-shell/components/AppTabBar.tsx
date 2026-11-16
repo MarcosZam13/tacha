@@ -5,8 +5,8 @@ import type { AppNavigationProps } from "./models/AppNavigationProps.interface";
 
 /**
  * Navegación de mobile: tabs fijos abajo, al alcance del pulgar (DESIGN.md §3.2).
- * Con más de 5 ítems el último pasa a ser "Más" (§3.2); hoy son 6 y ese menú
- * queda para el sprint de UI/UX.
+ * Las 6 secciones caben en 360 px con ícono y etiqueta chica (SCRUM-146), así
+ * que no se usa el menú "Más" de §3.2. min-w-0 deja que cada tab se encoja.
  */
 export const AppTabBar = ({ navItems }: AppNavigationProps): React.JSX.Element => (
   <nav
@@ -15,7 +15,7 @@ export const AppTabBar = ({ navItems }: AppNavigationProps): React.JSX.Element =
   >
     <ul className="flex">
       {navItems.map((item) => (
-        <li key={item.href} className="flex-1">
+        <li key={item.href} className="min-w-0 flex-1">
           <AppNavLink item={item} variant={APP_NAV_LINK_VARIANT.TAB} />
         </li>
       ))}

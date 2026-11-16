@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getCategories, listCatalogByCategory } from "../catalog.service";
+import { getCategories, listCatalogByCategory, searchCatalog } from "../catalog.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con un
 // rpc() y un from() que arma su propia cadena encadenable (mismo patrón que
@@ -18,6 +18,26 @@ interface QueryResult {
 
 const createCategoriesBuilder = (result: QueryResult) => ({
   select: () => ({ order: () => Promise.resolve(result) }),
+});
+
+describe("searchCatalog", () => {
+  // search_catalog ordena por nombre: "Crema de leche" llega antes que "Leche" (SCRUM-158).
+  it("returns the closest names first, not the RPC's alphabetical order", async () => {
+    rpcMock.mockResolvedValue({
+      data: ["Crema de leche", "Leche", "Leche condensada"].map((name) => ({
+        category: "Lácteos",
+        name,
+        product_catalog_id: name,
+        variants: [],
+      })),
+      error: null,
+    });
+
+    const products = await searchCatalog("leche");
+
+    expect(rpcMock).toHaveBeenCalledWith("search_catalog", { search_term: "leche" });
+    expect(products.map((product) => product.productName)).toEqual(["Leche", "Leche condensada", "Crema de leche"]);
+  });
 });
 
 describe("listCatalogByCategory", () => {
