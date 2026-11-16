@@ -31,19 +31,22 @@ const waitForSave = async (page: Page): Promise<void> => {
   await expect(page.getByRole("checkbox", { name: /^Tachar / }).first()).toBeEnabled();
 };
 
+// Desde SCRUM-149 el buscador es un combobox y los resultados son option.
+const getSearchBox = (page: Page) => page.getByRole("combobox", { name: "Buscar producto" });
+
 // Dos productos distintos, para que no se sumen en la misma fila.
 const createListWithTwoProducts = async (page: Page): Promise<void> => {
   await fillCreateForm(page, FUTURE_DATE);
   await getListCard(page).click();
   await expect(page).toHaveURL(DETAIL_URL);
 
-  await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
-  await page.locator("section ul li button").first().click();
+  await getSearchBox(page).fill(SEARCH_TERM);
+  await page.getByRole("option").first().click();
   await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(1);
   await waitForSave(page);
 
-  await page.getByRole("textbox", { name: "Buscar producto" }).fill(SEARCH_TERM);
-  await page.locator("section ul li button").nth(1).click();
+  await getSearchBox(page).fill(SEARCH_TERM);
+  await page.getByRole("option").nth(1).click();
   await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(2);
   await waitForSave(page);
 };
@@ -51,7 +54,7 @@ const createListWithTwoProducts = async (page: Page): Promise<void> => {
 const getCalendar = (page: Page) => page.getByRole("region", { name: "Calendario de sublistas" });
 
 const addFirstResult = async (page: Page): Promise<void> => {
-  await page.getByRole("combobox", { name: "Buscar producto" }).fill(SEARCH_TERM);
+  await getSearchBox(page).fill(SEARCH_TERM);
   await page.getByRole("option").first().click();
 };
 
@@ -196,11 +199,11 @@ test.describe("Sublistas por fecha", () => {
 
     await expect(page.getByText(/· Cancelada$/)).toBeVisible();
     await expect(page.getByRole("checkbox", { name: /^Tachar / })).toHaveCount(2);
-    await expect(page.getByRole("textbox", { name: "Buscar producto" })).toHaveCount(0);
+    await expect(getSearchBox(page)).toHaveCount(0);
 
     await page.getByRole("button", { name: "Reactivar sublista" }).click();
 
     await expect(page.getByText(/· Pendiente$/)).toBeVisible();
-    await expect(page.getByRole("textbox", { name: "Buscar producto" })).toBeVisible();
+    await expect(getSearchBox(page)).toBeVisible();
   });
 });
