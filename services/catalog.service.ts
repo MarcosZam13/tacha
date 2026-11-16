@@ -11,6 +11,7 @@ import type {
   StorePrice,
 } from "@/types/catalog.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
+import { sortBySearchRelevance } from "@/utils/sortBySearchRelevance";
 import { toStorePriceRanges } from "@/utils/toStorePriceRanges";
 
 /**
@@ -63,7 +64,8 @@ export const searchCatalog = async (searchTerm: string): Promise<CatalogProduct[
   });
   if (error) throw error;
 
-  return toCatalogProducts(products);
+  // La RPC ordena por nombre; acá va primero lo que más se parece a lo buscado (SCRUM-158).
+  return sortBySearchRelevance(toCatalogProducts(products), searchTerm, (product) => product.productName);
 };
 
 /**
