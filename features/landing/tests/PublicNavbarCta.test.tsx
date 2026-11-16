@@ -2,7 +2,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { APP_ROUTE, AUTH_ROUTE } from "@/constants";
+import { APP_ROUTE } from "@/constants";
 import { subscribeToSessionChanges } from "@/services/session.service";
 import type { NullableRef } from "@/types/nullable.types";
 import { PublicNavbarCta } from "../components/PublicNavbarCta";
@@ -35,13 +35,6 @@ describe("PublicNavbarCta", () => {
     expect(screen.getByRole("link", { name: NAVBAR_TEXT.REGISTER })).toHaveAttribute("href", LANDING_ROUTE.REGISTER);
   });
 
-  // SCRUM-144: quien ya tiene cuenta puede llegar al login desde la landing.
-  it("offers a visitor without a session to log in", () => {
-    renderWithSession(null);
-
-    expect(screen.getByRole("link", { name: NAVBAR_TEXT.LOG_IN })).toHaveAttribute("href", AUTH_ROUTE.LOGIN);
-  });
-
   it("treats an anonymous session as a visitor", () => {
     renderWithSession(createSession(true));
 
@@ -53,6 +46,5 @@ describe("PublicNavbarCta", () => {
 
     expect(screen.getByRole("link", { name: NAVBAR_TEXT.GO_TO_APP })).toHaveAttribute("href", APP_ROUTE.LIST);
     expect(screen.queryByRole("link", { name: NAVBAR_TEXT.REGISTER })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: NAVBAR_TEXT.LOG_IN })).not.toBeInTheDocument();
   });
 });

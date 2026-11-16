@@ -11,8 +11,6 @@ import type { PublicNavbarViewModel } from "../models/PublicNavbarViewModel.inte
  * registrarse (SCRUM-135, CA-03). Una sesión anónima cuenta como visitante
  * (getSessionStatus). Mientras se verifica se muestra "Registrarse": es lo
  * que ve cualquier visitante y no salta si no hay sesión.
- * Al visitante también se le ofrece "Iniciar sesión" (SCRUM-144): antes no
- * había ningún camino al login desde la landing.
  */
 export const usePublicNavbarViewModel = (): PublicNavbarViewModel => {
   const [status, setStatus] = useState<SessionStatusType>(SESSION_STATUS.CHECKING);
@@ -21,6 +19,6 @@ export const usePublicNavbarViewModel = (): PublicNavbarViewModel => {
   useEffect(() => subscribeToSessionChanges((session) => setStatus(getSessionStatus(session))), []);
 
   return status === SESSION_STATUS.AUTHENTICATED
-    ? { ctaHref: APP_ROUTE.LIST, ctaLabel: NAVBAR_TEXT.GO_TO_APP, isLoginVisible: false }
-    : { ctaHref: LANDING_ROUTE.REGISTER, ctaLabel: NAVBAR_TEXT.REGISTER, isLoginVisible: true };
+    ? { ctaHref: APP_ROUTE.LIST, ctaLabel: NAVBAR_TEXT.GO_TO_APP }
+    : { ctaHref: LANDING_ROUTE.REGISTER, ctaLabel: NAVBAR_TEXT.REGISTER };
 };

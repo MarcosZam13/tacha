@@ -37,11 +37,6 @@ Nivel más bajo que alcanza: las reglas de los campos (`validateContactForm`), l
 - **Pasos:** abrir `/nosotros`; completar Nombre, Correo y Mensaje; marcar el reCAPTCHA; tocar "Enviar mensaje".
 - **Resultado esperado:** se ve la confirmación y la petición lleva `source: "about"`.
 
-### E2E-LOGIN-ENTRADA-01: desde la navbar de la landing se llega al login
-- **Cubre:** SCRUM-144 (incluido en SCRUM-158).
-- **Pasos:** sin sesión, abrir `/` y tocar "Iniciar sesión" en la navbar.
-- **Resultado esperado:** se abre `/login`.
-
 ### E2E-LOGIN-ENTRADA-02: desde el registro se llega al login
 - **Cubre:** SCRUM-144 (incluido en SCRUM-158).
 - **Pasos:** abrir `/registro` y tocar "Iniciá sesión", debajo del título.

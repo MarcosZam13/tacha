@@ -28,8 +28,6 @@ export const BRAND_LOGO = {
 
 export const NAVBAR_TEXT = {
   GO_TO_APP: "Ir a mi lista",
-  // SCRUM-144: quien ya tiene cuenta necesita una forma de llegar al login.
-  LOG_IN: "Iniciar sesión",
   NAV_LABEL: "Navegación principal",
   REGISTER: "Registrarse",
 } as const;
