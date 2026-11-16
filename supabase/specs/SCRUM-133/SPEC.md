@@ -107,11 +107,11 @@ Cómo se obtuvo: para cada variante vieja, la `matched_variant_id` de las filas 
 
 ## 5. Criterios de aceptación
 
-- [ ] No queda ninguna receta en la ventana demo original; las recetas del seed vigente no cambian de cantidad (718: 4 por usuario en 178 usuarios y 3 en 2 que borraron una), no hay duplicadas y todos sus ingredientes apuntan a madres curadas. Los usuarios creados después de la última corrida del seed (710) siguen sin recetas demo: el remapeo no crea recetas (SPEC §3 punto 1); quien las necesite puede correr el seed actualizado.
-- [ ] Las recetas reales ("Flan", "cereal desayuno") apuntan a madres curadas según §3.1, y ningún `list_item` queda en una variante del catálogo global que no sea de una madre curada (los de productos propios no se tocan), según §3.2.
-- [ ] Ninguna madre vieja queda en `product_catalog` (madre global sin regla en `product_mother_rules`); `search_catalog` solo devuelve madres curadas.
-- [ ] Registro corto de lo borrado, movido y verificado (reporte).
-- [ ] La migración está en `supabase/migrations/`, se aplicó con su fila en `supabase_migrations.schema_migrations` y su test pasa.
+- [x] No queda ninguna receta en la ventana demo original; las recetas del seed vigente no cambian de cantidad (718: 4 por usuario en 178 usuarios y 3 en 2 que borraron una), no hay duplicadas y todos sus ingredientes apuntan a madres curadas. Los usuarios creados después de la última corrida del seed (710) siguen sin recetas demo: el remapeo no crea recetas (SPEC §3 punto 1); quien las necesite puede correr el seed actualizado.
+- [x] Las recetas reales ("Flan", "cereal desayuno") apuntan a madres curadas según §3.1, y ningún `list_item` queda en una variante del catálogo global que no sea de una madre curada (los de productos propios no se tocan), según §3.2.
+- [x] Ninguna madre vieja queda en `product_catalog` (madre global sin regla en `product_mother_rules`); `search_catalog` solo devuelve madres curadas.
+- [x] Registro corto de lo borrado, movido y verificado (reporte).
+- [x] La migración está en `supabase/migrations/`, se aplicó con su fila en `supabase_migrations.schema_migrations` y su test pasa.
 
 ## 6. Aviso al equipo (Developer Notes del PR, antes de correr)
 

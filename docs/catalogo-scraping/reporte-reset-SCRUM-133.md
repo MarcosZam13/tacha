@@ -32,6 +32,12 @@ Tomado el 2026-11-16 05:27 UTC, antes de aplicar, fuera del repo (tiene datos de
 - "Flan" → Leche condensada + Leche; "cereal desayuno" → Cereal.
 - Ninguna (lista, variante) con dos ítems pendientes.
 - `search_catalog`: "leche" → Leche, Leche condensada, Leche evaporada, Leche de coco, Crema de leche; "cereal", "chocolate" y "arroz" → su madre curada; "moofy" y "magnesia" → sin resultados.
+- Por la interfaz (usuario nuevo): `/catalogo` con "leche" solo muestra madres curadas por tamaño (ej. "Leche — 1000 ml") y los 7 chips de categoría; en `/lista`, "Leche — 1000 ml" muestra las marcas de los productos movidos ahí (Dos Pinos, Sabemas, Coronado, …) y precios actuales de los 3 súpers.
+- "Agregar receta a la lista" encuentra una presentación de la misma unidad para todos los ingredientes de receta, salvo uno que ya fallaba antes del reset (ver abajo).
+
+## Observaciones previas al reset (no cambian)
+
+- "Flan" tiene un ingrediente de "½ unidad" de leche condensada; ninguna presentación de leche condensada está en unidades, ni antes (madre vieja de 335 g) ni ahora, así que ese ingrediente no se puede pasar a la lista.
 
 ## Diferencias con el ticket original
 
