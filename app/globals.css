@@ -12,6 +12,8 @@
   --tacha-border: #e8dfd0;
   --tacha-teal: #0e7c7b;
   --tacha-terracotta: #d97b4f;
+  /* Texto terracota con contraste AA (>= 4.5) sobre el fondo de un chip terracota; el terracota de siempre da ~2.6 (SCRUM-92, D27). */
+  --tacha-terracotta-text: #945435;
   --tacha-chipbg: #fbeadf;
   --tacha-chipborder: #e9c4a5;
   --tacha-text: #2b2420;
@@ -26,6 +28,8 @@
   --tacha-border: #332c25;
   --tacha-teal: #3ec6c1;
   --tacha-terracotta: #e89a6c;
+  /* En oscuro el terracota de siempre ya da >= 4.5 sobre el chip. */
+  --tacha-terracotta-text: #e89a6c;
   --tacha-chipbg: #3a2a1e;
   --tacha-chipborder: #4a362a;
   --tacha-text: #f5efe6;
@@ -40,6 +44,7 @@
     --tacha-border: #332c25;
     --tacha-teal: #3ec6c1;
     --tacha-terracotta: #e89a6c;
+    --tacha-terracotta-text: #e89a6c;
     --tacha-chipbg: #3a2a1e;
     --tacha-chipborder: #4a362a;
     --tacha-text: #f5efe6;
@@ -54,6 +59,7 @@
   --color-tacha-border: var(--tacha-border);
   --color-tacha-teal: var(--tacha-teal);
   --color-tacha-terracotta: var(--tacha-terracotta);
+  --color-tacha-terracotta-text: var(--tacha-terracotta-text);
   --color-tacha-chipbg: var(--tacha-chipbg);
   --color-tacha-chipborder: var(--tacha-chipborder);
   --color-tacha-text: var(--tacha-text);

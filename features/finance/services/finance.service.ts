@@ -51,6 +51,38 @@ const assertValidTotal = (total: number): void => {
   }
 };
 
+// Una fila de compra tal como la pide FINANCE_DB.SELECT.PURCHASES.
+interface PurchaseRow {
+  closed_at: NullableRef<string>;
+  id: string;
+  stores: NullableRef<{ display_name: NullableRef<string> }>;
+  total_amount: NullableRef<number>;
+}
+
+// El servidor puede cortar la respuesta sin avisar: si el conteo exacto es nulo
+// o no coincide con las filas recibidas, falla en vez de dar un dato falso (regla 30).
+const assertCompleteResult = (count: NullableRef<number>, rowCount: number): void => {
+  if (count !== rowCount) {
+    throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió un resultado incompleto`);
+  }
+};
+
+// Una compra del Historial. Un supermercado nulo o en blanco no es un error: se
+// entrega como null y la fila se conserva (regla 29).
+const toPeriodPurchase = (purchaseRow: PurchaseRow): PeriodPurchase => {
+  // closed_at es nullable en la tabla; el filtro deja solo las cerradas.
+  if (purchaseRow.closed_at === null) {
+    throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió una compra sin cierre`);
+  }
+
+  return {
+    closedAt: purchaseRow.closed_at,
+    id: purchaseRow.id,
+    storeName: purchaseRow.stores?.display_name?.trim() || null,
+    totalAmount: purchaseRow.total_amount,
+  };
+};
+
 const assertPeriodMovesForward = ({ end, start }: PeriodBounds): void => {
   if (!(start.getTime() < end.getTime())) {
     throw new RangeError("El periodo tiene que empezar antes de terminar");
@@ -147,22 +179,40 @@ export const getPeriodPurchases = async ({ end, start }: PeriodBounds): Promise<
     .order(FINANCE_DB.COLUMN.CLOSED_AT, { ascending: false })
     .order(FINANCE_DB.COLUMN.ID);
   if (error) throw error;
-  if (count !== purchaseRows.length) {
-    throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió un resultado incompleto`);
-  }
+  assertCompleteResult(count, purchaseRows.length);
+
+  return purchaseRows.map(toPeriodPurchase);
+};
+
+/**
+ * Todas las compras cerradas propias sin total, de cualquier fecha, de la más
+ * reciente a la más antigua (SCRUM-92, SPEC §12 y regla 70). De acá salen la
+ * sección "Compras sin total" y el recordatorio (regla 66). La RLS de
+ * purchase_sessions (016) solo deja las propias: no se manda el dueño.
+ *
+ * Mismas reglas que getPeriodPurchases: conteo exacto (regla 30) y supermercado
+ * nulo o en blanco como null (regla 29). Una fila con total es un contrato roto.
+ */
+export const getPurchasesWithoutTotal = async (): Promise<PeriodPurchase[]> => {
+  const {
+    count,
+    data: purchaseRows,
+    error,
+  } = await getSupabaseClient()
+    .from(FINANCE_DB.TABLE.PURCHASE_SESSIONS)
+    .select(FINANCE_DB.SELECT.PURCHASES, { count: "exact" })
+    .not(FINANCE_DB.COLUMN.CLOSED_AT, "is", null)
+    .is(FINANCE_DB.COLUMN.TOTAL_AMOUNT, null)
+    .order(FINANCE_DB.COLUMN.CLOSED_AT, { ascending: false })
+    .order(FINANCE_DB.COLUMN.ID);
+  if (error) throw error;
+  assertCompleteResult(count, purchaseRows.length);
 
   return purchaseRows.map((purchaseRow) => {
-    // closed_at es nullable en la tabla; el filtro deja solo las cerradas.
-    if (purchaseRow.closed_at === null) {
-      throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió una compra sin cierre`);
+    if (purchaseRow.total_amount !== null) {
+      throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió una compra con total`);
     }
-
-    return {
-      closedAt: purchaseRow.closed_at,
-      id: purchaseRow.id,
-      storeName: purchaseRow.stores?.display_name?.trim() || null,
-      totalAmount: purchaseRow.total_amount,
-    };
+    return toPeriodPurchase(purchaseRow);
   });
 };
 

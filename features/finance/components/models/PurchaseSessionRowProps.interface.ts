@@ -12,6 +12,8 @@ export interface PurchaseSessionRowProps {
   edit: EditTotalButtonProps;
   /** El campo abierto, si es el de esta compra; null si no (D21). */
   editor: NullableRef<InlineTotalEditorProps>;
+  /** true si no tiene total (`total_amount` nulo): "Sin total" va como badge (SCRUM-92, CA-01). Un ₡0 es false (D8). */
+  hasNoTotal: boolean;
   id: string;
   /** El nombre del supermercado, o "Supermercado no disponible" (regla 29). */
   storeText: string;

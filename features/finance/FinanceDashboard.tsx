@@ -3,6 +3,7 @@
 import { Spinner } from "@/components/ui";
 import { FinanceNoAccount } from "./components/FinanceNoAccount";
 import { FinanceTabs } from "./components/FinanceTabs";
+import { PendingTotalReminder } from "./components/PendingTotalReminder";
 import { SpendingBudget } from "./components/SpendingBudget";
 import { SpendingPeriodSelector } from "./components/SpendingPeriodSelector";
 import { SpendingTotal } from "./components/SpendingTotal";
@@ -46,6 +47,8 @@ export const FinanceDashboard = (): React.JSX.Element => {
               <SpendingBudget {...viewModel.budget} />
             </section>
           </div>
+          {/* SCRUM-92 (D26): el recordatorio, con enlace a "Compras sin total" del Historial. */}
+          <PendingTotalReminder {...viewModel.pendingReminder} />
         </>
       ) : null}
     </div>
