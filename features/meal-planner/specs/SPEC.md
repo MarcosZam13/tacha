@@ -134,6 +134,10 @@ SCRUM-100:
 - **SCRUM-100:** los espacios son botones con nombre completo ("Almuerzo del lunes 12, vacío, asignar" / "Almuerzo del lunes 12: Arroz con leche, cambiar"), así que el lector sabe qué día, qué comida y qué pasa al tocarlos. El "+" es decorativo.
 - **SCRUM-100:** el diálogo es `role="dialog"` con `aria-modal`, título y cierre con Escape (comportamiento del `Modal` compartido). Las recetas son un grupo de opciones (un `fieldset` con `legend` y radios, rol `group`) con la receta elegida marcada; el cocinero, otro grupo igual. El contador del multiplicador tiene botones "Menos porciones" / "Más porciones" y el valor se anuncia ("×2, 24 porciones") con `aria-live="polite"`. Los errores del diálogo son `role="alert"`.
 - **SCRUM-100:** al cerrar el diálogo el foco vuelve al espacio que lo abrió. Al guardar o quitar, el espacio muestra su nuevo estado.
+  - **Desde SCRUM-142:** esa devolución la hace el `Modal` compartido, no `useMealSlotDialog` ([components/ui/modal/specs/SPEC.md](../../../components/ui/modal/specs/SPEC.md), D4).
+  - **Safari:** el espacio se enfoca a sí mismo antes de abrir, porque ahí un clic no enfoca el botón.
+  - **Guardar y quitar:** el botón del espacio es el mismo nodo antes y después, así que el foco vuelve a él.
+  - "Agregar semana a la lista" (§16.8) no cambia.
 - **Límite conocido (revisión de código, 2026-10-09):** al pulsar una flecha esta queda deshabilitada (`disabled` nativo del `Button` compartido) y el foco del teclado se pierde: en Chrome pasa al `body`. Quien navega con teclado tiene que volver a tabular hasta la otra flecha. Se acepta porque con solo dos semanas el costo es de un Tab, y arreglarlo bien exige mover el foco a la otra flecha desde un componente de presentación (refs) o sumar `aria-disabled` al `Button` compartido, que usan otras features. Si se decide arreglar, lo natural es `aria-disabled` en el `Button` con el clic ignorado cuando está "deshabilitado".
 
 ## 10. Restricciones técnicas

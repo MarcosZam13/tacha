@@ -22,7 +22,7 @@ Dar a cualquier integrante del equipo (Melany, Laura, Esteban, Roberto, Marcos) 
 ## Casos límite y errores
 - `Input`/`FormField` en estado de error: borde y helper text distinguibles sin depender solo del color (ver accesibilidad — texto de error explícito, no solo borde rojo).
 - `Input` (SCRUM-137): el texto de ayuda o de error va FUERA del `<label>`, en un `<p>` ligado al campo con `aria-describedby`; el campo con error lleva `aria-invalid="true"`. Así el nombre accesible es solo la etiqueta (más el `*` de obligatorio) y no cambia cuando aparece un error. El id sale de `useId`, único aunque haya varios `Input` en la pantalla. Acepta `onBlur` opcional.
-- `Modal` cierra con click en el overlay y con Escape; no atrapa el foco todavía (fuera de alcance de esta primera pasada — anotado como pendiente).
+- `Modal` cierra con click en el overlay y con Escape. Desde SCRUM-142 también maneja el foco: lo mueve adentro al abrir, lo atrapa con Tab y Shift+Tab, lo trae de vuelta si un clic fuera no cierra, y al cerrar lo devuelve al elemento que lo tenía, salvo que la pantalla lo haya movido a propósito. Detalle en [components/ui/modal/specs/SPEC.md](../modal/specs/SPEC.md).
 - `Button` deshabilitado: opacidad reducida + `cursor-not-allowed`, sin depender solo de quitar el handler.
 - `Icon` (SCRUM-145): envuelve un ícono de `lucide-react` con el tamaño (`ICON_SIZE`) y el trazo (`ICON_STROKE_WIDTH`) de la app. Siempre `aria-hidden`: no cambia el nombre accesible del botón que lo contiene. Hereda el color del padre (`currentColor`). `Button` `destructive` usa el token `tacha-danger`.
 
