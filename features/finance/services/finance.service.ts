@@ -6,6 +6,8 @@ import type { NullableRef } from "@/types/nullable.types";
 import {
   COLONES_AMOUNT,
   FINANCE_DB,
+  PRODUCT_HISTORY,
+  PRODUCT_TARGET_KIND,
   SPENDING_PERIOD,
   TIME_ZONE_ERROR_CODE,
   TOTAL_SAVE_ERROR,
@@ -16,6 +18,13 @@ import type { PeriodBounds } from "../models/PeriodBounds.interface";
 import type { PeriodFinance, PeriodFinanceResponse } from "../models/PeriodFinance.type";
 import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
+import type { ProductPurchase } from "../models/ProductPurchase.interface";
+import type { ProductPurchaseTarget } from "../models/ProductPurchaseTarget.type";
+import type {
+  PurchasedProductsPage,
+  PurchasedProductsQuery,
+  PurchasedProductsResponse,
+} from "../models/PurchasedProductsPage.interface";
 import type { SpendingBudgets } from "../models/SpendingBudgets.type";
 import type {
   SetPeriodTotalPayload,
@@ -29,6 +38,7 @@ import { TotalSaveError } from "../models/TotalMutations.interface";
 import { isSpendingPeriod } from "../utils/isSpendingPeriod";
 import { summarizeSpending } from "../utils/summarizeSpending";
 import { toPeriodFinance } from "../utils/toPeriodFinance";
+import { toPurchasedProductsPage } from "../utils/toPurchasedProductsPage";
 
 // Mismas reglas que el check de spending_budgets.amount (027) y que
 // assert_valid_spending_total (040). La pantalla ya valida con parseColonesAmount;
@@ -214,6 +224,100 @@ export const getPurchasesWithoutTotal = async (): Promise<PeriodPurchase[]> => {
     }
     return toPeriodPurchase(purchaseRow);
   });
+};
+
+// La búsqueda tal como la recibe la 049: recortada y con PRODUCT_HISTORY.SEARCH_MAX_LENGTH
+// caracteres como máximo, contados como char_length (code points, no unidades
+// UTF-16). Lo que pase se corta sin error (SPEC §7). Array.from no parte un emoji.
+const toProductSearchText = (search: string): string =>
+  Array.from(search.trim()).slice(0, PRODUCT_HISTORY.SEARCH_MAX_LENGTH).join("");
+
+/**
+ * Un bloque de la vista "Productos" (SCRUM-93, CA-01, D33 y D35): los
+ * productos comprados en compras cerradas propias, agrupados y ordenados por la
+ * base, con el total que coincide con la búsqueda. El dueño sale de auth.uid()
+ * en la RPC; el cliente manda la búsqueda y el bloque.
+ *
+ * La búsqueda se recorta antes de enviarla (regla 93 y §7); vacía es la lista
+ * completa. Un offset fuera de 0..MAX_OFFSET es un RangeError sin llamar a la
+ * base. Un bloque que no coincide con su conteo es un error (adapter).
+ */
+export const getPurchasedProducts = async ({
+  offset,
+  search,
+}: PurchasedProductsQuery): Promise<PurchasedProductsPage> => {
+  if (!Number.isInteger(offset) || offset < 0 || offset > PRODUCT_HISTORY.MAX_OFFSET) {
+    throw new RangeError("El inicio del bloque tiene que ser un entero entre 0 y el tope");
+  }
+
+  const { data: productsPage, error } = await getSupabaseClient().rpc(FINANCE_DB.RPC.GET_PURCHASED_PRODUCTS, {
+    page_limit: PRODUCT_HISTORY.PAGE_SIZE,
+    page_offset: offset,
+    search_text: toProductSearchText(search),
+  });
+  if (error) throw error;
+
+  // La RPC devuelve jsonb: la base no le da tipo, lo fija el contrato de la 049
+  // y lo comprueba el adapter.
+  return toPurchasedProductsPage(productsPage as unknown as PurchasedProductsResponse, offset);
+};
+
+/**
+ * Las compras cerradas propias que incluyen un producto (SCRUM-93, CA-02): una
+ * fila por compra, de la más reciente a la más antigua (reglas 88 y 89). Se
+ * pide por el product_key que devolvió la lista, sin normalizarlo, o por la
+ * presentación de un "Producto no disponible"; nunca los dos.
+ *
+ * Un producto sin compras propias devuelve [] (regla 90): no es un error. Con
+ * conteo exacto, como getPeriodPurchases: una respuesta cortada es un error
+ * (regla 30). Un supermercado nulo o en blanco llega como null (regla 29).
+ */
+export const getProductPurchases = async (target: ProductPurchaseTarget): Promise<ProductPurchase[]> => {
+  const {
+    count,
+    data: purchaseRows,
+    error,
+  } = await getSupabaseClient().rpc(
+    FINANCE_DB.RPC.GET_PRODUCT_PURCHASES,
+    target.kind === PRODUCT_TARGET_KIND.BY_NAME
+      ? { target_product_key: target.productKey, target_variant_id: null }
+      : { target_product_key: null, target_variant_id: target.variantId },
+    { count: "exact" },
+  );
+  if (error) throw error;
+  if (count !== purchaseRows.length) {
+    throw new Error(`${FINANCE_DB.RPC.GET_PRODUCT_PURCHASES} devolvió un resultado incompleto`);
+  }
+
+  return purchaseRows.map((purchaseRow) => {
+    if (!Number.isInteger(purchaseRow.appearance_count) || purchaseRow.appearance_count < 1) {
+      throw new Error(`${FINANCE_DB.RPC.GET_PRODUCT_PURCHASES} devolvió un conteo de apariciones inválido`);
+    }
+    return {
+      appearanceCount: purchaseRow.appearance_count,
+      closedAt: purchaseRow.closed_at,
+      id: purchaseRow.id,
+      storeName: purchaseRow.store_name?.trim() || null,
+      totalAmount: purchaseRow.total_amount,
+      variantNames: purchaseRow.variant_names,
+    };
+  });
+};
+
+/**
+ * La zona guardada de quien llama (040), o null si todavía no confirmó una
+ * (regla 59). La vista "Productos" la usa solo para escribir las fechas del
+ * detalle (regla 87): sin zona, las del navegador, como el Historial. La RLS
+ * de spending_time_zones solo deja leer la propia.
+ */
+export const getSavedTimeZone = async (): Promise<NullableRef<string>> => {
+  const { data: timeZoneRow, error } = await getSupabaseClient()
+    .from(FINANCE_DB.TABLE.SPENDING_TIME_ZONES)
+    .select(FINANCE_DB.SELECT.TIME_ZONE)
+    .maybeSingle();
+  if (error) throw error;
+
+  return timeZoneRow?.time_zone ?? null;
 };
 
 /**
