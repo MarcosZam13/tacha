@@ -26,6 +26,7 @@ export const useCompleteSignUpViewModel = (): CompleteSignUpViewModel => {
   const [name, setName] = useState<string>("");
   const [nameError, setNameError] = useState<NullableUndefined<string>>(undefined);
   const [saveError, setSaveError] = useState<NullableUndefined<string>>(undefined);
+  const [isTermsAccepted, setIsTermsAccepted] = useState<boolean>(false);
 
   // Sincroniza con algo externo (la cuenta en Supabase): por eso es un efecto. Una cuenta que no
   // tiene nada que completar entra a la app. supabase-js puede rechazar sin respuesta (sin red):
@@ -61,10 +62,15 @@ export const useCompleteSignUpViewModel = (): CompleteSignUpViewModel => {
     setNameError(undefined);
   };
 
+  const handleTermsAcceptedChange = (isChecked: boolean): void => {
+    setIsTermsAccepted(isChecked);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-    // Mientras guarda no se envía de nuevo: un doble clic no hace dos guardados.
-    if (status !== COMPLETE_SIGN_UP_STATUS.READY) return;
+    // Mientras guarda no se envía de nuevo: un doble clic no hace dos guardados. Sin los términos
+    // aceptados el registro no se completa (SCRUM-44), aunque el botón ya esté deshabilitado.
+    if (status !== COMPLETE_SIGN_UP_STATUS.READY || !isTermsAccepted) return;
 
     const validationError = validateSignUpName(name);
     setNameError(validationError);
@@ -93,10 +99,13 @@ export const useCompleteSignUpViewModel = (): CompleteSignUpViewModel => {
   return {
     handleNameChange,
     handleSubmit,
+    handleTermsAcceptedChange,
     isFormVisible: status === COMPLETE_SIGN_UP_STATUS.READY || isSaving,
     isLoading: status === COMPLETE_SIGN_UP_STATUS.LOADING,
     isNoAccount: status === COMPLETE_SIGN_UP_STATUS.NO_ACCOUNT,
-    isSubmitDisabled: isSaving,
+    // Igual que el registro manual: no se puede continuar sin aceptar los términos.
+    isSubmitDisabled: isSaving || !isTermsAccepted,
+    isTermsAccepted,
     name,
     nameError,
     saveError,

@@ -86,3 +86,33 @@ Sin tablas ni migraciones. `sessionStorage` guarda que el flujo salió de este n
 | Spinner mientras llega la sesión | Mostrar el contenido y redirigir después | Una cuenta incompleta no debe ver la pantalla privada ni un instante; para el resto, la sesión local llega en milisegundos |
 | Tope de 5 s (`COMPLETE_SIGN_UP_GATE_TIMEOUT_MS`) para abrir la puerta si la sesión no llega | Esperar sin límite | Si la renovación del token se cuelga, la pantalla quedaría en blanco; abrir de más no expone datos porque RLS los protege |
 | `isSocialSignUpPending` exige correo | Mirar solo proveedor y marca | Una cuenta sin correo iría a un formulario que no la acepta y quedaría sin salida |
+
+## SCRUM-44: términos y condiciones en el registro social
+
+### Archivos
+- `constants/user-profile.constants.ts`: `USER_METADATA_KEY.TERMS_ACCEPTED_AT`.
+- `constants/terms.constants.ts` (nuevo): `TERMS_ROUTE` y `TERMS_ACCEPTANCE_LABEL`; los usan también `features/registro-manual` y `features/landing`.
+- `features/social-sign-up/utils/isSocialSignUpPending.ts`: una cuenta sin `terms_accepted_at` sigue pendiente.
+- `features/social-sign-up/services/complete-sign-up.service.ts`: `saveCompletedSignUp` guarda también `terms_accepted_at`.
+- `features/social-sign-up/hooks/useCompleteSignUpViewModel.ts` y `models/CompleteSignUpViewModel.interface.ts`: estado del checkbox; "Continuar" deshabilitado sin aceptar.
+- `features/social-sign-up/components/CompleteSignUpForm.tsx` y su modelo de props: checkbox y enlace a `/terminos`.
+- `features/social-sign-up/CompleteSignUp.tsx`: conecta el checkbox.
+- Pruebas: `CompleteSignUp.test.tsx` y su Page Object, `complete-sign-up.service.test.ts` y E2E-SOCIAL-07.
+
+### Flujo
+1. `/registro/completar` muestra el nombre y el checkbox sin marcar; "Continuar" está deshabilitado.
+2. Marcar el checkbox → `handleTermsAcceptedChange` → "Continuar" se habilita.
+3. "Continuar" → `saveCompletedSignUp` → `updateUser` con nombre, `terms_accepted_at` y la marca → `/lista`.
+4. Sin aceptar, la marca no existe y `CompleteSignUpGate` sigue enviando la cuenta al formulario.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Checkbox en el mismo formulario del nombre | Una pantalla aparte para los términos | Un solo paso después del proveedor, como en el registro manual, y la puerta de SCRUM-43 ya bloquea hasta enviarlo |
+| "Continuar" deshabilitado sin aceptar | Mostrar un error al enviar | Es lo que hace el registro manual (SCRUM-41) |
+| Enlace a `/terminos` en la misma pestaña | La ventana del registro manual, o abrirlo en otra pestaña | La ventana muestra un texto de ejemplo; el criterio pide el texto completo, que está en `/terminos` (HU-10). En otra pestaña su botón "Volver" no tiene a dónde volver y lleva a la landing; en la misma, regresa al formulario. El costo: al volver, el formulario se recarga con el nombre del proveedor y el checkbox sin marcar |
+| Guardar `terms_accepted_at` en la misma llamada | No guardarlo, como el registro manual | Queda evidencia de cuándo se aceptaron, sin pasos extra, y la cuenta no puede quedar completa sin términos |
+| `TERMS_ROUTE` y `TERMS_ACCEPTANCE_LABEL` en `constants/terms.constants.ts` | Importarlos del registro manual y de la landing | Con este cambio hay un segundo consumidor real: pasan a constantes compartidas, y el registro manual y la landing los toman de ahí, con los mismos textos que pide la historia |
+| La puerta exige la marca y `terms_accepted_at` | Mirar solo la marca | Quien escriba solo la marca desde la consola no queda con el registro completo sin aceptar los términos |
+| Sin aviso de pestaña nueva | Avisar a los lectores de pantalla | El enlace ya no abre otra pestaña, así que no hay nada que avisar |

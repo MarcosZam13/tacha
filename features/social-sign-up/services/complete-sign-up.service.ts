@@ -28,13 +28,16 @@ export const getCompleteSignUpAccount = async (): Promise<CompleteSignUpAccount>
   return account;
 };
 
-// El nombre y la marca de registro completado se guardan en una sola llamada: si falla, la cuenta
-// no queda con uno sin el otro. Devuelve un resultado, no lanza: el que llama decide qué mostrar.
+// El nombre, la aceptación de los términos (SCRUM-44) y la marca de registro completado se guardan en
+// una sola llamada: si falla, la cuenta no queda completa sin términos aceptados ni al revés. Solo se
+// llama con los términos aceptados. Devuelve un resultado, no lanza: el que llama decide qué mostrar.
 export const saveCompletedSignUp = async (name: string): Promise<CompleteSignUpSaveResultType> => {
+  const completedAt = new Date().toISOString();
   const { error } = await getSupabaseClient().auth.updateUser({
     data: {
       [USER_METADATA_KEY.NAME]: name.trim(),
-      [SOCIAL_SIGN_UP_COMPLETED_KEY]: new Date().toISOString(),
+      [USER_METADATA_KEY.TERMS_ACCEPTED_AT]: completedAt,
+      [SOCIAL_SIGN_UP_COMPLETED_KEY]: completedAt,
     },
   });
 

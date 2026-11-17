@@ -2,7 +2,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AUTH_ROUTE } from "@/constants";
+import { AUTH_ROUTE, USER_METADATA_KEY } from "@/constants";
 import { subscribeToSessionChanges } from "@/services/session.service";
 import type { NullableRef } from "@/types/nullable.types";
 import { CompleteSignUpGate } from "../CompleteSignUpGate";
@@ -82,7 +82,7 @@ describe("CompleteSignUpGate", () => {
   it("shows the private screen to a social account that completed its sign up", () => {
     const { notify, page } = renderGate();
 
-    notify(createSession(SOCIAL_PROVIDER.FACEBOOK, { [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16" }));
+    notify(createSession(SOCIAL_PROVIDER.FACEBOOK, { [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16", [USER_METADATA_KEY.TERMS_ACCEPTED_AT]: "2026-11-16" }));
 
     expect(page.queryPrivateContent()).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe("CompleteSignUpGate", () => {
     notify(createSession(SOCIAL_PROVIDER.GOOGLE));
     expect(page.queryPrivateContent()).not.toBeInTheDocument();
 
-    notify(createSession(SOCIAL_PROVIDER.GOOGLE, { [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16" }));
+    notify(createSession(SOCIAL_PROVIDER.GOOGLE, { [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16", [USER_METADATA_KEY.TERMS_ACCEPTED_AT]: "2026-11-16" }));
 
     expect(page.queryPrivateContent()).toBeInTheDocument();
   });
