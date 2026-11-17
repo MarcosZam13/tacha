@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { APP_ROUTE } from "@/constants";
+import { AUTH_ROUTE } from "@/constants";
 import type { NullableRef } from "@/types/nullable.types";
 import {
   SOCIAL_SIGN_UP_FEEDBACK,
@@ -31,7 +31,8 @@ export const useSocialSignUpCallbackViewModel = (): SocialSignUpCallbackViewMode
 
       setStatus(result);
       // replace y no push: con push, "atrás" volvería a esta página y mostraría un error.
-      if (result === SOCIAL_SIGN_UP_STATUS.SUCCESS) router.replace(APP_ROUTE.LIST);
+      // Una cuenta nueva completa sus datos antes de entrar a la app (SCRUM-43).
+      if (result === SOCIAL_SIGN_UP_STATUS.SUCCESS) router.replace(AUTH_ROUTE.COMPLETE_SIGN_UP);
     });
 
     return () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { startOfLocalDay } from "../utils/startOfLocalDay";
+import { startOfLocalDay } from "../startOfLocalDay";
 
 describe("startOfLocalDay", () => {
   it("returns local midnight of the same day, whatever the hour", () => {

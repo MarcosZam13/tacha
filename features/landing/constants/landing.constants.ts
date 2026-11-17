@@ -28,6 +28,7 @@ export const BRAND_LOGO = {
 
 export const NAVBAR_TEXT = {
   GO_TO_APP: "Ir a mi lista",
+  LOGIN: "Iniciar sesión",
   NAV_LABEL: "Navegación principal",
   REGISTER: "Registrarse",
 } as const;

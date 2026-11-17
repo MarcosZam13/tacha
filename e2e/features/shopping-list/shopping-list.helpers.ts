@@ -56,6 +56,13 @@ export const getAddRecipeToListButton = (page: Page, recipeName: string): Locato
 /** El resumen que aparece en la tarjeta al terminar de agregar la receta. */
 export const getAddRecipeToListSummary = (page: Page): Locator => page.getByRole("status");
 
+/** El panel "¿Qué hiciste?" (SCRUM-115). */
+export const getShortfallPanel = (page: Page): Locator => page.getByRole("dialog", { name: "¿Qué hiciste?" });
+
+/** El diálogo de destachar con deshacer (SCRUM-115). */
+export const getUndoDialog = (page: Page): Locator =>
+  page.getByRole("dialog", { name: "¿Destachar y deshacer lo que elegiste?" });
+
 /** Los avisos de faltante bajo una fila (SCRUM-114): texto, no botones. */
 export const getShortfallNote = (row: Locator, recipeName: string): Locator =>
   row.getByText(new RegExp(`^\\+ .+ necesarios para ${recipeName}$`));

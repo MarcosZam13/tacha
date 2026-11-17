@@ -41,17 +41,33 @@ const LIST_ITEM_ROW = {
   quantity_requested: 2,
 };
 
-// Una fila de get_general_list_shortfalls (033) sobre LIST_ITEM_ROW.
-const SHORTFALL_ROW = { list_item_id: "item-1", quantity_missing: 600, quantity_unit: "ml", recipe_name: "Tres leches" };
+// Una fila de get_general_list_recipe_shortfalls (037) sobre LIST_ITEM_ROW.
+const SHORTFALL_ROW = {
+  list_item_id: "item-1",
+  quantity_missing: 600,
+  quantity_unit: "ml",
+  recipe_id: "recipe-tres-leches",
+  recipe_name: "Tres leches",
+};
+// Una fila de get_general_list_shortfall_snapshots (037): item-1 vuelve a 1 × 1000 ml.
+const SNAPSHOT_ROW = {
+  list_item_id: "item-1",
+  previous_base_quantity: 1000,
+  previous_base_unit: "ml",
+  previous_quantity_requested: 1,
+};
 
 // getGeneralList llama dos RPC en paralelo: cada una responde por su nombre.
 const mockGeneralListRpcs = (
   generalListResponse: { data: string | null; error: unknown },
   shortfallsResponse: { data: (typeof SHORTFALL_ROW)[] | null; error: unknown } = { data: [], error: null },
+  snapshotsResponse: { data: (typeof SNAPSHOT_ROW)[] | null; error: unknown } = { data: [], error: null },
 ): void => {
-  rpcMock.mockImplementation((rpcName: string) =>
-    Promise.resolve(rpcName === "get_general_list_shortfalls" ? shortfallsResponse : generalListResponse),
-  );
+  rpcMock.mockImplementation((rpcName: string) => {
+    if (rpcName === "get_general_list_recipe_shortfalls") return Promise.resolve(shortfallsResponse);
+    if (rpcName === "get_general_list_shortfall_snapshots") return Promise.resolve(snapshotsResponse);
+    return Promise.resolve(generalListResponse);
+  });
 };
 
 beforeEach(() => {
@@ -72,7 +88,14 @@ describe("getGeneralList", () => {
     expect(rpcMock).toHaveBeenCalledWith("find_general_list_id");
     expect(eqMock).toHaveBeenCalledWith("id", HOUSEHOLD_LIST_ID);
     expect(items).toEqual([
-      expect.objectContaining({ id: "item-1", productName: "Leche", quantity: 2, recipeShortfalls: [], variantId: "variant-1" }),
+      expect.objectContaining({
+        id: "item-1",
+        productName: "Leche",
+        quantity: 2,
+        recipeShortfalls: [],
+        shortfallSnapshot: null,
+        variantId: "variant-1",
+      }),
     ]);
   });
 
@@ -82,8 +105,10 @@ describe("getGeneralList", () => {
 
     const [item] = await getGeneralList();
 
-    // Nombre literal a propósito: fija el contrato con la base (migración 033).
-    expect(rpcMock).toHaveBeenCalledWith("get_general_list_shortfalls");
+    // Nombre literal a propósito: fija el contrato con la base (migración 037).
+    expect(rpcMock).toHaveBeenCalledWith("get_general_list_recipe_shortfalls", {
+      local_day_start: expect.any(String),
+    });
     expect(item.recipeShortfalls).toEqual([{ quantityMissing: 600, recipeName: "Tres leches", unit: "ml" }]);
   });
 
@@ -93,6 +118,28 @@ describe("getGeneralList", () => {
     maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
 
     await expect(getGeneralList()).rejects.toBe(supabaseError);
+  });
+
+  it("attaches what each resolved row goes back to (SCRUM-115)", async () => {
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null }, undefined, { data: [SNAPSHOT_ROW], error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
+
+    const [item] = await getGeneralList();
+
+    expect(item.shortfallSnapshot).toEqual({ previousQuantity: 1, previousSizeLabel: "1000 ml" });
+  });
+
+  it("asks for the shortfalls and the snapshots with the same local midnight", async () => {
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [] }, error: null });
+
+    await getGeneralList();
+
+    const dayStarts = rpcMock.mock.calls
+      .filter(([rpcName]) => rpcName !== "find_general_list_id")
+      .map(([, rpcArgs]) => (rpcArgs as { local_day_start: string }).local_day_start);
+    expect(dayStarts).toHaveLength(2);
+    expect(new Set(dayStarts).size).toBe(1);
   });
 
   it("returns an empty list without reading when there is no list yet", async () => {
@@ -122,7 +169,7 @@ describe("getKeptPersonalList", () => {
     expect(items).toHaveLength(1);
     // Sin avisos de faltante: no es la lista a la que se agregan recetas (SCRUM-114, regla 30).
     expect(items[0].recipeShortfalls).toEqual([]);
-    expect(rpcMock).not.toHaveBeenCalledWith("get_general_list_shortfalls");
+    expect(rpcMock).not.toHaveBeenCalledWith("get_general_list_recipe_shortfalls", expect.anything());
   });
 
   it("returns nothing without a household: the personal list is the main one", async () => {

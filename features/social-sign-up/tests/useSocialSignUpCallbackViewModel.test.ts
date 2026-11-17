@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { APP_ROUTE, AUTH_ROUTE } from "@/constants";
+import { AUTH_ROUTE } from "@/constants";
 import { SOCIAL_SIGN_UP_STATUS } from "../constants/social-sign-up.constants";
 import { useSocialSignUpCallbackViewModel } from "../hooks/useSocialSignUpCallbackViewModel";
 import { completeSocialSignUp } from "../services/social-sign-up.service";
@@ -18,13 +18,13 @@ beforeEach(() => {
 });
 
 describe("useSocialSignUpCallbackViewModel", () => {
-  // CA-05
-  it("sends a new account into the app", async () => {
+  // SCRUM-43, CA-01
+  it("sends a new account to complete its data", async () => {
     completeSocialSignUpMock.mockResolvedValue(SOCIAL_SIGN_UP_STATUS.SUCCESS);
 
     renderHook(() => useSocialSignUpCallbackViewModel());
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(APP_ROUTE.LIST));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith(AUTH_ROUTE.COMPLETE_SIGN_UP));
   });
 
   // CA-04

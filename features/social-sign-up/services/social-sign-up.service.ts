@@ -2,8 +2,8 @@ import type { User } from "@supabase/supabase-js";
 import { AUTH_ROUTE } from "@/constants";
 import { signOutUser } from "@/services/session.service";
 import { getSupabaseClient } from "@/services/supabase.client";
+import { COMPLETE_SIGN_UP_ACCOUNT_STATUS } from "../constants/complete-sign-up.constants";
 import {
-  SOCIAL_SIGN_UP_COMPLETED_KEY,
   SOCIAL_SIGN_UP_PENDING_KEY,
   SOCIAL_SIGN_UP_STATUS,
 } from "../constants/social-sign-up.constants";
@@ -13,6 +13,7 @@ import type {
 } from "../constants/social-sign-up.constants";
 import { getSocialSignUpResult } from "../utils/getSocialSignUpResult";
 import { hasProviderError } from "../utils/hasProviderError";
+import { getCompleteSignUpAccount } from "./complete-sign-up.service";
 
 // Con éxito, el navegador sale hacia el proveedor. La URL de retorno debe estar en las Redirect URLs de Supabase.
 export const startSocialSignUp = async (
@@ -40,28 +41,35 @@ const unlinkNewIdentity = async (user: User, provider: string): Promise<void> =>
   if (identity && hasOtherIdentity) await getSupabaseClient().auth.unlinkIdentity(identity);
 };
 
-// Sin la marca, esta página se abrió directo y no se toca la sesión que pudiera tener la persona.
-// Si el proveedor falló, tampoco: la sesión que haya no viene de este flujo.
+// Sin la marca del flujo, esta página no se abrió desde los botones (o se volvió a ella con "atrás"
+// desde el formulario): nunca se toca la sesión que tenga la persona. Si esa sesión es de una cuenta
+// social que todavía no completó el registro, sigue al formulario (SCRUM-43); si no, es un error.
+const resumePendingSignUp = async (): Promise<SocialSignUpResultType> => {
+  const account = await getCompleteSignUpAccount();
+
+  return account.status === COMPLETE_SIGN_UP_ACCOUNT_STATUS.PENDING
+    ? SOCIAL_SIGN_UP_STATUS.SUCCESS
+    : SOCIAL_SIGN_UP_STATUS.ERROR;
+};
+
+// Si el proveedor falló, no se toca la sesión: la que haya no viene de este flujo.
+// Una cuenta nueva conserva la sesión y sigue al formulario de /registro/completar, que guarda
+// el nombre y la marca de registro completado (SCRUM-43).
 export const completeSocialSignUp = async (): Promise<SocialSignUpResultType> => {
   const provider = window.sessionStorage.getItem(SOCIAL_SIGN_UP_PENDING_KEY);
   window.sessionStorage.removeItem(SOCIAL_SIGN_UP_PENDING_KEY);
 
-  if (!provider || hasProviderError(window.location.search, window.location.hash)) {
-    return SOCIAL_SIGN_UP_STATUS.ERROR;
-  }
+  // Sin la marca va primero: al volver con "atrás", el proveedor puede repetir una autorización vieja
+  // y Supabase vuelve con ?error=..., aunque la sesión de la cuenta nueva siga abierta.
+  if (!provider) return await resumePendingSignUp();
+  if (hasProviderError(window.location.search, window.location.hash)) return SOCIAL_SIGN_UP_STATUS.ERROR;
 
   const auth = getSupabaseClient().auth;
   const { data: userData, error } = await auth.getUser();
   if (error || !userData.user) return SOCIAL_SIGN_UP_STATUS.ERROR;
 
   const result = getSocialSignUpResult(userData.user);
-
-  if (result === SOCIAL_SIGN_UP_STATUS.SUCCESS) {
-    const { error: updateError } = await auth.updateUser({
-      data: { [SOCIAL_SIGN_UP_COMPLETED_KEY]: new Date().toISOString() },
-    });
-    if (!updateError) return result;
-  }
+  if (result === SOCIAL_SIGN_UP_STATUS.SUCCESS) return result;
 
   if (result === SOCIAL_SIGN_UP_STATUS.EMAIL_EXISTS) {
     await unlinkNewIdentity(userData.user, provider);
@@ -69,5 +77,5 @@ export const completeSocialSignUp = async (): Promise<SocialSignUpResultType> =>
 
   if (!userData.user.is_anonymous) await signOutUser();
 
-  return result === SOCIAL_SIGN_UP_STATUS.SUCCESS ? SOCIAL_SIGN_UP_STATUS.ERROR : result;
+  return result;
 };
