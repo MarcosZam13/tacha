@@ -17,6 +17,7 @@ const makeList = (eventDate: string, id = eventDate): DateList => ({
   eventDate,
   id,
   name: `Sublista ${id}`,
+  spentTotal: null,
   status: DATE_LIST_STATUS.ACTIVE,
 });
 

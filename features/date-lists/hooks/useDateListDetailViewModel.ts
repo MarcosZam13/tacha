@@ -14,7 +14,10 @@ import {
   removeDateListItem,
   setDateListCancelled,
   setDateListItemChecked,
+  setDateListTotal,
 } from "../services/date-lists.service";
+import { useDateListTotalEditor } from "./useDateListTotalEditor";
+import type { DateListTotalEditor } from "./useDateListTotalEditor";
 
 interface UseDateListDetailViewModelReturn {
   actionErrorMessage: NullableRef<string>;
@@ -40,6 +43,7 @@ interface UseDateListDetailViewModelReturn {
   query: string;
   searchErrorMessage: NullableRef<string>;
   searchOptions: ProductSearchOption[];
+  totalEditor: DateListTotalEditor;
 }
 
 /**
@@ -75,23 +79,39 @@ export const useDateListDetailViewModel = (listId: string): UseDateListDetailVie
     };
   }, [listId]);
 
-  const runChange = useCallback(
-    async (change: () => Promise<unknown>, errorMessage: string): Promise<void> => {
-      if (isSaving) return;
+  // Hace el cambio y vuelve a leer la sublista. Responde si se guardó: el total (SCRUM-79) muestra su
+  // error dentro de su campo, y el resto de las acciones, arriba de la lista (runChange).
+  const applyChange = useCallback(
+    async (change: () => Promise<unknown>): Promise<boolean> => {
+      if (isSaving) return false;
 
       setIsSaving(true);
       setActionErrorMessage(null);
       try {
         await change();
         setDetail(await getDateListDetail(listId));
+        return true;
       } catch {
-        setActionErrorMessage(errorMessage);
+        return false;
       } finally {
         setIsSaving(false);
       }
     },
     [isSaving, listId],
   );
+
+  const runChange = useCallback(
+    async (change: () => Promise<unknown>, errorMessage: string): Promise<void> => {
+      // Con otro cambio en camino se ignora el toque, sin error: no falló nada.
+      if (isSaving) return;
+
+      const isSaved = await applyChange(change);
+      if (!isSaved) setActionErrorMessage(errorMessage);
+    },
+    [applyChange, isSaving],
+  );
+
+  const totalEditor = useDateListTotalEditor((total) => applyChange(() => setDateListTotal(listId, total)));
 
   const changeQuantity = (itemId: string, quantityStep: ItemQuantityStepType): void => {
     void runChange(() => changeListItemQuantity(itemId, quantityStep), DATE_LIST_TEXT.QUANTITY_ERROR);
@@ -137,5 +157,6 @@ export const useDateListDetailViewModel = (listId: string): UseDateListDetailVie
     query: search.query,
     searchErrorMessage: search.errorMessage,
     searchOptions,
+    totalEditor,
   };
 };
