@@ -225,7 +225,8 @@ test.describe("Sublistas por fecha", () => {
     const totalInput = page.getByRole("textbox", { name: "Total gastado en colones" });
     await totalInput.fill("12.5");
     await page.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByRole("alert")).toContainText("solo números");
+    // Next agrega su propio role="alert" (el anunciador de rutas): se filtra por el texto.
+    await expect(page.getByRole("alert").filter({ hasText: "solo números" })).toBeVisible();
 
     await totalInput.fill("12.500");
     await page.getByRole("button", { name: "Guardar" }).click();

@@ -32,9 +32,9 @@
 
 # Tareas: SCRUM-79
 
-- [ ] SPEC §10, plan y escenarios E2E
-- [ ] Migración 050 con su prueba SQL, ensayada contra la base con rollback
-- [ ] Servicio, ViewModel y pantalla, con pruebas de pantalla
-- [ ] Reservar el número 050 con el grupo y aplicar 050 con su fila de historial
-- [ ] Revisión en navegador, desktop y 360 px
-- [ ] Correr E2E-FECHAS-12 y 13 contra la base, ya con 050 aplicada
+- [x] SPEC §10, plan y escenarios E2E
+- [x] Migración 050 con su prueba SQL, ensayada contra la base con rollback
+- [x] Servicio, ViewModel y pantalla, con pruebas de pantalla
+- [x] Reservar el número 050 con el grupo y aplicar 050 con su fila de historial (2026-11-16)
+- [x] Revisión en navegador, desktop y 360 px
+- [x] Correr E2E-FECHAS-12 y 13 contra la base, ya con 050 aplicada
