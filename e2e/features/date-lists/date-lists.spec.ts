@@ -26,6 +26,17 @@ const getListCard = (page: Page) =>
 const getPendingCheckbox = (page: Page) => page.getByRole("checkbox", { checked: false, name: /^Tachar / });
 const getCheckedCheckbox = (page: Page) => page.getByRole("checkbox", { checked: true, name: /^Tachar / });
 
+// Hoy en la zona del navegador, YYYY-MM-DD: al volver a /fechas el calendario abre en el mes de hoy.
+const getTodayDate = (): string => {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${today.getFullYear()}-${month}-${day}`;
+};
+
+// El monto con el separador de miles que use Intl (espacio duro o normal).
+const TOTAL_12500 = /₡\s?12\s500/;
+
 // Espera a que termine de guardarse el cambio anterior: mientras tanto la fila está deshabilitada.
 const waitForSave = async (page: Page): Promise<void> => {
   await expect(page.getByRole("checkbox", { name: /^Tachar / }).first()).toBeEnabled();
@@ -202,5 +213,42 @@ test.describe("Sublistas por fecha", () => {
 
     await expect(page.getByText(/· Pendiente$/)).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Buscar producto" })).toBeVisible();
+  });
+
+  test("E2E-FECHAS-12: agregar y cambiar el total gastado", async ({ page }) => {
+    await fillCreateForm(page, getTodayDate());
+    await getListCard(page).click();
+    await expect(page).toHaveURL(DETAIL_URL);
+    await expect(page.getByText("Sin total")).toBeVisible();
+
+    await page.getByRole("button", { name: "Editar total gastado" }).click();
+    const totalInput = page.getByRole("textbox", { name: "Total gastado en colones" });
+    await totalInput.fill("12.5");
+    await page.getByRole("button", { name: "Guardar" }).click();
+    await expect(page.getByRole("alert")).toContainText("solo números");
+
+    await totalInput.fill("12.500");
+    await page.getByRole("button", { name: "Guardar" }).click();
+    await expect(page.getByText(TOTAL_12500)).toBeVisible();
+    await expect(totalInput).toHaveCount(0);
+
+    await page.getByRole("link", { name: "Volver a Fechas" }).click();
+    await expect(getListCard(page)).toContainText(TOTAL_12500);
+  });
+
+  test("E2E-FECHAS-13: una sublista cancelada no cambia su total", async ({ page }) => {
+    await fillCreateForm(page, getTodayDate());
+    await getListCard(page).click();
+    await page.getByRole("button", { name: "Editar total gastado" }).click();
+    await page.getByRole("textbox", { name: "Total gastado en colones" }).fill("12500");
+    await page.getByRole("button", { name: "Guardar" }).click();
+    await expect(page.getByText(TOTAL_12500)).toBeVisible();
+
+    await page.getByRole("button", { name: "Cancelar sublista" }).click();
+    await page.getByRole("button", { name: "Sí, cancelar" }).click();
+
+    await expect(page.getByText(/· Cancelada$/)).toBeVisible();
+    await expect(page.getByText(TOTAL_12500)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Editar total gastado" })).toHaveCount(0);
   });
 });
