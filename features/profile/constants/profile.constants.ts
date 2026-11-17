@@ -57,8 +57,6 @@ export const PROFILE_PHOTO_CHANGE = {
 export type ProfilePhotoChangeKindType =
   (typeof PROFILE_PHOTO_CHANGE)[keyof typeof PROFILE_PHOTO_CHANGE];
 
-export const PROFILE_NAME_MAX_LENGTH = 60;
-
 // Las mismas reglas del bucket `avatars` (supabase/migrations/036_create_avatars_bucket.sql): ahí las hace
 // cumplir Storage; acá solo se avisa antes de subir.
 export const AVATAR_MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
