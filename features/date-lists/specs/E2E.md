@@ -78,3 +78,15 @@ Nivel más bajo que alcanza: las fechas y la validación del formulario están e
 - **Cubre:** SPEC §9, regla 5.
 - **Pasos:** reactivar la sublista cancelada.
 - **Resultado:** vuelve el buscador y el estado se recalcula.
+
+### E2E-FECHAS-12: agregar y cambiar el total
+
+- **Cubre:** HU-47 CA-01 y CA-02, SPEC §10, reglas 1, 2 y 5.
+- **Pasos:** crear una sublista; ver "Sin total"; tocar el lápiz, escribir "12.5" y guardar; escribir "12.500" y guardar; volver a Fechas.
+- **Resultado:** "12.5" muestra el error y no guarda; "12.500" se guarda y se ve "₡12 500" en el detalle y en la tarjeta de la agenda.
+
+### E2E-FECHAS-13: una cancelada no cambia su total
+
+- **Cubre:** SPEC §10, regla 4.
+- **Pasos:** con el total guardado, cancelar la sublista.
+- **Resultado:** el total se sigue viendo y el lápiz ya no está.

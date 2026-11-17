@@ -29,3 +29,12 @@
 - [x] Aplicar 043 a la base compartida, con su fila de historial; prueba SQL corrida contra la base
 - [x] Revisión en navegador con datos simulados, desktop y 360 px
 - [x] Correr E2E-FECHAS-08 a 10 contra la base, ya con 043 aplicada
+
+# Tareas: SCRUM-79
+
+- [ ] SPEC §10, plan y escenarios E2E
+- [ ] Migración 050 con su prueba SQL, ensayada contra la base con rollback
+- [ ] Servicio, ViewModel y pantalla, con pruebas de pantalla
+- [ ] Reservar el número 050 con el grupo y aplicar 050 con su fila de historial
+- [ ] Revisión en navegador, desktop y 360 px
+- [ ] Correr E2E-FECHAS-12 y 13 contra la base, ya con 050 aplicada
