@@ -424,29 +424,40 @@ Compras sin total que usan los escenarios:
 
 ## SCRUM-93: consultar frecuencia e historial de compra por producto
 
-Deriva de SPEC §13 (HU-62) y de las decisiones D28 a D38 (SPEC §5).
+Deriva de SPEC §13 (HU-62) y de las decisiones D29 a D44 (SPEC §5); D39 sustituye a D28, que queda como antecedente. El desempate de D43 entre varios globales y los largos de D44 los aplica la base: los cubre la prueba SQL y no cambian estos escenarios, porque las respuestas son simuladas.
 
-- **Archivo:** `e2e/features/finance/product-history.spec.ts`.
+- **Archivo:** `e2e/features/finance/product-history.spec.ts`. **Estado (2026-11-16):** escrito; 12 pruebas pasan en `chromium` y `mobile-chrome` (E2E-FIN-22 va en dos pruebas: errores y vacío). El resto de `e2e/features/finance` sigue pasando (60 en total). El servidor de desarrollo necesita red para las fuentes de Google.
 - **Qué validan:** igual que los anteriores, usan una **sesión registrada simulada** y **respuestas de Supabase simuladas**, y validan **solo la interfaz**: ni la autenticación real, ni la RLS, ni las RPC.
 - **Qué cubre lo real:** la prueba SQL de la migración de SCRUM-93 y el QA manual de SPEC §13.
 - **IDs:** siguen a E2E-FIN-15 a 18, de SCRUM-92.
 
-**Lo que no se prueba en el navegador:** la agrupación por producto madre, el conteo por fila, las compras abiertas, la visibilidad (D36) y el escape de comodines. Lo hace la base. Con respuestas simuladas el navegador solo vería lo que el test le manda. Acá se prueba lo que la pantalla hace con esos datos: textos, orden recibido, búsqueda, bloques, detalle y errores.
+**Lo que no se prueba en el navegador:** lo hace la base, y lo cubre la prueba SQL:
+
+- la agrupación por nombre normalizado (D39 a D41);
+- el nombre que se muestra (D43), incluido el menor `product_catalog.id` entre varios globales;
+- el largo máximo de `target_product_key` (D44, 500);
+- el conteo por fila;
+- las compras abiertas;
+- la visibilidad (D36);
+- la búsqueda sin tildes;
+- que `%` y `_` se busquen como texto: la búsqueda usa `position()`, sin comodines.
+
+Con respuestas simuladas el navegador solo vería lo que el test le manda. Acá se prueba lo que la pantalla hace con esos datos: textos, orden recibido, búsqueda, bloques, detalle y errores.
 
 ### Datos y entorno
 
-Mismo reloj y zona horaria de E2E-FIN-05. El tamaño del bloque se toma de la constante del producto en el helper, no se repite como número suelto. Respuestas nuevas en `finance.helpers.ts`:
+Mismo reloj y zona horaria de E2E-FIN-05. El tamaño del bloque no se repite como número suelto: el helper responde según el `page_limit` que pide la pantalla, y el test lo lee de la primera petición. Respuestas nuevas en `finance.helpers.ts` (además, `GET /rest/v1/spending_time_zones` responde la zona guardada, o ninguna fila):
 
 | Petición | Respuesta simulada |
 |---|---|
-| `POST /rest/v1/rpc/get_purchased_products` | Según `search_text`, `page_limit` y `page_offset`. Hay más productos que un bloque, para que exista "Cargar más". Incluyen "Leche" con 4 apariciones, "Arroz" con 1 y un no disponible (`product_name: null`, con `product_catalog_variant_id`) con 1. Con `search_text` = "zzz", `total_count: 0` |
+| `POST /rest/v1/rpc/get_purchased_products` | Según `search_text`, `page_limit` y `page_offset`. Hay más productos que un bloque, para que exista "Cargar más". Cada uno trae su `product_key`. Incluyen "Leche" con 4 apariciones, "Azúcar" con 2 (ya juntada por la base, D39) y "Arroz" con 1. Hay también un no disponible, con `product_key` y `product_name` en `null` y con `product_catalog_variant_id`, con 1 aparición. Con `search_text` = "zzz", `total_count: 0` |
 | `POST /rest/v1/rpc/get_product_purchases` | Para "Leche", tres compras de la más reciente a la más antigua: MaxiPali ₡15 000 con 2 apariciones ("1 L" y "2 L"); Walmart con `total_amount: null` y 1 aparición; y una con `store_name: null` y 1 aparición |
 
 Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
 
 ### E2E-FIN-19: ver los productos comprados y su conteo (SCRUM-93)
 
-- **Cubre:** CA-01; D28, D29 (solo el texto), D31, D37 y reglas 89, 91 y 92.
+- **Cubre:** CA-01; D39 (solo cómo se muestra un producto ya agrupado), D29 (solo el texto), D31, D37 y reglas 89, 91 y 92.
 - **Precondición:** sesión registrada simulada. Corre en desktop y en Pixel 7.
 - **Pasos:**
   1. Abrir `/finanzas/historial`.
@@ -456,7 +467,7 @@ Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
   - Se ven "Leche, 4 veces" y "Arroz, 1 vez", en el orden recibido.
   - El no disponible dice "Producto no disponible".
   - La petición a `rpc/get_purchased_products` pide el primer bloque con la búsqueda vacía y no lleva dueño.
-  - Al volver a "Compras", el Historial se ve como antes.
+  - Al volver a "Compras", el Historial se ve como antes. Volver a "Productos" arranca sin búsqueda, en el primer bloque y sin detalle (regla 92; se comprueba al final de E2E-FIN-21).
 
 ### E2E-FIN-20: ver las compras de un producto (SCRUM-93)
 
@@ -466,7 +477,7 @@ Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
   1. En "Productos", tocar "Leche".
   2. Volver a tocarlo.
 - **Resultado esperado:**
-  - La petición a `rpc/get_product_purchases` lleva el producto madre elegido.
+  - La petición a `rpc/get_product_purchases` lleva el `product_key` que devolvió la lista para "Leche", sin normalizarlo en el cliente.
   - El detalle se abre en la misma pantalla, sin cambiar la URL.
   - Muestra 3 compras, de la más reciente a la más antigua, cada una con su total, sus presentaciones y sus apariciones:
     - ₡15 000, "1 L, 2 L" y "2 veces";
@@ -487,7 +498,7 @@ Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
   4. Vaciar el buscador.
 - **Resultado esperado:**
   - **Cargar más:** cada toque pide el bloque siguiente con la misma búsqueda. Los productos se agregan sin repetirse y el botón desaparece al llegar a `total_count`.
-  - **Buscar "lec":** la petición lleva la búsqueda y vuelve al primer bloque. El detalle se cierra y la cantidad de resultados se anuncia en `role="status"`.
+  - **Buscar "lec":** la petición lleva la búsqueda tal como se escribió, recortada; la normalización la hace la base. Vuelve al primer bloque. El detalle se cierra y la cantidad de resultados se anuncia en `role="status"`.
   - **Buscar "zzz":** "Sin resultados".
   - **Buscador vacío:** vuelve la lista completa desde el primer bloque.
 
@@ -510,10 +521,10 @@ Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
 
 | Criterio | Escenarios E2E | Otros niveles |
 |---|---|---|
-| HU-62 CA-01 | E2E-FIN-19 | ViewModel, `finance.service.test.ts`, prueba SQL (D28, D29, reglas 83 y 84), manual |
+| HU-62 CA-01 | E2E-FIN-19 | ViewModel, `finance.service.test.ts`, prueba SQL (D39, D29, reglas 83 y 84), manual |
 | HU-62 CA-02 | E2E-FIN-20 | Componentes, ViewModel, prueba SQL (reglas 88 y 89), manual |
 | D31 y regla 92 (selector) | E2E-FIN-19 | `PurchaseHistory.test.tsx`, componentes |
-| D33 y regla 93 (orden y búsqueda) | E2E-FIN-21 (la pantalla) | Prueba SQL (orden, empates, comodines), `usePurchasedProducts` |
+| D33 y regla 93 (orden y búsqueda) | E2E-FIN-21 (la pantalla) | Prueba SQL (orden, empates, `%` y `_` como texto), `usePurchasedProducts` |
 | D35 y regla 94 (bloques) | E2E-FIN-21, E2E-FIN-22 | `mergeProductPages.test.ts`, `usePurchasedProducts`, prueba SQL |
 | Regla 85 (monto sin atribuir) | E2E-FIN-20 | Componentes, manual |
 | D36, D37 y regla 96 (visibilidad) | E2E-FIN-19 (solo cómo se muestra) | Prueba SQL, manual con dos cuentas, `security-reviewer` |

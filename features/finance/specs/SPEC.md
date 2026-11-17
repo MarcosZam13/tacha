@@ -6,7 +6,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-90 / HU-59](https://tacha.atlassian.net/browse/SCRUM-90): ver historial de sesiones de compra. Implementada, con QA manual parcial (§13).
 - [SCRUM-91 / HU-60](https://tacha.atlassian.net/browse/SCRUM-91): editar el total de una sesión o periodo. En planificación.
 - [SCRUM-92 / HU-61](https://tacha.atlassian.net/browse/SCRUM-92): ver sesiones sin total ingresado. En planificación; decisiones D23 a D27 tomadas el 2026-11-13 (§5).
-- [SCRUM-93 / HU-62](https://tacha.atlassian.net/browse/SCRUM-93): consultar frecuencia e historial de compra por producto. En planificación: decisiones tomadas el 2026-11-14, con la revisión de seguridad de D36, la confirmación del equipo de D38 y los problemas de §15 pendientes.
+- [SCRUM-93 / HU-62](https://tacha.atlassian.net/browse/SCRUM-93): consultar frecuencia e historial de compra por producto. Implementada, con migración `049` aplicada, pruebas automatizadas en verde y QA manual dada por completada por la dueña de la historia (§13). Decisiones D28 a D44 (D39 sustituye a D28). Faltan la confirmación del equipo de D38 y la aprobación de la documentación.
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md). Producto: [documento-proyecto.md §4.2.1 y §4.6](../../../docs/documento-proyecto.md#42-lista-general-y-dashboard-financiero); diseño: [DESIGN.md §7.9 y §7.11](../../../docs/DESIGN.md).
 
@@ -99,7 +99,7 @@ Incluye:
 
 - Un **selector "Compras / Productos"** dentro del sub-tab Historial (D31).
 - La **lista de productos comprados** de todo el historial (D30).
-  - Agrupada por **producto madre** (D28), cada uno con la **cantidad de veces que aparece** (CA-01, D29).
+  - Agrupada por el **nombre normalizado del producto madre** (D39, que sustituye a D28), cada uno con la **cantidad de veces que aparece** (CA-01, D29).
   - Ordenada según D33, con **buscador** y **carga por bloques** (D35).
 - Al **elegir un producto**, el detalle en la misma pantalla (D32): las compras que lo incluyen, con fecha, supermercado y monto total de cada compra (CA-02).
 - Una **aclaración visible** de que el monto es el total de la compra y no lo que costó el producto (regla 85).
@@ -169,10 +169,9 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
 - **Vista:** "Compras" o "Productos" en el selector de Historial (D31).
 - **Texto de búsqueda:** `string`, por nombre del producto madre (D33, regla 93).
 - **"Cargar más":** pide el bloque siguiente de productos (D35).
-- **Producto elegido:** `productCatalogId: string` (D28). Para un producto no disponible es su presentación, `productCatalogVariantId: string` (regla 96).
+- **Producto elegido:** `productKey: string`, el `product_key` que devolvió la lista (D39 y §12). Para un producto no disponible es su presentación, `productCatalogVariantId: string` (regla 96).
 - **Cerrar o cambiar la selección:** volver a tocar el producto o tocar otro (D32).
 - **"Reintentar":** uno por lectura, en la lista y en el detalle.
-=======
 
 ## 4. Salidas
 
@@ -437,14 +436,14 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
 
 ### SCRUM-93
 
-**Numeración:** las reglas 61 a 71, las decisiones D23 a D27 y los escenarios E2E-FIN-15 a 18 son de SCRUM-92, que todavía no está en `develop`. SCRUM-93 sigue después para no repetir números cuando se junten las dos ramas.
+**Numeración:** las reglas 61 a 71, las decisiones D23 a D27 y los escenarios E2E-FIN-15 a 18 son de SCRUM-92, que ya está en `develop` (PR #100). SCRUM-93 sigue después.
 
 **Decididas por la dueña de la historia** (2026-11-14):
 
-72. **D28. Qué es "un producto":** el **producto madre** (`product_catalog`), con todas sus presentaciones y tamaños juntos. "Leche — 1 L" y "Leche — 2 L" son "Leche".
+72. **D28. Qué es "un producto"** (antecedente: **sustituida por D39**, regla 97; se conserva como historia de la decisión, no como criterio vigente): el **producto madre** (`product_catalog`), con todas sus presentaciones y tamaños juntos. "Leche — 1 L" y "Leche — 2 L" son "Leche".
     - **Qué no lo identifica:**
       - **La marca.** La compra no la guarda: `list_items` no tiene marca.
-      - **El nombre.** Un producto personal (`owner_id` o `household_id`) es otro producto madre aunque se llame igual que uno global, así que pueden verse dos "Leche" (§15, problema 1).
+      - **El nombre, por sí solo.** Un producto personal (`owner_id` o `household_id`) es otro producto madre aunque se llame igual que uno global. **D39 los junta:** productos madre distintos con el mismo nombre normalizado se muestran como un solo producto (reglas 97 a 101).
     - **Producto no visible:** si el producto madre ya no se puede leer, no se puede saber a cuál pertenece la presentación (regla 96).
 73. **D29. Qué cuenta como "una vez":**
     - **Cada fila** de `list_items` en una compra cerrada propia cuenta como una aparición, aunque varias filas sean de la misma compra.
@@ -460,13 +459,14 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
       2. si empatan, por la compra más reciente (`max(closed_at)`);
       3. si siguen empatando, por nombre;
       4. al final, por id, para que el orden sea estable.
-    - **Buscador:** filtra por nombre del producto madre (regla 93).
+    - **Buscador:** filtra por nombre del producto madre, con la misma normalización que el agrupamiento (regla 93, D40).
+    - **"Por nombre" del orden:** es el nombre que se muestra (D43).
 78. **D34. Solo lectura:** sin lápiz ni edición. Los totales se editan en la vista "Compras" (SCRUM-91).
 79. **D35. Paginación:** la lista de productos se carga **por bloques**, con "Cargar más" (regla 94). El detalle de un producto no se pagina (§15, problema 4).
 80. **D36. Seguridad de la lectura:**
     - **Decidido:** la lectura es **`security invoker`** y respeta la RLS.
     - **Consecuencia:** los artículos de una lista que la persona ya no ve (por ejemplo, de una familia de la que salió, `024`) **no cuentan**.
-    - **Pendiente:** la revisión de `security-reviewer` antes de escribir la migración (tasks 0.2).
+    - **Revisada** por `security-reviewer` el 2026-11-16: sin hallazgos críticos y sin cambios de RLS; los 8 hallazgos están en §12 (tasks 0.2).
 81. **D37. Producto no disponible:** cuando el producto madre no se puede leer, se muestra "Producto no disponible" (regla 96). Por ejemplo, un producto personal de una familia de la que la persona salió (`032`).
 82. **D38. Filtros del alcance anterior:**
     - **Decidido:** los filtros por supermercado y categoría se **mantienen como funcionalidad futura**, fuera de SCRUM-93. Siguen siendo el requisito "Filtrado de compra" de documento-proyecto §4.6, sin historia.
@@ -499,25 +499,53 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
     - Cambiar de vista no guarda la búsqueda, los bloques cargados ni el producto elegido. Es igual que D9 con el periodo.
 93. **Búsqueda** (D33):
     - **Dónde se busca:** en la base, sobre el nombre del producto madre, dentro de todo el historial. No se busca solo en los bloques cargados, porque con paginación faltarían productos.
-    - **Qué coincide:** una coincidencia parcial; no distingue mayúsculas y minúsculas.
+    - **Qué coincide:** una coincidencia parcial con la misma normalización de D40. No distingue mayúsculas, espacios de los extremos ni tildes, así que "azucar" encuentra "Azúcar".
     - **Texto que se envía:** se recorta. Un texto vacío muestra la lista completa. El texto tiene un largo máximo y se manda como parámetro, nunca dentro del SQL.
     - **Al cambiar la búsqueda:** se vuelve al primer bloque y se cierra el detalle.
     - **"Producto no disponible"** no tiene nombre, así que no aparece cuando hay una búsqueda.
-    - **Pendiente de definir al implementar:** si se ignoran las tildes (§15, problema 3).
 94. **Bloques** (D35):
     - **Tamaño:** cada bloque tiene un tamaño fijo (constante). La respuesta trae el total de productos que coinciden.
     - **"Cargar más":** desaparece cuando ya se cargaron todos.
     - **Respuestas viejas:** la de un bloque o una búsqueda anteriores se descarta.
     - **Repetidos:** si los datos cambian entre bloques y un producto llega repetido, se muestra una sola vez (§15, problema 4).
-95. **Agrupación por producto madre** (D28):
-    - **Cuenta lo de todas las presentaciones:** el conteo, la compra más reciente y el detalle de un producto suman todas sus presentaciones.
+95. **Agrupación por nombre normalizado** (D39):
+    - **Cuenta lo de todas las presentaciones** de todos los productos madre que comparten el nombre normalizado (regla 98): el conteo, la compra más reciente y el detalle suman todas sus presentaciones. Las presentaciones de un mismo producto madre quedan juntas porque comparten su nombre.
     - **Presentaciones en el detalle:** se nombran con `product_catalog_variants.name` en cada compra.
 96. **Producto no disponible** (D37):
     - **Por qué pasa:** con la RLS (D36), si el producto madre no se puede leer, tampoco se puede leer su presentación (`032`). Solo se conoce el id de la presentación, que guarda `list_items`, y no se sabe a qué producto madre pertenece.
     - **Cómo se muestra:** cada presentación no visible es un elemento "Producto no disponible" aparte, con su propio conteo y su propio detalle.
-    - **Por qué no se juntan:** juntarlas mezclaría productos distintos en un solo conteo.
+    - **Por qué no se juntan:** juntarlas mezclaría productos distintos en un solo conteo. Tampoco se juntan por nombre (D39), porque no tienen nombre.
     - **Límite declarado:** un mismo producto madre no visible puede aparecer como varios "Producto no disponible".
     - **Orden:** el de D33, con el nombre vacío al final de los empates.
+
+**Decididas por la dueña de la historia** (2026-11-16; cierran SPEC §15, problemas 1 y 3, y tasks 0.4 y 0.5):
+
+97. **D39. Mismo nombre, mismo producto:** los productos madre con el mismo nombre normalizado (regla 98) se juntan en un solo producto. Por ejemplo, "Leche" del catálogo y "Leche" de "Mis productos" suman sus apariciones.
+    - **Sustituye a D28**, que agrupaba solo por producto madre: ahora lo que identifica a un producto es el **nombre normalizado de su producto madre**. D28 queda como antecedente (regla 72).
+    - Puede juntar productos distintos que se llaman igual. Es una decisión de producto aceptada, no un error.
+98. **D40. Qué es "el mismo nombre":** dos nombres son el mismo si coinciden después de:
+    1. quitar los espacios de los extremos;
+    2. pasar a minúsculas;
+    3. quitar las tildes.
+
+    "Azúcar", " azúcar " y "azucar" son el mismo. La búsqueda (regla 93) usa la misma normalización.
+99. **D41. Cómo se quitan las tildes:** con la extensión `unaccent` de PostgreSQL, activada en `extensions` por la migración `049` de SCRUM-93, aplicada en la base compartida.
+    - Antes de la `049`, ninguna migración del repo la activaba (solo `pg_trgm`, en `schema.sql`), y en la base compartida no estaba instalada (comprobado el 2026-11-16).
+    - **Consecuencia aceptada:** `unaccent` también convierte la ñ en n, así que "Piña" y "Pina" son el mismo nombre.
+    - **Revisada** por `security-reviewer` el 2026-11-16 (tasks 0.2); cómo se activa y se llama está en §12.
+100. **D42. Relación con HU-42 (SCRUM-74):** se decide en HU-42. SCRUM-93 no recibe un periodo. HU-42 puede reutilizar la misma regla de conteo y agrupación, agregando un periodo, si así lo decide.
+101. **D43. Qué nombre se muestra al juntar:**
+     - si alguno de los productos juntados es del **catálogo global** (`owner_id` y `household_id` nulos), se muestra su nombre;
+     - si todos son personales, se muestra el del producto madre de la **aparición más reciente** (`max(closed_at)`);
+     - si aun así empatan, se elige el menor `product_catalog.id`, para que no cambie entre lecturas.
+     - **Varios globales con el mismo nombre normalizado** (decidido el 2026-11-16, tasks 0.9): se muestra el nombre del que tiene el **menor `product_catalog.id`**. Es solo el desempate del nombre que se muestra: no cambia la agrupación por nombre normalizado (D39), y entre globales no cuenta la aparición más reciente.
+
+     Siempre es un nombre real de la base, nunca uno armado.
+102. **D44. Largo máximo de las entradas de texto** (decidido por la dueña de la historia el 2026-11-16, tasks 0.10):
+     - `search_text`: como máximo **100** caracteres, medidos antes de normalizar (§12).
+     - `target_product_key`: como máximo **500** caracteres. Es un largo propio, separado del de la búsqueda, porque `product_catalog.name` no tiene largo máximo en la base y la clave sale de ese nombre.
+     - La RPC de detalle valida el límite de 500 con `22023`, y la prueba SQL lo cubre.
+     - **Comprobación de la implementación** (plan, "Datos"; tasks 1.2): el nombre original más largo del catálogo mide **16** caracteres (medido por la dueña de la historia el 2026-11-16, con una consulta de solo lectura). El largo normalizado también mide **16**, medido después de aplicar la `049` (tasks 1.4).
 
 ## 6. Estados
 
@@ -622,7 +650,7 @@ Uniones derivadas de constantes, como las de SCRUM-90:
   - `ready`;
   - `empty`: el producto ya no tiene apariciones, por la regla 90;
   - `failed`.
-- **Acceso:** el de `useFinanceAccess` (`checking` · `registered` · `noAccount`)
+- **Acceso:** el de `useFinanceAccess` (`checking` · `registered` · `noAccount`).
 ## 7. Errores
 
 ### SCRUM-69
@@ -1092,7 +1120,7 @@ purchase_sessions  select id, closed_at, total_amount, stores(display_name)
 
 ### SCRUM-93
 
-Los nombres son provisionales; la firma se fija en la migración.
+Firmas de la migración `049` (`supabase/migrations/049_product_purchase_history.sql`, aplicada en la base compartida, con su prueba SQL corrida allí sin errores).
 
 **`get_purchased_products(search_text text, page_limit int, page_offset int)`**
 
@@ -1100,37 +1128,54 @@ Los nombres son provisionales; la firma se fija en la migración.
   - `total_count`: los productos que coinciden con la búsqueda;
   - `products`: el bloque pedido, en el orden de D33.
 - Cada producto tiene:
-  - `product_catalog_id`: `null` si no está disponible;
+  - `product_key`: el nombre normalizado (D40), que lo identifica; `null` si no está disponible;
   - `product_catalog_variant_id`: solo si no está disponible (regla 96);
-  - `product_name`: `null` si no está disponible;
+  - `product_name`: el nombre que se muestra (D43); `null` si no está disponible;
   - `appearance_count`: filas, según D29;
   - `last_purchased_at`: el `closed_at` más reciente.
-- **Validación de los parámetros:**
-  - `page_limit` entre 1 y el tope de la constante;
-  - `page_offset` mayor o igual a 0;
-  - `search_text` recortado y con un largo máximo;
-  - si no cumplen, `22023`.
+- **Validación de los parámetros** (`security-reviewer`, hallazgos 5 y 8). Si no se cumple alguna, la RPC responde `22023`:
+  - `page_limit` entre 1 y 50; el tamaño de bloque del cliente (constante) no lo supera;
+  - `page_offset` entre 0 y 10 000. Un offset enorme obligaría a agrupar todo el historial para devolver vacío;
+  - el largo de `search_text`, como máximo 100 caracteres (D44), se mide **sobre el texto de entrada, antes de normalizarlo**, para que `unaccent` no procese un texto enorme;
+  - después se recorta y se normaliza. Vacío después de recortar significa "sin búsqueda".
 
-**`get_product_purchases(target_product_id uuid, target_variant_id uuid)`**
+**`get_product_purchases(target_product_key text, target_variant_id uuid)`**
 
-- Recibe exactamente uno de los dos: el producto madre, o la presentación de un "Producto no disponible".
+- Recibe **exactamente uno de los dos no nulos** (`security-reviewer`, hallazgo 6):
+  - el `product_key` que devolvió la lista. El cliente no normaliza nada: la regla vive solo en la base;
+  - o la presentación de un "Producto no disponible".
+- **Validación:** responde `22023` si llegan los dos, ninguno, o un `target_product_key` vacío, en blanco o de más de **500** caracteres (D44). Es un largo propio, distinto del de la búsqueda (100), porque los nombres del catálogo no tienen largo máximo en la base.
+- `target_product_key` se compara **por igualdad** contra el `product_key` calculado en la base, sin SQL dinámico.
 - Devuelve una fila por compra cerrada propia que lo incluye (regla 89):
   - `id`, `closed_at`, `total_amount`, `store_name`;
   - `appearance_count`;
   - `variant_names`: las presentaciones que se pueden leer.
 - Orden de la regla 88.
-- Un id que no está en ninguna compra propia devuelve una lista vacía, no un error.
+- Un id o una clave que no está en ninguna compra propia devuelve una lista vacía, no un error. No hay forma de distinguir "no existe" de "no es tuyo", así que no sirve para averiguar datos ajenos.
 
 **Contrato común:**
 
-- `language sql` o `plpgsql`, `stable`, **`security invoker`** (D36, pendiente de `security-reviewer`), `set search_path = ''`.
-- Permisos: `execute` solo para `authenticated`; revocado a `public` y `anon`.
-- Rechazan una sesión anónima con `42501`.
-  - No pueden usar `require_registered_user()` de la `040`, que tiene `execute` revocado a `authenticated`.
-  - La comprobación se escribe en la migración (plan, "Seguridad").
+- `language sql` o `plpgsql` (sin `execute` dinámico), `stable`, **`security invoker`** (D36, revisada por `security-reviewer` el 2026-11-16) y `set search_path = ''`.
+- **Permisos:** `revoke execute ... from public, anon` y `grant execute ... to authenticated`, como en la `040`.
+- **Sesión anónima** (`security-reviewer`, hallazgo 4): cada RPC la rechaza con `42501` **dentro de su propio cuerpo y antes de leer nada**, con la comprobación de la `040`: `auth.uid()` nulo, o `coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false)`.
+  - No puede delegarse en `require_registered_user()`, que tiene `execute` revocado a `authenticated`, porque las RPC corren como `authenticated` (D36).
+  - El rol `anon` ni siquiera llega, porque tiene `execute` revocado. La comprobación cubre las sesiones anónimas, que usan el rol `authenticated`.
 - El dueño sale de `auth.uid()`; ningún parámetro lo recibe.
-- La búsqueda es un parámetro. Los comodines de `ilike` (`%`, `_`, `\`) se escapan.
+- **Búsqueda** (`security-reviewer`, hallazgo 5): es un parámetro y se normaliza igual que los nombres (D40).
+  - Se compara con `position(busqueda_normalizada in product_key) > 0`, en lugar de `like`, así que no hay comodines que escapar.
+  - Orden: validar el largo, recortar, normalizar y buscar.
+- **Normalización en un solo lugar** (`security-reviewer`, hallazgos 1, 2 y 7): una función interna de la migración, por ejemplo `public.normalize_product_name(name text)`.
+  - **Atributos:** `security definer`, `stable` (no `immutable`, porque `unaccent` es `STABLE`), `set search_path = ''` y sin acceso a ninguna tabla. Solo transforma el texto que recibe.
+  - **Cuerpo:** `lower(trim(extensions.unaccent('extensions.unaccent'::regdictionary, name)))`. Es la forma de **dos argumentos** con el diccionario calificado: con `search_path = ''`, la forma de un argumento no encuentra el diccionario.
+  - **Esquema `extensions`:** el 2026-11-16 la dueña de la historia comprobó en la base que `unaccent` no está instalada (tasks 0.2). La migración `049` la activó en `extensions`.
+  - **Permisos:** `execute` para `authenticated`, revocado a `public` y `anon`. Hace falta porque las RPC son `security invoker` y la llaman con el rol de quien consulta. Es una excepción a la regla de la `040` (funciones internas sin `execute`) y es segura, porque no lee datos.
+  - No se usa en índices ni en columnas generadas.
+  - Las dos RPC y la búsqueda la usan; el cliente nunca la repite.
+- **Activación de `unaccent`** (`security-reviewer`, hallazgo 3): la migración `049` usa `create extension if not exists unaccent with schema extensions;` (extensión de confianza, sin cambios de permisos sobre ella).
+  - **Después de aplicarla:** `unaccent` quedó en `extensions` (tasks 1.4). La `049` nunca la mueve con `alter extension ... set schema`.
 - No devuelven precios ni montos por producto.
+
+**Lectura de la zona para las fechas del detalle (regla 87):** `spending_time_zones.time_zone` (`040`), con su RLS de dueño. Se pide junto con `get_product_purchases`; sin fila, las fechas usan la zona del navegador, como el Historial sin zona (regla 59). Si falla, falla el detalle y "Reintentar" pide las dos.
 
 **Relaciones que usan** (verificadas en `004`, `016`, `018`, `024`, `032`, `035` y `schema.sql`):
 
@@ -1305,60 +1350,63 @@ Ninguno validado todavía.
 
 ### HU-62 (SCRUM-93)
 
-Ninguno validado. **No está lista para implementar:**
+**Implementada y verificada** (2026-11-16, tasks 1.3 a 6.4). Las pruebas automatizadas y la prueba SQL pasan. La QA manual la dio por completada la dueña de la historia (tasks 6.2), con cuatro capturas como evidencia: la vista "Productos" con frecuencia y detalle, la búsqueda con detalle, la búsqueda sin tildes y "Sin resultados". El resto de los casos manuales, paginación incluida, no tiene captura.
 
-- falta la revisión de seguridad de D36;
-- falta la confirmación del equipo de D38;
-- falta resolver los problemas de §15;
-- SCRUM-92 todavía no está en `develop`.
+Sigue abierto:
+
+- la confirmación del equipo de D38 (tasks 0.3); no bloquea, porque no hay filtros;
+- la aprobación de la documentación (tasks 0.2 y 0.7).
+
+Ya está hecho: la revisión de seguridad de D36 y D41 (2026-11-16), los problemas de §15 (resueltos o declarados como límites) y SCRUM-92 en `develop`.
 
 Criterios de la historia, según Jira (2026-11-14), con cómo se verifica cada uno (con una cuenta registrada):
 
-- [ ] **CA-01:** el sistema muestra los productos comprados y cuántas veces aparece cada uno en el historial.
-  - **Agrupación (D28):** "Leche — 1 L" en 2 compras y "Leche — 2 L" en otra dan un solo producto "Leche".
+- [x] **CA-01:** el sistema muestra los productos comprados y cuántas veces aparece cada uno en el historial.
+  - **Agrupación (D39):** "Leche — 1 L" en 2 compras y "Leche — 2 L" en otra dan un solo producto "Leche", porque comparten el nombre de su producto madre.
+  - **Mismo nombre (D39 a D41):** "Azúcar" del catálogo y "azucar" de "Mis productos" dan un solo producto, que se muestra como "Azúcar" (D43).
   - **Conteo por fila (D29):** dos filas de leche en una misma compra suman 2. Una fila con 3 unidades suma 1.
   - **Lo que no cuenta:** compras abiertas, lo tachado fuera del modo compra y lo de listas que ya no se ven (reglas 83, 84 y D36).
   - **Orden (D33):** el de esa decisión, con empates resueltos por la compra más reciente y por nombre.
   - **Texto:** "N veces", no "N compras" (regla 89).
-  - **Cómo se verifica:** ViewModel, pantalla, prueba SQL, E2E-FIN-19 y manual.
-- [ ] **CA-02:** al seleccionar un producto se muestra el historial de las compras que lo incluyen, con fecha, supermercado y monto total de cada compra.
+  - **Cómo se verifica:** ViewModel, pantalla, prueba SQL, E2E-FIN-19 y manual (captura 01, tasks 6.2).
+- [x] **CA-02:** al seleccionar un producto se muestra el historial de las compras que lo incluyen, con fecha, supermercado y monto total de cada compra.
   - **Dónde:** el detalle se abre en la misma pantalla (D32).
   - **Filas:** una por compra, de la más reciente a la más antigua, cada una con sus presentaciones y apariciones. La suma de las apariciones es el conteo del producto (regla 89).
   - **Monto:** cada fila muestra el total completo de la compra, con la aclaración de la regla 85.
   - **Textos especiales:** "Sin total" y "Supermercado no disponible" se ven como en el Historial.
-  - **Cómo se verifica:** ViewModel, pantalla, prueba SQL, E2E-FIN-20 y manual.
+  - **Cómo se verifica:** ViewModel, pantalla, prueba SQL, E2E-FIN-20 y manual (capturas 01 y 02, tasks 6.2).
 
 Casos de cada flujo:
 
-- [ ] **Búsqueda (D33, regla 93):**
+- [x] **Búsqueda (D33, regla 93):**
   - busca en todo el historial y no solo en los bloques cargados;
   - vuelve al primer bloque y cierra el detalle;
   - "Sin resultados" cuando no encuentra nada;
   - los comodines `%` y `_` se buscan como texto;
-  - se verifica en E2E-FIN-21 y con la prueba SQL.
-- [ ] **Bloques (D35, regla 94):**
+  - se verifica en E2E-FIN-21 y con la prueba SQL. Además, a mano: búsqueda, búsqueda sin tildes y "Sin resultados" (capturas 02 a 04, tasks 6.2).
+- [x] **Bloques (D35, regla 94):**
   - "Cargar más" agrega el bloque siguiente y desaparece al final;
   - si un bloque falla, se conservan los anteriores;
   - un producto repetido entre bloques se ve una vez;
-  - se verifica en E2E-FIN-21 y con el ViewModel.
-- [ ] **Producto no disponible (D37, regla 96):** contra la base, después de salir de una familia con un producto personal comprado. Se ve "Producto no disponible" con su conteo y su detalle.
-- [ ] **Monto sin atribuir (regla 85):** el monto de cada fila es igual al total de esa compra en "Compras", y ninguna pantalla muestra un precio del producto.
-- [ ] **Ajustes (regla 85):** un ajuste manual no aparece en el detalle.
-- [ ] **Datos que cambian (regla 90):** destachar un artículo de una compra cerrada baja el conteo y no cambia el total de la compra.
-- [ ] **Selector (D31, regla 92):** "Compras" sigue igual que antes, y cambiar de vista no conserva la búsqueda ni la selección.
-- [ ] **Vacío y errores:** se verifican en E2E-FIN-22.
+  - se verifica en E2E-FIN-21 y con el ViewModel; manual, sin captura (tasks 6.2).
+- [x] **Producto no disponible (D37, regla 96):** contra la base, después de salir de una familia con un producto personal comprado. Se ve "Producto no disponible" con su conteo y su detalle.
+- [x] **Monto sin atribuir (regla 85):** el monto de cada fila es igual al total de esa compra en "Compras", y ninguna pantalla muestra un precio del producto.
+- [x] **Ajustes (regla 85):** un ajuste manual no aparece en el detalle.
+- [x] **Datos que cambian (regla 90):** destachar un artículo de una compra cerrada baja el conteo y no cambia el total de la compra.
+- [x] **Selector (D31, regla 92):** "Compras" sigue igual que antes, y cambiar de vista no conserva la búsqueda ni la selección.
+- [x] **Vacío y errores:** se verifican en E2E-FIN-22.
   - Sin apariciones se ve el vacío.
   - Si falla la lista, error y "Reintentar".
   - Si falla el detalle, la lista sigue visible.
-- [ ] **Acceso (D6):**
+- [x] **Acceso (D6):**
   - sin sesión o con una sesión anónima no se pide nada (E2E-FIN-23);
   - la RPC le responde `42501` a una sesión anónima real.
-- [ ] **Aislamiento (D4, D36):** una cuenta no ve los productos ni las compras de otra, tampoco desde la consola con la RPC. `security-reviewer` lo aprueba.
-- [ ] **Base (prueba SQL):** los casos de [plan.md](plan.md#scrum-93-consultar-frecuencia-e-historial-de-compra-por-producto).
-- [ ] **E2E (interfaz):** E2E-FIN-19 a 23 pasan en `chromium` y `mobile-chrome`. Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
-- [ ] **Manual:** CA-01 y CA-02 contra la base compartida, mobile y teclado, con capturas sin correos.
-- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
+- [x] **Aislamiento (D4, D36):** una cuenta no ve los productos ni las compras de otra, tampoco desde la consola con la RPC. `security-reviewer` lo aprueba.
+- [x] **Base (prueba SQL):** los casos de [plan.md](plan.md#scrum-93-consultar-frecuencia-e-historial-de-compra-por-producto). Pasó completa en el SQL Editor de la base compartida (tasks 1.4).
+- [x] **E2E (interfaz):** E2E-FIN-19 a 23 pasan en `chromium` y `mobile-chrome` (12 pruebas, tasks 5.2). Validan la interfaz, **no** la autenticación real ni la seguridad de la base.
+- [x] **Manual:** CA-01 y CA-02 contra la base compartida, mobile y teclado, con capturas sin correos. Dada por completada por la dueña de la historia (tasks 6.2); capturas 01 a 04.
+- [x] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad (tasks 2.1 a 4.1).
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan (tasks 6.1).
 
 ## 14. Casos fuera de alcance
 
@@ -1463,11 +1511,11 @@ Casos de cada flujo:
 
 **Viabilidad:** viable con los datos que existen, **sin precios por producto**. Los conteos y los detalles salen de la relación compra → artículos → presentación → producto madre. Los límites son las reglas 84, 90 y 96.
 
-**Problemas del modelo de datos con las decisiones tomadas.** Están documentados, no resueltos:
+**Problemas del modelo de datos con las decisiones tomadas.** Cada uno dice si está resuelto, si es un límite declarado o si falta decidirlo:
 
-1. **Dos productos madre con el mismo nombre (D28).**
-   - **Qué pasa:** un producto personal y uno global, o dos personales, se ven como dos "Leche" con conteos separados. El modelo no los une y esta historia no los junta por nombre, porque juntar por nombre mezclaría productos distintos.
-   - **Pendiente:** decidir si se distinguen en pantalla, por ejemplo con "Agregado por mí", como en el catálogo.
+1. **Dos productos madre con el mismo nombre (planteado con D28). Resuelto con D39 y D43** (2026-11-16), incluido el caso de varios globales (menor `product_catalog.id`).
+   - **Qué se hace:** se juntan por nombre normalizado y se muestra el nombre del catálogo global, si lo hay.
+   - **Límite aceptado:** productos distintos que se llaman igual quedan en un solo conteo.
 2. **El conteo por fila depende de cómo se usó la lista (D29).**
    - **Qué pasa:** el mismo hecho, comprar leche, puede dar 1 o 2 apariciones.
      - Comprar 2 unidades en una fila es **1** aparición.
@@ -1475,9 +1523,9 @@ Casos de cada flujo:
      - Destachar una fila cuando ya hay otra pendiente de esa presentación las junta (`035`).
    - **Por qué importa:** el número no es "cuántas compras".
    - **Qué se hace:** se documenta como límite y el texto dice "veces" (regla 89).
-3. **Búsqueda sin tildes.**
-   - **Qué pasa:** `ilike` no ignora las tildes, así que "azucar" no encuentra "Azúcar". Ignorarlas necesita `unaccent` o la normalización que ya use el catálogo.
-   - **Pendiente:** no se verificó si esa extensión está disponible en la base. Se revisa al escribir la migración. Si no está, la búsqueda distingue tildes y se declara como límite.
+3. **Búsqueda sin tildes. Resuelto con D40 y D41** (2026-11-16).
+   - **Qué se hace:** la búsqueda y el agrupamiento usan la misma normalización (`lower`, `trim` y `unaccent`, §12), y la migración `049` activa `unaccent` en `extensions`; antes no estaba instalada (comprobado el 2026-11-16).
+   - **Límite aceptado:** la ñ se convierte en n.
 4. **Paginación con datos que cambian (D35).**
    - **Qué pasa:** el orden de D33 depende de valores calculados (conteo y fecha), que pueden cambiar entre un bloque y otro si se destacha o se cierra una compra. Con `offset`, un producto puede repetirse o saltarse.
    - **Por qué `offset`:** una paginación por cursor sobre valores agregados es más compleja que lo que piden los criterios.
@@ -1485,19 +1533,19 @@ Casos de cada flujo:
      - los repetidos se descartan en el cliente (regla 94);
      - un salto se corrige al recargar o buscar, y se declara como límite.
    - **El detalle no se pagina:** crece con las compras de un producto y es un riesgo declarado en el plan.
-5. **Agrupar con productos no visibles (D28 con D36 y D37).** Una presentación cuyo producto madre no se puede leer no se puede agrupar (regla 96). Puede verse como varios "Producto no disponible".
+5. **Agrupar con productos no visibles (D39 con D36 y D37).** Una presentación cuyo producto madre no se puede leer no se puede agrupar, ni por producto ni por nombre (reglas 96 y 97). Puede verse como varios "Producto no disponible".
 
-**Pendientes de validación:**
+**Estado de las decisiones:**
 
-- **D36:** la revisión de `security-reviewer` antes de escribir la migración (tasks 0.2).
-- **D38:** la confirmación del equipo (tasks 0.3).
-- **HU-42 (SCRUM-74):** también cuenta "más comprados". Tiene que decidir si usa este mismo conteo por fila y por producto madre (tasks 0.4).
+- **Confirmadas por la dueña de la historia:** D29 a D37 y D39 a D44 (D39 sustituye a D28, que queda como antecedente). El desempate de D43 entre varios globales y D44 se decidieron el 2026-11-16 (tasks 0.9 y 0.10). D36 y D41 están además revisadas por `security-reviewer` (2026-11-16), con los hallazgos en §12. HU-42 (SCRUM-74) quedó resuelta con D42.
+- **Pendiente de confirmación del equipo:** D38, los filtros como funcionalidad futura (tasks 0.3).
+- **Comprobaciones de la implementación** (no son decisiones):
+  - que ningún PR abierto use otra `049`: comprobado el 2026-11-16 (tasks 1.2);
+  - el nombre más largo del catálogo: hecho, 16 caracteres antes y después de normalizar (D44; tasks 1.2);
+  - `unaccent` en `extensions` después de aplicar la migración: comprobado (tasks 1.4).
 
-**Dependencia con SCRUM-92:** SCRUM-92 todavía no está en `develop`.
+**Dependencia con SCRUM-92: resuelta.** SCRUM-92 está en `develop` (PR #100, `18c5003`), y esta rama ya lo trae (merge `4bf2a2a`). El código se cruza en `finance.constants.ts` y en `PurchaseHistory.tsx`, que recibe el selector (D31).
 
-- Los cuatro documentos de `specs/` van a dar conflictos en los mismos puntos: cada historia agrega su subsección después de SCRUM-91. Se resuelven dejando las dos, SCRUM-92 primero.
-- El código se cruza en `finance.constants.ts` y en `PurchaseHistory.tsx`, que recibe el selector (D31).
-
-**Número de la migración:** se elige al implementar. `develop` llega a la `044`, con huecos en `037`, `041` y `043`. Hay que revisar las ramas y PRs abiertos antes de crear el archivo y otra vez antes del merge.
+**Número de la migración:** `049`, elegido por la dueña de la historia y comunicado al equipo el 2026-11-16. Está aplicada en la base compartida y registrada en el historial de migraciones (tasks 1.4). El día que se eligió, `develop` llega a la `044`, con huecos en `037`, `041` y `043`. El 2026-11-16 ningún PR abierto usaba otra `049` (tasks 1.2).
 
 **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.
