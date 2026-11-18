@@ -41,8 +41,13 @@ const createProduct = async (page: Page, productName: string, store: ReferenceSt
   await expect(dialog).toBeHidden();
 };
 
+// La tarjeta es el enlace que contiene su título (h2): "{nombre} — {tamaño}".
+// El enlace no tiene nombre accesible propio (su contenido es un <article>),
+// así que no se puede buscar por nombre. Anclado al nombre entero.
 const getProductCard = (page: Page, productName: string) =>
-  page.getByRole("link", { name: new RegExp(productName) });
+  page.getByRole("link").filter({
+    has: page.getByRole("heading", { level: 2, name: new RegExp(`^${productName} — `) }),
+  });
 
 test.describe("Mis productos: tienda y precio de referencia", () => {
   test.beforeEach(async ({ page }) => {

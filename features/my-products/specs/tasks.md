@@ -95,7 +95,7 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 - [X] 12.1 Secciones HU-57 en `SPEC.md` y `plan.md`
 - [X] 12.2 `supabase/migrations/051_personal_product_reference_price.sql` (número libre re-verificado contra la base y las ramas abiertas el 2026-11-17)
 - [X] 12.3 `supabase/tests/051_personal_product_reference_price.test.sql`
-- [ ] 12.4 Avisar al grupo y aplicar 051 en la base compartida (SQL Editor, con su fila del historial — `supabase/README.md#migraciones`); correr la prueba SQL
+- [X] 12.4 Avisar al grupo y aplicar 051 en la base compartida (SQL Editor, con su fila del historial — `supabase/README.md#migraciones`); correr la prueba SQL
 - [X] 12.5 `types/database.types.ts`: columnas y parámetros nuevos
 
 ## 13. Formulario
@@ -115,7 +115,7 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 - [X] 15.1 Unitarios: hook, formulario, servicios, `toCatalogCards`, tarjeta, detalle
 - [X] 15.2 `specs/E2E.md` (E2E-MISPROD-nn) y `e2e/features/my-products/my-products.spec.ts`
-- [ ] 15.3 Correr los E2E con 051 aplicada
+- [X] 15.3 Correr los E2E con 051 aplicada
 
 ## 16. Cierre
 
