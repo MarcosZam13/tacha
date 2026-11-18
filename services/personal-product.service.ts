@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { PERSONAL_PRODUCT_DB } from "@/constants/create-product-form.constants";
+import type { PersonalProductDeleteResultType } from "@/constants/create-product-form.constants";
 import type { CatalogBaseUnitType } from "@/constants/catalog.constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
@@ -54,6 +55,78 @@ export const createPersonalProduct = async (payload: CreatePersonalProductPayloa
   if (error) throw error;
 
   return productId;
+};
+
+/**
+ * Lo que necesita update_personal_product (migración 052, HU-58). Mismos
+ * campos que crear, menos compartir: editar no cambia si el producto está
+ * compartido (SPEC.md, reglas HU-58).
+ */
+export type UpdatePersonalProductPayload = Omit<CreatePersonalProductPayload, "shareWithHousehold"> & {
+  productId: string;
+};
+
+/** Cuántas listas activas y cuántas recetas usan un producto (aviso de HU-58 CA-02). */
+export interface PersonalProductUsage {
+  activeListCount: number;
+  recipeCount: number;
+}
+
+/**
+ * Edita un producto personalizado (SCRUM-89 / HU-58) vía
+ * update_personal_product: quién puede hacerlo (dueño, o miembro del
+ * household si está compartido) lo decide la base con auth.uid(), nunca el
+ * cliente. Producto, variante y marca en una sola transacción.
+ */
+export const updatePersonalProduct = async (payload: UpdatePersonalProductPayload): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient().rpc(PERSONAL_PRODUCT_DB.RPC.UPDATE_PERSONAL_PRODUCT, {
+    new_base_quantity: payload.baseQuantity,
+    new_base_unit: payload.baseUnit,
+    new_brand_name: payload.brandName,
+    new_category_id: payload.categoryId,
+    new_product_name: payload.name,
+    target_product_id: payload.productId,
+  });
+  if (error) throw error;
+};
+
+/**
+ * Elimina un producto personalizado (HU-58) vía delete_personal_product: la
+ * base lo borra si nada lo usa, o lo archiva si lo usa alguna lista o receta.
+ * Devuelve cuál de las dos pasó.
+ */
+export const deletePersonalProduct = async (productId: string): Promise<PersonalProductDeleteResultType> => {
+  await ensureSession();
+
+  const { data: result, error } = await getSupabaseClient().rpc(PERSONAL_PRODUCT_DB.RPC.DELETE_PERSONAL_PRODUCT, {
+    target_product_id: productId,
+  });
+  if (error) throw error;
+
+  // La función solo devuelve 'deleted' o 'archived' (migración 052).
+  return result as PersonalProductDeleteResultType;
+};
+
+/**
+ * Cuántas listas activas y cuántas recetas usan el producto, para el aviso
+ * del diálogo de eliminar (HU-58 CA-02). La base cuenta también las recetas
+ * de los otros miembros si el producto está compartido (solo cantidades).
+ */
+export const getPersonalProductUsage = async (productId: string): Promise<PersonalProductUsage> => {
+  await ensureSession();
+
+  const { data: usageRows, error } = await getSupabaseClient().rpc(
+    PERSONAL_PRODUCT_DB.RPC.GET_PERSONAL_PRODUCT_USAGE,
+    { target_product_id: productId },
+  );
+  if (error) throw error;
+
+  // La función devuelve siempre una sola fila; sin ella, es un error de contrato, no "0 usos".
+  const [usageRow] = usageRows;
+  if (!usageRow) throw new Error("get_personal_product_usage no devolvió ninguna fila");
+  return { activeListCount: usageRow.active_list_count, recipeCount: usageRow.recipe_count };
 };
 
 // Consulta propia y mínima: no se reusa getHouseholdMembership() de

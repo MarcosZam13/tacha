@@ -19,10 +19,13 @@ import type { CatalogCardProps } from "./models/CatalogCardProps.interface";
  *
  * Vive en components/ porque lo usan dos features: "Buscar" (features/catalog)
  * y "Mis productos" (features/my-products).
+ *
+ * HU-58 (SCRUM-89): `actions` opcional, debajo y fuera del link (composición:
+ * la tarjeta no sabe qué botones son ni qué hacen).
  */
-export const CatalogCard = ({ card }: CatalogCardProps): React.JSX.Element => (
-  <li>
-    <Link href={CATALOG_PRODUCT_DETAIL_ROUTE(card.id)} className="block h-full">
+export const CatalogCard = ({ actions, card }: CatalogCardProps): React.JSX.Element => (
+  <li className="flex flex-col gap-2">
+    <Link href={CATALOG_PRODUCT_DETAIL_ROUTE(card.id)} className="block flex-1">
       <article className="relative flex h-full flex-col overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface">
         {card.badgeLabel ? (
           <span className="absolute left-2 top-2 z-10 rounded-tacha-badge bg-tacha-teal px-2 py-1 font-body text-xs font-semibold text-white">
@@ -50,5 +53,6 @@ export const CatalogCard = ({ card }: CatalogCardProps): React.JSX.Element => (
         </div>
       </article>
     </Link>
+    {actions}
   </li>
 );

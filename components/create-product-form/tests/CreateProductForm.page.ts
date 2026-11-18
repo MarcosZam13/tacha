@@ -10,6 +10,7 @@ export const createCreateProductFormPage = () => {
   const user = userEvent.setup();
 
   const getDialog = () => screen.getByRole("dialog", { name: CREATE_PRODUCT_FORM_TEXT.TITLE });
+  const getDialogByTitle = (title: string) => screen.getByRole("dialog", { name: title });
   const getNameInput = () => screen.getByLabelText(CREATE_PRODUCT_FORM_TEXT.NAME_LABEL, { exact: false });
   const getBrandInput = () => screen.getByLabelText(CREATE_PRODUCT_FORM_TEXT.BRAND_LABEL);
   const getCategorySelect = () =>
@@ -58,6 +59,7 @@ export const createCreateProductFormPage = () => {
     getCancelButton,
     getCategorySelect,
     getDialog,
+    getDialogByTitle,
     getErrorAlert,
     getFieldError,
     getQuantityInput,

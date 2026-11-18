@@ -26,6 +26,7 @@ interface QueryResult {
 const createQueryBuilder = (result: QueryResult) => {
   const builder = {
     eq: () => builder,
+    is: () => builder,
     maybeSingle: () => Promise.resolve(result),
     order: () => Promise.resolve(result),
     select: () => builder,
@@ -44,6 +45,7 @@ const createProductCatalogBuilder = (resultByColumn: Record<string, QueryResult>
       if (column in resultByColumn) matchedColumn = column;
       return builder;
     },
+    is: () => builder,
     order: () =>
       Promise.resolve(matchedColumn ? resultByColumn[matchedColumn] : { data: [], error: null }),
     select: () => builder,
@@ -52,9 +54,12 @@ const createProductCatalogBuilder = (resultByColumn: Record<string, QueryResult>
 };
 
 const manualProductRow = (id: string, name: string) => ({
+  category_id: "category-1",
   id,
   name,
-  product_catalog_variants: [{ base_quantity: 1000, base_unit: "ml", id: `${id}-variant`, image_url: null }],
+  product_catalog_variants: [
+    { base_quantity: 1000, base_unit: "ml", id: `${id}-variant`, image_url: null, product_brands: [] },
+  ],
 });
 
 const toExpectedProduct = (id: string, name: string) => ({
@@ -64,6 +69,14 @@ const toExpectedProduct = (id: string, name: string) => ({
   variants: [
     { baseQuantity: 1000, baseUnit: "ml", imageUrl: null, priceRangeByStore: {}, variantId: `${id}-variant` },
   ],
+  editable: {
+    baseQuantity: 1000,
+    baseUnit: "ml",
+    brandName: null,
+    categoryId: "category-1",
+    name,
+    productId: id,
+  },
 });
 
 const mockSession = (): void => {
@@ -183,6 +196,83 @@ describe("listMyProducts", () => {
 
     expect(householdEqSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.SOURCE, CATALOG_SOURCE.MANUAL);
     expect(ownerEqSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.SOURCE, CATALOG_SOURCE.MANUAL);
+  });
+
+  // HU-58 (SCRUM-89): un producto eliminado que seguía en uso queda archivado y no se lista.
+  it("excludes archived products from both queries", async () => {
+    mockSession();
+    const builders = [
+      createProductCatalogBuilder({ [MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID]: { data: [], error: null } }),
+      createProductCatalogBuilder({ [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: [], error: null } }),
+    ];
+    const isSpies = builders.map((builder) => vi.spyOn(builder, "is"));
+    let productCatalogCallCount = 0;
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: { household_id: HOUSEHOLD_ID }, error: null });
+      }
+      productCatalogCallCount += 1;
+      return builders[productCatalogCallCount - 1];
+    });
+
+    await listMyProducts();
+
+    isSpies.forEach((isSpy) => expect(isSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.ARCHIVED_AT, null));
+  });
+
+  // HU-58: la marca y la categoría salen de la fila, para abrir el formulario de edición precargado.
+  it("maps the brand and category the edit form needs", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: {
+          data: [
+            {
+              category_id: "category-9",
+              id: "product-1",
+              name: "Queso",
+              product_catalog_variants: [
+                { base_quantity: 250, base_unit: "g", id: "v-1", image_url: null, product_brands: [{ name: "Finca Eva" }] },
+              ],
+            },
+          ],
+          error: null,
+        },
+      });
+    });
+
+    const [product] = await listMyProducts();
+
+    expect(product.editable).toEqual({
+      baseQuantity: 250,
+      baseUnit: "g",
+      brandName: "Finca Eva",
+      categoryId: "category-9",
+      name: "Queso",
+      productId: "product-1",
+    });
+  });
+
+  // HU-58: sin su variante no se inventan datos para el formulario: el producto no se lista.
+  it("skips a product without its variant instead of inventing its size", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: {
+          data: [{ category_id: "category-1", id: "product-1", name: "Huérfano", product_catalog_variants: [] }],
+          error: null,
+        },
+      });
+    });
+
+    await expect(listMyProducts()).resolves.toEqual([]);
   });
 
   it("rethrows the Supabase error from the household_members query", async () => {
