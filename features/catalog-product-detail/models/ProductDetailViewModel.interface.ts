@@ -28,6 +28,8 @@ export interface ProductDetailViewModel {
   placeholderInitial: string;
   productName: string;
   quantity: number;
+  /** HU-57: true si el producto personalizado tiene tienda o precio de referencia: se muestra su sección. */
+  hasReferencePrice: boolean;
   /** HU-57: precio de referencia del usuario ya formateado ("₡2 850"); null si no anotó uno. */
   referencePriceLabel: NullableRef<string>;
   /** HU-57: tienda de referencia; null si no anotó una. */

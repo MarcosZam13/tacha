@@ -6,6 +6,7 @@ import {
   CREATE_PRODUCT_FORM_STATUS,
   CREATE_PRODUCT_FORM_TEXT,
   CREATE_PRODUCT_FORM_UNIT_OPTIONS,
+  REFERENCE_PRICE_LIMIT,
   REFERENCE_STORE_CHOICE,
   REFERENCE_STORE_NAME_MAX_LENGTH,
 } from "@/constants/create-product-form.constants";
@@ -78,7 +79,8 @@ const validateQuantity = (quantity: string): NullableUndefined<string> => {
 const validatePrice = (price: string): NullableUndefined<string> => {
   if (price.trim().length === 0) return undefined;
   const parsedPrice = Number(price);
-  return !Number.isFinite(parsedPrice) || parsedPrice <= 0 ? CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID : undefined;
+  if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) return CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID;
+  return parsedPrice >= REFERENCE_PRICE_LIMIT ? CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH : undefined;
 };
 
 // HU-57: el nombre de la tienda solo se exige si se eligió "Otra tienda".

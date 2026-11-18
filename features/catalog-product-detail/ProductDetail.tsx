@@ -54,8 +54,7 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
 
       <ProductDetailBrands brands={viewModel.brands} />
 
-      {/* HU-57: solo un producto personalizado con tienda o precio anotados. */}
-      {viewModel.referencePriceLabel !== null || viewModel.referenceStoreName !== null ? (
+      {viewModel.hasReferencePrice ? (
         <ProductDetailReferencePrice
           priceLabel={viewModel.referencePriceLabel}
           storeName={viewModel.referenceStoreName}

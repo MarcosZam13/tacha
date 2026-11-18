@@ -56,6 +56,10 @@ export const CREATE_PRODUCT_FORM_UNIT_OPTIONS = [
 // product_catalog_variants_reference_store_name_length (migración 051).
 export const REFERENCE_STORE_NAME_MAX_LENGTH = 80;
 
+// HU-57: espejo de reference_price_limit (migración 051). La columna es
+// numeric(12,2): 10 dígitos enteros, así que 10^10 ya no entra.
+export const REFERENCE_PRICE_LIMIT = 10_000_000_000;
+
 // Errores de validación en el cliente (CA-02): se muestran inline y nunca
 // llegan a llamar al RPC si hay alguno. El servidor valida lo mismo de nuevo
 // (SPEC.md §5), esto es solo para no hacer un viaje de red de más.
@@ -63,6 +67,7 @@ export const CREATE_PRODUCT_FORM_ERROR = {
   CATEGORY_REQUIRED: "Selecciona una categoría.",
   NAME_REQUIRED: "Escribe un nombre.",
   PRICE_INVALID: "Escribe un precio mayor a 0.",
+  PRICE_TOO_HIGH: "El precio es demasiado alto.",
   QUANTITY_REQUIRED: "Escribe una cantidad mayor a 0.",
   STORE_NAME_REQUIRED: "Escribe el nombre de la tienda.",
   STORE_NAME_TOO_LONG: `El nombre de la tienda puede tener hasta ${REFERENCE_STORE_NAME_MAX_LENGTH} caracteres.`,

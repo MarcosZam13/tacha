@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CREATE_PRODUCT_FORM_ERROR,
   CREATE_PRODUCT_FORM_TEXT,
+  REFERENCE_PRICE_LIMIT,
   REFERENCE_STORE_CHOICE,
   REFERENCE_STORE_NAME_MAX_LENGTH,
 } from "@/constants/create-product-form.constants";
@@ -225,6 +226,17 @@ describe("useCreateProductForm: tienda y precio de referencia (HU-57)", () => {
 
     expect(result.current.priceError).toBe(CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID);
     expect(result.current.canSubmit).toBe(false);
+    expect(createPersonalProductMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a price that does not fit in the database column", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange(String(REFERENCE_PRICE_LIMIT)));
+
+    act(() => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.priceError).toBe(CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH);
     expect(createPersonalProductMock).not.toHaveBeenCalled();
   });
 

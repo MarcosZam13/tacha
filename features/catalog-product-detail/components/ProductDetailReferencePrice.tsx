@@ -17,7 +17,8 @@ export const ProductDetailReferencePrice = ({
     <h2 className="font-body text-sm font-semibold text-tacha-text">{REFERENCE_PRICE_TEXT.TITLE}</h2>
 
     <div className="mt-2 flex items-center justify-between gap-3 rounded-tacha-card border border-tacha-border bg-tacha-surface px-3 py-2">
-      <span className="font-body text-sm text-tacha-text">{storeName}</span>
+      {/* La tienda es opcional: sin ella, el precio queda solo. */}
+      {storeName !== null ? <span className="font-body text-sm text-tacha-text">{storeName}</span> : null}
       {priceLabel !== null ? (
         <span className="flex items-center gap-1 font-body text-sm font-semibold text-tacha-terracotta">
           {priceLabel}

@@ -16,7 +16,7 @@
 -- Casos:
 --   1. La llamada de antes (6 parámetros, sin tienda ni precio) sigue
 --      funcionando y deja las tres columnas en null.
---   2. Precio <= 0: 22023, sin insertar fila.
+--   2. Precio <= 0, NaN o >= 10^10: 22023, sin insertar fila.
 --   3. Supermercado y tienda escrita a la vez: 22023, sin insertar fila.
 --   4. Slug de supermercado inexistente: 22023, sin insertar fila.
 --   5. Tienda escrita de más de 80 caracteres: 22023, sin insertar fila.
@@ -29,6 +29,8 @@
 --      search_catalog (CA-03).
 --  11. A no puede leer la variante (ni su precio) de un producto de E sin
 --      compartir (RLS de 032 sigue cubriendo las columnas nuevas).
+--  14. Producto compartido: M, de la misma familia que E2, ve su precio;
+--      A, de afuera, no.
 --  12. Las checks de la tabla rechazan datos inválidos aunque no se pase por
 --      la función (rol dueño).
 --  13. anon no puede ejecutar la función nueva; authenticated sí.
@@ -43,6 +45,9 @@ do $$
 declare
   user_a uuid := gen_random_uuid();
   user_e uuid := gen_random_uuid();
+  user_e2 uuid := gen_random_uuid();
+  user_m uuid := gen_random_uuid();
+  household_1 uuid := gen_random_uuid();
   lacteos_id uuid;
   maxipali_id uuid;
 begin
@@ -55,10 +60,18 @@ begin
   insert into auth.users (id, aud, role, email, raw_user_meta_data)
   values
     (user_a, 'authenticated', 'authenticated', user_a || '@prueba.tacha', '{"name": "Ana"}'),
-    (user_e, 'authenticated', 'authenticated', user_e || '@prueba.tacha', '{"name": "Eva"}');
+    (user_e, 'authenticated', 'authenticated', user_e || '@prueba.tacha', '{"name": "Eva"}'),
+    (user_e2, 'authenticated', 'authenticated', user_e2 || '@prueba.tacha', '{"name": "Elisa"}'),
+    (user_m, 'authenticated', 'authenticated', user_m || '@prueba.tacha', '{"name": "Mario"}');
+
+  insert into public.households (id, name) values (household_1, 'Familia 1 SCRUM-88');
+  insert into public.household_members (user_id, household_id, role)
+  values (user_e2, household_1, 'admin'), (user_m, household_1, 'member');
 
   perform set_config('tacha_test.user_a', user_a::text, true);
   perform set_config('tacha_test.user_e', user_e::text, true);
+  perform set_config('tacha_test.user_e2', user_e2::text, true);
+  perform set_config('tacha_test.user_m', user_m::text, true);
   perform set_config('tacha_test.lacteos_id', lacteos_id::text, true);
   perform set_config('tacha_test.maxipali_id', maxipali_id::text, true);
 end $$;
@@ -93,6 +106,13 @@ begin
   begin
     update public.product_catalog_variants set reference_price = 0 where id = variant_id;
     assert false, 'la tabla aceptó un precio de referencia 0';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.product_catalog_variants set reference_price = 'NaN'::numeric where id = variant_id;
+    assert false, 'la tabla aceptó un precio de referencia NaN';
   exception
     when check_violation then null;
   end;
@@ -164,6 +184,36 @@ begin
   exception
     when invalid_parameter_value then
       assert sqlerrm = 'El precio de referencia tiene que ser mayor a 0', 'precio 0: ' || sqlerrm;
+  end;
+
+  -- NaN: numeric lo admite y 'NaN' > 0 es verdadero en Postgres.
+  begin
+    perform public.create_personal_product(
+      product_name => 'Producto válido',
+      category_id => current_setting('tacha_test.lacteos_id')::uuid,
+      base_unit => 'unidad',
+      base_quantity => 1,
+      reference_price => 'NaN'::numeric
+    );
+    assert false, 'precio NaN se pudo crear';
+  exception
+    when invalid_parameter_value then
+      assert sqlerrm = 'El precio de referencia tiene que ser mayor a 0', 'precio NaN: ' || sqlerrm;
+  end;
+
+  -- 10^10 no cabe en numeric(12,2): error controlado, no un overflow (22003).
+  begin
+    perform public.create_personal_product(
+      product_name => 'Producto válido',
+      category_id => current_setting('tacha_test.lacteos_id')::uuid,
+      base_unit => 'unidad',
+      base_quantity => 1,
+      reference_price => 10000000000
+    );
+    assert false, 'precio 10^10 se pudo crear';
+  exception
+    when invalid_parameter_value then
+      assert sqlerrm = 'El precio de referencia es demasiado alto', 'precio alto: ' || sqlerrm;
   end;
 
   -- 3. Supermercado y tienda escrita a la vez.
@@ -363,6 +413,64 @@ begin
   where pcv.reference_store_name = 'Carnicería Los Ángeles';
 
   assert visible_count = 0, 'A no debe ver el precio de referencia de un producto personal de E';
+end $$;
+
+-- ----------------------------------------------------------------------------
+-- 14. Producto compartido: la familia ve el precio, alguien de afuera no.
+-- ----------------------------------------------------------------------------
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', current_setting('tacha_test.user_e2'), 'role', 'authenticated')::text,
+  true
+);
+
+do $$
+declare
+  new_id uuid;
+begin
+  new_id := public.create_personal_product(
+    product_name => 'Zzqshared reference',
+    category_id => current_setting('tacha_test.lacteos_id')::uuid,
+    base_unit => 'g',
+    base_quantity => 250,
+    share_with_household => true,
+    reference_price => 1500
+  );
+  perform set_config('tacha_test.shared_product', new_id::text, true);
+end $$;
+
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', current_setting('tacha_test.user_m'), 'role', 'authenticated')::text,
+  true
+);
+
+do $$
+declare
+  seen_price numeric;
+begin
+  select pcv.reference_price into seen_price
+  from public.product_catalog_variants pcv
+  where pcv.product_catalog_id = current_setting('tacha_test.shared_product')::uuid;
+
+  assert seen_price = 1500, 'M, de la misma familia, debe ver el precio del producto compartido';
+end $$;
+
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', current_setting('tacha_test.user_a'), 'role', 'authenticated')::text,
+  true
+);
+
+do $$
+declare
+  visible_count integer;
+begin
+  select count(*) into visible_count
+  from public.product_catalog_variants pcv
+  where pcv.product_catalog_id = current_setting('tacha_test.shared_product')::uuid;
+
+  assert visible_count = 0, 'A, de afuera de la familia, no debe ver el producto compartido';
 end $$;
 
 rollback;

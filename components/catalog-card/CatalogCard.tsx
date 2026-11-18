@@ -54,18 +54,18 @@ export const CatalogCard = ({ card }: CatalogCardProps): React.JSX.Element => (
           <h2 className="font-body text-sm font-semibold text-tacha-text">{card.title}</h2>
           {card.storeName ? <p className="font-body text-xs text-tacha-textsec">{card.storeName}</p> : null}
           {/* mt-auto: el precio queda al pie aunque los títulos ocupen distinto. */}
-          {card.isReferencePrice ? (
-            <p
-              className="mt-auto flex items-center gap-1 font-body text-sm text-tacha-terracotta"
-              title={REFERENCE_PRICE_TEXT.INFO}
-            >
-              {card.priceLabel}
-              <Icon icon={Info} size={ICON_SIZE.SMALL} />
-              <span className="sr-only">{REFERENCE_PRICE_TEXT.INFO}</span>
-            </p>
-          ) : (
-            <p className="mt-auto font-body text-sm text-tacha-terracotta">{card.priceLabel}</p>
-          )}
+          <p
+            className="mt-auto flex items-center gap-1 font-body text-sm text-tacha-terracotta"
+            title={card.isReferencePrice ? REFERENCE_PRICE_TEXT.INFO : undefined}
+          >
+            {card.priceLabel}
+            {card.isReferencePrice ? (
+              <>
+                <Icon icon={Info} size={ICON_SIZE.SMALL} />
+                <span className="sr-only">{REFERENCE_PRICE_TEXT.INFO}</span>
+              </>
+            ) : null}
+          </p>
         </div>
       </article>
     </Link>

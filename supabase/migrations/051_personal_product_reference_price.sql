@@ -41,8 +41,10 @@ alter table public.product_catalog_variants
   add column reference_price numeric(12, 2),
   add column reference_store_id uuid references public.stores (id) on delete set null,
   add column reference_store_name text,
+  -- numeric admite 'NaN' y en Postgres 'NaN' > 0 es verdadero: se excluye
+  -- aparte (hallazgo del security-reviewer).
   add constraint product_catalog_variants_reference_price_positive
-    check (reference_price is null or reference_price > 0),
+    check (reference_price is null or (reference_price > 0 and reference_price <> 'NaN'::numeric)),
   add constraint product_catalog_variants_reference_store_name_length
     check (reference_store_name is null or char_length(btrim(reference_store_name)) between 1 and 80),
   add constraint product_catalog_variants_reference_store_one_kind
@@ -77,7 +79,11 @@ security definer
 set search_path = ''
 as $$
 declare
+  -- Espejo de REFERENCE_STORE_NAME_MAX_LENGTH y REFERENCE_PRICE_LIMIT
+  -- (constants/create-product-form.constants.ts). El límite de precio es el
+  -- de numeric(12,2): con 10 dígitos enteros, 10^10 ya no entra.
   max_store_name_length constant integer := 80;
+  reference_price_limit constant numeric := 10000000000;
   current_user_id uuid := auth.uid();
   member_household_id uuid;
   resolved_household_id uuid;
@@ -120,8 +126,13 @@ begin
   end if;
 
   -- HU-57: tienda y precio, los dos opcionales (CA-01).
-  if reference_price is not null and reference_price <= 0 then
+  if reference_price is not null and (reference_price <= 0 or reference_price = 'NaN'::numeric) then
     raise exception 'El precio de referencia tiene que ser mayor a 0'
+      using errcode = '22023';
+  end if;
+
+  if reference_price is not null and reference_price >= reference_price_limit then
+    raise exception 'El precio de referencia es demasiado alto'
       using errcode = '22023';
   end if;
 

@@ -100,7 +100,7 @@ No incluye: editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-8
 - Tienda y precio son opcionales; se puede anotar uno, el otro, los dos o ninguno (CA-01).
 - La tienda es un supermercado o una escrita a mano, nunca las dos.
 - Con "Otra tienda", el nombre es obligatorio (1 a 80 caracteres, sin espacios a los costados).
-- El precio, si se escribe, tiene que ser un número mayor a 0.
+- El precio, si se escribe, tiene que ser un número mayor a 0 y menor a 10 000 000 000. Es el máximo de la columna `numeric(12,2)`; la base también rechaza `NaN`.
 - El precio manual **nunca** entra a `product_prices`. Por eso nunca aparece en los rangos de "Buscar", en los chips de categoría ni en el desglose por supermercado del detalle (CA-03).
 - Si una variante tuviera precios del scraping y además uno de referencia, la tarjeta muestra los del scraping. Hoy no pasa: un producto personal nunca tiene precios del scraping.
 - El aviso de CA-02 dice: "Precio ingresado por ti: no está verificado ni se actualiza automáticamente."

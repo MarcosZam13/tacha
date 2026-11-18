@@ -117,6 +117,7 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
     brands: detail?.brands ?? [],
     canDecreaseQuantity: quantity > ITEM_QUANTITY.MIN,
     errorMessage: currentResponse?.errorMessage ?? null,
+    hasReferencePrice: detail !== null && (detail.referencePrice !== null || detail.referenceStoreName !== null),
     imageUrl: detail?.imageUrl ?? null,
     isNotFound: currentResponse?.isNotFound ?? false,
     onAddToList,
