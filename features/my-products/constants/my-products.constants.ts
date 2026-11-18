@@ -15,8 +15,11 @@ export const MY_PRODUCTS_DB = {
     SOURCE: "source",
     USER_ID: "user_id",
   },
-  // Una fila de product_catalog con sus variantes embebidas.
-  SELECT: "id, name, product_catalog_variants(id, base_unit, base_quantity, image_url)",
+  // Una fila de product_catalog con sus variantes embebidas. HU-57 (SCRUM-88,
+  // migración 051): precio y tienda de referencia; stores(display_name) es el
+  // nombre del súper cuando se eligió uno de los 3 (reference_store_id).
+  SELECT:
+    "id, name, product_catalog_variants(id, base_unit, base_quantity, image_url, reference_price, reference_store_name, stores(display_name))",
   TABLE: {
     HOUSEHOLD_MEMBERS: "household_members",
     PRODUCT_CATALOG: "product_catalog",

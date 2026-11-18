@@ -101,6 +101,9 @@ export const getCategories = async (): Promise<Category[]> => {
  * Lectura directa (mismo patrón que getItemDetail de SCRUM-64, sin RPC
  * nueva): no se toca search_catalog ni su contrato (SPEC.md §10).
  *
+ * HU-57 (SCRUM-88): también trae el precio y la tienda de referencia de un
+ * producto personalizado, que el detalle muestra en su propio bloque.
+ *
  * Devuelve null si no se encontró: no existe, se borró, o el id de la URL no
  * es un uuid (mismo patrón que getRecipeForEditing, SCRUM-95) — las tres dan
  * el mismo resultado, que la pantalla traduce al CA-07 "producto no
@@ -128,6 +131,10 @@ export const getCatalogVariantDetail = async (
     brands: variant.product_brands.map((brand) => ({ logoUrl: brand.logo_url, name: brand.name })),
     imageUrl: variant.image_url,
     productName: variant.product_catalog.name,
+    // HU-57: aparte de storePriceRanges a propósito, nunca mezclado (CA-03).
+    // La tienda es una u otra, nunca las dos (check de la migración 051).
+    referencePrice: variant.reference_price,
+    referenceStoreName: variant.reference_store_name ?? variant.stores?.display_name ?? null,
     // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
     sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
     storePriceRanges: toStorePriceRanges(storePrices),
