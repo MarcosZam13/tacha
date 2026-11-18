@@ -428,6 +428,7 @@ export type Database = {
       }
       product_catalog: {
         Row: {
+          archived_at: string | null
           category_id: string | null
           created_at: string
           household_id: string | null
@@ -437,6 +438,7 @@ export type Database = {
           source: string
         }
         Insert: {
+          archived_at?: string | null
           category_id?: string | null
           created_at?: string
           household_id?: string | null
@@ -446,6 +448,7 @@ export type Database = {
           source?: string
         }
         Update: {
+          archived_at?: string | null
           category_id?: string | null
           created_at?: string
           household_id?: string | null
@@ -1174,6 +1177,7 @@ export type Database = {
         Returns: string
       }
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
+      delete_personal_product: { Args: { target_product_id: string }; Returns: string }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
       get_general_list_recipe_shortfalls: {
@@ -1234,6 +1238,13 @@ export type Database = {
         }[]
       }
       get_period_finance: { Args: { target_scope: string }; Returns: Json }
+      get_personal_product_usage: {
+        Args: { target_product_id: string }
+        Returns: {
+          active_list_count: number
+          recipe_count: number
+        }[]
+      }
       get_personal_lists_decision_state: { Args: never; Returns: string }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
@@ -1512,6 +1523,17 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      update_personal_product: {
+        Args: {
+          new_base_quantity: number
+          new_base_unit: string
+          new_brand_name?: string
+          new_category_id: string
+          new_product_name: string
+          target_product_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
