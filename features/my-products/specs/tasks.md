@@ -85,3 +85,41 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 - [X] 11.3 Subagente `code-reviewer` (siempre) y `security-reviewer` (toca auth/household/formularios — obligatorio según `AGENTS.md`) — hallazgos y resolución en `plan.md`/`SPEC.md` (migración 032) y en el historial del chat
 - [ ] 11.4 Comentario en Jira SCRUM-88 (HU-57) señalando dónde quedó el formulario, para cuando se agreguen los campos de tienda/precio
 - [ ] 11.5 Descripción del PR (incluyendo "How should this be manually tested?") y paso de label `in progress` → `waiting qa`
+
+---
+
+# SCRUM-88 (HU-57): tienda y precio de referencia
+
+## 12. Spec y datos
+
+- [X] 12.1 Secciones HU-57 en `SPEC.md` y `plan.md`
+- [X] 12.2 `supabase/migrations/051_personal_product_reference_price.sql` (número libre re-verificado contra la base y las ramas abiertas el 2026-11-17)
+- [X] 12.3 `supabase/tests/051_personal_product_reference_price.test.sql`
+- [ ] 12.4 Avisar al grupo y aplicar 051 en la base compartida (SQL Editor, con su fila del historial — `supabase/README.md#migraciones`); correr la prueba SQL
+- [X] 12.5 `types/database.types.ts`: columnas y parámetros nuevos
+
+## 13. Formulario
+
+- [X] 13.1 Constantes: textos, errores, opciones de tienda, largo máximo, aviso CA-02
+- [X] 13.2 `createPersonalProduct` con precio y tienda
+- [X] 13.3 `useCreateProductForm`: estado y validación de tienda, nombre y precio
+- [X] 13.4 `CreateProductForm`: selector de tienda, campo de nombre condicional, campo de precio
+
+## 14. Mostrar el precio
+
+- [X] 14.1 `listMyProducts()` lee precio y tienda
+- [X] 14.2 `toCatalogCards` + `CatalogCard`: precio con ícono "i", aviso y tienda
+- [X] 14.3 Detalle: `getCatalogVariantDetail` + `ProductDetailReferencePrice`
+
+## 15. Tests
+
+- [X] 15.1 Unitarios: hook, formulario, servicios, `toCatalogCards`, tarjeta, detalle
+- [X] 15.2 `specs/E2E.md` (E2E-MISPROD-nn) y `e2e/features/my-products/my-products.spec.ts`
+- [ ] 15.3 Correr los E2E con 051 aplicada
+
+## 16. Cierre
+
+- [X] 16.1 `docs/documento-proyecto.md` §4.5.1 y §6 corregidos
+- [ ] 16.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
+- [ ] 16.3 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
+- [ ] 16.4 Descripción del PR y paso a `waiting qa`
