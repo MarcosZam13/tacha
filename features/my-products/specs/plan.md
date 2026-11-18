@@ -209,7 +209,8 @@ Verificado contra la base real (`ifvwumejbfpowxlkjfiu`), no supuesto.
 | `constants/catalog.constants.ts` | `REFERENCE_PRICE_TEXT` (aviso CA-02, compartido por tarjeta y detalle); `VARIANT_DETAIL_SELECT` con las columnas nuevas |
 | `services/personal-product.service.ts` | `createPersonalProduct` manda los 3 parámetros nuevos |
 | `hooks/useCreateProductForm.ts` | Estado y validación de tienda, nombre de tienda y precio |
-| `components/create-product-form/CreateProductForm.tsx` | Selector de tienda, campo "Nombre de la tienda" (solo con "Otra tienda"), campo de precio |
+| `components/create-product-form/CreateProductForm.tsx` | Selector de tienda, campo "Nombre de la tienda" (solo con "Otra tienda"), campo de precio (texto con teclado decimal); el error de precio y de tienda se valida al salir del campo |
+| `components/ui/input/Input.tsx` | Prop opcional `inputMode` (teclado del celular). Sin ella, el campo se comporta igual que antes en el resto de la app |
 | `features/my-products/constants/my-products.constants.ts`, `services/my-products.service.ts` | El listado lee el precio y la tienda |
 | `types/catalog.types.ts`, `utils/toCatalogCards.ts`, `components/catalog-card/CatalogCard.tsx` | La tarjeta muestra la tienda y el precio con el ícono "i" |
 | `services/catalog.service.ts`, `features/catalog-product-detail/*` | Sección "Precio de referencia" en el detalle (`ProductDetailReferencePrice`) |

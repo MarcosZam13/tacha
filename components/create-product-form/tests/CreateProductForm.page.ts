@@ -60,6 +60,11 @@ export const createCreateProductFormPage = () => {
     await user.type(getPriceInput(), price);
   };
 
+  // Salir del campo con Tab, como lo haría el usuario.
+  const leaveField = async () => {
+    await user.tab();
+  };
+
   const toggleShareCheckbox = async () => {
     await user.click(getShareCheckbox());
   };
@@ -74,6 +79,7 @@ export const createCreateProductFormPage = () => {
 
   return {
     cancel,
+    leaveField,
     getBrandInput,
     getCancelButton,
     getCategorySelect,

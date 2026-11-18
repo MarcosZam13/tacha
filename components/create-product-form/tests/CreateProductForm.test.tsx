@@ -33,10 +33,12 @@ const createProps = (overrides: Partial<CreateProductFormProps> = {}): CreatePro
   onCategoryChange: vi.fn(),
   onNameChange: vi.fn(),
   onOpen: vi.fn(),
+  onPriceBlur: vi.fn(),
   onPriceChange: vi.fn(),
   onQuantityChange: vi.fn(),
   onShareWithHouseholdChange: vi.fn(),
   onStoreChoiceChange: vi.fn(),
+  onStoreNameBlur: vi.fn(),
   onStoreNameChange: vi.fn(),
   onSubmit: vi.fn(),
   price: "",
@@ -226,6 +228,50 @@ describe("CreateProductForm", () => {
     const page = createCreateProductFormPage();
 
     expect(page.getFieldError(CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID)).toBeInTheDocument();
+  });
+
+  // HU-57: texto con teclado decimal; un campo number entregaría "" con "-" o "e".
+  it("uses a text field with a decimal keyboard for the price", () => {
+    render(<CreateProductForm {...createProps()} />);
+    const page = createCreateProductFormPage();
+
+    expect(page.getPriceInput()).toHaveAttribute("type", "text");
+    expect(page.getPriceInput()).toHaveAttribute("inputmode", "decimal");
+  });
+
+  it("notifies typing in the price field and leaving it", async () => {
+    const onPriceChange = vi.fn();
+    const onPriceBlur = vi.fn();
+    render(<CreateProductForm {...createProps({ onPriceBlur, onPriceChange })} />);
+    const page = createCreateProductFormPage();
+
+    await page.typePrice("2850");
+    await page.leaveField();
+
+    expect(onPriceChange).toHaveBeenCalled();
+    expect(onPriceBlur).toHaveBeenCalledTimes(1);
+  });
+
+  it("notifies typing in the custom store name field and leaving it", async () => {
+    const onStoreNameChange = vi.fn();
+    const onStoreNameBlur = vi.fn();
+    render(
+      <CreateProductForm
+        {...createProps({
+          onStoreNameBlur,
+          onStoreNameChange,
+          showStoreNameInput: true,
+          storeChoice: REFERENCE_STORE_CHOICE.CUSTOM,
+        })}
+      />,
+    );
+    const page = createCreateProductFormPage();
+
+    await page.typeStoreName("Pulpería");
+    await page.leaveField();
+
+    expect(onStoreNameChange).toHaveBeenCalled();
+    expect(onStoreNameBlur).toHaveBeenCalledTimes(1);
   });
 
   it("notifies typing in the name field", async () => {

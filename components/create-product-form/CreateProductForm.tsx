@@ -48,10 +48,12 @@ export const CreateProductForm = ({
   onCancel,
   onCategoryChange,
   onNameChange,
+  onPriceBlur,
   onPriceChange,
   onQuantityChange,
   onShareWithHouseholdChange,
   onStoreChoiceChange,
+  onStoreNameBlur,
   onStoreNameChange,
   onSubmit,
   price,
@@ -169,6 +171,7 @@ export const CreateProductForm = ({
             label={CREATE_PRODUCT_FORM_TEXT.STORE_NAME_LABEL}
             value={storeName}
             onChange={onStoreNameChange}
+            onBlur={onStoreNameBlur}
             errorMessage={storeNameError}
             isRequired
           />
@@ -178,7 +181,9 @@ export const CreateProductForm = ({
           label={CREATE_PRODUCT_FORM_TEXT.PRICE_LABEL}
           value={price}
           onChange={onPriceChange}
-          type="number"
+          onBlur={onPriceBlur}
+          type="text"
+          inputMode="decimal"
           errorMessage={priceError}
         />
 

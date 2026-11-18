@@ -6,6 +6,7 @@ import { getCatalogVariantDetail } from "@/services/catalog.service";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
 import type { CatalogVariantDetail } from "@/types/catalog.types";
 import { ProductDetail } from "../ProductDetail";
+import { formatPriceRange } from "@/utils/formatPriceRange";
 import { createProductDetailPage } from "./ProductDetail.page";
 
 vi.mock("@/services/catalog.service", () => ({
@@ -99,6 +100,7 @@ describe("ProductDetail", () => {
 
     expect(await page.findReferencePriceHeading()).toBeInTheDocument();
     expect(page.queryText("Carnicería Los Ángeles")).toBeInTheDocument();
+    expect(page.queryPrice(formatPriceRange({ maxPrice: 3200, minPrice: 3200 }))).toBeInTheDocument();
     expect(page.queryText(REFERENCE_PRICE_TEXT.INFO)).toBeInTheDocument();
   });
 

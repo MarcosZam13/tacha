@@ -208,13 +208,76 @@ describe("useCreateProductForm: guardar", () => {
 
 // HU-57 (SCRUM-88): tienda y precio de referencia, los dos opcionales.
 describe("useCreateProductForm: tienda y precio de referencia (HU-57)", () => {
-  it("allows saving without a store or a price", async () => {
+  it("saves without a store or a price", async () => {
+    createPersonalProductMock.mockResolvedValue("product-1");
     const { result } = await renderOpen();
-
     fillRequiredFields(result);
 
     expect(result.current.canSubmit).toBe(true);
     expect(result.current.showStoreNameInput).toBe(false);
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(createPersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({ referencePrice: undefined, referenceStoreName: undefined, referenceStoreSlug: undefined }),
+    );
+  });
+
+  // SPEC §7: "Guardar" está deshabilitado con un precio inválido, así que el
+  // error tiene que verse al salir del campo, sin necesidad de guardar.
+  it.each([
+    ["0", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["-5", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["abc", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["-", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Se guardaría 0.00: la columna es numeric(12,2).
+    ["0.001", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Se guardaría 10^10, que ya no entra.
+    ["9999999999.996", CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH],
+  ])("shows the price error on blur for %s, without submitting", async (typedPrice, expectedError) => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange(typedPrice));
+
+    act(() => result.current.onPriceBlur());
+
+    expect(result.current.priceError).toBe(expectedError);
+    expect(result.current.canSubmit).toBe(false);
+  });
+
+  it("accepts the highest price the column can hold", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange("9999999999.99"));
+
+    act(() => result.current.onPriceBlur());
+
+    expect(result.current.priceError).toBeUndefined();
+    expect(result.current.canSubmit).toBe(true);
+  });
+
+  it("shows the store name error on blur, without submitting", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("   "));
+
+    act(() => result.current.onStoreNameBlur());
+
+    expect(result.current.storeNameError).toBe(CREATE_PRODUCT_FORM_ERROR.STORE_NAME_REQUIRED);
+    expect(result.current.canSubmit).toBe(false);
+  });
+
+  it("accepts a store name of exactly the maximum length", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("a".repeat(REFERENCE_STORE_NAME_MAX_LENGTH)));
+
+    act(() => result.current.onStoreNameBlur());
+
+    expect(result.current.storeNameError).toBeUndefined();
+    expect(result.current.canSubmit).toBe(true);
   });
 
   it("shows the price error and does not call the service when the price is 0 or less", async () => {

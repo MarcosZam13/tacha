@@ -60,6 +60,9 @@ export const REFERENCE_STORE_NAME_MAX_LENGTH = 80;
 // numeric(12,2): 10 dígitos enteros, así que 10^10 ya no entra.
 export const REFERENCE_PRICE_LIMIT = 10_000_000_000;
 
+// HU-57: la columna guarda 2 decimales; el precio se valida en centavos.
+export const REFERENCE_PRICE_CENTS_PER_UNIT = 100;
+
 // Errores de validación en el cliente (CA-02): se muestran inline y nunca
 // llegan a llamar al RPC si hay alguno. El servidor valida lo mismo de nuevo
 // (SPEC.md §5), esto es solo para no hacer un viaje de red de más.

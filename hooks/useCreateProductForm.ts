@@ -6,6 +6,7 @@ import {
   CREATE_PRODUCT_FORM_STATUS,
   CREATE_PRODUCT_FORM_TEXT,
   CREATE_PRODUCT_FORM_UNIT_OPTIONS,
+  REFERENCE_PRICE_CENTS_PER_UNIT,
   REFERENCE_PRICE_LIMIT,
   REFERENCE_STORE_CHOICE,
   REFERENCE_STORE_NAME_MAX_LENGTH,
@@ -41,10 +42,13 @@ export interface UseCreateProductFormReturn {
   onNameChange: (name: string) => void;
   onOpen: () => void;
   onPriceChange: (price: string) => void;
+  /** HU-57: al salir del campo se muestra su error; "Guardar" deshabilitado no lo mostraría nunca. */
+  onPriceBlur: () => void;
   onQuantityChange: (quantity: string) => void;
   onShareWithHouseholdChange: (shareWithHousehold: boolean) => void;
   onStoreChoiceChange: (storeChoice: ReferenceStoreChoiceType) => void;
   onStoreNameChange: (storeName: string) => void;
+  onStoreNameBlur: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   /** HU-57: precio de referencia tal como se escribió (vacío = sin precio). */
   price: string;
@@ -76,11 +80,18 @@ const validateQuantity = (quantity: string): NullableUndefined<string> => {
 };
 
 // HU-57: el precio es opcional; vacío no es un error, un número <= 0 sí.
+// Se compara en centavos, igual que lo guarda la columna numeric(12,2):
+// 0.001 se guardaría 0.00 y 9999999999.996 se guardaría 10^10, y la base
+// los rechazaría con el mensaje genérico en vez del error del campo.
 const validatePrice = (price: string): NullableUndefined<string> => {
   if (price.trim().length === 0) return undefined;
   const parsedPrice = Number(price);
-  if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) return CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID;
-  return parsedPrice >= REFERENCE_PRICE_LIMIT ? CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH : undefined;
+  if (!Number.isFinite(parsedPrice)) return CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID;
+  const priceInCents = Math.round(parsedPrice * REFERENCE_PRICE_CENTS_PER_UNIT);
+  if (priceInCents <= 0) return CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID;
+  return priceInCents >= REFERENCE_PRICE_LIMIT * REFERENCE_PRICE_CENTS_PER_UNIT
+    ? CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH
+    : undefined;
 };
 
 // HU-57: el nombre de la tienda solo se exige si se eligió "Otra tienda".
@@ -237,6 +248,14 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     setPriceError(undefined);
   };
 
+  const onPriceBlur = (): void => {
+    setPriceError(validatePrice(price));
+  };
+
+  const onStoreNameBlur = (): void => {
+    setStoreNameError(validateStoreName(storeChoice, storeName));
+  };
+
   const submit = async (): Promise<void> => {
     // Doble clic: mientras guarda no se manda otra vez.
     if (status === CREATE_PRODUCT_FORM_STATUS.SUBMITTING) return;
@@ -315,10 +334,12 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     onCategoryChange,
     onNameChange,
     onOpen,
+    onPriceBlur,
     onPriceChange,
     onQuantityChange,
     onShareWithHouseholdChange,
     onStoreChoiceChange,
+    onStoreNameBlur,
     onStoreNameChange,
     onSubmit,
     price,

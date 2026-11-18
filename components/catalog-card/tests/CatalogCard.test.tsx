@@ -28,6 +28,7 @@ describe("CatalogCard", () => {
     );
     const page = createCatalogCardPage();
 
+    expect(page.queryPrice("₡3 200")).toBeInTheDocument();
     expect(page.queryText(REFERENCE_PRICE_TEXT.INFO)).toBeInTheDocument();
     expect(page.queryText("Carnicería Los Ángeles")).toBeInTheDocument();
   });

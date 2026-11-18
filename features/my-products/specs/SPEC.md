@@ -130,9 +130,11 @@ No incluye: editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-8
 
 **HU-57:**
 
-- Precio <= 0 o que no es un número → error inline en el campo; "Guardar" no se habilita.
-- "Otra tienda" sin nombre, o con más de 80 caracteres → error inline en el campo.
-- La base repite estas validaciones (error `22023`). Si algo pasara igual, se ve el mismo mensaje genérico de HU-56.
+- Precio <= 0, que no es un número, o que redondeado a 2 decimales da 0 o llega a 10^10 → error inline en el campo; "Guardar" no se habilita. El campo es de texto con teclado decimal: un campo `number` entrega vacío cuando lo escrito no es un número ("-", "e"), y el producto se guardaría sin precio y sin avisar.
+- "Otra tienda" sin nombre (o solo con espacios), o con más de 80 caracteres → error inline en el campo; "Guardar" no se habilita.
+- Como "Guardar" queda deshabilitado, el error de precio y de tienda aparece al salir del campo, sin tener que intentar guardar.
+- La base repite el precio y el largo de la tienda (error `22023`). Una tienda escrita en blanco la guarda como "sin tienda" (no es un error: el cliente ya la bloquea). Si algo pasara igual, se ve el mismo mensaje genérico de HU-56.
+- El precio se muestra sin decimales, como todos los precios de la app (`PRICE_FORMAT.MAX_FRACTION_DIGITS`): 2850.50 se ve "₡2 851". Se guarda con sus 2 decimales.
 
 ## 8. UI esperada
 
@@ -250,7 +252,7 @@ No incluye: editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-8
 - Caso 11 (CA-01): con un supermercado y un precio → la tarjeta muestra el precio y el nombre del supermercado.
 - Caso 12 (CA-01): con "Otra tienda" escrita → la tarjeta muestra ese nombre.
 - Caso 13 (CA-02): con precio → ícono "i" y aviso en la tarjeta; en el detalle, sección "Precio de referencia" con el aviso visible.
-- Caso 14: precio <= 0, o "Otra tienda" sin nombre → error inline, no se llama al RPC.
+- Caso 14: precio <= 0, no numérico o con centavos que no entran en la columna, o "Otra tienda" sin nombre → error inline al salir del campo, "Guardar" deshabilitado, no se llama al RPC.
 - Caso 15 (CA-03): crear con precio no agrega filas a `product_prices`, y el producto ni su precio aparecen en "Buscar" (prueba SQL de 051).
 
 ## 14. Casos fuera de alcance

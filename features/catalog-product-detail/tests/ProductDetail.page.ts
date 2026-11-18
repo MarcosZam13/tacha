@@ -49,6 +49,10 @@ export const createProductDetailPage = () => {
   const findReferencePriceHeading = () => screen.findByRole("heading", { name: REFERENCE_PRICE_TEXT.TITLE });
   const queryReferencePriceHeading = () => screen.queryByRole("heading", { name: REFERENCE_PRICE_TEXT.TITLE });
   const queryText = (text: string) => screen.queryByText(text);
+  // El precio comparte su elemento con el ícono "i": se busca como parte del texto.
+  // Intl separa los miles con un espacio duro y Testing Library lo normaliza a
+  // un espacio normal en el DOM: se normaliza también lo buscado.
+  const queryPrice = (priceLabel: string) => screen.queryByText(priceLabel.replace(/\s+/g, " "), { exact: false });
 
   const getAddErrorMessage = () => screen.queryByRole("alert");
   const queryAddedConfirmation = () => screen.queryByText(PRODUCT_DETAIL_TEXT.ADDED_CONFIRMATION);
@@ -71,6 +75,7 @@ export const createProductDetailPage = () => {
     queryNoPricesMessage,
     queryReferencePriceHeading,
     queryRetryButton,
+    queryPrice,
     queryText,
   };
 };

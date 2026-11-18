@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG_CARD_TEXT } from "@/constants";
 import type { CatalogProduct, CatalogProductVariant } from "@/types/catalog.types";
+import { formatPriceRange } from "../formatPriceRange";
 import { toCatalogCards } from "../toCatalogCards";
 
 const createProduct = (variant: Partial<CatalogProductVariant>): CatalogProduct => ({
@@ -12,8 +13,9 @@ const createProduct = (variant: Partial<CatalogProductVariant>): CatalogProduct 
   ],
 });
 
-// Intl separa los miles con un espacio que puede ser normal o duro según el entorno.
-const REFERENCE_PRICE_PATTERN = /2\s?850/;
+// El mismo formato que usa la tarjeta, para comparar el texto exacto.
+const REFERENCE_PRICE_LABEL = formatPriceRange({ maxPrice: 2850, minPrice: 2850 });
+const SCRAPED_RANGE_LABEL = formatPriceRange({ maxPrice: 1200, minPrice: 800 });
 
 // HU-57 (SCRUM-88): precio de referencia del usuario vs. precios del scraping.
 describe("toCatalogCards: precio de referencia", () => {
@@ -21,7 +23,7 @@ describe("toCatalogCards: precio de referencia", () => {
     const [card] = toCatalogCards([createProduct({ referencePrice: 2850 })]);
 
     expect(card.isReferencePrice).toBe(true);
-    expect(card.priceLabel).toMatch(REFERENCE_PRICE_PATTERN);
+    expect(card.priceLabel).toBe(REFERENCE_PRICE_LABEL);
   });
 
   it("never mixes it with scraped prices: the scraped range wins (CA-03)", () => {
@@ -30,7 +32,7 @@ describe("toCatalogCards: precio de referencia", () => {
     ]);
 
     expect(card.isReferencePrice).toBeUndefined();
-    expect(card.priceLabel).not.toMatch(REFERENCE_PRICE_PATTERN);
+    expect(card.priceLabel).toBe(SCRAPED_RANGE_LABEL);
   });
 
   it("keeps the store name even without a price", () => {
