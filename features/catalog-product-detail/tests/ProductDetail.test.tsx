@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { REFERENCE_PRICE_TEXT } from "@/constants";
 import { getCatalogVariantDetail } from "@/services/catalog.service";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
 import type { CatalogVariantDetail } from "@/types/catalog.types";
@@ -27,6 +28,8 @@ const createDetail = (overrides: Partial<CatalogVariantDetail> = {}): CatalogVar
   brands: [{ logoUrl: null, name: "Dos Pinos" }],
   imageUrl: null,
   productName: "Leche",
+  referencePrice: null,
+  referenceStoreName: null,
   sizeLabel: "1000 ml",
   storePriceRanges: [{ maxPrice: 900, minPrice: 800, storeName: "MaxiPali", storeSlug: "maxipali" }],
   variantId: VARIANT_ID,
@@ -85,6 +88,29 @@ describe("ProductDetail", () => {
   });
 
   // "producto no encontrado": sin opción de reintentar.
+  // HU-57 (SCRUM-88) CA-02: precio de referencia de un producto personalizado,
+  // con el aviso visible y separado de los precios por supermercado (CA-03).
+  it("shows the user's reference price and store with its notice", async () => {
+    getCatalogVariantDetailMock.mockResolvedValue(
+      createDetail({ referencePrice: 3200, referenceStoreName: "Carnicería Los Ángeles", storePriceRanges: [] }),
+    );
+    render(<ProductDetail variantId={VARIANT_ID} />);
+    const page = createProductDetailPage();
+
+    expect(await page.findReferencePriceHeading()).toBeInTheDocument();
+    expect(page.queryText("Carnicería Los Ángeles")).toBeInTheDocument();
+    expect(page.queryText(REFERENCE_PRICE_TEXT.INFO)).toBeInTheDocument();
+  });
+
+  it("does not show a reference price section for a catalog product", async () => {
+    getCatalogVariantDetailMock.mockResolvedValue(createDetail());
+    render(<ProductDetail variantId={VARIANT_ID} />);
+    const page = createProductDetailPage();
+
+    expect(await page.findHeading("Leche")).toBeInTheDocument();
+    expect(page.queryReferencePriceHeading()).not.toBeInTheDocument();
+  });
+
   it("shows a not-found message without a retry button when the variant doesn't exist", async () => {
     getCatalogVariantDetailMock.mockResolvedValue(null);
     render(<ProductDetail variantId={VARIANT_ID} />);

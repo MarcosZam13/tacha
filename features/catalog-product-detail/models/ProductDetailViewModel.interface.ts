@@ -28,6 +28,10 @@ export interface ProductDetailViewModel {
   placeholderInitial: string;
   productName: string;
   quantity: number;
+  /** HU-57: precio de referencia del usuario ya formateado ("₡2 850"); null si no anotó uno. */
+  referencePriceLabel: NullableRef<string>;
+  /** HU-57: tienda de referencia; null si no anotó una. */
+  referenceStoreName: NullableRef<string>;
   sizeLabel: string;
   status: ProductDetailStatusType;
   storePriceRows: ProductDetailStorePriceRow[];

@@ -126,6 +126,11 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
     placeholderInitial: detail ? detail.productName.trim().charAt(0).toUpperCase() : "",
     productName: detail?.productName ?? "",
     quantity,
+    referencePriceLabel:
+      detail && detail.referencePrice !== null
+        ? formatPriceRange({ maxPrice: detail.referencePrice, minPrice: detail.referencePrice })
+        : null,
+    referenceStoreName: detail?.referenceStoreName ?? null,
     sizeLabel: detail?.sizeLabel ?? "",
     status: isAdding
       ? PRODUCT_DETAIL_STATUS.ADDING

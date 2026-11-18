@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { REFERENCE_PRICE_TEXT } from "@/constants";
 import { PRODUCT_DETAIL_TEXT } from "../constants/catalog-product-detail.constants";
 
 /**
@@ -43,6 +44,12 @@ export const createProductDetailPage = () => {
     await user.click(screen.getByRole("button", { name: PRODUCT_DETAIL_TEXT.ADD_TO_LIST_BUTTON }));
   };
 
+  // HU-57: sección "Precio de referencia" de un producto personalizado.
+  const findHeading = (name: string) => screen.findByRole("heading", { level: 1, name });
+  const findReferencePriceHeading = () => screen.findByRole("heading", { name: REFERENCE_PRICE_TEXT.TITLE });
+  const queryReferencePriceHeading = () => screen.queryByRole("heading", { name: REFERENCE_PRICE_TEXT.TITLE });
+  const queryText = (text: string) => screen.queryByText(text);
+
   const getAddErrorMessage = () => screen.queryByRole("alert");
   const queryAddedConfirmation = () => screen.queryByText(PRODUCT_DETAIL_TEXT.ADDED_CONFIRMATION);
 
@@ -51,6 +58,8 @@ export const createProductDetailPage = () => {
     clickDecreaseQuantity,
     clickIncreaseQuantity,
     clickRetry,
+    findHeading,
+    findReferencePriceHeading,
     getAddErrorMessage,
     getBrandNames,
     getErrorMessage,
@@ -60,6 +69,8 @@ export const createProductDetailPage = () => {
     queryAddedConfirmation,
     queryNoBrandsMessage,
     queryNoPricesMessage,
+    queryReferencePriceHeading,
     queryRetryButton,
+    queryText,
   };
 };

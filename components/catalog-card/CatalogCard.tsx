@@ -1,6 +1,8 @@
+import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { CATALOG_PRODUCT_DETAIL_ROUTE } from "@/constants";
+import { Icon } from "@/components/ui";
+import { CATALOG_PRODUCT_DETAIL_ROUTE, ICON_SIZE, REFERENCE_PRICE_TEXT } from "@/constants";
 import type { CatalogCardProps } from "./models/CatalogCardProps.interface";
 
 /**
@@ -19,6 +21,11 @@ import type { CatalogCardProps } from "./models/CatalogCardProps.interface";
  *
  * Vive en components/ porque lo usan dos features: "Buscar" (features/catalog)
  * y "Mis productos" (features/my-products).
+ *
+ * HU-57 (SCRUM-88): un precio de referencia del usuario lleva el ícono "i" y
+ * el aviso de CA-02. La tarjeta entera es un link, así que el ícono no puede
+ * ser un botón: el aviso va como texto para lector de pantalla y como title
+ * (al pasar el mouse); el detalle del producto lo muestra completo y visible.
  */
 export const CatalogCard = ({ card }: CatalogCardProps): React.JSX.Element => (
   <li>
@@ -45,8 +52,20 @@ export const CatalogCard = ({ card }: CatalogCardProps): React.JSX.Element => (
 
         <div className="flex flex-1 flex-col gap-1 p-3">
           <h2 className="font-body text-sm font-semibold text-tacha-text">{card.title}</h2>
+          {card.storeName ? <p className="font-body text-xs text-tacha-textsec">{card.storeName}</p> : null}
           {/* mt-auto: el precio queda al pie aunque los títulos ocupen distinto. */}
-          <p className="mt-auto font-body text-sm text-tacha-terracotta">{card.priceLabel}</p>
+          {card.isReferencePrice ? (
+            <p
+              className="mt-auto flex items-center gap-1 font-body text-sm text-tacha-terracotta"
+              title={REFERENCE_PRICE_TEXT.INFO}
+            >
+              {card.priceLabel}
+              <Icon icon={Info} size={ICON_SIZE.SMALL} />
+              <span className="sr-only">{REFERENCE_PRICE_TEXT.INFO}</span>
+            </p>
+          ) : (
+            <p className="mt-auto font-body text-sm text-tacha-terracotta">{card.priceLabel}</p>
+          )}
         </div>
       </article>
     </Link>

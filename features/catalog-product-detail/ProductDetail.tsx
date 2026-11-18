@@ -7,6 +7,7 @@ import { PRODUCT_DETAIL_STATUS, PRODUCT_DETAIL_TEXT } from "./constants/catalog-
 import { AddToListControl } from "./components/AddToListControl";
 import { ProductDetailBrands } from "./components/ProductDetailBrands";
 import { ProductDetailHeader } from "./components/ProductDetailHeader";
+import { ProductDetailReferencePrice } from "./components/ProductDetailReferencePrice";
 import { ProductDetailStorePrices } from "./components/ProductDetailStorePrices";
 import { useProductDetailViewModel } from "./hooks/useProductDetailViewModel";
 import type { ProductDetailProps } from "./models/ProductDetailProps.interface";
@@ -52,6 +53,14 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
       />
 
       <ProductDetailBrands brands={viewModel.brands} />
+
+      {/* HU-57: solo un producto personalizado con tienda o precio anotados. */}
+      {viewModel.referencePriceLabel !== null || viewModel.referenceStoreName !== null ? (
+        <ProductDetailReferencePrice
+          priceLabel={viewModel.referencePriceLabel}
+          storeName={viewModel.referenceStoreName}
+        />
+      ) : null}
 
       <ProductDetailStorePrices storePriceRows={viewModel.storePriceRows} />
       <PriceDisclaimer />
