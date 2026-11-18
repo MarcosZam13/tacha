@@ -537,6 +537,9 @@ export type Database = {
           image_url: string | null
           name: string
           product_catalog_id: string
+          reference_price: number | null
+          reference_store_id: string | null
+          reference_store_name: string | null
         }
         Insert: {
           base_quantity: number
@@ -546,6 +549,9 @@ export type Database = {
           image_url?: string | null
           name: string
           product_catalog_id: string
+          reference_price?: number | null
+          reference_store_id?: string | null
+          reference_store_name?: string | null
         }
         Update: {
           base_quantity?: number
@@ -555,6 +561,9 @@ export type Database = {
           image_url?: string | null
           name?: string
           product_catalog_id?: string
+          reference_price?: number | null
+          reference_store_id?: string | null
+          reference_store_name?: string | null
         }
         Relationships: [
           {
@@ -562,6 +571,13 @@ export type Database = {
             columns: ["product_catalog_id"]
             isOneToOne: false
             referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_catalog_variants_reference_store_id_fkey"
+            columns: ["reference_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -1165,6 +1181,9 @@ export type Database = {
           brand_name?: string
           category_id: string
           product_name: string
+          reference_price?: number
+          reference_store_name?: string
+          reference_store_slug?: string
           share_with_household?: boolean
         }
         Returns: string
