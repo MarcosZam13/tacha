@@ -13,7 +13,7 @@ El navegador prueba los recorridos completos.
 - **Usuario:** cada test abre un navegador nuevo y la app crea un usuario anónimo nuevo al guardar, sin familia: el producto queda personal.
 - **Categoría:** la primera del selector. Supuesto: la base compartida tiene categorías (las siembra la migración 020).
 - **Nombre:** cada test usa un nombre con la hora, para encontrar su tarjeta sin confundirla con otra.
-- **Migración:** requiere `052` aplicada en la base.
+- **Migración:** requiere `052` y `053` aplicadas en la base.
 - **Limpieza:**
   - E2E-MISPROD-03 elimina su producto al terminar, así que se borra.
   - E2E-MISPROD-04 lo borra como parte del test.

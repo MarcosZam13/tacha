@@ -3,7 +3,8 @@
 -- producto personalizado.
 --
 -- Cómo se corre: completo en el SQL Editor (rol dueño de las tablas), después
--- de aplicar 052. Todo pasa dentro de una transacción que termina en
+-- de aplicar 052 y 053 (053 corrige el nombre de la variante que revisan los
+-- casos 3 y 4). Todo pasa dentro de una transacción que termina en
 -- rollback (mismo patrón que 031_create_personal_product.test.sql): nada de
 -- esto queda en la base compartida.
 --

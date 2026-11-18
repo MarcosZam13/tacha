@@ -203,7 +203,8 @@ Verificado contra la base real (`ifvwumejbfpowxlkjfiu`), no supuesto.
 | Archivo | Cambio |
 |---|---|
 | `supabase/migrations/052_edit_delete_personal_products.sql` | `product_catalog.archived_at`; `can_manage_personal_product` (interna), `get_personal_product_usage`, `update_personal_product`, `delete_personal_product` |
-| `supabase/tests/052_edit_delete_personal_products.test.sql` | Prueba de la migración (transacción + rollback) |
+| `supabase/migrations/053_fix_personal_product_variant_name.sql` | `update_personal_product` arma el nombre de la variante sin ceros de sobra ("500 g", no "500.00 g"), igual que al crear |
+| `supabase/tests/052_edit_delete_personal_products.test.sql` | Prueba de 052 y 053 (transacción + rollback) |
 | `types/database.types.ts` | `archived_at` y las 3 funciones, editados a mano solo para 052 |
 | `types/personal-product.types.ts` | `EditablePersonalProduct`: lo comparten la feature y el hook del formulario |
 | `constants/create-product-form.constants.ts` | Nombres de las RPC, `PERSONAL_PRODUCT_DELETE_RESULT`, título "Editar producto" |

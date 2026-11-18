@@ -52,7 +52,7 @@ No incluye (ver §14):
 - Al eliminar:
   - si nada lo usa, se borra;
   - si lo usa alguna lista (de cualquier estado), receta o snapshot de faltante, se **archiva**: deja de aparecer en "Mis productos" y todo lo que lo usa sigue igual.
-- Migración nueva `052` (ver §12).
+- Migraciones nuevas `052` y `053` (ver §12). `053` corrige el formato de la cantidad en el nombre de la variante al editar.
 
 No incluye:
 - Cambiar si el producto está compartido.
