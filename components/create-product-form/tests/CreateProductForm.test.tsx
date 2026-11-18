@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CREATE_PRODUCT_FORM_ERROR, CREATE_PRODUCT_FORM_TEXT } from "@/constants/create-product-form.constants";
+import {
+  CREATE_PRODUCT_FORM_ERROR,
+  CREATE_PRODUCT_FORM_TEXT,
+  REFERENCE_STORE_CHOICE,
+} from "@/constants/create-product-form.constants";
+import { STORE_DISPLAY, STORE_NAMES } from "@/constants/stores.constants";
 import { CreateProductForm } from "../CreateProductForm";
 import type { CreateProductFormProps } from "../models/CreateProductFormProps.interface";
 import { createCreateProductFormPage } from "./CreateProductForm.page";
@@ -28,13 +33,22 @@ const createProps = (overrides: Partial<CreateProductFormProps> = {}): CreatePro
   onCategoryChange: vi.fn(),
   onNameChange: vi.fn(),
   onOpen: vi.fn(),
+  onPriceChange: vi.fn(),
   onQuantityChange: vi.fn(),
   onShareWithHouseholdChange: vi.fn(),
+  onStoreChoiceChange: vi.fn(),
+  onStoreNameChange: vi.fn(),
   onSubmit: vi.fn(),
+  price: "",
+  priceError: undefined,
   quantity: "",
   quantityError: undefined,
   shareWithHousehold: false,
   showShareCheckbox: false,
+  showStoreNameInput: false,
+  storeChoice: REFERENCE_STORE_CHOICE.NONE,
+  storeName: "",
+  storeNameError: undefined,
   ...overrides,
 });
 
@@ -157,6 +171,61 @@ describe("CreateProductForm", () => {
     await page.cancel();
 
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  // HU-57 CA-01: tienda (sin tienda, los 3 súper, otra) y precio, los dos opcionales.
+  it("shows the optional store select with the three supermarkets and a custom option, and the price field", () => {
+    render(<CreateProductForm {...createProps()} />);
+    const page = createCreateProductFormPage();
+
+    expect(page.getStoreOptionLabels()).toEqual([
+      CREATE_PRODUCT_FORM_TEXT.STORE_NONE_OPTION,
+      STORE_DISPLAY[STORE_NAMES.MASXMENOS],
+      STORE_DISPLAY[STORE_NAMES.MAXIPALI],
+      STORE_DISPLAY[STORE_NAMES.WALMART],
+      CREATE_PRODUCT_FORM_TEXT.STORE_CUSTOM_OPTION,
+    ]);
+    expect(page.getPriceInput()).toBeInTheDocument();
+  });
+
+  it("hides the store name field unless the custom store is chosen", () => {
+    render(<CreateProductForm {...createProps({ showStoreNameInput: false })} />);
+    const page = createCreateProductFormPage();
+
+    expect(page.queryStoreNameInput()).not.toBeInTheDocument();
+  });
+
+  it("shows the store name field with its error when the custom store is chosen", () => {
+    render(
+      <CreateProductForm
+        {...createProps({
+          showStoreNameInput: true,
+          storeChoice: REFERENCE_STORE_CHOICE.CUSTOM,
+          storeNameError: CREATE_PRODUCT_FORM_ERROR.STORE_NAME_REQUIRED,
+        })}
+      />,
+    );
+    const page = createCreateProductFormPage();
+
+    expect(page.getStoreNameInput()).toBeInTheDocument();
+    expect(page.getFieldError(CREATE_PRODUCT_FORM_ERROR.STORE_NAME_REQUIRED)).toBeInTheDocument();
+  });
+
+  it("notifies the chosen supermarket", async () => {
+    const onStoreChoiceChange = vi.fn();
+    render(<CreateProductForm {...createProps({ onStoreChoiceChange })} />);
+    const page = createCreateProductFormPage();
+
+    await page.selectStore(STORE_NAMES.MAXIPALI);
+
+    expect(onStoreChoiceChange).toHaveBeenCalledWith(STORE_NAMES.MAXIPALI);
+  });
+
+  it("shows the price inline error", () => {
+    render(<CreateProductForm {...createProps({ priceError: CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID })} />);
+    const page = createCreateProductFormPage();
+
+    expect(page.getFieldError(CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID)).toBeInTheDocument();
   });
 
   it("notifies typing in the name field", async () => {

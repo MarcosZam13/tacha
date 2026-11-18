@@ -6,8 +6,14 @@ import {
   CREATE_PRODUCT_FORM_STATUS,
   CREATE_PRODUCT_FORM_TEXT,
   CREATE_PRODUCT_FORM_UNIT_OPTIONS,
+  REFERENCE_STORE_CHOICE,
+  REFERENCE_STORE_NAME_MAX_LENGTH,
 } from "@/constants/create-product-form.constants";
-import type { CreateProductFormStatusType } from "@/constants/create-product-form.constants";
+import type {
+  CreateProductFormStatusType,
+  ReferenceStoreChoiceType,
+} from "@/constants/create-product-form.constants";
+import type { StoreSlug } from "@/constants/stores.constants";
 import { getCategories } from "@/services/catalog.service";
 import { createPersonalProduct, hasHousehold } from "@/services/personal-product.service";
 import type { Category } from "@/types/catalog.types";
@@ -33,13 +39,24 @@ export interface UseCreateProductFormReturn {
   onCategoryChange: (categoryId: string) => void;
   onNameChange: (name: string) => void;
   onOpen: () => void;
+  onPriceChange: (price: string) => void;
   onQuantityChange: (quantity: string) => void;
   onShareWithHouseholdChange: (shareWithHousehold: boolean) => void;
+  onStoreChoiceChange: (storeChoice: ReferenceStoreChoiceType) => void;
+  onStoreNameChange: (storeName: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  /** HU-57: precio de referencia tal como se escribió (vacío = sin precio). */
+  price: string;
+  priceError: NullableUndefined<string>;
   quantity: string;
   quantityError: NullableUndefined<string>;
   shareWithHousehold: boolean;
   showShareCheckbox: boolean;
+  /** HU-57: el campo de tienda escrita solo existe con "Otra tienda". */
+  showStoreNameInput: boolean;
+  storeChoice: ReferenceStoreChoiceType;
+  storeName: string;
+  storeNameError: NullableUndefined<string>;
 }
 
 const validateName = (name: string): NullableUndefined<string> =>
@@ -56,6 +73,29 @@ const validateQuantity = (quantity: string): NullableUndefined<string> => {
     ? CREATE_PRODUCT_FORM_ERROR.QUANTITY_REQUIRED
     : undefined;
 };
+
+// HU-57: el precio es opcional; vacío no es un error, un número <= 0 sí.
+const validatePrice = (price: string): NullableUndefined<string> => {
+  if (price.trim().length === 0) return undefined;
+  const parsedPrice = Number(price);
+  return !Number.isFinite(parsedPrice) || parsedPrice <= 0 ? CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID : undefined;
+};
+
+// HU-57: el nombre de la tienda solo se exige si se eligió "Otra tienda".
+const validateStoreName = (
+  storeChoice: ReferenceStoreChoiceType,
+  storeName: string,
+): NullableUndefined<string> => {
+  if (storeChoice !== REFERENCE_STORE_CHOICE.CUSTOM) return undefined;
+  const trimmedStoreName = storeName.trim();
+  if (trimmedStoreName.length === 0) return CREATE_PRODUCT_FORM_ERROR.STORE_NAME_REQUIRED;
+  return trimmedStoreName.length > REFERENCE_STORE_NAME_MAX_LENGTH
+    ? CREATE_PRODUCT_FORM_ERROR.STORE_NAME_TOO_LONG
+    : undefined;
+};
+
+const isSupermarketChoice = (storeChoice: ReferenceStoreChoiceType): storeChoice is StoreSlug =>
+  storeChoice !== REFERENCE_STORE_CHOICE.NONE && storeChoice !== REFERENCE_STORE_CHOICE.CUSTOM;
 
 const INITIAL_UNIT = CREATE_PRODUCT_FORM_UNIT_OPTIONS[0].value;
 
@@ -81,6 +121,11 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
   const [quantityError, setQuantityError] = useState<NullableUndefined<string>>(undefined);
   const [baseUnit, setBaseUnit] = useState<CatalogBaseUnitType>(INITIAL_UNIT);
   const [shareWithHousehold, setShareWithHousehold] = useState<boolean>(false);
+  const [storeChoice, setStoreChoice] = useState<ReferenceStoreChoiceType>(REFERENCE_STORE_CHOICE.NONE);
+  const [storeName, setStoreName] = useState<string>("");
+  const [storeNameError, setStoreNameError] = useState<NullableUndefined<string>>(undefined);
+  const [price, setPrice] = useState<string>("");
+  const [priceError, setPriceError] = useState<NullableUndefined<string>>(undefined);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState<boolean>(false);
@@ -125,6 +170,11 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     setQuantityError(undefined);
     setBaseUnit(INITIAL_UNIT);
     setShareWithHousehold(false);
+    setStoreChoice(REFERENCE_STORE_CHOICE.NONE);
+    setStoreName("");
+    setStoreNameError(undefined);
+    setPrice("");
+    setPriceError(undefined);
     setErrorMessage(null);
   };
 
@@ -168,6 +218,23 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     setShareWithHousehold(nextShareWithHousehold);
   };
 
+  // Cambiar de tienda borra lo escrito en "Otra tienda": nunca viajan las dos (051).
+  const onStoreChoiceChange = (nextStoreChoice: ReferenceStoreChoiceType): void => {
+    setStoreChoice(nextStoreChoice);
+    setStoreName("");
+    setStoreNameError(undefined);
+  };
+
+  const onStoreNameChange = (nextStoreName: string): void => {
+    setStoreName(nextStoreName);
+    setStoreNameError(undefined);
+  };
+
+  const onPriceChange = (nextPrice: string): void => {
+    setPrice(nextPrice);
+    setPriceError(undefined);
+  };
+
   const submit = async (): Promise<void> => {
     // Doble clic: mientras guarda no se manda otra vez.
     if (status === CREATE_PRODUCT_FORM_STATUS.SUBMITTING) return;
@@ -175,12 +242,19 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     const nextNameError = validateName(name);
     const nextCategoryError = validateCategory(categoryId);
     const nextQuantityError = validateQuantity(quantity);
+    const nextStoreNameError = validateStoreName(storeChoice, storeName);
+    const nextPriceError = validatePrice(price);
     setNameError(nextNameError);
     setCategoryError(nextCategoryError);
     setQuantityError(nextQuantityError);
+    setStoreNameError(nextStoreNameError);
+    setPriceError(nextPriceError);
     // CA-02: nombre y categoría vacíos no llaman al RPC. La cantidad corre la
-    // misma regla: sin ella no hay variante que crear (SPEC.md §5).
-    if (nextNameError || nextCategoryError || nextQuantityError) return;
+    // misma regla: sin ella no hay variante que crear (SPEC.md §5). HU-57:
+    // un precio o una tienda escrita inválidos tampoco.
+    if (nextNameError || nextCategoryError || nextQuantityError || nextStoreNameError || nextPriceError) {
+      return;
+    }
 
     setErrorMessage(null);
     setStatus(CREATE_PRODUCT_FORM_STATUS.SUBMITTING);
@@ -192,6 +266,9 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
         brandName: brandName.trim() || undefined,
         categoryId,
         name: name.trim(),
+        referencePrice: price.trim().length > 0 ? Number(price) : undefined,
+        referenceStoreName: storeChoice === REFERENCE_STORE_CHOICE.CUSTOM ? storeName.trim() : undefined,
+        referenceStoreSlug: isSupermarketChoice(storeChoice) ? storeChoice : undefined,
         shareWithHousehold,
       });
       resetFields();
@@ -214,7 +291,12 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
   return {
     baseUnit,
     brandName,
-    canSubmit: name.trim().length > 0 && categoryId.length > 0 && validateQuantity(quantity) === undefined,
+    canSubmit:
+      name.trim().length > 0 &&
+      categoryId.length > 0 &&
+      validateQuantity(quantity) === undefined &&
+      validateStoreName(storeChoice, storeName) === undefined &&
+      validatePrice(price) === undefined,
     categories,
     categoriesErrorMessage,
     categoryError,
@@ -231,12 +313,21 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     onCategoryChange,
     onNameChange,
     onOpen,
+    onPriceChange,
     onQuantityChange,
     onShareWithHouseholdChange,
+    onStoreChoiceChange,
+    onStoreNameChange,
     onSubmit,
+    price,
+    priceError,
     quantity,
     quantityError,
     shareWithHousehold,
     showShareCheckbox,
+    showStoreNameInput: storeChoice === REFERENCE_STORE_CHOICE.CUSTOM,
+    storeChoice,
+    storeName,
+    storeNameError,
   };
 };

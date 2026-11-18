@@ -1,5 +1,7 @@
 import { CATALOG_BASE_UNIT } from "@/constants/catalog.constants";
 import type { CatalogBaseUnitType } from "@/constants/catalog.constants";
+import { STORE_DISPLAY, STORE_NAMES } from "@/constants/stores.constants";
+import type { StoreSlug } from "@/constants/stores.constants";
 
 // Constantes del formulario "Agregar producto personalizado" (SCRUM-87 / HU-56),
 // compartido entre "Mis productos" y el enlace de CA-04 en features/catalog/
@@ -50,14 +52,41 @@ export const CREATE_PRODUCT_FORM_UNIT_OPTIONS = [
   { label: CREATE_PRODUCT_FORM_UNIT_LABEL[CATALOG_BASE_UNIT.UNIT], value: CATALOG_BASE_UNIT.UNIT },
 ] as const satisfies ReadonlyArray<{ label: string; value: CatalogBaseUnitType }>;
 
+// HU-57 (SCRUM-88): tienda de referencia. Espejo del check
+// product_catalog_variants_reference_store_name_length (migración 051).
+export const REFERENCE_STORE_NAME_MAX_LENGTH = 80;
+
 // Errores de validación en el cliente (CA-02): se muestran inline y nunca
 // llegan a llamar al RPC si hay alguno. El servidor valida lo mismo de nuevo
 // (SPEC.md §5), esto es solo para no hacer un viaje de red de más.
 export const CREATE_PRODUCT_FORM_ERROR = {
   CATEGORY_REQUIRED: "Selecciona una categoría.",
   NAME_REQUIRED: "Escribe un nombre.",
+  PRICE_INVALID: "Escribe un precio mayor a 0.",
   QUANTITY_REQUIRED: "Escribe una cantidad mayor a 0.",
+  STORE_NAME_REQUIRED: "Escribe el nombre de la tienda.",
+  STORE_NAME_TOO_LONG: `El nombre de la tienda puede tener hasta ${REFERENCE_STORE_NAME_MAX_LENGTH} caracteres.`,
 } as const;
+
+// Las dos opciones del selector de tienda que no son un supermercado: "sin
+// tienda" (valor vacío, mismo criterio que el placeholder de categoría) y
+// "otra tienda" (abre el campo de texto libre). El resto de las opciones son
+// los slugs de STORE_NAMES, que la base traduce al id de `stores`.
+export const REFERENCE_STORE_CHOICE = {
+  CUSTOM: "otra",
+  NONE: "",
+} as const;
+
+export type ReferenceStoreChoiceType =
+  | (typeof REFERENCE_STORE_CHOICE)[keyof typeof REFERENCE_STORE_CHOICE]
+  | StoreSlug;
+
+// Orden alfabético por nombre visible.
+export const REFERENCE_STORE_SUPERMARKET_OPTIONS = [
+  { label: STORE_DISPLAY[STORE_NAMES.MASXMENOS], value: STORE_NAMES.MASXMENOS },
+  { label: STORE_DISPLAY[STORE_NAMES.MAXIPALI], value: STORE_NAMES.MAXIPALI },
+  { label: STORE_DISPLAY[STORE_NAMES.WALMART], value: STORE_NAMES.WALMART },
+] as const satisfies ReadonlyArray<{ label: string; value: StoreSlug }>;
 
 export const CREATE_PRODUCT_FORM_TEXT = {
   BRAND_LABEL: "Marca (opcional)",
@@ -67,10 +96,15 @@ export const CREATE_PRODUCT_FORM_TEXT = {
   CATEGORY_PLACEHOLDER: "Selecciona una categoría",
   NAME_LABEL: "Nombre del producto",
   OPEN_BUTTON: "+ Agregar producto",
+  PRICE_LABEL: "Precio de referencia (opcional)",
   QUANTITY_LABEL: "Cantidad",
   SAVE: "Guardar",
   SAVING: "Guardando…",
   SHARE_LABEL: "Compartir con mi household",
+  STORE_CUSTOM_OPTION: "Otra tienda",
+  STORE_LABEL: "Tienda (opcional)",
+  STORE_NAME_LABEL: "Nombre de la tienda",
+  STORE_NONE_OPTION: "Sin tienda",
   // Nunca se muestra error.message de la base (mismo criterio que
   // useHouseholdViewModel.submitHousehold): un mensaje fijo, nunca el crudo
   // del servidor.

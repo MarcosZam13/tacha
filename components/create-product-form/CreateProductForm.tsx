@@ -4,6 +4,8 @@ import { BUTTON_VARIANT } from "@/constants";
 import {
   CREATE_PRODUCT_FORM_TEXT,
   CREATE_PRODUCT_FORM_UNIT_OPTIONS,
+  REFERENCE_STORE_CHOICE,
+  REFERENCE_STORE_SUPERMARKET_OPTIONS,
 } from "@/constants/create-product-form.constants";
 import type { CreateProductFormProps } from "./models/CreateProductFormProps.interface";
 
@@ -22,6 +24,10 @@ import type { CreateProductFormProps } from "./models/CreateProductFormProps.int
  * El error de categoría va fuera del <label> y ligado por aria-describedby
  * (mismo criterio que Input, SCRUM-137): dentro, el lector de pantalla lo
  * anunciaría como parte del nombre del campo.
+ *
+ * HU-57 (SCRUM-88): tienda y precio de referencia, los dos opcionales. La
+ * tienda es un <select> nativo (Sin tienda / los 3 súper / Otra tienda) y
+ * "Otra tienda" muestra un campo de texto para escribirla.
  */
 export const CreateProductForm = ({
   baseUnit,
@@ -42,17 +48,27 @@ export const CreateProductForm = ({
   onCancel,
   onCategoryChange,
   onNameChange,
+  onPriceChange,
   onQuantityChange,
   onShareWithHouseholdChange,
+  onStoreChoiceChange,
+  onStoreNameChange,
   onSubmit,
+  price,
+  priceError,
   quantity,
   quantityError,
   shareWithHousehold,
   showShareCheckbox,
+  showStoreNameInput,
+  storeChoice,
+  storeName,
+  storeNameError,
 }: CreateProductFormProps): React.JSX.Element => {
   const categorySelectId = useId();
   const categoryDescriptionId = `${categorySelectId}-descripcion`;
   const unitSelectId = useId();
+  const storeSelectId = useId();
   const categoryDescription = categoryError ?? categoriesErrorMessage;
 
   return (
@@ -126,6 +142,45 @@ export const CreateProductForm = ({
             </select>
           </div>
         </div>
+
+        <div className="flex flex-col gap-1 font-body text-sm">
+          <label htmlFor={storeSelectId} className="font-medium text-tacha-text">
+            {CREATE_PRODUCT_FORM_TEXT.STORE_LABEL}
+          </label>
+          <select
+            id={storeSelectId}
+            value={storeChoice}
+            // Los valores salen de REFERENCE_STORE_CHOICE y de los slugs de las opciones, así que siempre es válido.
+            onChange={(event) => onStoreChoiceChange(event.target.value as typeof storeChoice)}
+            className="rounded-tacha-badge border border-tacha-border bg-tacha-surface px-3 py-2 text-tacha-text outline-none focus:ring-2 focus:ring-tacha-teal"
+          >
+            <option value={REFERENCE_STORE_CHOICE.NONE}>{CREATE_PRODUCT_FORM_TEXT.STORE_NONE_OPTION}</option>
+            {REFERENCE_STORE_SUPERMARKET_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+            <option value={REFERENCE_STORE_CHOICE.CUSTOM}>{CREATE_PRODUCT_FORM_TEXT.STORE_CUSTOM_OPTION}</option>
+          </select>
+        </div>
+
+        {showStoreNameInput ? (
+          <Input
+            label={CREATE_PRODUCT_FORM_TEXT.STORE_NAME_LABEL}
+            value={storeName}
+            onChange={onStoreNameChange}
+            errorMessage={storeNameError}
+            isRequired
+          />
+        ) : null}
+
+        <Input
+          label={CREATE_PRODUCT_FORM_TEXT.PRICE_LABEL}
+          value={price}
+          onChange={onPriceChange}
+          type="number"
+          errorMessage={priceError}
+        />
 
         {showShareCheckbox ? (
           <Checkbox
