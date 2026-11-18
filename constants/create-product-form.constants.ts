@@ -60,8 +60,14 @@ export const REFERENCE_STORE_NAME_MAX_LENGTH = 80;
 // numeric(12,2): 10 dígitos enteros, así que 10^10 ya no entra.
 export const REFERENCE_PRICE_LIMIT = 10_000_000_000;
 
-// HU-57: la columna guarda 2 decimales; el precio se valida en centavos.
-export const REFERENCE_PRICE_CENTS_PER_UNIT = 100;
+// HU-57: la columna guarda 2 decimales; el precio se valida en céntimos.
+export const CENTS_PER_COLON = 100;
+export const REFERENCE_PRICE_LIMIT_CENTS = REFERENCE_PRICE_LIMIT * CENTS_PER_COLON;
+
+// HU-57: lo que se acepta como precio: dígitos con hasta un separador
+// decimal, punto o coma (en Costa Rica se escribe "2850,50"). Deja afuera lo
+// que Number() aceptaría sin que sea un precio: "1e3", "0x10", " - ".
+export const REFERENCE_PRICE_PATTERN = /^\d+([.,]\d+)?$/;
 
 // Errores de validación en el cliente (CA-02): se muestran inline y nunca
 // llegan a llamar al RPC si hay alguno. El servidor valida lo mismo de nuevo

@@ -52,7 +52,11 @@ export const createProductDetailPage = () => {
   // El precio comparte su elemento con el ícono "i": se busca como parte del texto.
   // Intl separa los miles con un espacio duro y Testing Library lo normaliza a
   // un espacio normal en el DOM: se normaliza también lo buscado.
-  const queryPrice = (priceLabel: string) => screen.queryByText(priceLabel.replace(/\s+/g, " "), { exact: false });
+  // Sin dígitos pegados antes ni después: "₡3 200" no coincide con "₡13 200".
+  const queryPrice = (priceLabel: string) => {
+    const escapedLabel = priceLabel.replace(/\s+/g, " ").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return screen.queryByText(new RegExp(`(?<!\\d)${escapedLabel}(?!\\d)`));
+  };
 
   const getAddErrorMessage = () => screen.queryByRole("alert");
   const queryAddedConfirmation = () => screen.queryByText(PRODUCT_DETAIL_TEXT.ADDED_CONFIRMATION);

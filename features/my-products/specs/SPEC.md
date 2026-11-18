@@ -130,7 +130,7 @@ No incluye: editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-8
 
 **HU-57:**
 
-- Precio <= 0, que no es un número, o que redondeado a 2 decimales da 0 o llega a 10^10 → error inline en el campo; "Guardar" no se habilita. El campo es de texto con teclado decimal: un campo `number` entrega vacío cuando lo escrito no es un número ("-", "e"), y el producto se guardaría sin precio y sin avisar.
+- Precio <= 0, que no es un número, o que redondeado a 2 decimales da 0 o llega a 10^10 → error inline en el campo; "Guardar" no se habilita. El decimal se escribe con coma o con punto ("2850,50" o "2850.50"). El campo es de texto con teclado decimal: un campo `number` entrega vacío cuando lo escrito no es un número ("-", "e"), y el producto se guardaría sin precio y sin avisar.
 - "Otra tienda" sin nombre (o solo con espacios), o con más de 80 caracteres → error inline en el campo; "Guardar" no se habilita.
 - Como "Guardar" queda deshabilitado, el error de precio y de tienda aparece al salir del campo, sin tener que intentar guardar.
 - La base repite el precio y el largo de la tienda (error `22023`). Una tienda escrita en blanco la guarda como "sin tienda" (no es un error: el cliente ya la bloquea). Si algo pasara igual, se ve el mismo mensaje genérico de HU-56.

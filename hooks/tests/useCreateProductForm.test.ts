@@ -230,6 +230,11 @@ describe("useCreateProductForm: tienda y precio de referencia (HU-57)", () => {
     ["-5", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
     ["abc", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
     ["-", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Number() los aceptaría, pero no son precios.
+    ["1e3", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["0x10", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Separador de miles y decimal a la vez: ambiguo.
+    ["2.850,50", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
     // Se guardaría 0.00: la columna es numeric(12,2).
     ["0.001", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
     // Se guardaría 10^10, que ya no entra.
@@ -243,6 +248,21 @@ describe("useCreateProductForm: tienda y precio de referencia (HU-57)", () => {
 
     expect(result.current.priceError).toBe(expectedError);
     expect(result.current.canSubmit).toBe(false);
+  });
+
+  // En Costa Rica el decimal se escribe con coma.
+  it("accepts a decimal comma and sends it as a number", async () => {
+    createPersonalProductMock.mockResolvedValue("product-1");
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange("2850,50"));
+    act(() => result.current.onPriceBlur());
+
+    expect(result.current.priceError).toBeUndefined();
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(createPersonalProductMock).toHaveBeenCalledWith(expect.objectContaining({ referencePrice: 2850.5 }));
   });
 
   it("accepts the highest price the column can hold", async () => {

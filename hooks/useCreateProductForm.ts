@@ -6,8 +6,9 @@ import {
   CREATE_PRODUCT_FORM_STATUS,
   CREATE_PRODUCT_FORM_TEXT,
   CREATE_PRODUCT_FORM_UNIT_OPTIONS,
-  REFERENCE_PRICE_CENTS_PER_UNIT,
-  REFERENCE_PRICE_LIMIT,
+  CENTS_PER_COLON,
+  REFERENCE_PRICE_LIMIT_CENTS,
+  REFERENCE_PRICE_PATTERN,
   REFERENCE_STORE_CHOICE,
   REFERENCE_STORE_NAME_MAX_LENGTH,
 } from "@/constants/create-product-form.constants";
@@ -79,19 +80,23 @@ const validateQuantity = (quantity: string): NullableUndefined<string> => {
     : undefined;
 };
 
+// HU-57: "2850,50" y "2850.50" son el mismo precio; null si no es un precio.
+const parsePrice = (price: string): NullableRef<number> => {
+  const trimmedPrice = price.trim();
+  return REFERENCE_PRICE_PATTERN.test(trimmedPrice) ? Number(trimmedPrice.replace(",", ".")) : null;
+};
+
 // HU-57: el precio es opcional; vacío no es un error, un número <= 0 sí.
-// Se compara en centavos, igual que lo guarda la columna numeric(12,2):
+// Se compara en céntimos, igual que lo guarda la columna numeric(12,2):
 // 0.001 se guardaría 0.00 y 9999999999.996 se guardaría 10^10, y la base
 // los rechazaría con el mensaje genérico en vez del error del campo.
 const validatePrice = (price: string): NullableUndefined<string> => {
   if (price.trim().length === 0) return undefined;
-  const parsedPrice = Number(price);
-  if (!Number.isFinite(parsedPrice)) return CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID;
-  const priceInCents = Math.round(parsedPrice * REFERENCE_PRICE_CENTS_PER_UNIT);
+  const parsedPrice = parsePrice(price);
+  if (parsedPrice === null) return CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID;
+  const priceInCents = Math.round(parsedPrice * CENTS_PER_COLON);
   if (priceInCents <= 0) return CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID;
-  return priceInCents >= REFERENCE_PRICE_LIMIT * REFERENCE_PRICE_CENTS_PER_UNIT
-    ? CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH
-    : undefined;
+  return priceInCents >= REFERENCE_PRICE_LIMIT_CENTS ? CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH : undefined;
 };
 
 // HU-57: el nombre de la tienda solo se exige si se eligió "Otra tienda".
@@ -287,7 +292,8 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
         brandName: brandName.trim() || undefined,
         categoryId,
         name: name.trim(),
-        referencePrice: price.trim().length > 0 ? Number(price) : undefined,
+        // Ya validado: si hay texto, es un precio ("2850,50" llega como 2850.5).
+        referencePrice: parsePrice(price) ?? undefined,
         referenceStoreName: storeChoice === REFERENCE_STORE_CHOICE.CUSTOM ? storeName.trim() : undefined,
         referenceStoreSlug: isSupermarketChoice(storeChoice) ? storeChoice : undefined,
         shareWithHousehold,
