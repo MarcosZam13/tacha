@@ -121,5 +121,5 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 - [X] 16.1 `docs/documento-proyecto.md` §4.5.1 y §6 corregidos
 - [X] 16.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
-- [ ] 16.3 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
+- [X] 16.3 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
 - [ ] 16.4 Descripción del PR y paso a `waiting qa`
