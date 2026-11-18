@@ -7,6 +7,7 @@ import { getCategories } from "@/services/catalog.service";
 import { deletePersonalProduct, getPersonalProductUsage, hasHousehold } from "@/services/personal-product.service";
 import type { MyProduct } from "../models/my-products.interfaces";
 import { listMyProducts } from "../services/my-products.service";
+import { MY_PRODUCT_DELETE_TEXT } from "../constants/my-products.constants";
 import { MyProducts } from "../MyProducts";
 import { createMyProductsPage } from "./MyProducts.page";
 
@@ -136,7 +137,8 @@ describe("MyProducts", () => {
 
   // HU-58 CA-02: eliminar pide confirmación y avisa dónde se usa; al confirmar, refresca el listado.
   it("asks before deleting, warns where the product is used and reloads after deleting", async () => {
-    listMyProductsMock.mockResolvedValue([MANUAL_PRODUCT]);
+    // Primera carga con el producto; la recarga después de eliminar ya no lo trae.
+    listMyProductsMock.mockResolvedValueOnce([MANUAL_PRODUCT]).mockResolvedValueOnce([]);
     getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 1, recipeCount: 0 });
     deletePersonalProductMock.mockResolvedValue("archived");
     render(<MyProducts />);
@@ -144,7 +146,9 @@ describe("MyProducts", () => {
     await waitFor(() => expect(page.getDeleteButton("Leche")).toBeInTheDocument());
 
     await page.clickDelete("Leche");
-    expect(await page.findDeleteDialog()).toBeInTheDocument();
+    const dialog = await page.findDeleteDialog();
+    expect(page.getTextInDialog(dialog, "Leche")).toBeInTheDocument();
+    expect(page.getTextInDialog(dialog, MY_PRODUCT_DELETE_TEXT.IRREVERSIBLE_NOTICE)).toBeInTheDocument();
     expect(await page.findUsageNotice()).toHaveTextContent("1 lista activa");
     expect(deletePersonalProductMock).not.toHaveBeenCalled();
 
@@ -152,5 +156,6 @@ describe("MyProducts", () => {
 
     expect(deletePersonalProductMock).toHaveBeenCalledWith("product-1");
     await waitFor(() => expect(listMyProductsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(page.queryCards()).toHaveLength(0));
   });
 });

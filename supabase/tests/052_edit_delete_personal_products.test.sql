@@ -36,6 +36,14 @@
 --      ingrediente sigue intacto.
 --  12. Eliminar un producto que solo usa una lista completada: 'archived'
 --      (el historial de compras no se pierde).
+--  13. Eliminar un producto que solo usa un snapshot de faltante (037):
+--      'archived' y el snapshot sigue (su FK es on delete cascade: borrarlo
+--      se lo llevaría sin error).
+--  14. anon y authenticated no tienen INSERT, UPDATE ni DELETE directo sobre
+--      product_catalog, product_catalog_variants ni product_brands (020): las
+--      funciones son la única puerta.
+--  15. El uso de un producto compartido cuenta también las recetas de otros
+--      miembros (por eso get_personal_product_usage es security definer).
 -- ============================================================================
 
 begin;
@@ -106,6 +114,23 @@ begin
     'can_manage_personal_product es interna: authenticated no la ejecuta';
 end $$;
 
+-- 14. Sin escritura directa sobre las tablas del catálogo.
+do $$
+declare
+  table_name text;
+  role_name text;
+  privilege_name text;
+begin
+  foreach table_name in array array['product_catalog', 'product_catalog_variants', 'product_brands'] loop
+    foreach role_name in array array['anon', 'authenticated'] loop
+      foreach privilege_name in array array['INSERT', 'UPDATE', 'DELETE'] loop
+        assert not has_table_privilege(role_name, 'public.' || table_name, privilege_name),
+          role_name || ' no debe tener ' || privilege_name || ' sobre ' || table_name;
+      end loop;
+    end loop;
+  end loop;
+end $$;
+
 set local role authenticated;
 
 -- ----------------------------------------------------------------------------
@@ -134,6 +159,9 @@ begin
   perform set_config('tacha_test.in_closed_list_id', public.create_personal_product(
     'Pan casero', current_setting('tacha_test.lacteos_id')::uuid, 'unidad', 1, null, false
   )::text, true);
+  perform set_config('tacha_test.in_snapshot_id', public.create_personal_product(
+    'Crema casera', current_setting('tacha_test.lacteos_id')::uuid, 'ml', 200, null, false
+  )::text, true);
 end $$;
 
 -- Listas y recetas que usan esos productos (rol dueño: datos de prueba directos).
@@ -145,6 +173,7 @@ declare
   closed_list_id uuid := gen_random_uuid();
   recipe_id uuid := gen_random_uuid();
   user_e uuid := current_setting('tacha_test.user_e')::uuid;
+  snapshot_item_id uuid;
 begin
   insert into public.lists (id, owner_id, household_id, type, status)
   values
@@ -168,6 +197,22 @@ begin
   values
     (recipe_id, current_setting('tacha_test.in_recipe_id')::uuid, 2, 'unidad', 0),
     (recipe_id, current_setting('tacha_test.in_list_id')::uuid, 5, 'unidad', 1);
+
+  -- 13. Un ítem de otro producto (la Leche global) cuyo snapshot de faltante
+  -- recuerda la variante de "Crema casera": solo el snapshot la usa.
+  insert into public.list_items (list_id, product_catalog_variant_id, quantity_requested)
+  select active_list_id, pcv.id, 1
+  from public.product_catalog_variants pcv
+  where pcv.product_catalog_id = current_setting('tacha_test.global_leche_id')::uuid
+  limit 1
+  returning id into snapshot_item_id;
+
+  insert into public.list_item_shortfall_snapshots (list_item_id, previous_variant_id, previous_quantity_requested)
+  select snapshot_item_id, pcv.id, 1
+  from public.product_catalog_variants pcv
+  where pcv.product_catalog_id = current_setting('tacha_test.in_snapshot_id')::uuid;
+
+  perform set_config('tacha_test.snapshot_item_id', snapshot_item_id::text, true);
 end $$;
 
 set local role authenticated;
@@ -436,6 +481,35 @@ begin
   end;
 end $$;
 
+-- 15. M usa el producto compartido en su receta; F (que no ve esa receta por
+-- la RLS de recipes) igual la cuenta en el aviso.
+reset role;
+
+insert into public.recipes (id, owner_id, name, base_servings)
+values (gen_random_uuid(), current_setting('tacha_test.user_m')::uuid, 'Salsa SCRUM-89', 2);
+
+insert into public.recipe_ingredients (recipe_id, product_catalog_id, quantity_value, quantity_unit, position)
+select r.id, current_setting('tacha_test.shared_id')::uuid, 100, 'ml', 0
+from public.recipes r
+where r.name = 'Salsa SCRUM-89' and r.owner_id = current_setting('tacha_test.user_m')::uuid;
+
+set local role authenticated;
+
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', current_setting('tacha_test.user_f'), 'role', 'authenticated')::text,
+  true
+);
+
+do $$
+declare
+  usage_row record;
+begin
+  select * into usage_row from public.get_personal_product_usage(current_setting('tacha_test.shared_id')::uuid);
+  assert usage_row.recipe_count = 1,
+    'el uso del producto compartido debe contar la receta de M, salió ' || usage_row.recipe_count;
+end $$;
+
 -- ----------------------------------------------------------------------------
 -- Desde acá, otra vez sesión de E.
 -- ----------------------------------------------------------------------------
@@ -535,6 +609,25 @@ do $$
 begin
   assert public.delete_personal_product(current_setting('tacha_test.in_closed_list_id')::uuid) = 'archived',
     'un producto de una lista completada debe archivarse';
+end $$;
+
+-- ----------------------------------------------------------------------------
+-- 13. Solo en un snapshot de faltante: se archiva y el snapshot sigue.
+-- ----------------------------------------------------------------------------
+do $$
+begin
+  assert public.delete_personal_product(current_setting('tacha_test.in_snapshot_id')::uuid) = 'archived',
+    'un producto que solo recuerda un snapshot de faltante debe archivarse';
+end $$;
+
+reset role;
+
+do $$
+begin
+  assert exists (
+    select 1 from public.list_item_shortfall_snapshots
+    where list_item_id = current_setting('tacha_test.snapshot_item_id')::uuid
+  ), 'el snapshot de faltante debe seguir';
 end $$;
 
 rollback;

@@ -71,15 +71,43 @@ describe("useMyProductDeletion", () => {
     expect(onDeleted).not.toHaveBeenCalled();
   });
 
-  it("still opens without a notice when the usage cannot be counted", async () => {
+  // SPEC §7: si eliminar falla, "Eliminar" reintenta con el mismo producto.
+  it("retries with the same product after a failed delete", async () => {
+    deletePersonalProductMock
+      .mockRejectedValueOnce({ code: "500", message: "boom" })
+      .mockResolvedValueOnce(PERSONAL_PRODUCT_DELETE_RESULT.DELETED);
+    const onDeleted = vi.fn();
+    const { result } = renderHook(() => useMyProductDeletion({ onDeleted }));
+    act(() => result.current.onDeleteRequest(PRODUCT));
+    await act(async () => result.current.onDeleteConfirm());
+
+    await act(async () => result.current.onDeleteConfirm());
+
+    expect(deletePersonalProductMock).toHaveBeenCalledTimes(2);
+    expect(deletePersonalProductMock).toHaveBeenLastCalledWith("product-7");
+    expect(onDeleted).toHaveBeenCalledTimes(1);
+    expect(result.current.isDialogOpen).toBe(false);
+  });
+
+  // SPEC §7: sin conteo no hay aviso, pero eliminar sigue funcionando.
+  it("still opens without a notice and deletes when the usage cannot be counted", async () => {
     getPersonalProductUsageMock.mockRejectedValue(new Error("network"));
-    const { result } = renderHook(() => useMyProductDeletion({ onDeleted: vi.fn() }));
+    deletePersonalProductMock.mockResolvedValue(PERSONAL_PRODUCT_DELETE_RESULT.DELETED);
+    const onDeleted = vi.fn();
+    const { result } = renderHook(() => useMyProductDeletion({ onDeleted }));
 
     act(() => result.current.onDeleteRequest(PRODUCT));
-
     await waitFor(() => expect(getPersonalProductUsageMock).toHaveBeenCalled());
+    // Deja que se procese el rechazo del conteo antes de mirar el aviso.
+    await act(async () => {});
+
     expect(result.current.isDialogOpen).toBe(true);
     expect(result.current.usageNotice).toBeNull();
+
+    await act(async () => result.current.onDeleteConfirm());
+
+    expect(deletePersonalProductMock).toHaveBeenCalledWith("product-7");
+    expect(onDeleted).toHaveBeenCalledTimes(1);
   });
 
   it("closes on cancel without deleting", () => {

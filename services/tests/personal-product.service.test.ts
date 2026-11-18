@@ -245,7 +245,9 @@ describe("updatePersonalProduct / deletePersonalProduct / getPersonalProductUsag
   it("fails instead of reporting zero uses when the RPC returns no row", async () => {
     rpcMock.mockResolvedValue({ data: [], error: null });
 
-    await expect(getPersonalProductUsage("product-7")).rejects.toThrow();
+    await expect(getPersonalProductUsage("product-7")).rejects.toThrow(
+      "get_personal_product_usage no devolvió ninguna fila",
+    );
   });
 
   it("maps the usage row to camelCase", async () => {

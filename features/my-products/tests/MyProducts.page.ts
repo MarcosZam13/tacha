@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CATALOG_TAB, CATALOG_TAB_LABEL, CATALOG_TABS_TEXT } from "@/constants";
 import { CREATE_PRODUCT_FORM_TEXT } from "@/constants/create-product-form.constants";
@@ -44,6 +44,7 @@ export const createMyProductsPage = () => {
   const findDeleteDialog = (): Promise<HTMLElement> =>
     screen.findByRole("dialog", { name: MY_PRODUCT_DELETE_TEXT.DIALOG_TITLE });
   const findUsageNotice = (): Promise<HTMLElement> => screen.findByRole("status");
+  const getTextInDialog = (dialog: HTMLElement, text: string): HTMLElement => within(dialog).getByText(text);
   const clickEdit = async (productName: string): Promise<void> => {
     await user.click(getEditButton(productName));
   };
@@ -71,6 +72,7 @@ export const createMyProductsPage = () => {
     getMyProductsTab,
     getSearchTab,
     getSpinner,
+    getTextInDialog,
     getTitle,
     queryCards,
     queryEmptyState,

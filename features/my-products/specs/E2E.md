@@ -25,16 +25,16 @@ El navegador prueba los recorridos completos.
 
 - **Cubre:** HU-58 CA-01; SPEC §13 casos 10 y 11.
 - **Pasos:** crear un producto, tocar "Editar" en su tarjeta, cambiar el nombre y guardar.
-- **Resultado:** el formulario abrió precargado con el nombre anterior, y sin recargar la tarjeta muestra el nombre nuevo.
+- **Resultado:** el formulario abrió precargado con el nombre anterior, y sin recargar la tarjeta muestra el nombre nuevo. No queda ninguna tarjeta con el nombre anterior: se actualizó el mismo producto, no se creó otro.
 
 ### E2E-MISPROD-04: eliminar un producto sin uso
 
 - **Cubre:** HU-58 CA-01, CA-02; SPEC §13 caso 13.
 - **Pasos:** crear un producto, tocar "Eliminar" y confirmar.
-- **Resultado:** el diálogo no muestra aviso de uso y la tarjeta desaparece.
+- **Resultado:** la base responde 0 listas activas y 0 recetas, el diálogo no muestra aviso de uso y la tarjeta desaparece. La comprobación del aviso espera esa respuesta: antes de que llegue, "no hay aviso" sería cierto siempre.
 
 ### E2E-MISPROD-05: eliminar un producto que está en la lista
 
 - **Cubre:** HU-58 CA-02; SPEC §13 casos 12 y 13.
-- **Pasos:** crear un producto, abrir su detalle, agregarlo a la lista, volver a "Mis productos", tocar "Eliminar" y confirmar.
-- **Resultado:** el diálogo avisa "Está en 1 lista activa" y, al confirmar, la tarjeta desaparece. El producto quedó archivado, no borrado (eso lo prueba el test SQL; el navegador ve que deja de aparecer).
+- **Pasos:** crear un producto, abrir su detalle, agregarlo a la lista, volver a "Mis productos", tocar "Eliminar", confirmar y abrir la lista general.
+- **Resultado:** el diálogo avisa "Está en 1 lista activa" y, al confirmar, la tarjeta desaparece. El producto quedó archivado, no borrado: la lista general lo sigue mostrando.

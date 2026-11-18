@@ -121,11 +121,11 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 
 - [X] 21.1 Unitarios: servicio, hook del formulario (edición), `useMyProductDeletion`, `toUsageNoticeText`, tarjeta, pantalla
 - [X] 21.2 `specs/E2E.md` y `e2e/features/my-products/my-products.spec.ts`
-- [ ] 21.3 Correr los E2E con 052 aplicada
+- [X] 21.3 Correr los E2E con 052 y 053 aplicadas
 
 ## 22. Cierre
 
 - [X] 22.1 `docs/documento-proyecto.md` §6
-- [ ] 22.2 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
+- [X] 22.2 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
 - [ ] 22.3 Cuando se mergee SCRUM-88: editar tienda y precio (la PR que entre segunda los cablea)
 - [ ] 22.4 Descripción del PR y paso a `waiting qa`

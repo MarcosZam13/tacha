@@ -105,7 +105,7 @@ No incluye:
 - Un producto personalizado tiene una sola variante. Editar el tamaño actualiza esa variante, así que las listas que lo tienen ven el tamaño nuevo.
 - Eliminar siempre pide confirmación. El aviso de CA-02 cuenta:
   - **listas activas**: `lists.status = 'active'`, con algún ítem del producto;
-  - **recetas**: cualquiera que lo tenga de ingrediente.
+  - **recetas**: cualquiera que lo tenga de ingrediente. Hoy la app no deja agregar un producto personal a una receta (el selector de ingredientes usa `search_catalog`), así que esta parte del aviso solo se ve si el producto entró a una receta por otra vía. La base la cuenta igual y la cubre la prueba SQL de 052.
 - Eliminar borra o archiva según su uso:
   - **Se archiva** (`archived_at`) si existe cualquier ítem de lista (también en listas completadas o canceladas: guardan el historial de compras), ingrediente de receta o snapshot de faltante.
   - **Se borra** si no existe nada de eso.
