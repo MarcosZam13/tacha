@@ -23,8 +23,10 @@ const createProduct = async (page: Page, productName: string): Promise<void> => 
   await expect(dialog).toBeHidden();
 };
 
+// La tarjeta se encuentra por su título (h2). El enlace que la envuelve no
+// tiene nombre accesible propio: el contenido es un <article>.
 const getProductCard = (page: Page, productName: string) =>
-  page.getByRole("link", { name: new RegExp(productName) });
+  page.getByRole("heading", { level: 2, name: new RegExp(productName) });
 
 const getActionButton = (page: Page, action: string, productName: string) =>
   page.getByRole("button", { name: `${action} ${productName}` });

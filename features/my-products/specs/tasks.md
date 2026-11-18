@@ -96,8 +96,8 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 - [X] 17.2 `supabase/migrations/052_edit_delete_personal_products.sql` (052: 051 la tiene SCRUM-88, PR #110)
 - [X] 17.3 `supabase/tests/052_edit_delete_personal_products.test.sql`
 - [X] 17.4 Avisar al grupo y aplicar 052 en la base compartida (`supabase/README.md#migraciones`)
-- [ ] 17.6 `supabase/migrations/053_fix_personal_product_variant_name.sql`: la prueba SQL mostró que editar dejaba "500.00 g" en el nombre de la variante; avisar al grupo y aplicarla
-- [ ] 17.7 Correr la prueba SQL con 052 y 053 aplicadas
+- [X] 17.6 `supabase/migrations/053_fix_personal_product_variant_name.sql`: la prueba SQL mostró que editar dejaba "500.00 g" en el nombre de la variante; avisar al grupo y aplicarla
+- [X] 17.7 Correr la prueba SQL con 052 y 053 aplicadas
 - [X] 17.5 `types/database.types.ts`
 
 ## 18. Editar
