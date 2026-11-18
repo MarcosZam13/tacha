@@ -28,6 +28,7 @@ const createProps = (overrides: Partial<CreateProductFormProps> = {}): CreatePro
   onCategoryChange: vi.fn(),
   onNameChange: vi.fn(),
   onOpen: vi.fn(),
+  onOpenEdit: vi.fn(),
   onQuantityChange: vi.fn(),
   onShareWithHouseholdChange: vi.fn(),
   onSubmit: vi.fn(),
@@ -35,6 +36,7 @@ const createProps = (overrides: Partial<CreateProductFormProps> = {}): CreatePro
   quantityError: undefined,
   shareWithHousehold: false,
   showShareCheckbox: false,
+  title: CREATE_PRODUCT_FORM_TEXT.TITLE,
   ...overrides,
 });
 
@@ -157,6 +159,14 @@ describe("CreateProductForm", () => {
     await page.cancel();
 
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  // HU-58 (SCRUM-89): el mismo formulario en modo edición cambia su título.
+  it("uses the title it receives (edit mode)", () => {
+    render(<CreateProductForm {...createProps({ title: CREATE_PRODUCT_FORM_TEXT.EDIT_TITLE })} />);
+    const page = createCreateProductFormPage();
+
+    expect(page.getDialogByTitle(CREATE_PRODUCT_FORM_TEXT.EDIT_TITLE)).toBeInTheDocument();
   });
 
   it("notifies typing in the name field", async () => {
