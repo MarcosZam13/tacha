@@ -193,3 +193,49 @@ Verificado contra la base real (`ifvwumejbfpowxlkjfiu`), no supuesto.
 - Pendiente (no bloqueante para escribir la spec, sí para escribir código): número
   de migración a coordinar con el equipo (próximo libre verificado: 031) y aviso al
   grupo por tocar una tabla que SCRUM-86 ya construyó encima.
+
+---
+
+# HU-58 (SCRUM-89): editar o eliminar
+
+## Archivos
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/052_edit_delete_personal_products.sql` | `product_catalog.archived_at`; `can_manage_personal_product` (interna), `get_personal_product_usage`, `update_personal_product`, `delete_personal_product` |
+| `supabase/tests/052_edit_delete_personal_products.test.sql` | Prueba de la migración (transacción + rollback) |
+| `types/database.types.ts` | `archived_at` y las 3 funciones, editados a mano solo para 052 |
+| `types/personal-product.types.ts` | `EditablePersonalProduct`: lo comparten la feature y el hook del formulario |
+| `constants/create-product-form.constants.ts` | Nombres de las RPC, `PERSONAL_PRODUCT_DELETE_RESULT`, título "Editar producto" |
+| `services/personal-product.service.ts` | `updatePersonalProduct`, `deletePersonalProduct`, `getPersonalProductUsage` |
+| `hooks/useCreateProductForm.ts`, `components/create-product-form/CreateProductForm.tsx` | Modo edición: `onOpenEdit`, `title`; sin "Compartir" al editar |
+| `components/catalog-card/*` | Prop `actions`, dibujada fuera del link |
+| `features/my-products/services/my-products.service.ts` | Trae categoría y marca (`editable`), filtra archivados |
+| `features/my-products/hooks/useMyProductsViewModel.ts` | `items` (tarjeta + producto) y `deletion` |
+| `features/my-products/hooks/useMyProductDeletion.ts` | Estado del diálogo de eliminar (mismo patrón que `useRecipeDeletion`) |
+| `features/my-products/utils/toUsageNoticeText.ts` | Texto del aviso de CA-02 |
+| `features/my-products/components/MyProductCardActions.tsx`, `MyProductDeleteDialog.tsx` | Botones de la tarjeta y diálogo |
+
+## Flujo
+
+1. **Editar:**
+   - "Editar" en una tarjeta llama a `createProductForm.onOpenEdit(product)`, que precarga los campos y abre el formulario.
+   - Las categorías se cargan igual que al crear.
+   - Al guardar se llama a `updatePersonalProduct`, se cierra el formulario y se recarga el listado (`reload()`).
+2. **Eliminar:**
+   - "Eliminar" llama a `deletion.onDeleteRequest(product)`, que abre el diálogo y pide `getPersonalProductUsage`.
+   - Al confirmar se llama a `deletePersonalProduct`, que devuelve `'deleted'` o `'archived'`. Después se cierra el diálogo y se recarga el listado.
+
+## Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Borrar si nada lo usa, archivar (`archived_at`) si algo lo usa | Borrar siempre en cascada | Las FKs de `list_items` y `recipe_ingredients` no tienen `on delete`. Cascada se llevaba ítems de listas, con su historial de compras, e ingredientes de recetas, incluso de otros miembros |
+| Archivar también si solo lo usa una lista completada o cancelada | Contar solo listas activas | Una lista completada guarda el historial de compras (finanzas, HU-62). El aviso de CA-02 cuenta solo las activas, pero lo que se rompería es cualquiera |
+| Editan y eliminan el dueño o cualquier miembro, si está compartido | Solo quien lo creó | Un producto compartido no guarda creador (`owner_id` null desde 032). Es el mismo criterio que las listas del household |
+| Una función interna `can_manage_personal_product` | Repetir la regla en cada función | Una sola regla de permisos, sin grant al cliente: no se puede llamar desde afuera |
+| `get_personal_product_usage` como `security definer` que devuelve solo cantidades | Contar desde el cliente con consultas directas | Las recetas solo las ve su dueño (RLS). En un producto compartido, el cliente no vería las recetas de los demás miembros |
+| Parámetros con prefijo (`target_`, `new_`) | Los mismos nombres que en `create_personal_product` | En un `update ... set category_id = category_id`, plpgsql no distingue el parámetro de la columna (observación del `security-reviewer` en SCRUM-88) |
+| Reusar `CreateProductForm` y `useCreateProductForm` con un modo edición | Un formulario y un hook nuevos para editar | Mismos campos y mismas validaciones; dos copias se desincronizarían. El nombre del hook se mantiene para no tocar a `features/catalog`, su otro consumidor |
+| Editar no cambia "compartido" | Mostrar el checkbox también al editar | Dejar de compartir rompería las listas de los demás miembros; re-decidir ya estaba fuera de alcance (§14) |
+| Botones debajo de la tarjeta, por composición (`actions`) | Botones dentro de la tarjeta | La tarjeta entera es un link; un botón adentro es HTML inválido |

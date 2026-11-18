@@ -85,3 +85,45 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 - [X] 11.3 Subagente `code-reviewer` (siempre) y `security-reviewer` (toca auth/household/formularios — obligatorio según `AGENTS.md`) — hallazgos y resolución en `plan.md`/`SPEC.md` (migración 032) y en el historial del chat
 - [ ] 11.4 Comentario en Jira SCRUM-88 (HU-57) señalando dónde quedó el formulario, para cuando se agreguen los campos de tienda/precio
 - [ ] 11.5 Descripción del PR (incluyendo "How should this be manually tested?") y paso de label `in progress` → `waiting qa`
+
+---
+
+# SCRUM-89 (HU-58): editar o eliminar
+
+## 17. Spec y datos
+
+- [X] 17.1 Secciones HU-58 en `SPEC.md` y `plan.md`
+- [X] 17.2 `supabase/migrations/052_edit_delete_personal_products.sql` (052: 051 la tiene SCRUM-88, PR #110)
+- [X] 17.3 `supabase/tests/052_edit_delete_personal_products.test.sql`
+- [ ] 17.4 Avisar al grupo y aplicar 052 en la base compartida (`supabase/README.md#migraciones`); correr la prueba SQL
+- [X] 17.5 `types/database.types.ts`
+
+## 18. Editar
+
+- [X] 18.1 `updatePersonalProduct` en el servicio
+- [X] 18.2 Modo edición en `useCreateProductForm` y `CreateProductForm`
+- [X] 18.3 `listMyProducts()` trae categoría y marca
+
+## 19. Eliminar
+
+- [X] 19.1 `deletePersonalProduct` y `getPersonalProductUsage` en el servicio
+- [X] 19.2 `useMyProductDeletion`, `toUsageNoticeText`, `MyProductDeleteDialog`
+- [X] 19.3 `listMyProducts()` no lista archivados
+
+## 20. Pantalla
+
+- [X] 20.1 `CatalogCard` con `actions` fuera del link
+- [X] 20.2 `MyProductCardActions` y conexión en `MyProducts.tsx`
+
+## 21. Tests
+
+- [X] 21.1 Unitarios: servicio, hook del formulario (edición), `useMyProductDeletion`, `toUsageNoticeText`, tarjeta, pantalla
+- [X] 21.2 `specs/E2E.md` y `e2e/features/my-products/my-products.spec.ts`
+- [ ] 21.3 Correr los E2E con 052 aplicada
+
+## 22. Cierre
+
+- [X] 22.1 `docs/documento-proyecto.md` §6
+- [ ] 22.2 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
+- [ ] 22.3 Cuando se mergee SCRUM-88: editar tienda y precio (la PR que entre segunda los cablea)
+- [ ] 22.4 Descripción del PR y paso a `waiting qa`
