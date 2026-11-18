@@ -8,6 +8,9 @@ export const createCatalogCardPage = () => {
   const getTitle = (title: string) => screen.getByRole("heading", { name: title });
   const queryBadge = (label: string) => screen.queryByText(label);
   const getImage = (title: string) => screen.getByRole("img", { name: title });
+  // HU-58: la tarjeta es un link; las acciones van aparte.
+  const getLink = () => screen.getByRole("link");
+  const getActionButton = (name: string) => screen.getByRole("button", { name });
 
-  return { getImage, getTitle, queryBadge };
+  return { getActionButton, getImage, getLink, getTitle, queryBadge };
 };
