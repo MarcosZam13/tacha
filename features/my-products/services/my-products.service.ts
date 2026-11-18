@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import type { CatalogBaseUnitType } from "@/constants";
-import { CATALOG_BASE_UNIT, CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
+import { CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
 import { getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { MY_PRODUCTS_DB } from "../constants/my-products.constants";
@@ -30,36 +30,6 @@ const getHouseholdIdOf = async (session: Session): Promise<NullableRef<string>> 
 };
 
 // Fila de product_catalog con sus variantes embebidas (MY_PRODUCTS_DB.SELECT), ya adaptada.
-// HU-58: un producto personalizado tiene una sola variante (la crea
-// create_personal_product); de ella salen el tamaño y la marca para editar.
-const toMyProduct = (productRow: {
-  category_id: NullableRef<string>;
-  id: string;
-  name: string;
-  product_catalog_variants: {
-    id: string;
-    base_unit: string;
-    base_quantity: number;
-    image_url: NullableRef<string>;
-    product_brands: { name: string }[];
-  }[];
-}): MyProduct => {
-  const [firstVariant] = productRow.product_catalog_variants;
-
-  return {
-    ...toCatalogProduct(productRow),
-    editable: {
-      baseQuantity: firstVariant?.base_quantity ?? 0,
-      // base_unit es text en la base; el check de la migración garantiza que es uno de los valores de CATALOG_BASE_UNIT.
-      baseUnit: (firstVariant?.base_unit ?? CATALOG_BASE_UNIT.UNIT) as CatalogBaseUnitType,
-      brandName: firstVariant?.product_brands[0]?.name ?? null,
-      categoryId: productRow.category_id ?? "",
-      name: productRow.name,
-      productId: productRow.id,
-    },
-  };
-};
-
 const toCatalogProduct = (productRow: {
   id: string;
   name: string;
@@ -89,6 +59,39 @@ const toCatalogProduct = (productRow: {
   })),
 });
 
+// HU-58 (SCRUM-89): además, los datos para abrir el formulario de edición.
+// Un producto personalizado tiene una sola variante (create_personal_product
+// crea las dos filas en la misma transacción): de ella salen el tamaño y la
+// marca. Si faltara, no se inventan datos: el producto no se lista (null).
+const toMyProduct = (productRow: {
+  category_id: NullableRef<string>;
+  id: string;
+  name: string;
+  product_catalog_variants: {
+    id: string;
+    base_unit: string;
+    base_quantity: number;
+    image_url: NullableRef<string>;
+    product_brands: { name: string }[];
+  }[];
+}): NullableRef<MyProduct> => {
+  const [firstVariant] = productRow.product_catalog_variants;
+  if (!firstVariant || productRow.category_id === null) return null;
+
+  return {
+    ...toCatalogProduct(productRow),
+    editable: {
+      baseQuantity: firstVariant.base_quantity,
+      // base_unit es text en la base; el check de la migración garantiza que es uno de los valores de CATALOG_BASE_UNIT.
+      baseUnit: firstVariant.base_unit as CatalogBaseUnitType,
+      brandName: firstVariant.product_brands[0]?.name ?? null,
+      categoryId: productRow.category_id,
+      name: productRow.name,
+      productId: productRow.id,
+    },
+  };
+};
+
 /** Productos `source = 'manual'` donde `column = value` (household_id u owner_id). */
 const queryManualProductsBy = async (
   column: typeof MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID | typeof MY_PRODUCTS_DB.COLUMN.OWNER_ID,
@@ -104,7 +107,7 @@ const queryManualProductsBy = async (
     .order(MY_PRODUCTS_DB.COLUMN.NAME);
   if (error) throw error;
 
-  return productRows.map(toMyProduct);
+  return productRows.map(toMyProduct).filter((product): product is MyProduct => product !== null);
 };
 
 /**

@@ -7,7 +7,7 @@ const toCountText = (count: number, singular: string, plural: string): string =>
 
 /**
  * Aviso de HU-58 CA-02 para el diálogo de eliminar: dónde se usa el producto.
- * "Está en 2 listas activas y 1 receta. Esas listas y recetas lo siguen teniendo."
+ * "Está en 2 listas activas y 1 receta; ahí lo vas a seguir viendo."
  * null si no se usa en ninguna (sin aviso) o si todavía no se sabe (usage null).
  */
 export const toUsageNoticeText = (usage: NullableRef<PersonalProductUsage>): NullableRef<string> => {

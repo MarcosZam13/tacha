@@ -61,15 +61,15 @@ export const MY_PRODUCT_DELETE_TEXT = {
   DIALOG_TITLE: "¿Eliminar este producto?",
   ERROR: "No se pudo eliminar el producto. Intenta de nuevo.",
   IRREVERSIBLE_NOTICE: "Deja de aparecer en \"Mis productos\" y no se puede deshacer.",
-  // Aviso de CA-02: "Está en 2 listas activas y 1 receta. Esas listas y
-  // recetas lo siguen teniendo." Las piezas se arman en utils/toUsageNoticeText.ts.
+  // Aviso de CA-02: "Está en 2 listas activas y 1 receta; ahí lo vas a seguir
+  // viendo." Las piezas se arman en utils/toUsageNoticeText.ts.
   USAGE_AND: "y",
   USAGE_LIST_PLURAL: "listas activas",
   USAGE_LIST_SINGULAR: "lista activa",
   USAGE_PREFIX: "Está en",
   USAGE_RECIPE_PLURAL: "recetas",
   USAGE_RECIPE_SINGULAR: "receta",
-  USAGE_SUFFIX: ". Esas listas y recetas lo siguen teniendo.",
+  USAGE_SUFFIX: "; ahí lo vas a seguir viendo.",
 } as const;
 
 export const MY_PRODUCTS_TEXT = {

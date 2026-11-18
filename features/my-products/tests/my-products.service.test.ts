@@ -257,6 +257,24 @@ describe("listMyProducts", () => {
     });
   });
 
+  // HU-58: sin su variante no se inventan datos para el formulario: el producto no se lista.
+  it("skips a product without its variant instead of inventing its size", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: {
+          data: [{ category_id: "category-1", id: "product-1", name: "Huérfano", product_catalog_variants: [] }],
+          error: null,
+        },
+      });
+    });
+
+    await expect(listMyProducts()).resolves.toEqual([]);
+  });
+
   it("rethrows the Supabase error from the household_members query", async () => {
     mockSession();
     const supabaseError = { code: "500", message: "network error" };

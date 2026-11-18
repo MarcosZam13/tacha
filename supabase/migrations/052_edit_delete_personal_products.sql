@@ -152,8 +152,12 @@ security definer
 set search_path = ''
 as $$
 declare
+  -- numeric(12,2) de base_quantity: 10 dígitos enteros, 10^10 ya no entra.
+  -- Sin este tope, la base respondería un desborde crudo (22003).
+  base_quantity_limit constant numeric := 10000000000;
   trimmed_name text := trim(new_product_name);
   trimmed_brand_name text := trim(new_brand_name);
+  rounded_quantity numeric;
   target_variant_id uuid;
 begin
   if auth.uid() is null then
@@ -188,6 +192,15 @@ begin
       using errcode = '22023';
   end if;
 
+  if new_base_quantity >= base_quantity_limit then
+    raise exception 'La cantidad de tamaño es demasiado grande'
+      using errcode = '22023';
+  end if;
+
+  -- El nombre de la variante usa el mismo valor que guarda la columna
+  -- numeric(12,2), no el que llegó (1.234 se guarda 1.23).
+  rounded_quantity := round(new_base_quantity, 2);
+
   if trimmed_brand_name = '' then
     trimmed_brand_name := null;
   end if;
@@ -198,11 +211,18 @@ begin
   where id = target_product_id;
 
   update public.product_catalog_variants
-  set name = trimmed_name || ' — ' || new_base_quantity::text || ' ' || new_base_unit,
+  set name = trimmed_name || ' — ' || rounded_quantity::text || ' ' || new_base_unit,
       base_unit = new_base_unit,
-      base_quantity = new_base_quantity
+      base_quantity = rounded_quantity
   where product_catalog_id = target_product_id
   returning id into target_variant_id;
+
+  -- create_personal_product siempre crea la variante; si faltara, es un error
+  -- de datos y no se sigue con la marca (falla toda la transacción).
+  if target_variant_id is null then
+    raise exception 'El producto no tiene variante de tamaño'
+      using errcode = 'P0002';
+  end if;
 
   delete from public.product_brands
   where product_catalog_variant_id = target_variant_id;

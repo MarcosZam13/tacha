@@ -123,8 +123,9 @@ export const getPersonalProductUsage = async (productId: string): Promise<Person
   );
   if (error) throw error;
 
-  // La función devuelve siempre una sola fila.
+  // La función devuelve siempre una sola fila; sin ella, es un error de contrato, no "0 usos".
   const [usageRow] = usageRows;
+  if (!usageRow) throw new Error("get_personal_product_usage no devolvió ninguna fila");
   return { activeListCount: usageRow.active_list_count, recipeCount: usageRow.recipe_count };
 };
 

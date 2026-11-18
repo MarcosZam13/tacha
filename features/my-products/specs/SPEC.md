@@ -110,6 +110,8 @@ No incluye:
   - **Se archiva** (`archived_at`) si existe cualquier ítem de lista (también en listas completadas o canceladas: guardan el historial de compras), ingrediente de receta o snapshot de faltante.
   - **Se borra** si no existe nada de eso.
 - Un producto archivado no se lista en "Mis productos" y no se puede editar ni eliminar otra vez.
+- "Buscar", sus chips de categoría y el selector de ingredientes de recetas nunca muestran productos personales, archivados o no. `search_catalog` y `list_catalog_by_category` filtran `owner_id is null and household_id is null` desde la migración 031. "Mis productos" es la única pantalla que los lista, y ahí se filtra `archived_at`.
+- Las listas y recetas que ya tienen un producto archivado lo siguen mostrando, y su detalle se sigue abriendo: es lo que significa archivar en vez de borrar.
 
 ## 6. Estados
 

@@ -20,7 +20,9 @@
 --   3. E edita su producto: nombre, categoría, tamaño, nombre de la
 --      variante y marca; sin marca nueva, la marca se borra.
 --   4. Validaciones de editar: nombre vacío, categoría inexistente, unidad
---      inválida, cantidad <= 0 o NaN: 22023 sin cambiar nada.
+--      inválida, cantidad <= 0, NaN o >= 10^10: 22023 sin cambiar nada; una
+--      cantidad con más de 2 decimales se guarda redondeada, también en el
+--      nombre de la variante.
 --   5. A no puede editar, eliminar ni consultar el uso del producto de E.
 --   6. Nadie puede editar ni eliminar un producto del catálogo global.
 --   7. Producto compartido: M (que no lo creó) lo edita; A no.
@@ -297,8 +299,29 @@ begin
       assert sqlerrm = 'La cantidad de tamaño tiene que ser mayor a 0', 'cantidad NaN: ' || sqlerrm;
   end;
 
+  begin
+    perform public.update_personal_product(target_id, 'Queso', lacteos, 'g', 10000000000);
+    assert false, 'cantidad 10^10 se pudo guardar';
+  exception
+    when invalid_parameter_value then
+      assert sqlerrm = 'La cantidad de tamaño es demasiado grande', 'cantidad grande: ' || sqlerrm;
+  end;
+
   assert (select name from public.product_catalog where id = target_id) = 'Queso Turrialba',
     'una edición inválida no debe cambiar nada';
+end $$;
+
+do $$
+declare
+  variant_row public.product_catalog_variants;
+  target_id uuid := current_setting('tacha_test.edit_id')::uuid;
+begin
+  perform public.update_personal_product(
+    target_id, 'Queso Turrialba', current_setting('tacha_test.other_category_id')::uuid, 'g', 1.234
+  );
+  select * into variant_row from public.product_catalog_variants where product_catalog_id = target_id;
+  assert variant_row.base_quantity = 1.23, 'la cantidad se guarda redondeada a 2 decimales';
+  assert variant_row.name = 'Queso Turrialba — 1.23 g', 'el nombre usa el valor guardado: ' || variant_row.name;
 end $$;
 
 -- ----------------------------------------------------------------------------

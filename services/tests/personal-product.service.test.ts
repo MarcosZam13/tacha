@@ -242,6 +242,12 @@ describe("updatePersonalProduct / deletePersonalProduct / getPersonalProductUsag
     });
   });
 
+  it("fails instead of reporting zero uses when the RPC returns no row", async () => {
+    rpcMock.mockResolvedValue({ data: [], error: null });
+
+    await expect(getPersonalProductUsage("product-7")).rejects.toThrow();
+  });
+
   it("maps the usage row to camelCase", async () => {
     rpcMock.mockResolvedValue({ data: [{ active_list_count: 2, recipe_count: 1 }], error: null });
 
