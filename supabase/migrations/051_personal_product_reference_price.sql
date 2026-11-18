@@ -116,8 +116,16 @@ begin
       using errcode = '22023';
   end if;
 
-  if base_quantity is null or base_quantity <= 0 then
+  -- 'NaN' > 0 es verdadero en Postgres y numeric lo admite: se excluye
+  -- aparte (hallazgo del security-reviewer de SCRUM-89 sobre 031/032).
+  if base_quantity is null or base_quantity <= 0 or base_quantity = 'NaN'::numeric then
     raise exception 'La cantidad de tamaño tiene que ser mayor a 0'
+      using errcode = '22023';
+  end if;
+
+  -- Mismo tope que el precio: la columna es numeric(12,2).
+  if base_quantity >= reference_price_limit then
+    raise exception 'La cantidad de tamaño es demasiado grande'
       using errcode = '22023';
   end if;
 

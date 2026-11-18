@@ -16,7 +16,8 @@
 -- Casos:
 --   1. La llamada de antes (6 parámetros, sin tienda ni precio) sigue
 --      funcionando y deja las tres columnas en null.
---   2. Precio <= 0, NaN o >= 10^10: 22023, sin insertar fila.
+--   2. Precio <= 0, NaN o >= 10^10, y cantidad NaN o >= 10^10: 22023, sin
+--      insertar fila.
 --   3. Supermercado y tienda escrita a la vez: 22023, sin insertar fila.
 --   4. Slug de supermercado inexistente: 22023, sin insertar fila.
 --   5. Tienda escrita de más de 80 caracteres: 22023, sin insertar fila.
@@ -199,6 +200,33 @@ begin
   exception
     when invalid_parameter_value then
       assert sqlerrm = 'El precio de referencia tiene que ser mayor a 0', 'precio NaN: ' || sqlerrm;
+  end;
+
+  -- Cantidad NaN: el mismo hueco que el precio, en base_quantity.
+  begin
+    perform public.create_personal_product(
+      product_name => 'Producto válido',
+      category_id => current_setting('tacha_test.lacteos_id')::uuid,
+      base_unit => 'unidad',
+      base_quantity => 'NaN'::numeric
+    );
+    assert false, 'cantidad NaN se pudo crear';
+  exception
+    when invalid_parameter_value then
+      assert sqlerrm = 'La cantidad de tamaño tiene que ser mayor a 0', 'cantidad NaN: ' || sqlerrm;
+  end;
+
+  begin
+    perform public.create_personal_product(
+      product_name => 'Producto válido',
+      category_id => current_setting('tacha_test.lacteos_id')::uuid,
+      base_unit => 'unidad',
+      base_quantity => 10000000000
+    );
+    assert false, 'cantidad 10^10 se pudo crear';
+  exception
+    when invalid_parameter_value then
+      assert sqlerrm = 'La cantidad de tamaño es demasiado grande', 'cantidad grande: ' || sqlerrm;
   end;
 
   -- 10^10 no cabe en numeric(12,2): error controlado, no un overflow (22003).
