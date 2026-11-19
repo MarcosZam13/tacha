@@ -566,6 +566,80 @@ export type Database = {
           },
         ]
       }
+      product_group_items: {
+        Row: {
+          group_id: string
+          id: string
+          position: number
+          product_catalog_variant_id: string
+          quantity: number
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          position: number
+          product_catalog_variant_id: string
+          quantity: number
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          position?: number
+          product_catalog_variant_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_group_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "product_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_group_items_product_catalog_variant_id_fkey"
+            columns: ["product_catalog_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_groups: {
+        Row: {
+          created_at: string
+          household_id: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_groups_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_mother_rules: {
         Row: {
           created_at: string
