@@ -24,8 +24,9 @@
 --      ancho de "Helado") sin ningún keyword → queda pending.
 --   4. Prefijo ancho con keyword: "Helado de Vainilla" bajo
 --      "/Alimentos Congelados/Helados/" sigue matcheando "Helado".
---   5. Regresión: "/Lácteos/Leche/Condensada/" (3 segmentos) sin
---      "condensada" en el nombre sigue matcheando "Leche condensada".
+--   5. "/Lácteos/Leche/Condensada/" (3 segmentos) sin ningún keyword en el
+--      nombre queda pending. Con 044 matcheaba "Leche condensada"; desde 045
+--      (SCRUM-132) toda regla exige keyword, con cualquier prefijo.
 --   6. El hardening de 020 (search_path, sin execute para anon/authenticated)
 --      sigue después del create or replace.
 --
@@ -221,19 +222,21 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
--- 5. Regresión: prefijo de 3 segmentos sigue sin exigir keyword.
+-- 5. Prefijo de 3 segmentos sin keyword: queda pending (regla de 045).
 -- ----------------------------------------------------------------------------
 do $$
 declare
+  v_staging_id uuid := current_setting('tacha_test.staging_condensada')::uuid;
   v_result record;
-  v_mother_name text;
+  v_status text;
 begin
-  select * into v_result from normalize_staging_row(current_setting('tacha_test.staging_condensada')::uuid);
-  assert v_result.success, 'Prefijo de 3 segmentos: se esperaba success=true, dio ' || coalesce(v_result.error_message, 'NULL');
+  select * into v_result from normalize_staging_row(v_staging_id);
+  assert v_result.success = false, 'Prefijo de 3 segmentos sin keyword: se esperaba success=false';
+  assert v_result.error_message like '%stays pending%',
+    'Prefijo de 3 segmentos sin keyword: mensaje inesperado: ' || coalesce(v_result.error_message, 'NULL');
 
-  select name into v_mother_name from product_catalog where id = v_result.product_catalog_id;
-  assert v_mother_name = 'Leche condensada',
-    'Prefijo de 3 segmentos: se esperaba madre "Leche condensada", dio ' || coalesce(v_mother_name, 'NULL');
+  select status into v_status from product_catalog_staging where id = v_staging_id;
+  assert v_status = 'pending', 'Prefijo de 3 segmentos sin keyword: se esperaba status=pending, dio ' || v_status;
 end $$;
 
 -- ----------------------------------------------------------------------------

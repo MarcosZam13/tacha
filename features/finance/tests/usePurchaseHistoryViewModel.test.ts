@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FINANCE_ACCESS_STATUS,
   FINANCE_TEXT,
+  PENDING_REMINDER_STATUS,
   SPENDING_PERIOD,
   SPENDING_STATUS,
   TOTAL_EDIT_STATUS,
@@ -17,6 +18,7 @@ import { TotalSaveError } from "../models/TotalMutations.interface";
 import {
   getPeriodFinance,
   getPeriodPurchases,
+  getPurchasesWithoutTotal,
   hasRegisteredSession,
   setPeriodTotal,
   setPurchaseTotal,
@@ -26,6 +28,7 @@ import {
 vi.mock("../services/finance.service", () => ({
   getPeriodFinance: vi.fn(),
   getPeriodPurchases: vi.fn(),
+  getPurchasesWithoutTotal: vi.fn(),
   hasRegisteredSession: vi.fn(),
   setPeriodTotal: vi.fn(),
   setPurchaseTotal: vi.fn(),
@@ -34,6 +37,7 @@ vi.mock("../services/finance.service", () => ({
 const sessionMock = vi.mocked(hasRegisteredSession);
 const purchasesMock = vi.mocked(getPeriodPurchases);
 const financeMock = vi.mocked(getPeriodFinance);
+const pendingMock = vi.mocked(getPurchasesWithoutTotal);
 const purchaseSaveMock = vi.mocked(setPurchaseTotal);
 const periodSaveMock = vi.mocked(setPeriodTotal);
 const timeZoneSaveMock = vi.mocked(setSpendingTimeZone);
@@ -64,6 +68,8 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   // Sin zona guardada: se lee como antes, con el navegador (SPEC regla 59).
   financeMock.mockResolvedValue({ timeZone: null });
+  // Sin compras sin total: el recordatorio y la sección no se ven (SCRUM-92).
+  pendingMock.mockResolvedValue([]);
   sessionMock.mockResolvedValue(true);
   purchasesMock.mockResolvedValue([buildPurchase()]);
 });
@@ -111,6 +117,8 @@ describe("usePurchaseHistoryViewModel: rows", () => {
     const { result } = await renderLoaded();
 
     expect(result.current.purchaseRows.map((row) => row.amountText)).toEqual([FINANCE_TEXT.WITHOUT_TOTAL, "₡0"]);
+    // El badge solo en la que no tiene total (SCRUM-92, CA-01); ₡0 es un total real.
+    expect(result.current.purchaseRows.map((row) => row.hasNoTotal)).toEqual([true, false]);
     expect(result.current.spending.closedCount).toBe(1);
     expect(result.current.spending.withoutTotalCount).toBe(1);
     expect(result.current.spending.totalText).toBe("₡0");
@@ -433,5 +441,186 @@ describe("usePurchaseHistoryViewModel: adjustment rows (SCRUM-91, D16)", () => {
 
     expect(result.current.listRows.every((listRow) => listRow.kind === "purchase")).toBe(true);
     expect(result.current.listRows).toHaveLength(result.current.purchaseRows.length);
+  });
+});
+
+describe("usePurchaseHistoryViewModel: purchases without a total (SCRUM-92)", () => {
+  const BROWSER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Miércoles 14 a las 10:00 (4 días: cuenta) y domingo 18 a las 13:00 (2 horas: no cuenta).
+  const OLD_PENDING = buildPurchase({ closedAt: new Date(2026, 9, 14, 10, 0).toISOString(), id: "old", storeName: "Walmart", totalAmount: null });
+  const RECENT_PENDING = buildPurchase({ closedAt: new Date(2026, 9, 18, 13, 0).toISOString(), id: "recent", totalAmount: null });
+  // Del mes pasado: no está en el periodo (D25).
+  const LAST_MONTH = buildPurchase({ closedAt: new Date(2026, 8, 20, 10, 0).toISOString(), id: "last-month", storeName: "Walmart", totalAmount: null });
+
+  const zonedWeek = (periodRows: PeriodPurchase[]): ZonedPeriodFinance => ({
+    adjustments: [],
+    bounds: { end: new Date(2026, 9, 19), start: new Date(2026, 9, 12) },
+    purchases: periodRows,
+    spending: {
+      adjustmentCount: 0,
+      closedCount: periodRows.filter((row) => row.totalAmount !== null).length,
+      total: periodRows.reduce((sum, row) => sum + (row.totalAmount ?? 0), 0),
+      withoutTotalCount: periodRows.filter((row) => row.totalAmount === null).length,
+    },
+    timeZone: BROWSER_TIME_ZONE,
+  });
+
+  it("lists every pending purchase of any date, with its badge and pencil (D25, rule 70)", async () => {
+    pendingMock.mockResolvedValue([RECENT_PENDING, OLD_PENDING, LAST_MONTH]);
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(3));
+    expect(result.current.pendingRows.map((row) => row.id)).toEqual(["recent", "old", "last-month"]);
+    expect(result.current.pendingRows.every((row) => row.hasNoTotal && row.editor === null)).toBe(true);
+    expect(result.current.pendingRows[2]?.edit.label).toBe("Editar total del domingo 20 de septiembre, Walmart");
+  });
+
+  it("reminds only about the ones of 24 hours or more, with a link to the section (D23, D26)", async () => {
+    pendingMock.mockResolvedValue([RECENT_PENDING, OLD_PENDING, LAST_MONTH]);
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.PENDING));
+    expect(result.current.pendingReminder).toMatchObject({
+      linkHref: "#compras-sin-total",
+      linkText: "Completarlas",
+      messageText: "Tienes 2 compras sin total desde hace más de 24 horas",
+    });
+  });
+
+  it("shows neither the reminder nor the section without pending purchases", async () => {
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.NONE));
+    expect(result.current.pendingRows).toEqual([]);
+  });
+
+  it("completes a purchase of a previous period from the section, without loading again (CA-03, rule 69)", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING, LAST_MONTH]);
+    purchaseSaveMock.mockResolvedValue({ closedAt: LAST_MONTH.closedAt, id: "last-month", totalAmount: 8000 });
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(2));
+    const weekTotal = result.current.spending.totalText;
+
+    act(() => result.current.pendingRows[1]?.edit.onClick());
+    act(() => result.current.pendingRows[1]?.editor?.onTextChange("8000"));
+    await act(async () => result.current.pendingRows[1]?.editor?.onSave());
+
+    await waitFor(() => expect(result.current.pendingRows.map((row) => row.id)).toEqual(["old"]));
+    expect(purchaseSaveMock).toHaveBeenCalledWith({ purchaseId: "last-month", total: 8000 });
+    expect(result.current.pendingReminder.messageText).toBe("Tienes 1 compra sin total desde hace más de 24 horas");
+    expect(result.current.spending.totalText).toBe(weekTotal);
+    expect(pendingMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the field only in the list where the pencil was tapped, also for a purchase in both (D21, rule 68)", async () => {
+    financeMock.mockResolvedValue(zonedWeek([buildPurchase(), OLD_PENDING]));
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+
+    expect(result.current.pendingRows[0]?.editor).not.toBeNull();
+    expect(result.current.purchaseRows.find((row) => row.id === "old")?.editor).toBeNull();
+  });
+
+  it("applies a completed purchase in both lists: the period total and counters, and the section (rule 69)", async () => {
+    financeMock.mockResolvedValue(zonedWeek([buildPurchase(), OLD_PENDING]));
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    purchaseSaveMock.mockResolvedValue({ closedAt: OLD_PENDING.closedAt, id: "old", totalAmount: 0 });
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+    act(() => result.current.pendingRows[0]?.editor?.onTextChange("0"));
+    await act(async () => result.current.pendingRows[0]?.editor?.onSave());
+
+    await waitFor(() => expect(result.current.pendingRows).toEqual([]));
+    expect(result.current.purchaseRows.find((row) => row.id === "old")).toMatchObject({ amountText: "₡0", hasNoTotal: false });
+    expect(result.current.spending.closedCount).toBe(2);
+    expect(result.current.spending.withoutTotalCount).toBe(0);
+    expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.NONE);
+  });
+
+  it("keeps the P0002 message next to the field and reads the pending purchases again on cancel", async () => {
+    pendingMock.mockResolvedValueOnce([LAST_MONTH]).mockResolvedValueOnce([]);
+    purchaseSaveMock.mockRejectedValue(new TotalSaveError(TOTAL_SAVE_ERROR.PURCHASE_UNAVAILABLE, { code: "P0002" }));
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+    act(() => result.current.pendingRows[0]?.editor?.onTextChange("8000"));
+    await act(async () => result.current.pendingRows[0]?.editor?.onSave());
+
+    await waitFor(() =>
+      expect(result.current.pendingRows[0]?.editor?.errorMessage).toBe(
+        TOTAL_SAVE_ERROR_MESSAGE[TOTAL_SAVE_ERROR.PURCHASE_UNAVAILABLE],
+      ),
+    );
+    expect(pendingMock).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.pendingRows[0]?.editor?.onCancel());
+
+    await waitFor(() => expect(pendingMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.pendingRows).toEqual([]));
+  });
+
+  it("validates a total written in the section without calling the database (D13, D14)", async () => {
+    pendingMock.mockResolvedValue([LAST_MONTH]);
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+    act(() => result.current.pendingRows[0]?.editor?.onTextChange("12.5"));
+    await act(async () => result.current.pendingRows[0]?.editor?.onSave());
+
+    await waitFor(() => expect(result.current.pendingRows[0]?.editor?.errorMessage).toBe(FINANCE_TEXT.TOTAL_INVALID));
+    expect(purchaseSaveMock).not.toHaveBeenCalled();
+  });
+
+  it("asks to confirm the time zone from the section too, and completes the purchase after it (rule 59)", async () => {
+    pendingMock.mockResolvedValue([LAST_MONTH]);
+    purchaseSaveMock
+      .mockRejectedValueOnce(new TotalSaveError(TOTAL_SAVE_ERROR.TIME_ZONE_MISSING, { code: "TZ001" }))
+      .mockResolvedValueOnce({ closedAt: LAST_MONTH.closedAt, id: "last-month", totalAmount: 8000 });
+    timeZoneSaveMock.mockResolvedValue({ timeZone: BROWSER_TIME_ZONE });
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+    act(() => result.current.pendingRows[0]?.editor?.onTextChange("8000"));
+    await act(async () => result.current.pendingRows[0]?.editor?.onSave());
+    await waitFor(() => expect(result.current.pendingRows[0]?.editor?.timeZoneToConfirm).toBe(BROWSER_TIME_ZONE));
+
+    act(() => result.current.pendingRows[0]?.editor?.onConfirmTimeZone());
+
+    await waitFor(() => expect(result.current.pendingRows).toEqual([]));
+    expect(timeZoneSaveMock).toHaveBeenCalledWith({ timeZone: BROWSER_TIME_ZONE });
+    expect(purchaseSaveMock).toHaveBeenCalledTimes(2);
+  });
+  it("does not read the pending purchases again on a normal cancel", async () => {
+    pendingMock.mockResolvedValue([LAST_MONTH]);
+    const { result } = await renderLoaded();
+    await waitFor(() => expect(result.current.pendingRows).toHaveLength(1));
+
+    act(() => result.current.pendingRows[0]?.edit.onClick());
+    act(() => result.current.pendingRows[0]?.editor?.onCancel());
+
+    expect(pendingMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the read error in the reminder, keeps the period total and retries (rule 67)", async () => {
+    pendingMock.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce([OLD_PENDING]);
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.FAILED));
+    expect(result.current.pendingReminder.errorMessage).toBe(FINANCE_TEXT.PENDING_REMINDER_LOAD_ERROR);
+    expect(result.current.spending.status).toBe(SPENDING_STATUS.READY);
+    expect(result.current.pendingRows).toEqual([]);
+
+    await act(async () => result.current.pendingReminder.onRetry());
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.PENDING));
+    expect(pendingMock).toHaveBeenCalledTimes(2);
   });
 });

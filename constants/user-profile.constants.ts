@@ -4,3 +4,7 @@ export const USER_METADATA_KEY = {
   AVATAR_URL: "avatar_url",
   NAME: "name",
 } as const;
+
+// Máximo de caracteres del nombre (user_metadata.name): lo comparten el perfil y el registro social.
+// Lo ven otros miembros del household, así que un nombre muy largo rompería su pantalla.
+export const USER_NAME_MAX_LENGTH = 60;

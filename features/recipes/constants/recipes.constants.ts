@@ -33,7 +33,9 @@ export const RECIPES_DB = {
     "id, name, base_servings, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
   RPC: {
     ADD_RECIPE_TO_GENERAL_LIST: "add_recipe_to_general_list",
-    GET_RECIPE_COVERAGE: "get_recipe_coverage",
+    // "Ver qué falta" con el faltante en vivo de la lista (037, SCRUM-115). La
+    // get_recipe_coverage de la 017 queda en la base solo hasta el merge.
+    GET_RECIPE_COVERAGE_TODAY: "get_recipe_coverage_today",
     SAVE_RECIPE: "save_recipe",
   },
   TABLE: {

@@ -6,24 +6,37 @@ import { useProductSearch } from "@/hooks/useProductSearch";
 import { changeListItemQuantity } from "@/services/list-items.service";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
-import { DATE_LIST_TEXT } from "../constants/date-lists.constants";
+import { DATE_LIST_STATUS, DATE_LIST_TEXT } from "../constants/date-lists.constants";
 import type { DateListDetail } from "../models/DateList.interface";
-import { addItemToDateList, getDateListDetail, removeDateListItem } from "../services/date-lists.service";
+import {
+  addItemToDateList,
+  getDateListDetail,
+  removeDateListItem,
+  setDateListCancelled,
+  setDateListItemChecked,
+} from "../services/date-lists.service";
 
 interface UseDateListDetailViewModelReturn {
   actionErrorMessage: NullableRef<string>;
   detail: NullableRef<DateListDetail>;
   hasNoSearchResults: boolean;
+  isCancelConfirmOpen: boolean;
+  isCancelled: boolean;
   isLoading: boolean;
   isNotFound: boolean;
   isSaving: boolean;
   isSearching: boolean;
   loadErrorMessage: NullableRef<string>;
+  onConfirmCancel: () => void;
   onDecreaseQuantity: (itemId: string) => void;
+  onDismissCancel: () => void;
   onIncreaseQuantity: (itemId: string) => void;
   onQueryChange: (query: string) => void;
+  onReactivate: () => void;
   onRemoveItem: (itemId: string) => void;
+  onRequestCancel: () => void;
   onSelectSearchOption: (variantId: string) => void;
+  onToggleItem: (itemId: string, isChecked: boolean) => void;
   query: string;
   searchErrorMessage: NullableRef<string>;
   searchOptions: ProductSearchOption[];
@@ -40,6 +53,7 @@ export const useDateListDetailViewModel = (listId: string): UseDateListDetailVie
   const [isSaving, setIsSaving] = useState(false);
   const [loadErrorMessage, setLoadErrorMessage] = useState<NullableRef<string>>(null);
   const [actionErrorMessage, setActionErrorMessage] = useState<NullableRef<string>>(null);
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
   const search = useProductSearch();
 
   useEffect(() => {
@@ -96,19 +110,30 @@ export const useDateListDetailViewModel = (listId: string): UseDateListDetailVie
     actionErrorMessage,
     detail,
     hasNoSearchResults: search.hasNoResults,
+    isCancelConfirmOpen,
+    isCancelled: detail?.status === DATE_LIST_STATUS.CANCELLED,
     isLoading,
     isNotFound: !isLoading && !loadErrorMessage && detail === null,
     isSaving,
     isSearching: search.isSearching,
     loadErrorMessage,
+    onConfirmCancel: () => {
+      setIsCancelConfirmOpen(false);
+      void runChange(() => setDateListCancelled(listId, true), DATE_LIST_TEXT.CANCEL_ERROR);
+    },
     onDecreaseQuantity: (itemId) => changeQuantity(itemId, ITEM_QUANTITY.STEP.DECREASE),
+    onDismissCancel: () => setIsCancelConfirmOpen(false),
     onIncreaseQuantity: (itemId) => changeQuantity(itemId, ITEM_QUANTITY.STEP.INCREASE),
     onQueryChange: search.setQuery,
+    onReactivate: () => void runChange(() => setDateListCancelled(listId, false), DATE_LIST_TEXT.REACTIVATE_ERROR),
     onRemoveItem: (itemId) => void runChange(() => removeDateListItem(itemId), DATE_LIST_TEXT.REMOVE_ERROR),
+    onRequestCancel: () => setIsCancelConfirmOpen(true),
     onSelectSearchOption: (variantId) => {
       search.clearQuery();
       void runChange(() => addItemToDateList(listId, variantId), DATE_LIST_TEXT.ADD_ERROR);
     },
+    onToggleItem: (itemId, isChecked) =>
+      void runChange(() => setDateListItemChecked(itemId, isChecked), DATE_LIST_TEXT.CHECK_ERROR),
     query: search.query,
     searchErrorMessage: search.errorMessage,
     searchOptions,

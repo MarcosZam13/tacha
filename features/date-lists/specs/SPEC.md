@@ -19,7 +19,7 @@ Una persona quiere separar las compras de un evento o viaje de su lista general:
 ## 4. Fuera de alcance
 
 - La grilla de calendario: SCRUM-76 (§8). Hasta entonces la sección era una agenda ordenada por fecha, y CA-02 se cumplía sobre esa agenda. El camino "tocar un día" de CA-01 llega con la grilla; el botón ya cumple el criterio.
-- Tachar, modo compra, completar y cancelar: SCRUM-78.
+- Tachar, completar y cancelar: SCRUM-78 (§9). Modo compra en sublistas: sin ticket todavía.
 - Total de gasto: SCRUM-79.
 - Menú "Más" en mobile: con Fechas son 6 tabs. DESIGN §3.2 lo pide; queda para el sprint de UI/UX.
 - Compartir sublistas personales al entrar a una familia: `decide_personal_lists` sigue moviendo solo la general. La sublista personal sigue visible para su dueña.
@@ -66,6 +66,28 @@ Reglas:
 6. En desktop la celda muestra hasta 2 sublistas y "+N más". En mobile muestra un punto por sublista, porque el nombre no cabe.
 7. Debajo sigue la agenda, solo del mes visible: en mobile es donde se leen los nombres y se abre cada sublista.
 
-Fuera de alcance: completar y cancelar (SCRUM-78). Hoy toda sublista está pendiente desde la UI, así que los otros dos estados solo se pueden ver con datos simulados.
+Completar y cancelar llegan con SCRUM-78 (§9). Antes de eso toda sublista estaba pendiente desde la UI, así que los otros dos estados solo se podían ver con datos simulados.
 
 Sin migración: usa `event_date` y `status`, que ya existen.
+
+## 9. Estado de la sublista (SCRUM-78 / HU-46)
+
+Una persona quiere saber de un vistazo cuáles sublistas ya resolvió y cuáles siguen pendientes.
+
+- CA-01: una sublista pasa automáticamente a "completada" cuando todos sus items quedan tachados.
+- CA-02: el usuario puede cancelar explícitamente una sublista que ya no se va a comprar, sin borrar su registro.
+- CA-03: una sublista cancelada no cuenta como pendiente en ningún resumen o recordatorio.
+
+Reglas:
+
+1. "Completada" la decide un trigger de la base sobre `list_items`, no el cliente: así da igual quién tache o desde dónde. El trigger bloquea la fila de la lista, porque sin eso dos personas que tachan los dos últimos productos a la vez dejan la lista activa (probado: 3 de 3 con bloqueo completa, 3 de 3 sin bloqueo no).
+2. Sin productos sigue activa: "todos tachados" no se cumple con una lista vacía. Eliminar el último pendiente, con los demás tachados, la completa.
+3. Cancelar no borra nada. Una cancelada no cambia de estado por sus productos, no admite productos nuevos, y la pantalla deshabilita sus acciones. La base no impide tachar en una cancelada: `set_list_item_checked` es de todas las listas, y el estado igual no cambia.
+4. Destachar o agregar a una completada la devuelve a activa. Por eso `add_item_to_date_list` ahora solo rechaza las canceladas: si no, al tachar lo último ya no se podría agregar lo que faltó.
+5. Reactivar recalcula: si todo quedó tachado, vuelve como completada. No está en los CA; se agrega porque cancelar por error no tendría salida.
+6. Ya tachado no se cambia la cantidad desde la fila: se destacha primero. Los pendientes van antes que los tachados.
+7. CA-03: hoy no existe ningún resumen ni recordatorio de sublistas. Se cumple porque "cancelada" es un estado aparte de `active`: quien cuente pendientes filtra por `status = 'active'`. Revisarlo cuando exista el primero.
+
+Fuera de alcance: modo compra en sublistas y total de gasto (SCRUM-79).
+
+Datos: migración 043. Sin columnas nuevas: `lists.status` ya admitía los tres valores desde 004.

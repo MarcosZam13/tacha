@@ -55,14 +55,15 @@ export const EVENT_DATE_FORMAT = {
 } as const;
 
 export const DATE_LIST_DB = {
-  // Solo lo pendiente: tachar llega con SCRUM-78 (SPEC §4).
   DETAIL_SELECT:
-    "id, name, event_date, status, list_items(id, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+    "id, name, event_date, status, list_items(id, checked_at, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   LIST_SELECT: "id, name, event_date, status",
   LIST_TYPE: "date",
   RPC: {
     ADD_ITEM: "add_item_to_date_list",
     CREATE: "create_date_list",
+    SET_CANCELLED: "set_date_list_cancelled",
+    SET_ITEM_CHECKED: "set_list_item_checked",
   },
   TABLE: {
     LISTS: "lists",
@@ -74,6 +75,15 @@ export const DATE_LIST_TEXT = {
   ADD_ERROR: "No pudimos agregar el producto. Probá de nuevo.",
   BACK: "Volver a Fechas",
   CALENDAR_LABEL: "Calendario de sublistas",
+  CANCEL_CONFIRM: "Sí, cancelar",
+  CANCEL_CONFIRM_BODY: "Se guarda con sus productos y deja de contar como pendiente. La podés reactivar después.",
+  CANCEL_CONFIRM_TITLE: "¿Cancelar esta sublista?",
+  CANCEL_ERROR: "No pudimos cancelar la sublista. Probá de nuevo.",
+  CANCEL_KEEP: "Volver",
+  CANCEL_LIST: "Cancelar sublista",
+  CANCELLED_NOTICE: "Esta sublista está cancelada. Reactivala para volver a usarla.",
+  CHECK_ERROR: "No pudimos tachar el producto. Probá de nuevo.",
+  CHECK_ITEM: "Tachar",
   CREATE_ERROR: "No pudimos crear la sublista. Probá de nuevo.",
   CREATE_ON_DAY: "Crear sublista el",
   CREATE_SUBMIT: "Crear sublista",
@@ -100,6 +110,8 @@ export const DATE_LIST_TEXT = {
   NEXT_MONTH: "Mes siguiente",
   PREVIOUS_MONTH: "Mes anterior",
   QUANTITY_ERROR: "No pudimos cambiar la cantidad. Probá de nuevo.",
+  REACTIVATE: "Reactivar sublista",
+  REACTIVATE_ERROR: "No pudimos reactivar la sublista. Probá de nuevo.",
   REMOVE_ERROR: "No pudimos eliminar el producto. Probá de nuevo.",
   REMOVE_ITEM: "Eliminar",
   TITLE: "Fechas",

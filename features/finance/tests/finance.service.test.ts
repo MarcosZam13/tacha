@@ -4,6 +4,7 @@ import {
   getPeriodFinance,
   getPeriodPurchases,
   getPeriodSpending,
+  getPurchasesWithoutTotal,
   getSpendingBudgets,
   hasRegisteredSession,
   setPeriodTotal,
@@ -24,6 +25,8 @@ const selectMock = vi.fn();
 const gteMock = vi.fn();
 const ltMock = vi.fn();
 const orderMock = vi.fn();
+const notMock = vi.fn();
+const isMock = vi.fn();
 // ensureSession no se puede usar en Finanzas (crearía una sesión anónima).
 const ensureSessionMock = vi.fn();
 
@@ -631,5 +634,76 @@ describe("setSpendingTimeZone", () => {
     rpcMock.mockResolvedValue({ data: { owner_id: "user-a", time_zone: "UTC" }, error: null });
 
     await expect(setSpendingTimeZone({ timeZone: "America/Costa_Rica" })).rejects.toThrow("otra zona");
+  });
+});
+
+describe("getPurchasesWithoutTotal (SCRUM-92)", () => {
+  const buildRow = (overrides: Record<string, unknown> = {}) => ({
+    closed_at: "2026-10-14T16:00:00+00:00",
+    id: "purchase-1",
+    stores: { display_name: "Walmart" },
+    total_amount: null,
+    ...overrides,
+  });
+
+  // from → select → not → is → order → order: el último .order() responde.
+  const mockResponse = (response: Record<string, unknown>) => {
+    selectMock.mockReturnValue({ not: notMock });
+    notMock.mockReturnValue({ is: isMock });
+    isMock.mockReturnValue({ order: orderMock });
+    orderMock.mockReturnValueOnce({ order: orderMock }).mockResolvedValueOnce(response);
+  };
+  const mockRows = (rows: readonly unknown[]) => mockResponse({ count: rows.length, data: rows, error: null });
+
+  it("asks for every closed purchase without a total, of any date, with the exact count (SPEC §12)", async () => {
+    mockRows([]);
+
+    await getPurchasesWithoutTotal();
+
+    // Nombres literales a propósito: fijan el contrato con la base (016).
+    expect(fromMock).toHaveBeenCalledWith("purchase_sessions");
+    expect(selectMock).toHaveBeenCalledWith("id, closed_at, total_amount, stores(display_name)", { count: "exact" });
+    expect(notMock).toHaveBeenCalledWith("closed_at", "is", null);
+    expect(isMock).toHaveBeenCalledWith("total_amount", null);
+    expect(orderMock).toHaveBeenNthCalledWith(1, "closed_at", { ascending: false });
+    expect(orderMock).toHaveBeenNthCalledWith(2, "id");
+    // Sin filtro de fecha (D25) ni de dueño: la RLS deja solo las propias.
+    expect(gteMock).not.toHaveBeenCalled();
+    expect(JSON.stringify([selectMock.mock.calls, notMock.mock.calls, isMock.mock.calls])).not.toContain("owner_id");
+  });
+
+  it("gives the purchases in the order of the database, with a blank store as null (rule 29)", async () => {
+    mockRows([
+      buildRow({ id: "recent" }),
+      buildRow({ id: "old", stores: { display_name: "  " } }),
+      buildRow({ id: "no-store", stores: null }),
+    ]);
+
+    await expect(getPurchasesWithoutTotal()).resolves.toEqual([
+      { closedAt: "2026-10-14T16:00:00+00:00", id: "recent", storeName: "Walmart", totalAmount: null },
+      { closedAt: "2026-10-14T16:00:00+00:00", id: "old", storeName: null, totalAmount: null },
+      { closedAt: "2026-10-14T16:00:00+00:00", id: "no-store", storeName: null, totalAmount: null },
+    ]);
+  });
+
+  it.each([null, 3])("fails instead of hiding purchases when the count is %s (rule 30)", async (count) => {
+    mockResponse({ count, data: [buildRow()], error: null });
+
+    await expect(getPurchasesWithoutTotal()).rejects.toThrow("incompleto");
+  });
+
+  it.each([
+    ["a total", { total_amount: 0 }, "con total"],
+    ["no closing time", { closed_at: null }, "sin cierre"],
+  ])("fails when a row comes with %s", async (_, overrides, message) => {
+    mockRows([buildRow(overrides)]);
+
+    await expect(getPurchasesWithoutTotal()).rejects.toThrow(message);
+  });
+
+  it("rethrows the Supabase error", async () => {
+    mockResponse({ count: null, data: null, error: SUPABASE_ERROR });
+
+    await expect(getPurchasesWithoutTotal()).rejects.toBe(SUPABASE_ERROR);
   });
 });

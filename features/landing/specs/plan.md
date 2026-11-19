@@ -128,3 +128,25 @@ Enviar → handleSubmit (useContactFormViewModel) → validateContactForm → si
 | "Contacto" de la navbar va al formulario | Dejarlo en el footer | CA-01 pide un formulario accesible; el footer conserva su id "contacto" (HU-08) |
 | Textarea local (ContactMessageField) | Primitivo nuevo en components/ui | Hoy un solo formulario usa textarea. Se promueve cuando aparezca un segundo |
 | Limpiar los datos (trim, correo en minúsculas) dentro del ViewModel | Util aparte toSubmitContactMessagePayload | Son 5 líneas que se leen mejor donde se envían; el test del ViewModel ya verifica lo que viaja |
+
+## SCRUM-159: "Iniciar sesión" en la navbar
+
+### Archivos
+- `features/landing/constants/landing.constants.ts`: `NAVBAR_TEXT.LOGIN`.
+- `features/landing/components/ButtonLink.tsx` y `models/ButtonLinkProps.interface.ts`: prop `variant` (primaria por defecto o secundaria).
+- `features/landing/hooks/usePublicNavbarViewModel.ts` y `models/PublicNavbarViewModel.interface.ts`: `isLoginVisible`.
+- `features/landing/components/PublicNavbarCta.tsx`: dibuja "Iniciar sesión" y el botón principal.
+- `features/landing/tests/PublicNavbarCta.page.ts` y `PublicNavbarCta.test.tsx`: Page Object y casos de sesión.
+- `e2e/features/landing/public-navbar.spec.ts`: E2E-NAVBAR-01.
+
+### Flujo
+Sin sesión: `PublicNavbarCta` → `usePublicNavbarViewModel` → `isLoginVisible: true` → "Iniciar sesión" lleva a `AUTH_ROUTE.LOGIN`. Con una sesión registrada, el mismo ViewModel devuelve `isLoginVisible: false` y solo queda "Ir a mi lista".
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Ruta `AUTH_ROUTE.LOGIN` de `@/constants` | Agregar `LOGIN` a `LANDING_ROUTE` | La ruta del login ya existe compartida; duplicarla deja dos lugares para cambiarla |
+| `variant` en `ButtonLink`, solo primaria o secundaria | Un componente nuevo, o aceptar todas las variantes de `Button` | Es el mismo enlace con otro color; una variante destructiva quedaría sin estilo y no tiene sentido en una navegación |
+| Ocultar "Iniciar sesión" con sesión registrada | Mostrarlo siempre | Quien ya entró no necesita iniciar sesión; la navbar ya cambia "Registrarse" por "Ir a mi lista" |
+| Mientras se verifica la sesión, mostrar lo del visitante | No mostrar nada hasta saberlo | Es lo que ve la mayoría y evita que la navbar salte sin sesión |

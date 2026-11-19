@@ -170,6 +170,7 @@ export type Database = {
       list_item_recipe_requirements: {
         Row: {
           created_at: string
+          dismissed_at: string | null
           id: string
           list_item_id: string
           quantity_missing: number
@@ -179,6 +180,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dismissed_at?: string | null
           id?: string
           list_item_id: string
           quantity_missing: number
@@ -188,6 +190,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dismissed_at?: string | null
           id?: string
           list_item_id?: string
           quantity_missing?: number
@@ -208,6 +211,42 @@ export type Database = {
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_item_shortfall_snapshots: {
+        Row: {
+          created_at: string
+          list_item_id: string
+          previous_quantity_requested: number
+          previous_variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          list_item_id: string
+          previous_quantity_requested: number
+          previous_variant_id: string
+        }
+        Update: {
+          created_at?: string
+          list_item_id?: string
+          previous_quantity_requested?: number
+          previous_variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_item_shortfall_snapshots_list_item_id_fkey"
+            columns: ["list_item_id"]
+            isOneToOne: true
+            referencedRelation: "list_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_item_shortfall_snapshots_previous_variant_id_fkey"
+            columns: ["previous_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -1027,6 +1066,10 @@ export type Database = {
         Args: { week_from: string; week_to: string }
         Returns: Json
       }
+      assert_local_day_start: {
+        Args: { local_day_start: string }
+        Returns: undefined
+      }
       assign_meal_slot: {
         Args: {
           cook_is_self: boolean
@@ -1157,9 +1200,32 @@ export type Database = {
         }
         Returns: string
       }
+      date_list_status_from_items: {
+        Args: { target_list_id: string }
+        Returns: string
+      }
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
+      get_general_list_recipe_shortfalls: {
+        Args: { local_day_start: string }
+        Returns: {
+          list_item_id: string
+          quantity_missing: number
+          quantity_unit: string
+          recipe_id: string
+          recipe_name: string
+        }[]
+      }
+      get_general_list_shortfall_snapshots: {
+        Args: { local_day_start: string }
+        Returns: {
+          list_item_id: string
+          previous_base_quantity: number
+          previous_base_unit: string
+          previous_quantity_requested: number
+        }[]
+      }
       get_general_list_shortfalls: {
         Args: never
         Returns: {
@@ -1221,6 +1287,10 @@ export type Database = {
         }[]
       }
       get_recipe_coverage: { Args: { target_recipe_id: string }; Returns: Json }
+      get_recipe_coverage_today: {
+        Args: { local_day_start: string; target_recipe_id: string }
+        Returns: Json
+      }
       get_spending_period_bounds: {
         Args: { target_scope: string }
         Returns: {
@@ -1237,6 +1307,26 @@ export type Database = {
           product_catalog_id: string
           variants: Json
         }[]
+      }
+      lock_visible_list_item: {
+        Args: { target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       normalize_pending_staging: {
         Args: { batch_size?: number }
@@ -1278,6 +1368,30 @@ export type Database = {
         Args: { member_user_id: string }
         Returns: string
       }
+      resolve_list_item_shortfall: {
+        Args: {
+          resolution: string
+          target_item_id: string
+          target_variant_id?: string
+        }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_recipe: {
         Args: {
           ingredient_list: Json
@@ -1295,6 +1409,25 @@ export type Database = {
           product_catalog_id: string
           variants: Json
         }[]
+      }
+      set_date_list_cancelled: {
+        Args: { is_cancelled: boolean; target_list_id: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_list_assignee_enabled: {
         Args: { enabled: boolean; target_list_id: string }
@@ -1430,6 +1563,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "purchase_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      undo_shortfall_resolution_and_uncheck: {
+        Args: { target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
           isOneToOne: true
           isSetofReturn: false
         }

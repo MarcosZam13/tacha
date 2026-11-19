@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RECIPES_TAB, RECIPES_TAB_LABEL } from "@/constants";
 import {
@@ -87,6 +87,10 @@ export const createMealPlannerPage = () => {
 
   const openSlot = async (name: string): Promise<void> => {
     await user.click(getSlotButton(name));
+  };
+  // Un clic que no mueve el foco, como en Safari: user-event sí lo mueve, fireEvent.click no.
+  const openSlotWithoutFocusing = (name: string): void => {
+    fireEvent.click(getSlotButton(name));
   };
   const chooseRecipe = async (recipeName: string): Promise<void> => {
     await user.click(await findRecipeRadio(recipeName));
@@ -189,6 +193,7 @@ export const createMealPlannerPage = () => {
     getServingsSummary,
     increaseServings,
     openSlot,
+    openSlotWithoutFocusing,
     pressEscape,
     queryDialog,
     queryRemoveButton,

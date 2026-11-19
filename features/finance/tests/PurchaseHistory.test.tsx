@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPriceDisclaimerPage } from "@/components/price-disclaimer/tests/PriceDisclaimer.page";
 import { APP_ROUTE } from "@/constants";
@@ -11,6 +11,7 @@ import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import {
   getPeriodFinance,
   getPeriodPurchases,
+  getPurchasesWithoutTotal,
   hasRegisteredSession,
   setPeriodTotal,
   setPurchaseTotal,
@@ -21,6 +22,7 @@ import { createPurchaseHistoryPage } from "./PurchaseHistory.page";
 vi.mock("../services/finance.service", () => ({
   getPeriodFinance: vi.fn(),
   getPeriodPurchases: vi.fn(),
+  getPurchasesWithoutTotal: vi.fn(),
   hasRegisteredSession: vi.fn(),
   setPeriodTotal: vi.fn(),
   setPurchaseTotal: vi.fn(),
@@ -29,6 +31,7 @@ vi.mock("../services/finance.service", () => ({
 const sessionMock = vi.mocked(hasRegisteredSession);
 const purchasesMock = vi.mocked(getPeriodPurchases);
 const financeMock = vi.mocked(getPeriodFinance);
+const pendingMock = vi.mocked(getPurchasesWithoutTotal);
 const purchaseSaveMock = vi.mocked(setPurchaseTotal);
 const periodSaveMock = vi.mocked(setPeriodTotal);
 
@@ -72,6 +75,8 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   // Sin zona guardada: se lee como antes, con el navegador (SPEC regla 59).
   financeMock.mockResolvedValue({ timeZone: null });
+  // Sin compras sin total: el recordatorio y la sección no se ven (SCRUM-92).
+  pendingMock.mockResolvedValue([]);
   sessionMock.mockResolvedValue(true);
   purchasesMock.mockImplementation(purchasesByPeriod);
 });
@@ -144,6 +149,23 @@ describe("PurchaseHistory: list (CA-01)", () => {
     expect(zeroRow).toHaveTextContent("₡0");
     expect(withoutTotalRow).toHaveTextContent(FINANCE_TEXT.WITHOUT_TOTAL);
     expect(withoutTotalRow).not.toHaveTextContent("₡0");
+  });
+
+  it("shows the «Sin total» badge only on the purchase without a total, as information (SCRUM-92, CA-01)", async () => {
+    purchasesMock.mockResolvedValue([{ ...SUNDAY_PURCHASE, totalAmount: 0 }, WEDNESDAY_PURCHASE, MONDAY_PURCHASE]);
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    const [zeroRow, withoutTotalRow, mondayRow] = await page.findPurchaseRows();
+
+    expect(within(withoutTotalRow).getByText(FINANCE_TEXT.WITHOUT_TOTAL)).toHaveClass("text-tacha-terracotta-text");
+    expect(within(zeroRow).getByText("₡0")).not.toHaveClass("text-tacha-terracotta-text");
+    expect(within(mondayRow).getByText(amount("₡5 000"))).not.toHaveClass("text-tacha-terracotta-text");
+    // Informativo: ninguna alerta, y los contadores no cambian (regla 62).
+    expect(page.queryAlert()).not.toBeInTheDocument();
+    // "Sin total" dos veces: la etiqueta del contador, que sigue en 1, y el badge.
+    expect(screen.getAllByText(FINANCE_TEXT.WITHOUT_TOTAL)).toHaveLength(2);
+    expect(page.getAllEditButtons()).toHaveLength(4);
   });
 
   it("keeps a row without a store name, with its amount in the total (rule 29)", async () => {
@@ -390,5 +412,99 @@ describe("PurchaseHistory: editing totals (SCRUM-91)", () => {
     expect(periodSaveMock).toHaveBeenCalledWith({ period: "week", total: 20000 });
     expect(page.queryText(amount("₡20 000"))).toBeInTheDocument();
     expect(page.getEditButton(WEEK_PENCIL)).toHaveFocus();
+  });
+});
+
+describe("PurchaseHistory: purchases without a total (SCRUM-92)", () => {
+  const OLD_PENDING: PeriodPurchase = { ...WEDNESDAY_PURCHASE, id: "old" };
+  const LAST_MONTH: PeriodPurchase = {
+    closedAt: new Date(2026, 8, 20, 10, 0).toISOString(),
+    id: "last-month",
+    storeName: "Walmart",
+    totalAmount: null,
+  };
+  const LAST_MONTH_PENCIL = "Editar total del domingo 20 de septiembre, Walmart";
+
+  const getPendingSection = () => screen.getByRole("region", { name: FINANCE_TEXT.PENDING_SECTION_TITLE });
+
+  it("reminds about the old pending purchase with a link to the section, without an alert (CA-02)", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    expect(await page.findText("Tienes 1 compra sin total desde hace más de 24 horas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Completarla" })).toHaveAttribute("href", "#compras-sin-total");
+    expect(page.queryAlert()).not.toBeInTheDocument();
+  });
+
+  it("lists the pending purchases in their own section and list, as the link target (D25)", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING, LAST_MONTH]);
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+    await page.findEditButton(LAST_MONTH_PENCIL);
+
+    const section = getPendingSection();
+    expect(section).toHaveAttribute("id", "compras-sin-total");
+    expect(within(section).getByRole("heading", { name: FINANCE_TEXT.PENDING_SECTION_TITLE })).toBeInTheDocument();
+    expect(within(section).getByRole("list", { name: FINANCE_TEXT.PENDING_SECTION_TITLE })).toBeInTheDocument();
+    expect(within(section).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(section).getAllByText(FINANCE_TEXT.WITHOUT_TOTAL)).toHaveLength(2);
+  });
+
+  it("completes a purchase of a previous period from the section and removes it (CA-03)", async () => {
+    pendingMock.mockResolvedValue([LAST_MONTH]);
+    purchaseSaveMock.mockResolvedValue({ closedAt: LAST_MONTH.closedAt, id: "last-month", totalAmount: 8000 });
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    await page.findEditButton(LAST_MONTH_PENCIL);
+    await page.openEdit(LAST_MONTH_PENCIL);
+    await page.replaceTotal(FINANCE_TEXT.PURCHASE_TOTAL_INPUT_LABEL, "8000");
+    await page.save();
+
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: FINANCE_TEXT.PENDING_SECTION_TITLE })).not.toBeInTheDocument(),
+    );
+    expect(purchaseSaveMock).toHaveBeenCalledWith({ purchaseId: "last-month", total: 8000 });
+    expect(page.queryText("Tienes 1 compra sin total desde hace más de 24 horas")).not.toBeInTheDocument();
+  });
+
+  it("takes the screen to the section when arriving from the reminder link, once both lists loaded", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    const scrollIntoView = vi.fn();
+    // jsdom no implementa scrollIntoView.
+    Element.prototype.scrollIntoView = scrollIntoView;
+    window.location.hash = "#compras-sin-total";
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    await page.findPurchaseList();
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.contexts[0]).toBe(getPendingSection());
+    window.location.hash = "";
+  });
+
+  it("does not move the screen without the section link in the URL", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    await page.findPurchaseList();
+    await screen.findByRole("region", { name: FINANCE_TEXT.PENDING_SECTION_TITLE });
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+  it("shows the read error with a retry, keeping the period total visible (rule 67)", async () => {
+    pendingMock.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce([OLD_PENDING]);
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+
+    expect(await page.findText(FINANCE_TEXT.PENDING_REMINDER_LOAD_ERROR)).toHaveAttribute("role", "alert");
+    expect(page.queryText(amount("₡15 000"))).toBeInTheDocument();
+
+    await page.retry();
+
+    expect(await page.findText("Tienes 1 compra sin total desde hace más de 24 horas")).toBeInTheDocument();
   });
 });

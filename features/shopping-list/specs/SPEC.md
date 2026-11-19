@@ -8,6 +8,8 @@ Historias: [SCRUM-62 / HU-36a](https://tacha.atlassian.net/browse/SCRUM-62) (bus
 
 [SCRUM-114 / HU-76](https://tacha.atlassian.net/browse/SCRUM-114) (aviso pasivo de faltante de receta o plan). Sprint 4, de Roberto con revisión de Marcos: [sección 16](#16-scrum-114-aviso-pasivo-de-faltante).
 
+[SCRUM-115 / HU-77](https://tacha.atlassian.net/browse/SCRUM-115) (resolver el faltante al tachar). Sprint 4, de Roberto con revisión de Marcos: [sección 18](#18-scrum-115-resolver-el-faltante-al-tachar-qué-hiciste).
+
 > Reescrita con la plantilla de 15 secciones en SCRUM-66 (component-architecture §2, "Specs existentes"): tachar cambia el comportamiento de la fila. El contenido de las historias anteriores se conserva, solo cambió de sección.
 
 ## 1. Objetivo
@@ -413,3 +415,177 @@ No hay estados nuevos. Los faltantes llegan con la carga de la lista (`loading` 
 
 - Tiempo real de la lista entre miembros: SCRUM-155.
 - Mostrar las compras pasadas (Historial de compras): HU-59 (SCRUM-90). Desde esta historia los datos ya quedan bien guardados para leerlos.
+
+## 18. SCRUM-115: resolver el faltante al tachar ("¿Qué hiciste?")
+
+[SCRUM-115 / HU-77](https://tacha.atlassian.net/browse/SCRUM-115). Sprint 4, de Roberto con revisión de Marcos. Se apoya en SCRUM-114 (§16, avisos) y SCRUM-156 (§17, una pendiente por variante; lo tachado es una compra y no se reabre).
+
+Decidido con el responsable entre el 2026-10-29 y el 2026-11-01 (lo que HU-77 no cierra):
+
+- **El faltante se calcula en vivo**, no al agregar: lo que hay del producto en la lista (pendiente y tachado hoy) contra lo que piden las recetas. Un tachado es "lo agarré o lo compré", no "lo tengo en casa" (documento-proyecto §4.2 y §4.10), así que tachar no cubre nada por sí solo: cubre lo que suma.
+- **"Agregué otra igual"** suma una unidad a la fila; **"Cambié a otra presentación"** reemplaza la presentación de la fila. Después, el aviso se vuelve a calcular: si alcanza desaparece, si no queda con lo que falta.
+- **"Ya tenía suficiente"** descarta los avisos de la fila sin agregar nada.
+- **Varias recetas sobre la misma fila se resuelven juntas**: un panel por fila.
+- **Si después de elegir todavía falta, el panel se queda abierto** con lo que falta, para elegir otra vez.
+- **Destachar revierte lo que eligió el panel, pero antes pregunta**: un diálogo dice a qué cantidad y presentación vuelve la fila; al confirmar, vuelve a como estaba antes del panel y a Pendientes, con su aviso.
+
+### 18.1 Objetivo
+
+Que el usuario resuelva el faltante de receta o plan en el momento en que sabe qué hizo: al tachar el producto en el súper, sin que la app decida por él (documento-proyecto §4.9.1, paso 3).
+
+### 18.2 Alcance
+
+- Al tachar una fila que tiene avisos de faltante, se abre un panel **"¿Qué hiciste?"** con los avisos de esa fila y tres opciones de un toque.
+- **"Agregué otra igual"**, **"Cambié a otra presentación"** (las presentaciones del mismo producto con su precio aproximado, dentro del mismo panel) y **"Ya tenía suficiente"**.
+- Los avisos de la lista (§16) pasan a calcularse en vivo, y "Ver qué falta" de recetas (SCRUM-98) usa la misma cuenta para no decir otra cosa.
+- Migración `037` con la cuenta en vivo, la resolución y el descarte.
+
+Lo que no incluye está en [18.11](#1811-casos-fuera-de-alcance).
+
+### 18.3 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Fila tachada con avisos | `ShoppingListItem` con `recipeShortfalls` no vacío | toque en la fila (tachar) |
+| Opción elegida | `sameAgain` / `otherPresentation` / `hadEnough` | botón del panel |
+| Presentación elegida | id de una variante del mismo producto madre | lista de presentaciones del panel |
+| Presentaciones con precio | variantes del producto + `latest_prices` | base, al elegir "Cambié a otra presentación" |
+| Medianoche local | `timestamptz` | navegador (`startOfLocalDay`), igual que "Tachados hoy" |
+
+### 18.4 Salidas
+
+- "Agregué otra igual": una unidad más en la fila (lo comprado en modo compra, lo pedido fuera de él).
+- "Cambié a otra presentación": la fila con la presentación elegida y la misma cantidad de unidades.
+- "Ya tenía suficiente": los registros de receta de la fila marcados como descartados (`dismissed_at`).
+- La lista recargada, con los avisos ya recalculados.
+- Al resolver con "Agregué otra igual" o "Cambié a otra presentación", la base guarda cómo estaba la fila antes (presentación y cantidad pedida) para poder revertirla al destachar.
+- Al destachar con confirmación: la fila con su presentación y cantidad de antes, en Pendientes (o junta con la pendiente, §17).
+
+### 18.5 Reglas de negocio
+
+33. **Cuenta en vivo (reemplaza la regla 32 y la regla 23 de recetas para lo que se muestra).** Por producto madre y por unidad (`ml` o `g`), en la lista general:
+    - **Filas del ciclo:** las del producto que están pendientes o se tacharon **hoy** (desde la medianoche local). Lo tachado otro día es una compra pasada y ya no cuenta, ni sus pedidos.
+    - **Lo que hay:** la suma de las filas del ciclo con presentación en esa unidad: unidades × cantidad de la presentación. Las unidades son lo comprado si la fila está en una compra (`quantity_bought`), si no lo pedido.
+    - **Lo que se pide:** los registros de receta de las filas del ciclo, en esa unidad y no descartados, en el orden en que se registraron.
+    - Lo que hay se reparte entre los registros en ese orden; lo que no alcanza es el faltante de cada uno. Ejemplo: 3 × 1 L tachados; Tres leches pide 2 L y Flan 2 L → Tres leches cubierta, "+ 1000 ml necesarios para Flan".
+    - Un ingrediente en una unidad que el producto no tiene (g de algo que se vende en ml) no recibe nada: faltante completo, como la regla 22 de recetas.
+34. Las reglas 22, 23, 25, 26, 27, 29 y 30 de §16 siguen igual (solo `ml` y `g`, una línea por receta, texto, fuera del botón, familia). `quantity_missing` de la base queda como lo calculó el agregado (lo sigue usando el resumen de SCRUM-97), pero ya no es lo que se muestra.
+35. **Cuándo se abre el panel (CA-01).** Al **tachar** una fila que en pantalla tiene avisos, cuando la base confirma el tachado. Destachar, o tachar una fila sin avisos, no abre nada.
+36. **Las tres opciones (CA-02).** El panel muestra los avisos de la fila y:
+    - **"Agregué otra igual":** +1 unidad en la fila. En modo compra, sobre una fila tachada en esa compra, suma a lo comprado; si no, a lo pedido.
+    - **"Cambié a otra presentación":** muestra, en el mismo panel, las otras presentaciones del mismo producto con su precio aproximado; al elegir una, la fila pasa a esa presentación con la misma cantidad de unidades. "Volver" regresa a las tres opciones.
+    - **"Ya tenía suficiente":** descarta los avisos de la fila sin cambiar nada más.
+37. **La app nunca elige (CA-03).** Se ofrecen solo las presentaciones en la unidad de los avisos de la fila: una de 800 g nunca cubre una receta en ml, así que ofrecerla solo confunde (QA de la PR #82, decidido con el responsable el 2026-11-02). Ninguna presentación se marca, se preselecciona ni se recomienda. Se ordenan por precio aproximado de menor a mayor, como pide documento-proyecto §4.9.1 ("idealmente ordenadas por precio"), y las que no tienen precio van al final por tamaño. El precio es el rango entre marcas y súper (`₡1 200 – ₡1 500`), o "Sin precio de referencia".
+38. **Un solo panel (CA-04).** Todo pasa en el panel, sin navegar. Cerrarlo sin elegir (Escape, clic fuera o "Ahora no") no cambia nada: la fila queda tachada y el aviso sigue.
+39. **Después de elegir** se recarga la lista: la fila muestra su nueva cantidad o presentación y los avisos recalculados. Si la fila **todavía tiene avisos** (por ejemplo, una unidad más no alcanzó), el panel **se queda abierto** con los avisos actualizados ("Todavía falta…") y las tres opciones, para elegir otra vez. Se cierra solo cuando la fila ya no tiene avisos, o cuando el usuario lo cierra; si lo cierra, el aviso queda bajo la fila.
+40. **Varias recetas, juntas.** Un panel por fila con todos sus avisos; la opción elegida vale para todos. "Ya tenía suficiente" descarta todos los registros de la fila.
+41. **Destachar.** La fila vuelve a Pendientes y sus registros dejan de estar descartados, así que el aviso vuelve si sigue faltando. Si destachar la junta con una pendiente (§17), los registros que pasan a la pendiente llegan sin descartar.
+42. **Familia.** Cualquier miembro que ve la lista puede resolver los avisos de una fila, también los de recetas de otro miembro. También sobre una fila tachada en la compra abierta de otro miembro: es la lista compartida, y lo comprado ya se podía cambiar así (016); la base deja la compra igual de su dueño (revisión de seguridad, 2026-11-01, aceptado). La base comprueba que la fila sea de una lista que quien llama ve, con la misma regla que la política de `lists` (024).
+43. **Solo filas tachadas.** La resolución se rechaza en la base sobre una fila pendiente. La presentación nueva tiene que ser del mismo producto madre. Sobre una compra cerrada no se suma a lo comprado (regla de la 018).
+44. **Conteos (CA-03 de HU-76).** Un ingrediente en `unidad` nunca tiene aviso, así que tachar su fila nunca abre el panel.
+45. **Destachar una fila resuelta con cambios pide confirmación.** Si en el panel se eligió "Agregué otra igual" o "Cambié a otra presentación", tocar la fila tachada no la destacha enseguida: abre un diálogo **"¿Destachar y deshacer lo que elegiste?"** que dice a qué vuelve ("La fila vuelve a 1 × Leche Dos Pinos 1 L.").
+    - **"Destachar y deshacer"**: la fila vuelve a la presentación y la cantidad pedida que tenía **antes del primer cambio del panel**, y se destacha. Se pierde cualquier cambio de cantidad hecho a mano después (el diálogo lo avisa: "También se pierde lo que cambiaste a mano después.").
+    - **"Cancelar"**: no cambia nada; la fila sigue tachada.
+    - Revertir y destachar son una sola operación: entra todo o nada. Si al destachar hay una pendiente de esa presentación, se junta con ella (§17) ya con los valores revertidos.
+    - "Ya tenía suficiente" no pide confirmación: no cambió la fila, y destachar ya quita el descarte (regla 41).
+    - Si la fila está en una **compra ya cerrada**, deshacer no reescribe esa compra (018): no revierte la presentación ni la cantidad. Por eso tampoco se pregunta: la pantalla no recibe la foto de esa fila (migración `041`) y la destacha directo, sin diálogo, como una fila que no pasó por el panel (revisión de seguridad 2026-11-01; BUG-1 de QA de la PR #82, 2026-11-02: el diálogo prometía volver a como estaba y la base solo destachaba).
+    - La pantalla aplica la misma regla en cuanto la base confirma el cierre de la compra: sus filas pierden la foto en ese momento, sin esperar a recargar. Cerrar la compra vuelve a `/lista` sin recargar la página, así que antes la fila conservaba la foto de cuando la compra estaba abierta y el diálogo volvía a aparecer hasta recargar (BUG-2 de QA de la PR #82, 2026-11-07).
+46. **Qué se guarda para revertir.** La primera vez que el panel cambia la fila ("Agregué otra igual" o "Cambié a otra presentación"), la base guarda su presentación y su cantidad pedida. Elegir otra vez en el mismo panel no lo reemplaza: se revierte a como estaba antes del panel. Se borra al revertir, y con la fila si se elimina. Lo comprado (`quantity_bought`) no se guarda: destachar lo borra igual (018).
+47. **La pantalla vuelve a pedir los avisos** después de cada cambio que puede moverlos: cambiar la cantidad o lo comprado, añadir, borrar, tachar o destachar (también al juntar). Pide solo los avisos, no la lista entera; si falla, se quedan los últimos que se vieron (la acción ya se guardó), y una respuesta vieja que llega después de una nueva se ignora.
+
+### 18.6 Estados
+
+| Pantalla | Estados | Notas |
+|---|---|---|
+| Panel "¿Qué hiciste?" | `closed` · `choosing` · `loadingPresentations` · `choosingPresentation` · `presentationsFailed` · `resolving` · `failed` | Fuera de `closed` siempre lleva la fila. `choosingPresentation` lleva las presentaciones. `resolving` deshabilita todo. `failed` deja el panel abierto con el mensaje para reintentar. Si después de resolver la fila sigue con avisos, vuelve a `choosing` con los avisos nuevos (regla 39) |
+| Diálogo de destachar con deshacer | `closed` · `confirming` · `reverting` · `failed` | Fuera de `closed` lleva la fila y lo que se va a recuperar |
+
+### 18.7 Errores
+
+| Caso | Qué se muestra |
+|---|---|
+| Falla al resolver | "No se pudo guardar lo que hiciste. Intenta de nuevo." dentro del panel, que sigue abierto |
+| Falla al cargar las presentaciones | "No se pudieron cargar las presentaciones. Intenta de nuevo." con "Reintentar" y "Volver" |
+| El producto no tiene otra presentación | "No hay otras presentaciones de este producto." y "Volver" |
+| La fila ya no está tachada o no es visible (otro miembro la destachó o la borró) | Se cierra el panel (o el diálogo de deshacer), se recarga la lista y aparece "Otro miembro ya cambió este producto. Tu lista se actualizó." (`role="status"`, QA de la PR #82) |
+| Falla al recargar la lista después de resolver | El error de carga que ya existe |
+| Falla al destachar y deshacer | "No se pudo destachar el producto. Intenta de nuevo." dentro del diálogo; la fila sigue tachada y sin cambios (todo o nada) |
+
+### 18.8 UI esperada
+
+- Panel con el `Modal` compartido, título **"¿Qué hiciste?"**, el nombre y la presentación del producto, y sus avisos ("+ 600 ml necesarios para Tres leches").
+- Tres botones de ancho completo: **"Agregué otra igual"**, **"Cambié a otra presentación"**, **"Ya tenía suficiente"**, y un enlace de texto **"Ahora no"**.
+- Vista de presentaciones dentro del mismo panel: un botón por presentación con su tamaño ("3780 ml") y su precio aproximado, y **"Volver"**.
+- "Guardando…" y botones deshabilitados mientras se resuelve.
+- Si sigue faltando después de elegir: el panel sigue abierto con "Todavía falta:" y los avisos actualizados.
+- Diálogo de destachar con deshacer (`Modal`): título "¿Destachar y deshacer lo que elegiste?", a qué vuelve la fila, el aviso de que se pierden los cambios a mano posteriores, y los botones "Destachar y deshacer" (primario) y "Cancelar".
+
+### 18.9 Accesibilidad
+
+- `Modal` compartido: `role="dialog"`, `aria-modal`, título, Escape y foco de vuelta a la fila al cerrar.
+- Los avisos del panel son una lista; las opciones son botones con texto completo.
+- Cada presentación es un botón cuyo nombre dice tamaño y precio ("3780 ml, ₡2 300 – ₡2 500").
+- **Límite conocido:** al cambiar de vista (opciones ↔ presentaciones) el botón que tenía el foco desaparece y el foco pasa al diálogo, no al primer botón de la vista nueva. Moverlo exige refs en un componente de presentación o agregar `autoFocus` al `Button` compartido (que usan otras features); es el mismo límite que el planificador (SPEC de meal-planner §9). Con Tab se llega en un paso.
+- Errores con `role="alert"`.
+- Si el panel sigue abierto después de elegir, el resumen "Todavía falta…" está en una región `aria-live="polite"` para que el lector anuncie el cambio.
+- El diálogo de deshacer es el `Modal` compartido; "Cancelar" deja el foco en la fila.
+
+### 18.10 Contratos externos
+
+Migración **`037_resolve_recipe_shortfalls.sql`** (la `034` es de la PR #84 y la `036` ya está en `develop`):
+
+- **`list_item_recipe_requirements.dismissed_at timestamptz null`**: el descarte de "Ya tenía suficiente". Sin permisos de columna nuevos: solo lo escriben las funciones de abajo.
+- **`get_general_list_recipe_shortfalls(local_day_start timestamptz)`**: la cuenta de la regla 33, con la misma seguridad que la de la `033` (`security definer`, lista de `find_general_list_id()`, solo `authenticated`). Devuelve además `recipe_id` (lo usa la cobertura). Una `local_day_start` que no sea la medianoche de hoy (de hace más de 26 h o en el futuro) se rechaza (`22023`), con la auxiliar `assert_local_day_start`.
+- **`resolve_list_item_shortfall(target_item_id uuid, resolution text, target_variant_id uuid)`**: `security definer`, acceso como `set_list_item_checked` (035), con la auxiliar `lock_visible_list_item` (sin `execute` para el cliente). Sobre una compra cerrada responde `42501`. Aplica la regla 36 con las condiciones de la 43 y devuelve la fila. Sin sesión `42501`; fila no visible `P0002`; fila pendiente, resolución desconocida o presentación de otro producto `22023`.
+- **Trigger nuevo en `list_items`** (al pasar de tachada a pendiente): borra `dismissed_at` de los registros de la fila (regla 41). `security definer`, solo toca los registros de esa fila. No cambia `stamp_list_item_check` ni `set_list_item_checked`.
+- **Tabla nueva `list_item_shortfall_snapshots`** (regla 46): `list_item_id` (PK, → `list_items` `on delete cascade`), `previous_variant_id`, `previous_quantity_requested`, `created_at`. RLS activada y sin políticas ni permisos para `authenticated`: solo la leen y escriben las funciones `security definer`. La pantalla la lee con `get_general_list_shortfall_snapshots(local_day_start)`, `security definer` como la de avisos: solo filas del ciclo de la lista general de quien llama, con el nombre y tamaño de la presentación de antes y la cantidad, para el texto del diálogo.
+- **`undo_shortfall_resolution_and_uncheck(target_item_id uuid)`**: `security definer`, mismo acceso. Si la fila tiene foto, la vuelve a su presentación y cantidad pedida y borra la foto; después llama a `set_list_item_checked(target_item_id, false)` (035) en la misma transacción y devuelve lo que esa devuelve (puede ser otra fila si se juntó). Sin foto, solo destacha.
+- **`get_recipe_coverage_today(target_recipe_id uuid, local_day_start timestamptz)`** (SCRUM-98): el cuerpo de la `024`, con dos cambios: solo cuentan las filas del ciclo, y el motivo `short` y su cantidad salen de la cuenta de la regla 33 para esa receta, en vez de `quantity_missing`.
+- **Migración `041_hide_closed_purchase_snapshots.sql`** (corrección de QA, BUG-1): vuelve a definir `get_general_list_shortfall_snapshots` con la misma firma, seguridad y permisos, para que no devuelva las fotos de filas que están en una compra cerrada (regla 45). Con su prueba en `supabase/tests/`. La `038` y la `039` son de las PR #90 y #91, y la `040` quedó reservada.
+- **Las funciones viejas no se tocan:** `get_general_list_shortfalls()` (033) y `get_recipe_coverage(uuid)` (017/024) quedan como están. La `037` se aplica en la base compartida antes del merge, y el código de `develop` las sigue llamando: borrarlas o cambiarles la firma rompería `/lista` y "Ver qué falta" para todo el equipo hasta el merge. Se borran en un ticket de limpieza después.
+- **Presentaciones:** lectura directa de `product_catalog_variants` del mismo producto con `latest_prices` (como el detalle, SCRUM-64). Sin RPC: es catálogo público.
+- `types/database.types.ts`: la columna, las dos funciones nuevas y las dos firmas cambiadas.
+- `docs/documento-proyecto.md` §4.9.1 y §6 se actualizan en este PR.
+
+### 18.11 Casos fuera de alcance
+
+- **Chips de "cuánto le va a durar" al tachar** (HU-70b, Melany): otro panel de la misma acción; cuando exista, se decide cómo convive con este.
+- **Tiempo real** (SCRUM-155): un aviso nuevo de otro miembro se ve al recargar.
+- **Revertir sin destachar** (un "deshacer" aparte): solo se revierte al destachar, con confirmación (regla 45).
+- **Guardar cada cambio por separado** para revertir solo lo del panel y conservar lo manual: se revierte a la foto de antes del panel, y el diálogo lo avisa.
+- **Resolver desde una fila pendiente**, o reabrir el panel de una fila ya resuelta: la historia lo pide al tachar.
+- **Avisos y panel en "Mi lista personal"**, sublistas y listas privadas: hoy solo la lista general tiene avisos (§16, regla 30).
+- **Elegir marca o súper** al cambiar de presentación: solo se cambia la presentación (la fila guarda la variante, no la marca).
+
+### 18.12 Notas de implementación
+
+- **Por qué en vivo y no al agregar.** Con el faltante fijo, tachar 3 × 1 L para recetas que piden 4 L no decía nada, y "Agregué otra igual" no tenía forma honesta de saber si alcanzó. Con la cuenta en vivo, cada cambio de la lista (sumar, cambiar presentación, quitar) se refleja solo, y destachar no necesita deshacer nada.
+- **Por qué el ciclo es "pendiente o tachado hoy".** Es el mismo corte que la sección "Tachados hoy" (HU-36e CA-05): lo de otro día es una compra pasada. Desde la 035 esas filas ya no se reabren, así que sus pedidos de receta no vuelven a contar.
+- **Por qué funciones `security definer`.** En la lista de la familia, resolver toca registros de recetas de otro miembro (la RLS solo deja escribir los propios) y cambiar la presentación toca una columna que el cliente no puede escribir (004). Todas comprueban el acceso a mano con la regla de la 024, como `set_list_item_checked` (035). Si esa política cambia (listas privadas con colaboradores, HU-49), hay que cambiar las tres.
+- **Cobertura (SCRUM-98).** `get_recipe_coverage_today` usa la misma cuenta para que "Ver qué falta" y la lista nunca digan cosas distintas. Recibe la medianoche local, así que el servicio de recetas se ajusta en este PR.
+- **Restricciones:** las de la sección 10, sin librerías nuevas. Skills: `component-architecture`, `constants-standards`, `project-structure`, `security-practices`, `unit-testing-standards`, `playwright-e2e`, `gitflow`.
+
+### 18.13 Casos de aceptación (HU-77, SCRUM-115)
+
+- [x] CA-01: tachar una fila con aviso abre el panel "¿Qué hiciste?" con sus avisos; tachar una fila sin aviso no lo abre.
+- [x] CA-02: el panel tiene "Agregué otra igual", "Cambié a otra presentación" (con las presentaciones y su precio aproximado) y "Ya tenía suficiente", y cada una hace lo de la regla 36.
+- [x] CA-03: ninguna presentación aparece marcada, preseleccionada ni recomendada; el orden es por precio y lo dice el panel.
+- [x] CA-04: todo pasa en el panel, sin cambiar de pantalla; "Volver" regresa a las opciones.
+- [x] Cuenta en vivo: 3 × 1 L tachados con recetas de 2 L y 2 L → un solo aviso, "+ 1000 ml necesarios" para la segunda receta.
+- [x] "Agregué otra igual" con 1 L para 1600 ml → la fila pasa a 2 y el aviso desaparece; con 1 L para 3000 ml → queda "+ 1000 ml".
+- [x] En modo compra, "Agregué otra igual" suma a lo comprado ("Pedido 1" bajo la fila). (prueba SQL de la `037`, paso 7)
+- [x] "Cambié a otra presentación" de 1 L a 3,78 L con 1 unidad → la fila muestra 3780 ml y el aviso se recalcula. (prueba SQL de la `037`, paso 6, y el panel en el navegador)
+- [x] "Ya tenía suficiente" quita los avisos de la fila; destacharla los devuelve, sin diálogo.
+- [x] "Agregué otra igual" con 1 L para 3000 ml: el panel sigue abierto con "Todavía falta" 1000 ml; elegirla otra vez lo cubre y el panel se cierra.
+- [x] Destachar una fila resuelta con "Agregué otra igual" (1 → 2) abre el diálogo; "Destachar y deshacer" la deja en Pendientes con 1 y el aviso de vuelta; "Cancelar" no cambia nada.
+- [x] Destachar una fila resuelta con "Cambié a otra presentación" (1 L → 3,78 L) vuelve a 1 L.
+- [x] Deshacer con una pendiente de la misma presentación: se junta con ella ya revertida (una sola pendiente).
+- [x] Falla al destachar y deshacer: la fila sigue tachada y sin cambios.
+- [x] Cerrar el panel sin elegir no cambia nada.
+- [x] Una fila con avisos de dos recetas: un solo panel y la opción vale para las dos.
+- [x] Un producto tachado ayer no cuenta para las recetas de hoy, ni sus pedidos.
+- [x] "Ver qué falta" (SCRUM-98) dice el mismo faltante que la lista.
+- [x] En la familia, B resuelve el aviso de una receta de A en la lista compartida. (prueba SQL de la `037`, pasos 5 y 6; a mano con dos cuentas registradas queda para QA)
+- [x] La base rechaza: sin sesión (`42501`), fila ajena (`P0002`), fila pendiente o presentación de otro producto (`22023`); `anon` sin `execute`.
+- [x] Falla al resolver: mensaje en el panel, que sigue abierto; reintentar funciona.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.

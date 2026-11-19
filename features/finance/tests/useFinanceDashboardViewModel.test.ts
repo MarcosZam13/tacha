@@ -5,6 +5,7 @@ import {
   BUDGET_STATUS,
   FINANCE_ACCESS_STATUS,
   FINANCE_TEXT,
+  PENDING_REMINDER_STATUS,
   SPENDING_PERIOD,
   SPENDING_STATUS,
 } from "../constants/finance.constants";
@@ -12,6 +13,7 @@ import { useFinanceDashboardViewModel } from "../hooks/useFinanceDashboardViewMo
 import {
   getPeriodFinance,
   getPeriodSpending,
+  getPurchasesWithoutTotal,
   getSpendingBudgets,
   hasRegisteredSession,
   setSpendingBudget,
@@ -20,6 +22,7 @@ import {
 vi.mock("../services/finance.service", () => ({
   getPeriodFinance: vi.fn(),
   getPeriodSpending: vi.fn(),
+  getPurchasesWithoutTotal: vi.fn(),
   getSpendingBudgets: vi.fn(),
   hasRegisteredSession: vi.fn(),
   setSpendingBudget: vi.fn(),
@@ -27,6 +30,7 @@ vi.mock("../services/finance.service", () => ({
 const sessionMock = vi.mocked(hasRegisteredSession);
 const spendingMock = vi.mocked(getPeriodSpending);
 const financeMock = vi.mocked(getPeriodFinance);
+const pendingMock = vi.mocked(getPurchasesWithoutTotal);
 const budgetsMock = vi.mocked(getSpendingBudgets);
 const saveMock = vi.mocked(setSpendingBudget);
 
@@ -50,6 +54,8 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   // Sin zona guardada: se lee como antes, con el navegador (SPEC regla 59).
   financeMock.mockResolvedValue({ timeZone: null });
+  // Sin compras sin total: el recordatorio y la sección no se ven (SCRUM-92).
+  pendingMock.mockResolvedValue([]);
   sessionMock.mockResolvedValue(true);
   spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 0 });
   budgetsMock.mockResolvedValue({ day: null, month: null, week: 50000 });
@@ -254,5 +260,56 @@ describe("useFinanceDashboardViewModel: manual adjustments (SCRUM-91)", () => {
     );
     expect(result.current.spending.totalText).toBeNull();
     expect(spendingMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("useFinanceDashboardViewModel: pending purchases reminder (SCRUM-92)", () => {
+  const OLD_PENDING = {
+    closedAt: new Date(2026, 9, 14, 10, 0).toISOString(),
+    id: "old",
+    storeName: "Walmart",
+    totalAmount: null,
+  };
+
+  it("reminds with a link to the section of the Historial, in Finanzas only (D26)", async () => {
+    pendingMock.mockResolvedValue([OLD_PENDING]);
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.PENDING));
+    expect(result.current.pendingReminder).toMatchObject({
+      linkHref: "/finanzas/historial#compras-sin-total",
+      linkText: "Completarla",
+      messageText: "Tienes 1 compra sin total desde hace más de 24 horas",
+    });
+    // El Dashboard no edita (D11).
+    expect(result.current.spending.edit).toBeUndefined();
+  });
+
+  it("does not remind without purchases of 24 hours or more", async () => {
+    pendingMock.mockResolvedValue([{ ...OLD_PENDING, closedAt: new Date(2026, 9, 18, 13, 0).toISOString() }]);
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.NONE));
+  });
+
+  it("keeps the spending and the budget when the reminder fails, and retries it (rule 67)", async () => {
+    pendingMock.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce([OLD_PENDING]);
+    const { result } = await renderLoaded();
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.FAILED));
+    expect(result.current.spending.status).toBe(SPENDING_STATUS.READY);
+    expect(result.current.budget.status).toBe(BUDGET_STATUS.VIEWING);
+
+    await act(async () => result.current.pendingReminder.onRetry());
+
+    await waitFor(() => expect(result.current.pendingReminder.status).toBe(PENDING_REMINDER_STATUS.PENDING));
+  });
+
+  it("asks for nothing without a registered account (D6)", async () => {
+    sessionMock.mockResolvedValue(false);
+    const { result } = renderHook(() => useFinanceDashboardViewModel());
+
+    await waitFor(() => expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.NO_ACCOUNT));
+    expect(pendingMock).not.toHaveBeenCalled();
   });
 });

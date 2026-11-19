@@ -172,8 +172,8 @@ export interface MealSlotDialogViewModel {
   onRecipesRetry: () => void;
   onRemove: () => void;
   onSave: () => void;
-  /** `opener` es el botón tocado: el foco vuelve a él al cerrar (Safari no enfoca los botones al hacer clic). */
-  onSlotOpen: (target: MealSlotTarget, opener?: HTMLElement) => void;
+  /** Abre el diálogo del espacio. El foco de vuelta al cerrar lo hace el Modal compartido (SCRUM-142). */
+  onSlotOpen: (target: MealSlotTarget) => void;
   recipeOptions: RecipeOption[];
   recipesStatus: RecipeOptionsStatusType;
   /** La receta elegida, solo si sigue entre las opciones; null si no hay o ya no existe. */
