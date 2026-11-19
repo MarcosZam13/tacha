@@ -9,6 +9,7 @@ export const APP_ROUTE = {
   FINANCE_HISTORY: "/finanzas/historial",
   HOUSEHOLD: "/household",
   LIST: "/lista",
+  LIST_SETTINGS: "/perfil/configuracion",
   MEAL_PLANNER: "/recetas/planificador",
   PROFILE: "/perfil",
   RECIPES: "/recetas",

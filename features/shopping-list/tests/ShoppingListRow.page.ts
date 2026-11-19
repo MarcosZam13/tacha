@@ -25,6 +25,7 @@ export const createShoppingListRowPage = (productName: string) => {
 
   return {
     clickShortfallNote,
+    getRow,
     getShortfallNote,
     getShortfallNoteTexts,
     getShortfallNotes,

@@ -21,6 +21,7 @@ import { ShoppingListShortfallNotes } from "./ShoppingListShortfallNotes";
  * aria-describedby para que el lector los lea como descripción del producto.
  */
 export const ShoppingListRow = ({
+  assigneeSlot,
   onDecrease,
   onIncrease,
   onOpenDetail,
@@ -57,6 +58,7 @@ export const ShoppingListRow = ({
             notes={row.shortfallNotes}
           />
         ) : null}
+        {assigneeSlot}
       </div>
       <QuantityStepper
         canDecrease={row.canDecrease}
