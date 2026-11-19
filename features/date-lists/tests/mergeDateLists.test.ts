@@ -3,7 +3,13 @@ import { DATE_LIST_STATUS } from "../constants/date-lists.constants";
 import type { DateList } from "../models/DateList.interface";
 import { insertByDate, mergeLoadedLists } from "../utils/mergeDateLists";
 
-const buildList = (id: string, eventDate: string): DateList => ({ eventDate, id, name: id, status: DATE_LIST_STATUS.ACTIVE });
+const buildList = (id: string, eventDate: string): DateList => ({
+  eventDate,
+  id,
+  name: id,
+  spentTotal: null,
+  status: DATE_LIST_STATUS.ACTIVE,
+});
 
 const JANUARY = buildList("enero", "2027-01-10");
 const MARCH = buildList("marzo", "2027-03-10");

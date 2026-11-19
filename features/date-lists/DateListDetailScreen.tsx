@@ -5,6 +5,7 @@ import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Button, Modal, Spinner } from "@/components/ui";
 import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
 import { DateListItemRow } from "./components/DateListItemRow";
+import { DateListTotal } from "./components/DateListTotal";
 import { DATE_LIST_STATUS_LABEL, DATE_LIST_TEXT } from "./constants/date-lists.constants";
 import { useDateListDetailViewModel } from "./hooks/useDateListDetailViewModel";
 import { formatEventDate } from "./utils/eventDate";
@@ -41,6 +42,12 @@ export const DateListDetailScreen = ({ listId }: DateListDetailScreenProps): Rea
             <p className="font-body text-sm text-tacha-textsec">
               {formatEventDate(detail.eventDate)} · {DATE_LIST_STATUS_LABEL[detail.status]}
             </p>
+            <DateListTotal
+              canEdit={!viewModel.isCancelled}
+              editor={viewModel.totalEditor}
+              isBusy={viewModel.isSaving}
+              total={detail.spentTotal}
+            />
           </header>
 
           {viewModel.isCancelled ? (
