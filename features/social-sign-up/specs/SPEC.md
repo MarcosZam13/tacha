@@ -1,6 +1,6 @@
 # Feature: SocialSignUp
 
-Historias: HU-19 (SCRUM-42) y HU-20 (SCRUM-43). Criterios en [docs/historias-usuario.md](../../../docs/historias-usuario.md).
+Historias: HU-19 (SCRUM-42), HU-20 (SCRUM-43) y HU-21 (SCRUM-44). Criterios en [docs/historias-usuario.md](../../../docs/historias-usuario.md).
 
 ## 1. Objetivo
 Permitir que un visitante cree su cuenta con Google o Facebook, sin llenar el formulario de registro manual.
@@ -12,6 +12,7 @@ Incluye:
 - Página de retorno `/registro/social`, que obtiene y valida al usuario contra Supabase Auth.
 - Aviso con enlace al login cuando el correo ya está registrado.
 - SCRUM-43: formulario `/registro/completar` que pide el nombre a una cuenta social nueva antes de entrar a la app.
+- SCRUM-44: checkbox de términos y condiciones en el mismo formulario, sin marcar, con enlace al texto completo.
 - SCRUM-43: puerta de las pantallas privadas (`app/(app)/layout.tsx`): una cuenta social que no completó el registro va a `/registro/completar`.
 
 No incluye: ver §14.
@@ -21,10 +22,11 @@ No incluye: ver §14.
 - Parámetros `error` de la URL de retorno (query o fragmento).
 - Usuario devuelto por `auth.getUser()`: `email`, `identities`, `is_anonymous`, `user_metadata`, `app_metadata.provider`.
 - name: string, en el formulario de `/registro/completar` (SCRUM-43).
+- isTermsAccepted: boolean, el checkbox de términos del mismo formulario (SCRUM-44).
 
 ## 4. Salidas
 - Redirección al proveedor.
-- Cuenta nueva: redirige a `/registro/completar` (SCRUM-43). Al enviar el formulario se guardan el nombre y la marca de registro completado, y se entra a `APP_ROUTE.LIST`.
+- Cuenta nueva: redirige a `/registro/completar` (SCRUM-43). Al enviar el formulario, con los términos aceptados, se guardan el nombre, la fecha de aceptación de los términos (SCRUM-44) y la marca de registro completado, y se entra a `APP_ROUTE.LIST`.
 - Correo ya registrado: desvincula la identidad nueva si la cuenta tiene otra, cierra la sesión y muestra el aviso.
 - Error: muestra el mensaje con su enlace y cierra la sesión si el flujo creó una.
 
@@ -36,6 +38,8 @@ No incluye: ver §14.
 - La marca `social_sign_up_completed_at` se guarda junto con el nombre, no al volver del proveedor. Una cuenta que abandona el formulario no tiene marca y, si repite el registro social, vuelve al formulario.
 - Una cuenta social que no completó el registro no se considera activa: cualquier pantalla privada la envía a `/registro/completar` y no muestra su contenido. Funciona aunque el guard de sesión esté apagado; una sesión anónima, sin sesión o de correo pasa sin cambios (lo que le pase sin sesión lo decide el guard).
 - "Antes de crear la cuenta" (segundo criterio de HU-20) se cumple como "antes de que la cuenta quede completa": Supabase crea el usuario al volver del proveedor, antes de cualquier formulario, y eso no se puede evitar sin dejar de usar su OAuth.
+- Los términos y condiciones se aceptan en el mismo formulario, con un checkbox sin marcar por defecto, igual que en el registro manual (SCRUM-44). Sin aceptarlos, "Continuar" queda deshabilitado y el registro no se completa: la marca de registro completado se guarda junto con `user_metadata.terms_accepted_at`, y la puerta y el formulario consideran pendiente a la cuenta si falta cualquiera de las dos. Escribir solo la marca desde la consola no completa el registro.
+- El texto completo de los términos es `/terminos` (`TERMS_ROUTE`), que se abre en la misma pestaña: su botón "Volver" regresa al formulario. Al volver, el formulario se carga de nuevo, con el nombre del proveedor y el checkbox sin marcar (SCRUM-44).
 - `/registro/completar` solo muestra el formulario a una cuenta de Google o Facebook sin marca. Una cuenta de correo, o una que ya completó el registro, entra directo a la app.
 - El correo ya existe si el usuario tiene más de una identidad o ya tiene la marca `social_sign_up_completed_at`.
 - La marca solo decide qué aviso se muestra y si `/registro/completar` muestra el formulario; nunca da permisos, porque la persona puede editar `user_metadata`.
@@ -65,6 +69,7 @@ No incluye: ver §14.
 - Spinner en la página de retorno mientras se valida.
 - Título, mensaje y enlace cuando hay aviso.
 - `/registro/completar` (SCRUM-43): título "Completá tu registro", descripción, campo "Nombre" obligatorio y botón "Continuar" ("Guardando..." mientras guarda).
+- Debajo del nombre (SCRUM-44): checkbox "Acepto los términos y condiciones", sin marcar, y el enlace "Ver términos y condiciones" a `/terminos`. "Continuar" queda deshabilitado hasta marcarlo.
 
 ## 9. Accesibilidad
 - Botones nativos con texto claro, operables con teclado.
@@ -79,12 +84,13 @@ No incluye: ver §14.
 - `services/supabase.client.ts`, `services/session.service.ts`
 - `constants/routes.constants.ts`, `constants/user-profile.constants.ts` (`USER_METADATA_KEY`, `USER_NAME_MAX_LENGTH`)
 - `utils/toUserProfile.ts` (nombre que entregó el proveedor)
-- `@/components/ui` (Button, Input, Spinner)
+- `constants/terms.constants.ts` (`TERMS_ROUTE`, `TERMS_ACCEPTANCE_LABEL`), compartidas con el registro manual y la landing (SCRUM-44)
+- `@/components/ui` (Button, Checkbox, Input, Spinner)
 - `features/session-guard` (ruta pública) y `features/registro-manual` (muestra los botones)
 
 ## 12. Contratos externos
 - `supabase.auth.signInWithOAuth`, `getUser`, `updateUser` y `unlinkIdentity`.
-- `updateUser({ data: { name, social_sign_up_completed_at } })` al enviar el formulario (SCRUM-43).
+- `updateUser({ data: { name, terms_accepted_at, social_sign_up_completed_at } })` al enviar el formulario (SCRUM-43 y SCRUM-44).
 - Google y Facebook habilitados en Authentication > Providers; `/registro/social` en las Redirect URLs de cada ambiente.
 - Manual Linking activo solo si `unlinkIdentity` lo requiere.
 - Sin tablas, RPC ni migraciones.
@@ -101,11 +107,13 @@ No incluye: ver §14.
 - SCRUM-43 CA-03: al continuar se guardan el nombre y la marca, y se entra a `/lista`. *Cubierto por:* `complete-sign-up.service.test.ts`, `CompleteSignUp.test.tsx`, E2E-SOCIAL-05, prueba manual.
 - SCRUM-43 CA-04: una cuenta que ya completó el registro, o una cuenta de correo, no ve el formulario. *Cubierto por:* `toCompleteSignUpAccount.test.ts`, `CompleteSignUp.test.tsx`.
 - SCRUM-43 CA-05: quien abandona el formulario, o vuelve con "atrás", y repite el registro social vuelve al formulario. *Cubierto por:* `social-sign-up.service.test.ts`, prueba manual.
+- SCRUM-44 CA-01: el formulario posterior a la autenticación social muestra el checkbox de términos sin marcar. *Cubierto por:* `CompleteSignUp.test.tsx`, E2E-SOCIAL-07.
+- SCRUM-44 CA-02: sin aceptar los términos no se puede continuar y la cuenta sigue sin entrar a la app; al aceptarlos se guarda `terms_accepted_at` con el nombre y la marca. *Cubierto por:* `CompleteSignUp.test.tsx`, `complete-sign-up.service.test.ts`, E2E-SOCIAL-05 y 07, prueba manual.
+- SCRUM-44 CA-03: el enlace "Ver términos y condiciones" abre el texto completo en `/terminos`, y "Volver" regresa a `/registro/completar`. *Cubierto por:* `CompleteSignUp.test.tsx`, E2E-SOCIAL-07 y 08.
 - SCRUM-43 CA-06: una cuenta social que no completó el registro no ve las pantallas privadas: abrir `/lista` (o "Ir a mi lista" en la landing) lleva a `/registro/completar`. *Cubierto por:* `isSocialSignUpPending.test.ts`, `CompleteSignUpGate.test.tsx`, E2E-SOCIAL-06, prueba manual.
 
 ## 14. Casos fuera de alcance
 - Bloquear en la base de datos (RLS) a una cuenta social que no completó el registro: ver §15.
-- Términos y condiciones en el registro social (HU-21, SCRUM-44).
 - Login con Google o Facebook desde `/login`.
 
 ## 15. Notas de implementación
@@ -120,3 +128,6 @@ No incluye: ver §14.
 - **SCRUM-43, sin sesión a tiempo:** si la sesión no llega en `COMPLETE_SIGN_UP_GATE_TIMEOUT_MS` (5 s), la puerta se abre en vez de dejar la pantalla en blanco.
 - **SCRUM-43, cuenta de correo reemplazada:** la puerta y el formulario deciden por `app_metadata.provider`, que es el primer proveedor de la cuenta. Una cuenta manual con el correo sin confirmar que Supabase reemplaza por Google al vincular conserva `provider: "email"`, así que no pasa por el formulario; ya tenía el nombre del registro manual.
 - **SCRUM-43, solo en el navegador:** las pantallas privadas leen con la sesión del navegador. Si alguna empieza a pedir datos desde el servidor, la puerta no la protege: lo que protege los datos es RLS.
+- **SCRUM-44, diferencia con el registro manual:** el registro manual bloquea el botón sin el checkbox, pero no guarda la aceptación, y su enlace abre una ventana con un texto de ejemplo. El registro social guarda la fecha en `user_metadata.terms_accepted_at` y enlaza al texto completo de `/terminos`. Igualar el registro manual queda para su propio ticket.
+- **SCRUM-44, cuentas de prueba anteriores:** una cuenta que completó el formulario de SCRUM-43 antes de este cambio ya tiene la marca y no vuelve a ver el checkbox. Solo afecta a cuentas de prueba, porque SCRUM-43 y SCRUM-44 llegan juntas al mismo entregable.
+- **SCRUM-44, valor de la evidencia:** `terms_accepted_at` usa el reloj del navegador y vive en `user_metadata`, que la persona puede editar o borrar. Sirve como registro informativo y para que la puerta pida aceptar los términos, no como prueba legal. Una evidencia con valor legal necesitaría escribirla desde el servidor (`app_metadata`, Edge Function o trigger).

@@ -44,3 +44,17 @@ Los tests están en `e2e/features/social-sign-up/complete-sign-up.spec.ts`. La s
 - **Cubre:** SCRUM-43 CA-06.
 - **Pasos:** con la sesión de una cuenta de Google sin marca, abrir `/lista`.
 - **Resultado esperado:** la URL pasa a `/registro/completar` y se ve "Completá tu registro".
+
+## SCRUM-44: términos y condiciones
+
+Mismo archivo y misma preparación que SCRUM-43. E2E-SOCIAL-04 y 05 marcan el checkbox antes de continuar, y E2E-SOCIAL-05 comprueba además que se guarde `terms_accepted_at`.
+
+### E2E-SOCIAL-07: sin aceptar los términos no se completa el registro
+- **Cubre:** SCRUM-44 CA-01, CA-02 y CA-03.
+- **Pasos:** abrir `/registro/completar` sin marcar el checkbox; después abrir `/lista`.
+- **Resultado esperado:** el checkbox "Acepto los términos y condiciones" está sin marcar, "Continuar" está deshabilitado, "Ver términos y condiciones" apunta a `/terminos`, `/lista` vuelve al formulario y no sale ningún guardado.
+
+### E2E-SOCIAL-08: volver desde los términos regresa al formulario
+- **Cubre:** SCRUM-44 CA-03.
+- **Pasos:** abrir `/registro/completar`; tocar "Ver términos y condiciones"; en `/terminos`, tocar "← Volver".
+- **Resultado esperado:** la URL pasa a `/terminos` y, al volver, a `/registro/completar`, donde se ve "Completá tu registro".

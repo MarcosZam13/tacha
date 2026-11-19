@@ -49,7 +49,7 @@ describe("getCompleteSignUpAccount", () => {
 
   // Completado en otro dispositivo: la sesión guardada todavía no tiene la marca.
   it("refreshes the stored session when the server says there is nothing to complete", async () => {
-    mockServerUser({ name: "Ana", [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16" });
+    mockServerUser({ name: "Ana", [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16", [USER_METADATA_KEY.TERMS_ACCEPTED_AT]: "2026-11-16" });
 
     const account = await getCompleteSignUpAccount();
 
@@ -58,7 +58,7 @@ describe("getCompleteSignUpAccount", () => {
   });
 
   it("still lets the account in when the session cannot be refreshed", async () => {
-    mockServerUser({ name: "Ana", [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16" });
+    mockServerUser({ name: "Ana", [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16", [USER_METADATA_KEY.TERMS_ACCEPTED_AT]: "2026-11-16" });
     refreshSession.mockRejectedValue(new TypeError("Failed to fetch"));
 
     expect((await getCompleteSignUpAccount()).status).toBe(COMPLETE_SIGN_UP_ACCOUNT_STATUS.NOT_NEEDED);
@@ -72,16 +72,20 @@ describe("getCompleteSignUpAccount", () => {
 });
 
 describe("saveCompletedSignUp", () => {
-  // SCRUM-43, CA-03
-  it("saves the trimmed name together with the completed mark", async () => {
+  // SCRUM-43, CA-03 y SCRUM-44: la aceptación de los términos se guarda en la misma llamada.
+  it("saves the trimmed name, the terms acceptance and the completed mark together", async () => {
     updateUser.mockResolvedValue({ error: null });
 
     const result = await saveCompletedSignUp("  Ana Pérez  ");
 
     expect(result).toBe(COMPLETE_SIGN_UP_SAVE_RESULT.SUCCESS);
-    expect(updateUser).toHaveBeenCalledWith({
-      data: { [USER_METADATA_KEY.NAME]: "Ana Pérez", [SOCIAL_SIGN_UP_COMPLETED_KEY]: expect.any(String) },
-    });
+    const savedData = updateUser.mock.calls[0][0].data;
+    expect(savedData[USER_METADATA_KEY.NAME]).toBe("Ana Pérez");
+    // Una fecha ISO válida, la misma que la marca: se aceptaron al completar el registro.
+    expect(new Date(savedData[USER_METADATA_KEY.TERMS_ACCEPTED_AT]).toISOString()).toBe(
+      savedData[USER_METADATA_KEY.TERMS_ACCEPTED_AT],
+    );
+    expect(savedData[USER_METADATA_KEY.TERMS_ACCEPTED_AT]).toBe(savedData[SOCIAL_SIGN_UP_COMPLETED_KEY]);
   });
 
   it("reports an error when Supabase does not save", async () => {

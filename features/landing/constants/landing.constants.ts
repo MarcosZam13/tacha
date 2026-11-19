@@ -1,3 +1,4 @@
+import { TERMS_ROUTE } from "@/constants";
 import type { InfoBlock } from "../models/InfoBlock.interface";
 import type { NavLink } from "../models/NavLink.interface";
 import type { PlatformFeature } from "../models/PlatformFeature.interface";
@@ -7,7 +8,7 @@ export const LANDING_ROUTE = {
   ABOUT: "/nosotros",
   HOME: "/",
   REGISTER: "/registro",
-  TERMS: "/terminos",
+  TERMS: TERMS_ROUTE,
 } as const;
 
 export const LANDING_SECTION_ID = {

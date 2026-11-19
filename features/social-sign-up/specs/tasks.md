@@ -26,3 +26,12 @@ Deriva de [plan.md](plan.md).
 - [x] 5b. Puerta de las pantallas privadas (`CompleteSignUpGate`, `isSocialSignUpPending`), su montaje en `app/(app)/layout.tsx`, pruebas y E2E-SOCIAL-06.
 - [ ] 6. Validar con cuentas reales: registro nuevo con Google y Facebook, abandono y vuelta, y una cuenta de correo.
 - [ ] 7. Revisar con `code-reviewer`, `security-reviewer` y `qa-checker`.
+
+## SCRUM-44: términos y condiciones en el registro social
+
+- [x] 1. `USER_METADATA_KEY.TERMS_ACCEPTED_AT` y guardado de la aceptación en `saveCompletedSignUp`.
+- [x] 2. Estado del checkbox en el ViewModel; "Continuar" deshabilitado sin aceptar.
+- [x] 3. Checkbox y enlace a `/terminos` en `CompleteSignUpForm`.
+- [x] 4. Pruebas unitarias y E2E-SOCIAL-07 y 08; E2E-SOCIAL-04 y 05 aceptan los términos.
+- [ ] 5. Validar con cuentas reales: sin aceptar no se continúa ni se entra a `/lista`; el enlace abre `/terminos`; al aceptar se guarda `terms_accepted_at`.
+- [ ] 6. Revisar con `code-reviewer`, `security-reviewer` y `qa-checker`.
