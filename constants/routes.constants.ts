@@ -9,6 +9,8 @@ export const APP_ROUTE = {
   FINANCE_HISTORY: "/finanzas/historial",
   HOUSEHOLD: "/household",
   LIST: "/lista",
+  // "Mis grupos" (SCRUM-109): pantalla secundaria de General, no ítem del menú (DESIGN.md §3.1).
+  LIST_GROUPS: "/lista/grupos",
   MEAL_PLANNER: "/recetas/planificador",
   PROFILE: "/perfil",
   RECIPES: "/recetas",
