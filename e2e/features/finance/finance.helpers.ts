@@ -11,6 +11,7 @@ import { getAuthStorageKey, getRequiredEnv } from "../../support/supabase";
 
 export const FINANCE_PATH = "/finanzas";
 export const FINANCE_HISTORY_PATH = "/finanzas/historial";
+export const FINANCE_PRODUCTS_PATH = "/finanzas/historial/productos";
 export const LIST_PATH = "/lista";
 export const LOGIN_PATH = "/login";
 
@@ -24,7 +25,7 @@ export const COLD_START_TEST_TIMEOUT_MS = 90_000;
 
 /** Pide las rutas antes de empezar: compiladas, no hay una recarga en medio del test. */
 export const warmUpRoutes = async (request: APIRequestContext): Promise<void> => {
-  for (const path of [PUBLIC_ORIGIN_PATH, LIST_PATH, FINANCE_PATH, FINANCE_HISTORY_PATH, LOGIN_PATH]) {
+  for (const path of [PUBLIC_ORIGIN_PATH, LIST_PATH, FINANCE_PATH, FINANCE_HISTORY_PATH, FINANCE_PRODUCTS_PATH, LOGIN_PATH]) {
     await request.get(path);
   }
 };
@@ -205,6 +206,89 @@ const toRpcError = ({ code, status }: SimulatedRpcError) => ({
   status,
 });
 
+// ----------------------------------------------------------------------------
+// SCRUM-93: la vista "Productos" (E2E.md, "Datos y entorno" de SCRUM-93). Imitan
+// el contrato de la 049: la agrupación, la búsqueda normalizada y el orden los
+// hace la base, y los cubre la prueba SQL. El tamaño del bloque sale del
+// page_limit que pide la pantalla, no se repite acá.
+// ----------------------------------------------------------------------------
+
+/** Un producto, como lo devuelve get_purchased_products. */
+export interface ProductRow {
+  appearance_count: number;
+  last_purchased_at: string;
+  product_catalog_variant_id: string | null;
+  product_key: string | null;
+  product_name: string | null;
+}
+
+const namedProduct = (productKey: string, productName: string, appearanceCount: number): ProductRow => ({
+  appearance_count: appearanceCount,
+  last_purchased_at: "2026-10-18T21:00:00+00:00",
+  product_catalog_variant_id: null,
+  product_key: productKey,
+  product_name: productName,
+});
+
+// Más productos que un bloque, para que exista "Cargar más", en el orden de D33.
+const FILLER_PRODUCT_COUNT = 30;
+export const PRODUCT_ROWS: ProductRow[] = [
+  namedProduct("leche", "Leche", 4),
+  namedProduct("azucar", "Azúcar", 2),
+  {
+    appearance_count: 1,
+    last_purchased_at: "2026-10-16T21:00:00+00:00",
+    product_catalog_variant_id: "00000000-0000-4000-8000-0000000000e1",
+    product_key: null,
+    product_name: null,
+  },
+  namedProduct("arroz", "Arroz", 1),
+  ...Array.from({ length: FILLER_PRODUCT_COUNT }, (_, index) =>
+    namedProduct(`producto ${String(index + 1).padStart(2, "0")}`, `Producto ${String(index + 1).padStart(2, "0")}`, 1),
+  ),
+];
+
+/** Una compra, como la devuelve get_product_purchases. */
+interface ProductPurchaseRow {
+  appearance_count: number;
+  closed_at: string;
+  id: string;
+  store_name: string | null;
+  total_amount: number | null;
+  variant_names: string[];
+}
+
+// Las compras de "Leche", de la más reciente a la más antigua (E2E.md).
+const MILK_PURCHASES: ProductPurchaseRow[] = [
+  {
+    appearance_count: 2,
+    closed_at: "2026-10-18T16:00:00+00:00",
+    id: "00000000-0000-4000-8000-0000000000d3",
+    store_name: "MaxiPali",
+    total_amount: 15000,
+    variant_names: ["1 L", "2 L"],
+  },
+  {
+    appearance_count: 1,
+    closed_at: "2026-10-14T16:00:00+00:00",
+    id: "00000000-0000-4000-8000-0000000000d2",
+    store_name: "Walmart",
+    total_amount: null,
+    variant_names: ["1 L"],
+  },
+  {
+    appearance_count: 1,
+    closed_at: "2026-10-12T16:00:00+00:00",
+    id: "00000000-0000-4000-8000-0000000000d1",
+    store_name: null,
+    total_amount: 8000,
+    variant_names: ["1 L"],
+  },
+];
+
+// Imita la búsqueda de la 049 solo para estos datos: sin mayúsculas ni tildes.
+const toSearchKey = (text: string): string => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+
 export interface FinanceStubOptions {
   /** Los presupuestos guardados al empezar, por periodo. */
   budgets?: Partial<Record<Scope, number>>;
@@ -230,6 +314,12 @@ export interface FinanceStubOptions {
   purchaseTotalErrors?: SimulatedRpcError[];
   /** La zona guardada al empezar. Sin ella, get_period_finance responde sin zona (regla 59). */
   savedTimeZone?: string;
+  /** Errores 500, uno por llamada y en orden, de get_purchased_products (por bloque, SCRUM-93). */
+  productBlockFailures?: boolean[];
+  /** Cuántas veces seguidas falla get_product_purchases antes de responder bien (SCRUM-93). */
+  failProductPurchasesTimes?: number;
+  /** Los productos de la base, en lugar de PRODUCT_ROWS (SCRUM-93). */
+  productRows?: ProductRow[];
 }
 
 /** Lo que la pantalla le pidió a Supabase, para comprobarlo en el test. */
@@ -244,6 +334,9 @@ export interface FinanceStubRecorder {
   rpcRequests: Request[];
   spendingRequests: Request[];
   timeZoneRequests: Request[];
+  /** get_purchased_products y get_product_purchases (SCRUM-93). */
+  productRequests: Request[];
+  productPurchaseRequests: Request[];
 }
 
 /**
@@ -261,6 +354,8 @@ export const stubFinanceSupabase = async (
     historyRequests: [],
     pendingRequests: [],
     periodFinanceRequests: [],
+    productPurchaseRequests: [],
+    productRequests: [],
     rpcRequests: [],
     spendingRequests: [],
     timeZoneRequests: [],
@@ -277,6 +372,9 @@ export const stubFinanceSupabase = async (
   let pendingRows: HistoryRow[] = [...(options.pendingRows ?? [])];
   const purchaseTotalErrors = [...(options.purchaseTotalErrors ?? [])];
   const periodTotalErrors = [...(options.periodTotalErrors ?? [])];
+  const productBlockFailures = [...(options.productBlockFailures ?? [])];
+  let productPurchasesFailuresLeft = options.failProductPurchasesTimes ?? 0;
+  const productRows = options.productRows ?? PRODUCT_ROWS;
 
   // Las compras del periodo, con los totales editados.
   const getPeriodRows = (scope: Scope): HistoryRow[] =>
@@ -454,6 +552,39 @@ export const stubFinanceSupabase = async (
       if (!isScope(scope)) return route.fulfill(toRpcError({ code: "22023", status: BAD_REQUEST_STATUS }));
       const saved = savePeriodTotal(scope, total).map((adjustment) => ({ ...adjustment, owner_id: buildFakeUser().id }));
       return route.fulfill({ json: saved, status: OK_STATUS });
+    }
+
+    if (pathname.endsWith("/rest/v1/rpc/get_purchased_products")) {
+      recorder.productRequests.push(request);
+      if (productBlockFailures.shift()) return route.fulfill({ json: SERVER_ERROR, status: SERVER_ERROR_STATUS });
+      const {
+        page_limit: limit,
+        page_offset: offset,
+        search_text: searchText,
+      } = request.postDataJSON() as { page_limit: number; page_offset: number; search_text: string };
+      const searchKey = toSearchKey(searchText);
+      const matching = productRows.filter(
+        (row) => searchKey === "" || (row.product_name !== null && toSearchKey(row.product_name).includes(searchKey)),
+      );
+      return route.fulfill({
+        json: { products: matching.slice(offset, offset + limit), total_count: matching.length },
+        status: OK_STATUS,
+      });
+    }
+
+    if (pathname.endsWith("/rest/v1/rpc/get_product_purchases")) {
+      recorder.productPurchaseRequests.push(request);
+      if (productPurchasesFailuresLeft > 0) {
+        productPurchasesFailuresLeft -= 1;
+        return route.fulfill({ json: SERVER_ERROR, status: SERVER_ERROR_STATUS });
+      }
+      const { target_product_key: productKey } = request.postDataJSON() as { target_product_key: string | null };
+      const rows = productKey === "leche" ? MILK_PURCHASES : [];
+      return route.fulfill({ headers: toContentRangeHeaders(rows.length), json: rows, status: OK_STATUS });
+    }
+
+    if (pathname.endsWith("/rest/v1/spending_time_zones")) {
+      return route.fulfill({ json: savedTimeZone ? [{ time_zone: savedTimeZone }] : [], status: OK_STATUS });
     }
 
     if (pathname.endsWith("/auth/v1/logout")) return route.fulfill({ status: NO_CONTENT_STATUS });

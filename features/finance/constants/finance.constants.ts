@@ -36,7 +36,8 @@ export const COLONES_AMOUNT = {
 // Tablas, columnas y RPC que usa services/finance.service.ts (SPEC §12).
 // purchase_sessions es de SCRUM-67 (016, 018) y no se modifica; spending_budgets
 // y set_spending_budget son de la migración 027; get_period_finance,
-// set_period_total, set_purchase_session_total y set_spending_time_zone, de la 040.
+// set_period_total, set_purchase_session_total y set_spending_time_zone, de la 040;
+// get_purchased_products y get_product_purchases, de la 049 (SCRUM-93).
 export const FINANCE_DB = {
   COLUMN: {
     CLOSED_AT: "closed_at",
@@ -45,6 +46,8 @@ export const FINANCE_DB = {
   },
   RPC: {
     GET_PERIOD_FINANCE: "get_period_finance",
+    GET_PRODUCT_PURCHASES: "get_product_purchases",
+    GET_PURCHASED_PRODUCTS: "get_purchased_products",
     SET_PERIOD_TOTAL: "set_period_total",
     SET_PURCHASE_SESSION_TOTAL: "set_purchase_session_total",
     SET_SPENDING_BUDGET: "set_spending_budget",
@@ -54,10 +57,13 @@ export const FINANCE_DB = {
     BUDGETS: "period, amount",
     PURCHASES: "id, closed_at, total_amount, stores(display_name)",
     SPENDING: "total_amount",
+    TIME_ZONE: "time_zone",
   },
   TABLE: {
     PURCHASE_SESSIONS: "purchase_sessions",
     SPENDING_BUDGETS: "spending_budgets",
+    // La zona guardada (040): la vista "Productos" la usa para las fechas del detalle (regla 87).
+    SPENDING_TIME_ZONES: "spending_time_zones",
   },
 } as const;
 
@@ -112,6 +118,77 @@ export const PENDING_TOTAL_REMINDER = {
   AFTER_HOURS: PENDING_TOTAL_REMINDER_HOURS,
   AFTER_MS: PENDING_TOTAL_REMINDER_HOURS * MS_PER_HOUR,
 } as const;
+
+// Vista "Productos" del Historial (SCRUM-93, SPEC §12, D35 y D44).
+// - PAGE_SIZE: el tamaño fijo de cada bloque. No puede pasar de 50, el tope de
+//   page_limit en la 049.
+// - MAX_OFFSET: el tope de page_offset en la 049. El cliente no pide más allá.
+// - SEARCH_MAX_LENGTH: el tope de search_text en la 049 (D44), en caracteres
+//   (code points, como char_length). Lo que pase se recorta sin error (§7).
+// - SEARCH_WAIT_MS: la espera después de escribir antes de buscar (plan, "Flujo").
+export const PRODUCT_HISTORY = {
+  MAX_OFFSET: 10_000,
+  PAGE_SIZE: 20,
+  SEARCH_MAX_LENGTH: 100,
+  SEARCH_WAIT_MS: 300,
+} as const;
+
+// Cómo se identifica un producto para pedir su detalle (models/ProductPurchaseTarget.type.ts).
+export const PRODUCT_TARGET_KIND = {
+  BY_NAME: "byName",
+  UNAVAILABLE: "unavailable",
+} as const;
+
+export type ProductTargetKindType = (typeof PRODUCT_TARGET_KIND)[keyof typeof PRODUCT_TARGET_KIND];
+
+// Vista "Productos" (SCRUM-93, SPEC §6). Cada una es una unión.
+// La lista: el primer bloque o una búsqueda nueva.
+export const PRODUCT_LIST_STATUS = {
+  EMPTY: "empty",
+  FAILED: "failed",
+  LOADING: "loading",
+  NO_MATCHES: "noMatches",
+  READY: "ready",
+} as const;
+
+export type ProductListStatusType = (typeof PRODUCT_LIST_STATUS)[keyof typeof PRODUCT_LIST_STATUS];
+
+// "Cargar más": si falla, lo ya cargado se conserva.
+export const PRODUCT_MORE_STATUS = {
+  IDLE: "idle",
+  LOADING_MORE: "loadingMore",
+  MORE_FAILED: "moreFailed",
+} as const;
+
+export type ProductMoreStatusType = (typeof PRODUCT_MORE_STATUS)[keyof typeof PRODUCT_MORE_STATUS];
+
+// El detalle de un producto. EMPTY: ya no tiene apariciones (regla 90), no es un error.
+export const PRODUCT_DETAIL_STATUS = {
+  EMPTY: "empty",
+  FAILED: "failed",
+  IDLE: "idle",
+  LOADING: "loading",
+  READY: "ready",
+} as const;
+
+export type ProductDetailStatusType = (typeof PRODUCT_DETAIL_STATUS)[keyof typeof PRODUCT_DETAIL_STATUS];
+
+// Las dos vistas del sub-tab Historial (D31). Son links: cada una es su pantalla.
+export const HISTORY_VIEW = {
+  PRODUCTS: "products",
+  PURCHASES: "purchases",
+} as const;
+
+export type HistoryViewType = (typeof HISTORY_VIEW)[keyof typeof HISTORY_VIEW];
+
+export const HISTORY_VIEWS = [
+  { href: APP_ROUTE.FINANCE_HISTORY, id: HISTORY_VIEW.PURCHASES, label: "Compras" },
+  { href: APP_ROUTE.FINANCE_HISTORY_PRODUCTS, id: HISTORY_VIEW.PRODUCTS, label: "Productos" },
+] as const satisfies ReadonlyArray<{ href: string; id: HistoryViewType; label: string }>;
+
+// Ids del detalle para aria-controls y aria-labelledby (SPEC §9).
+export const PRODUCT_DETAIL_ID = "detalle-producto";
+export const PRODUCT_DETAIL_TITLE_ID = `${PRODUCT_DETAIL_ID}-titulo`;
 
 // Los montos de purchase_sessions.total_amount tienen centavos (numeric(12, 2)):
 // se suman en centavos enteros para no arrastrar errores de punto flotante.
@@ -269,6 +346,40 @@ export const FINANCE_TEXT = {
   WITHOUT_TOTAL: "Sin total",
   WITHOUT_TOTAL_PLURAL: "compras sin total",
   WITHOUT_TOTAL_SINGULAR: "compra sin total",
+} as const;
+
+// Textos de la vista "Productos" (SCRUM-93, SPEC §7 a §9; propuestos, se ajustan en la revisión).
+export const PRODUCT_HISTORY_TEXT = {
+  // La aclaración de la regla 85: texto visible, no un tooltip.
+  AMOUNT_NOTE: "Es el total de cada compra completa, no el precio de este producto.",
+  DETAIL_EMPTY: "Este producto ya no aparece en tus compras cerradas.",
+  DETAIL_LOADING: "Cargando las compras del producto…",
+  DETAIL_LOAD_ERROR: "No se pudieron cargar las compras de este producto. Intenta de nuevo.",
+  // "Compras con Leche": el nombre de la lista del detalle.
+  DETAIL_LIST_PREFIX: "Compras con ",
+  LIST_LABEL: "Productos comprados",
+  LOAD_MORE: "Cargar más",
+  LOADING: "Cargando productos…",
+  LOAD_ERROR: "No se pudieron cargar tus productos. Intenta de nuevo.",
+  LOADING_MORE: "Cargando…",
+  MORE_ERROR: "No se pudieron cargar más productos. Intenta de nuevo.",
+  NAME_COUNT_SEPARATOR: ", ",
+  NO_MATCHES: "Sin resultados para esa búsqueda.",
+  EMPTY: "Todavía no tienes productos en compras cerradas.",
+  // "1 producto" / "12 productos", anunciado en role="status" al buscar (SPEC §9).
+  RESULTS_PLURAL_SUFFIX: " productos",
+  RESULTS_SINGULAR_SUFFIX: " producto",
+  SEARCH_LABEL: "Buscar producto",
+  // "1 vez" / "4 veces" (regla 89: veces, no compras).
+  TIMES_PLURAL_SUFFIX: " veces",
+  TIMES_SINGULAR_SUFFIX: " vez",
+  // "Total de la compra: ₡15 000" (regla 85).
+  TOTAL_PREFIX: "Total de la compra: ",
+  UNAVAILABLE: "Producto no disponible",
+  VARIANTS_SEPARATOR: ", ",
+  // "1 L, 2 L · 2 veces".
+  VARIANTS_TIMES_SEPARATOR: " · ",
+  VIEW_NAV_LABEL: "Vista del historial",
 } as const;
 
 // Sub-tabs de Finanzas (DESIGN.md §3.1; SPEC regla 31).

@@ -7,6 +7,7 @@ export const APP_ROUTE = {
   DATE_LISTS: "/fechas",
   FINANCE: "/finanzas",
   FINANCE_HISTORY: "/finanzas/historial",
+  FINANCE_HISTORY_PRODUCTS: "/finanzas/historial/productos",
   HOUSEHOLD: "/household",
   LIST: "/lista",
   LIST_SETTINGS: "/perfil/configuracion",

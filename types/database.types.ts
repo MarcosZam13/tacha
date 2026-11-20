@@ -1274,6 +1274,21 @@ export type Database = {
       }
       get_period_finance: { Args: { target_scope: string }; Returns: Json }
       get_personal_lists_decision_state: { Args: never; Returns: string }
+      get_product_purchases: {
+        Args: { target_product_key: string | null; target_variant_id: string | null }
+        Returns: {
+          appearance_count: number
+          closed_at: string
+          id: string
+          store_name: string | null
+          total_amount: number | null
+          variant_names: string[]
+        }[]
+      }
+      get_purchased_products: {
+        Args: { page_limit: number; page_offset: number; search_text: string }
+        Returns: Json
+      }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
         Returns: {

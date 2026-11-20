@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPriceDisclaimerPage } from "@/components/price-disclaimer/tests/PriceDisclaimer.page";
 import { APP_ROUTE } from "@/constants";
 import { PurchaseHistory } from "../PurchaseHistory";
-import { FINANCE_TEXT } from "../constants/finance.constants";
+import { FINANCE_TEXT, PRODUCT_HISTORY_TEXT } from "../constants/finance.constants";
 import type { PeriodBounds } from "../models/PeriodBounds.interface";
 import type { ZonedPeriodFinance } from "../models/PeriodFinance.type";
 import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
@@ -506,5 +506,20 @@ describe("PurchaseHistory: purchases without a total (SCRUM-92)", () => {
     await page.retry();
 
     expect(await page.findText("Tienes 1 compra sin total desde hace más de 24 horas")).toBeInTheDocument();
+  });
+});
+describe("PurchaseHistory: Compras / Productos selector (SCRUM-93, D31 and rule 92)", () => {
+  it("shows the selector with Compras active and a link to Productos, and the list does not change", async () => {
+    render(<PurchaseHistory />);
+    const page = createPurchaseHistoryPage();
+    const viewSwitch = await screen.findByRole("navigation", { name: PRODUCT_HISTORY_TEXT.VIEW_NAV_LABEL });
+
+    expect(within(viewSwitch).getByRole("link", { name: "Compras" })).toHaveAttribute("aria-current", "page");
+    expect(within(viewSwitch).getByRole("link", { name: "Productos" })).toHaveAttribute(
+      "href",
+      APP_ROUTE.FINANCE_HISTORY_PRODUCTS,
+    );
+    expect(within(viewSwitch).getByRole("link", { name: "Productos" })).not.toHaveAttribute("aria-current");
+    expect(await page.findPurchaseRows()).toHaveLength(WEEK_PURCHASES.length);
   });
 });
