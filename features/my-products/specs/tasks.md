@@ -168,8 +168,8 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 - [X] 22.3 Cuando se mergee SCRUM-88: editar tienda y precio (la PR que entre segunda los cablea)
   - [X] 22.3.1 Merge de `develop` con SCRUM-88 y resolución de conflictos
   - [X] 22.3.2 `supabase/migrations/055_update_personal_product_reference_price.sql` y su prueba SQL; caso 1 de la prueba de 052 con la firma nueva
-  - [ ] 22.3.3 Avisar al grupo, aplicar 055 en la base compartida y correr las pruebas SQL de 052 y 055
+  - [X] 22.3.3 Avisar al grupo, aplicar 055 en la base compartida y correr las pruebas SQL de 052 y 055
   - [X] 22.3.4 Servicio, `EditablePersonalProduct`, listado y `useCreateProductForm`: precarga y guarda tienda y precio
   - [X] 22.3.5 Unitarios y E2E-MISPROD-06
-  - [ ] 22.3.6 Correr los E2E de "Mis productos" con 055 aplicada
+  - [X] 22.3.6 Correr los E2E de "Mis productos" con 055 aplicada
 - [ ] 22.4 Descripción del PR y paso a `waiting qa`
