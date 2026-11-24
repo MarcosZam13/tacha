@@ -1,8 +1,8 @@
 import { useId } from "react";
 import { ProfileAvatar } from "@/components/profile-avatar/ProfileAvatar";
 import { Button } from "@/components/ui";
-import { AVATAR_SIZE, BUTTON_VARIANT } from "@/constants";
-import { AVATAR_ACCEPT, PROFILE_TEXT } from "../constants/profile.constants";
+import { AVATAR_SIZE, BUTTON_VARIANT, IMAGE_FILE_ACCEPT } from "@/constants";
+import { PROFILE_TEXT } from "../constants/profile.constants";
 import type { ProfilePhotoFieldProps } from "./models/ProfilePhotoFieldProps.interface";
 
 /**
@@ -32,7 +32,7 @@ export const ProfilePhotoField = ({
           <input
             id={inputId}
             type="file"
-            accept={AVATAR_ACCEPT}
+            accept={IMAGE_FILE_ACCEPT}
             aria-describedby={descriptionId}
             className="peer sr-only"
             onChange={(event) => {

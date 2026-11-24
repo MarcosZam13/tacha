@@ -1,9 +1,8 @@
-import { USER_METADATA_KEY } from "@/constants";
+import { IMAGE_FILE_EXTENSION_BY_MIME_TYPE, USER_METADATA_KEY } from "@/constants";
 import { getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { toUserProfile } from "@/utils/toUserProfile";
 import {
-  AVATAR_FILE_EXTENSION_BY_MIME_TYPE,
   AVATAR_STORAGE,
   PROFILE_PHOTO_CHANGE,
   SAVE_PROFILE_RESULT,
@@ -21,7 +20,7 @@ interface UploadedAvatar {
 // cambia y el navegador no sirve la foto vieja desde su caché. null si no se pudo subir. La política de
 // Storage exige que la carpeta sea la del usuario de la sesión.
 const uploadAvatar = async (userId: string, file: File): Promise<NullableRef<UploadedAvatar>> => {
-  const extension = AVATAR_FILE_EXTENSION_BY_MIME_TYPE[file.type];
+  const extension = IMAGE_FILE_EXTENSION_BY_MIME_TYPE[file.type];
   if (!extension) return null;
 
   const storage = getSupabaseClient().storage.from(AVATAR_STORAGE.BUCKET);
