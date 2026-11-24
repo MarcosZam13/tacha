@@ -31,4 +31,11 @@
 - [X] 5.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
 - [X] 5.3 Revisiones: `code-reviewer`, `security-reviewer`, `qa-checker`
 - [X] 5.4 `docs/documento-proyecto.md` §6: tablas implementadas
-- [ ] 5.5 Descripción de la PR y paso a `waiting qa`
+- [X] 5.5 Descripción de la PR y paso a `waiting qa`
+
+### 6. Ronda 1 de QA (qa denied)
+- [X] 6.1 BUG-1: un nombre de 60 caracteres sin espacios desbordaba la tarjeta y la página. `min-w-0` en el `<li>` y `break-words` en el nombre (`ProductGroupCard.tsx`)
+- [X] 6.2 Merge de `develop` (SCRUM-108): se conservan `LIST_GROUPS` y `LIST_SETTINGS` y todos los imports
+- [X] 6.3 TC-07 y TC-09 reescritos en la PR: TC-07 corta la red con la app ya cargada; TC-09 suma un nombre con espacios
+- [X] 6.4 `tsc`, lint, `npm test`, build; E2E-GRUPOS-01/02 y regresión de lista y shell
+- [X] 6.5 Descripción de la PR actualizada y paso a `waiting qa`
