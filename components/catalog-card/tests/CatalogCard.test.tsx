@@ -17,6 +17,19 @@ const CARD: CatalogCardData = {
 };
 
 describe("CatalogCard", () => {
+  // HU-58 (SCRUM-89): las acciones van debajo de la tarjeta, nunca dentro del link.
+  it("renders the actions outside the card link", () => {
+    render(
+      <ul>
+        <CatalogCard card={CARD} actions={<button type="button">Editar</button>} />
+      </ul>,
+    );
+    const page = createCatalogCardPage();
+
+    expect(page.getActionButton("Editar")).toBeInTheDocument();
+    expect(page.getLink().contains(page.getActionButton("Editar"))).toBe(false);
+  });
+
   // HU-57 CA-02: el precio de referencia lleva el aviso de que lo ingresó el usuario.
   it("marks a reference price as entered by the user and shows its store", () => {
     render(

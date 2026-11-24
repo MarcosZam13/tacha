@@ -33,6 +33,7 @@ const createProps = (overrides: Partial<CreateProductFormProps> = {}): CreatePro
   onCategoryChange: vi.fn(),
   onNameChange: vi.fn(),
   onOpen: vi.fn(),
+  onOpenEdit: vi.fn(),
   onPriceBlur: vi.fn(),
   onPriceChange: vi.fn(),
   onQuantityChange: vi.fn(),
@@ -51,6 +52,7 @@ const createProps = (overrides: Partial<CreateProductFormProps> = {}): CreatePro
   storeChoice: REFERENCE_STORE_CHOICE.NONE,
   storeName: "",
   storeNameError: undefined,
+  title: CREATE_PRODUCT_FORM_TEXT.TITLE,
   ...overrides,
 });
 
@@ -173,6 +175,14 @@ describe("CreateProductForm", () => {
     await page.cancel();
 
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  // HU-58 (SCRUM-89): el mismo formulario en modo edición cambia su título.
+  it("uses the title it receives (edit mode)", () => {
+    render(<CreateProductForm {...createProps({ title: CREATE_PRODUCT_FORM_TEXT.EDIT_TITLE })} />);
+    const page = createCreateProductFormPage();
+
+    expect(page.getDialogByTitle(CREATE_PRODUCT_FORM_TEXT.EDIT_TITLE)).toBeInTheDocument();
   });
 
   // HU-57 CA-01: tienda (sin tienda, los 3 súper, otra) y precio, los dos opcionales.

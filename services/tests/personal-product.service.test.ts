@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PERSONAL_PRODUCT_DB } from "@/constants/create-product-form.constants";
-import { createPersonalProduct, hasHousehold } from "../personal-product.service";
+import { PERSONAL_PRODUCT_DB, PERSONAL_PRODUCT_DELETE_RESULT } from "@/constants/create-product-form.constants";
+import { STORE_NAMES } from "@/constants/stores.constants";
+import {
+  createPersonalProduct,
+  deletePersonalProduct,
+  getPersonalProductUsage,
+  hasHousehold,
+  updatePersonalProduct,
+} from "../personal-product.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con un
 // getSession, un from() (hasHousehold) y un rpc() (createPersonalProduct);
@@ -204,3 +211,101 @@ describe("hasHousehold", () => {
     await expect(hasHousehold()).rejects.toBe(supabaseError);
   });
 });
+
+// HU-58 (SCRUM-89): editar, eliminar y consultar el uso, todo por RPC (migración 052).
+describe("updatePersonalProduct / deletePersonalProduct / getPersonalProductUsage", () => {
+  beforeEach(() => {
+    ensureSessionMock.mockReset();
+    rpcMock.mockReset();
+    ensureSessionMock.mockResolvedValue({ user: { id: USER_ID } });
+  });
+
+  it("calls update_personal_product with the payload mapped to its parameter names", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await updatePersonalProduct({
+      baseQuantity: 500,
+      baseUnit: "g",
+      brandName: "Finca Eva",
+      categoryId: "category-1",
+      name: "Queso Turrialba",
+      productId: "product-7",
+    });
+
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(PERSONAL_PRODUCT_DB.RPC.UPDATE_PERSONAL_PRODUCT, {
+      new_base_quantity: 500,
+      new_base_unit: "g",
+      new_brand_name: "Finca Eva",
+      new_category_id: "category-1",
+      new_product_name: "Queso Turrialba",
+      target_product_id: "product-7",
+    });
+  });
+
+  // HU-57 en edición (055): la tienda y el precio viajan igual que al crear.
+  it("sends the reference store and price to update_personal_product", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await updatePersonalProduct({
+      baseQuantity: 500,
+      baseUnit: "g",
+      categoryId: "category-1",
+      name: "Queso Turrialba",
+      productId: "product-7",
+      referencePrice: 2850.5,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+
+    expect(rpcMock).toHaveBeenCalledWith(
+      PERSONAL_PRODUCT_DB.RPC.UPDATE_PERSONAL_PRODUCT,
+      expect.objectContaining({
+        new_reference_price: 2850.5,
+        new_reference_store_name: undefined,
+        new_reference_store_slug: STORE_NAMES.MAXIPALI,
+      }),
+    );
+  });
+
+  it("rethrows the Supabase error when the update fails", async () => {
+    const supabaseError = { code: "42501", message: "No encontramos ese producto" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(
+      updatePersonalProduct({
+        baseQuantity: 1,
+        baseUnit: "unidad",
+        categoryId: "category-1",
+        name: "X",
+        productId: "product-7",
+      }),
+    ).rejects.toBe(supabaseError);
+  });
+
+  it("returns what delete_personal_product decided (deleted or archived)", async () => {
+    rpcMock.mockResolvedValue({ data: PERSONAL_PRODUCT_DELETE_RESULT.ARCHIVED, error: null });
+
+    await expect(deletePersonalProduct("product-7")).resolves.toBe(PERSONAL_PRODUCT_DELETE_RESULT.ARCHIVED);
+    expect(rpcMock).toHaveBeenCalledWith(PERSONAL_PRODUCT_DB.RPC.DELETE_PERSONAL_PRODUCT, {
+      target_product_id: "product-7",
+    });
+  });
+
+  it("fails instead of reporting zero uses when the RPC returns no row", async () => {
+    rpcMock.mockResolvedValue({ data: [], error: null });
+
+    await expect(getPersonalProductUsage("product-7")).rejects.toThrow(
+      "get_personal_product_usage no devolvió ninguna fila",
+    );
+  });
+
+  it("maps the usage row to camelCase", async () => {
+    rpcMock.mockResolvedValue({ data: [{ active_list_count: 2, recipe_count: 1 }], error: null });
+
+    await expect(getPersonalProductUsage("product-7")).resolves.toEqual({ activeListCount: 2, recipeCount: 1 });
+    expect(rpcMock).toHaveBeenCalledWith(PERSONAL_PRODUCT_DB.RPC.GET_PERSONAL_PRODUCT_USAGE, {
+      target_product_id: "product-7",
+    });
+  });
+});
+

@@ -8,6 +8,9 @@ export const createCatalogCardPage = () => {
   const getTitle = (title: string) => screen.getByRole("heading", { name: title });
   const queryBadge = (label: string) => screen.queryByText(label);
   const getImage = (title: string) => screen.getByRole("img", { name: title });
+  // HU-58: la tarjeta es un link; las acciones van aparte.
+  const getLink = () => screen.getByRole("link");
+  const getActionButton = (name: string) => screen.getByRole("button", { name });
   // HU-57: el aviso del precio de referencia y la tienda son texto (el ícono es decorativo).
   const queryText = (text: string) => screen.queryByText(text);
   // El precio comparte su <p> con el aviso oculto: se busca como parte del texto.
@@ -19,5 +22,5 @@ export const createCatalogCardPage = () => {
     return screen.queryByText(new RegExp(`(?<!\\d)${escapedLabel}(?!\\d)`));
   };
 
-  return { getImage, getTitle, queryBadge, queryPrice, queryText };
+  return { getActionButton, getImage, getLink, getTitle, queryBadge, queryPrice, queryText };
 };

@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
 import { toCatalogCards } from "@/utils/toCatalogCards";
-import type { CatalogProduct } from "@/types/catalog.types";
 import type { NullableRef } from "@/types/nullable.types";
 import { MY_PRODUCTS_STATUS, MY_PRODUCTS_TEXT } from "../constants/my-products.constants";
-import type { MyProductsViewModel } from "../models/my-products.interfaces";
+import type { MyProduct, MyProductCardItem, MyProductsViewModel } from "../models/my-products.interfaces";
 import { listMyProducts } from "../services/my-products.service";
+import { useMyProductDeletion } from "./useMyProductDeletion";
 
 interface MyProductsResponse {
   errorMessage: NullableRef<string>;
-  products: CatalogProduct[];
+  products: MyProduct[];
 }
+
+// HU-58: cada tarjeta (una por variante) lleva el producto al que apuntan sus
+// botones de editar y eliminar.
+const toCardItems = (products: MyProduct[]): MyProductCardItem[] =>
+  products.flatMap((product) =>
+    toCatalogCards([product], MY_PRODUCTS_TEXT.BADGE_LABEL).map((card) => ({ card, product: product.editable })),
+  );
 
 /**
  * Pantalla "Mis productos". A diferencia de "Buscar" (useProductSearch), acá
@@ -20,6 +27,7 @@ interface MyProductsResponse {
  * producto con éxito, para que se vea de inmediato sin recargar la página
  * (SPEC.md §4). Pasa por el mismo camino que el montaje inicial: vuelve a
  * `loading` mientras responde, en vez de actualizar las tarjetas a mitad de camino.
+ * HU-58 (SCRUM-89): también lo usan editar y eliminar.
  */
 export const useMyProductsViewModel = (): MyProductsViewModel => {
   const [response, setResponse] = useState<NullableRef<MyProductsResponse>>(null);
@@ -43,21 +51,26 @@ export const useMyProductsViewModel = (): MyProductsViewModel => {
     };
   }, [refreshKey]);
 
-  const cards = toCatalogCards(response?.products ?? [], MY_PRODUCTS_TEXT.BADGE_LABEL);
+  const items = toCardItems(response?.products ?? []);
+
+  const reload = (): void => {
+    setResponse(null);
+    setRefreshKey((key) => key + 1);
+  };
+
+  const deletion = useMyProductDeletion({ onDeleted: reload });
 
   return {
-    cards,
+    deletion,
     errorMessage: response?.errorMessage ?? null,
-    reload: () => {
-      setResponse(null);
-      setRefreshKey((key) => key + 1);
-    },
+    items,
+    reload,
     status:
       response === null
         ? MY_PRODUCTS_STATUS.LOADING
         : response.errorMessage !== null
           ? MY_PRODUCTS_STATUS.ERROR
-          : cards.length === 0
+          : items.length === 0
             ? MY_PRODUCTS_STATUS.EMPTY
             : MY_PRODUCTS_STATUS.READY,
   };
