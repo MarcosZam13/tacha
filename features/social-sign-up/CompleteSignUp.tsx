@@ -22,10 +22,12 @@ export const CompleteSignUp = (): React.JSX.Element => {
       {viewModel.isFormVisible ? (
         <CompleteSignUpForm
           isSubmitDisabled={viewModel.isSubmitDisabled}
+          isTermsAccepted={viewModel.isTermsAccepted}
           name={viewModel.name}
           nameError={viewModel.nameError}
           onNameChange={viewModel.handleNameChange}
           onSubmit={viewModel.handleSubmit}
+          onTermsAcceptedChange={viewModel.handleTermsAcceptedChange}
           saveError={viewModel.saveError}
           submitLabel={viewModel.submitLabel}
         />

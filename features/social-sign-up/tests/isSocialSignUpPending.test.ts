@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
+import { USER_METADATA_KEY } from "@/constants";
 import { SOCIAL_PROVIDER, SOCIAL_SIGN_UP_COMPLETED_KEY } from "../constants/social-sign-up.constants";
 import { isSocialSignUpPending } from "../utils/isSocialSignUpPending";
 
@@ -20,10 +21,17 @@ describe("isSocialSignUpPending", () => {
     },
   );
 
-  it("is not pending once the completed mark is saved", () => {
-    const user = buildUser({ user_metadata: { [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16" } });
+  it("is not pending once the completed mark and the terms are saved", () => {
+    const user = buildUser({ user_metadata: { [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16", [USER_METADATA_KEY.TERMS_ACCEPTED_AT]: "2026-11-16" } });
 
     expect(isSocialSignUpPending(user)).toBe(false);
+  });
+
+  // SCRUM-44: escribir solo la marca desde la consola no completa el registro.
+  it("is still pending with the completed mark but without the terms accepted", () => {
+    const user = buildUser({ user_metadata: { [SOCIAL_SIGN_UP_COMPLETED_KEY]: "2026-11-16" } });
+
+    expect(isSocialSignUpPending(user)).toBe(true);
   });
 
   it("is never pending for an email account", () => {
