@@ -130,7 +130,7 @@ No incluye: agregar a la lista (HU-74), editar (HU-75) ni eliminar (HU-75b).
 ## 7. Errores
 - Nombre vacío o de más de 60 caracteres: error en el campo, ligado con `aria-describedby`.
 - Sin productos: "Agrega al menos un producto."
-- Con 50 productos: el buscador se deshabilita y avisa "Llegaste al máximo de 50 productos."
+- Con 50 productos: elegir otro producto no agrega una fila nueva, y el `role="status"` avisa "Llegaste al máximo de 50 productos." (sumarle a una fila que ya está sí se puede).
 - Regla 7: el mensaje de la regla, con los nombres de los productos.
 - Falla el guardado: "No pudimos guardar el grupo. Intenta de nuevo." (`role="alert"`). Se conserva todo lo escrito.
 - Falla la búsqueda: el mensaje actual de `ProductSearch`.

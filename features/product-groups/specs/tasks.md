@@ -45,7 +45,7 @@
 ### 7. Arranque
 - [X] 7.1 Re-verificar: estado de las PRs #111 (89), #112 (109) y #101 (búsqueda); próximo número de migración libre en la base y en las ramas
 - [X] 7.2 Rama `ticket/SCRUM-110-create-product-group` desde `develop`; PR con `on hold` mientras 109 y 89 no estén mergeadas
-- [ ] 7.3 Avisar al grupo: migración `056`, función de búsqueda nueva (`search_catalog` no cambia), parámetro opcional en `useProductSearch`, `delete_personal_product` cuenta grupos
+- [X] 7.3 Avisar al grupo: migración `056`, función de búsqueda nueva (`search_catalog` no cambia), parámetro opcional en `useProductSearch`, `delete_personal_product` cuenta grupos
 - [X] 7.4 Con 109 en `develop`: secciones HU-73 en `SPEC.md`, `plan.md`, `tasks.md` y `E2E.md`
 
 ### 8. Refactor (commit aparte, sin cambio de comportamiento)
@@ -58,7 +58,7 @@
   - búsqueda: global sí, mío sí, de mi familia sí, personal ajeno no, archivado no, menos de 2 letras vacío, `is_personal` correcto, `anon` sin permiso
   - `create_product_group`: sin sesión `42501`; nombre vacío o de 61; 0 o 51 productos; cantidad 0, 100 o con decimales; variante repetida → `22023`; variante ajena o archivada → `P0002`; sin familia + compartir → personal; con familia sin compartir → personal; compartiendo → familia; compartiendo con un producto personal sin compartir → `22023` (regla 7); con uno compartido de la familia → OK; `owner_id` = quien llama; posiciones en orden
   - 052 ampliada: un producto en un grupo → `archived` y `group_count = 1`; uno sin uso → `deleted`
-- [ ] 9.3 Con 109 y 89 mergeadas y autorización de Daniel: aplicar `056` con su fila del historial en una transacción; correr la prueba; agregar los tipos a mano
+- [X] 9.3 Con 109 y 89 mergeadas y autorización de Daniel: aplicar `056` con su fila del historial en una transacción; correr la prueba; agregar los tipos a mano
 - [X] 9.4 `supabase/seed-demo-groups.sql` (mismo patrón que `seed-demo-recipes.sql`): un usuario de demo, 3 grupos con productos curados (uno compartido si tiene familia, uno con nombre largo), marcados con fecha `2000-01-01`, idempotente. Se corre solo si Daniel lo decide
 
 ### 10. Servicios y lógica pura
@@ -66,25 +66,25 @@
 - [X] 10.2 `product-group-editor.constants.ts` (`PRODUCT_GROUP_LIMIT`: nombre 60, productos 50, cantidad 1-99; textos; estados; acciones)
 - [X] 10.3 `utils/validateProductGroupForm.ts`
 - [X] 10.4 `utils/product-group-editor.reducer.ts` (reducer puro) + `utils/toProductGroupItemLabel.ts`; el hook `useProductGroupEditor` va con la 11
-- [ ] 10.5 `createProductGroup(draft)` en el servicio de la feature, con los errores `22023`/`P0002`/`42501` mapeados a textos
+- [X] 10.5 `createProductGroup(values)` en el servicio de la feature. Si la base rechaza, se muestra el mensaje genérico de guardado: el cliente ya valida las mismas reglas
 
 ### 11. ViewModel y UI (con 109 en `develop`)
-- [ ] 11.1 `useProductGroupEditorViewModel.ts`: búsqueda, filas, compartir con `hasHousehold`, guardar, `useReportUnsavedChanges`
-- [ ] 11.2 `ProductGroupItemRow.tsx` y `ProductGroupEditorActions.tsx`, con sus props en `models/`
-- [ ] 11.3 `ProductGroupEditor.tsx` + `app/(app)/lista/grupos/nuevo/page.tsx` + `APP_ROUTE.LIST_GROUP_NEW`
-- [ ] 11.4 "+ Crear grupo" en `ProductGroups.tsx` y "Crear tu primer grupo" en el estado vacío
-- [ ] 11.5 "Mis productos" (con 89 en `develop`): el aviso de eliminar suma los grupos (`group_count`)
+- [X] 11.1 `useProductGroupEditorViewModel.ts`: búsqueda, filas, compartir con `hasHousehold`, guardar, `useReportUnsavedChanges`
+- [X] 11.2 `ProductGroupItemRow.tsx` y `ProductGroupEditorActions.tsx`, con sus props en `models/`
+- [X] 11.3 `ProductGroupEditor.tsx` + `app/(app)/lista/grupos/nuevo/page.tsx` + `APP_ROUTE.LIST_GROUP_NEW`
+- [X] 11.4 "+ Crear grupo" en `ProductGroups.tsx` y "Crear tu primer grupo" en el estado vacío
+- [X] 11.5 "Mis productos" (con 89 en `develop`): el aviso de eliminar suma los grupos (`group_count`)
 
 ### 12. Tests
 - [X] 12.1 Unitarios puros: reducer y validación
-- [ ] 12.2 Servicios: `searchCatalogIncludingOwn`, `createProductGroup` (RPC y errores)
-- [ ] 12.3 Editor con Page Object (casos 8, 10, 11, 12 y 15)
-- [ ] 12.4 "Mis productos": aviso con grupos (caso 17)
-- [ ] 12.5 `E2E-GRUPOS-03` a `-05`; regresión de "Mis productos" y de la lista general
+- [X] 12.2 Servicios: `searchCatalogIncludingOwn`, `createProductGroup` (RPC y errores)
+- [X] 12.3 Editor con Page Object (casos 8, 10, 11, 12 y 15)
+- [X] 12.4 "Mis productos": aviso con grupos (caso 17)
+- [X] 12.5 `E2E-GRUPOS-03` a `-05`; regresión de "Mis productos" y de la lista general
 
 ### 13. Cierre
 - [ ] 13.1 Validar contra SPEC §13, casos 7 a 17
-- [ ] 13.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
+- [X] 13.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
 - [ ] 13.3 Subagentes `code-reviewer`, `security-reviewer` (RPC `security definer`) y `qa-checker`
-- [ ] 13.4 `docs/documento-proyecto.md` §4.11 y §6
+- [X] 13.4 `docs/documento-proyecto.md` §4.11 y §6
 - [ ] 13.5 Descripción de la PR y paso a `waiting qa`
