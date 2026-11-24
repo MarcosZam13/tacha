@@ -44,6 +44,9 @@ export const CATALOG_DB = {
   RPC: {
     LIST_CATALOG_BY_CATEGORY: "list_catalog_by_category",
     SEARCH_CATALOG: "search_catalog",
+    // SCRUM-110 (migración 056): como search_catalog, pero también trae mis
+    // productos y los de mi familia. search_catalog no cambia (SCRUM-131).
+    SEARCH_CATALOG_INCLUDING_OWN: "search_catalog_including_own",
   },
   TABLE: {
     VARIANTS: "product_catalog_variants",

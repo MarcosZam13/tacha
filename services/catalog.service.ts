@@ -1,6 +1,6 @@
 import { CATALOG_DB, POSTGRES_ERROR_CODE } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
-import { getSupabaseClient } from "@/services/supabase.client";
+import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import type {
   CatalogProduct,
@@ -33,6 +33,8 @@ const toPriceRangeByStore = (
 const toCatalogProducts = (
   products: ReadonlyArray<{
     category: string;
+    // Solo lo devuelve search_catalog_including_own (SCRUM-110).
+    is_personal?: boolean;
     name: string;
     product_catalog_id: string;
     variants: unknown;
@@ -40,6 +42,7 @@ const toCatalogProducts = (
 ): CatalogProduct[] =>
   products.map((product) => ({
     category: product.category,
+    isPersonal: product.is_personal,
     productId: product.product_catalog_id,
     productName: product.name,
     // variants es jsonb: la base no le da tipo, lo fija el contrato de la RPC.
@@ -59,6 +62,27 @@ const toCatalogProducts = (
  */
 export const searchCatalog = async (searchTerm: string): Promise<CatalogProduct[]> => {
   const { data: products, error } = await getSupabaseClient().rpc(CATALOG_DB.RPC.SEARCH_CATALOG, {
+    search_term: searchTerm,
+  });
+  if (error) throw error;
+
+  return toCatalogProducts(products);
+};
+
+/**
+ * Como searchCatalog(), pero también devuelve mis productos personalizados y
+ * los compartidos por mi familia (nunca los archivados), cada uno marcado con
+ * `isPersonal` si es personal sin compartir. Lo usa el editor de grupos
+ * (SCRUM-110); "Buscar" y la lista siguen usando searchCatalog().
+ *
+ * ensureSession() primero: la función solo la puede ejecutar authenticated
+ * (los anónimos de Supabase también lo son), y entrando directo a
+ * /lista/grupos/nuevo todavía puede no haber sesión.
+ */
+export const searchCatalogIncludingOwn = async (searchTerm: string): Promise<CatalogProduct[]> => {
+  await ensureSession();
+
+  const { data: products, error } = await getSupabaseClient().rpc(CATALOG_DB.RPC.SEARCH_CATALOG_INCLUDING_OWN, {
     search_term: searchTerm,
   });
   if (error) throw error;

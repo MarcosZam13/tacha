@@ -7,6 +7,10 @@ export const PRODUCT_GROUPS_DB = {
   COLUMN: {
     UPDATED_AT: "updated_at",
   },
+  // Crear un grupo con sus productos (SCRUM-110, migración 056).
+  RPC: {
+    CREATE_PRODUCT_GROUP: "create_product_group",
+  },
   // Cada grupo con el conteo de sus items (count embebido de PostgREST,
   // pasa por la RLS de product_group_items).
   SELECT: "id, name, household_id, updated_at, product_group_items(count)",
@@ -33,6 +37,9 @@ export const PRODUCT_GROUP_COUNT_LABEL = {
 
 export const PRODUCT_GROUPS_TEXT = {
   BACK_TO_LIST: "Volver a la lista",
+  // SCRUM-110: en la cabecera y en el estado vacío.
+  CREATE_FIRST_GROUP: "Crear tu primer grupo",
+  CREATE_GROUP: "+ Crear grupo",
   // Texto literal del CA-02 de HU-72.
   EMPTY_SUGGESTION: "Agrupá los productos que siempre comprás juntos",
   ERROR: "No pudimos cargar tus grupos. Intenta de nuevo.",

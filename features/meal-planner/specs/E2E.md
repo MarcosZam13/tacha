@@ -118,6 +118,18 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
   4. Volver a la semana actual.
 - **Resultado esperado:** después del paso 1 el botón está deshabilitado. Después del paso 2 está habilitado. Después del paso 3 está deshabilitado (la próxima semana no tiene comidas). Después del paso 4 está habilitado.
 
+### E2E-PLANNER-11: agregar la semana a una sublista por fecha
+
+- **Cubre:** SCRUM-160 CA-01, CA-02 y CA-03 (SPEC 17.10).
+- **Precondición:** la de E2E-PLANNER-06, con `E2E Flan` asignada al "Almuerzo" de hoy y una sublista "E2E Paseo" del 20 de diciembre de 2099.
+- **Pasos:**
+  1. Tocar "Agregar semana a la lista".
+  2. Elegir "E2E Paseo · 20 dic 2099" y tocar "Agregar".
+  3. Tocar "Ver lista".
+  4. Ir a `/lista`.
+- **Resultado esperado:** después del paso 1 está elegida "Lista general". Después del paso 2 el diálogo se cierra y el aviso dice "Agregaste N ingrediente(s) de 1 comida a E2E Paseo." Después del paso 3 la URL es la de la sublista y tiene al menos un producto. Después del paso 4 la lista general sigue vacía.
+- **Limpieza:** se borran los productos y las recetas. La sublista vacía queda en el usuario anónimo de la prueba, igual que en los E2E de sublistas.
+
 ### Fuera del navegador
 
 - El cálculo de la semana en domingo, cambio de mes, año, año bisiesto, hora de verano y después de las 6 p. m. en UTC-6: `tests/getWeekStart.test.ts`, `buildWeek.test.ts`, `toLocalDateKey.test.ts`, `formatWeekRange.test.ts`.

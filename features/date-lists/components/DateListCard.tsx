@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DATE_LIST_STATUS_LABEL, DATE_LIST_STATUS_MARK, DATE_LIST_STATUS_STYLE } from "../constants/date-lists.constants";
 import type { DateList } from "../models/DateList.interface";
 import { formatEventDate } from "../utils/eventDate";
-import { toDateListPath } from "../utils/toDateListPath";
+import { toDateListPath } from "@/utils/toDateListPath";
 
 interface DateListCardProps {
   list: DateList;
