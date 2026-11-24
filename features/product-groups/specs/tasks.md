@@ -107,7 +107,7 @@
 ### 16. Código
 - [X] 16.1 Constantes y `addGroupToList` en el servicio.
 - [X] 16.2 `useProductGroupListAddition.ts`.
-- [X] 16.3 Botón en `ProductGroupCard` + `ProductGroupAddResult`.
+- [X] 16.3 Botón en `ProductGroupCard` + `ProductGroupAddToListResult`.
 - [X] 16.4 Cablear en `useProductGroupsViewModel` y `ProductGroups.tsx`.
 
 ### 17. Tests
@@ -116,7 +116,7 @@
 - [X] 17.3 E2E-GRUPOS-06 (con la 110 en `develop`): crear grupo → agregar → filas en `/lista` → agregar otra vez suma sin filas nuevas. La otra presentación en fila aparte (CA-03) queda en la prueba SQL de la 057.
 
 ### 18. Cierre
-- [ ] 18.1 Validar SPEC §13 casos 1-8.
+- [ ] 18.1 Validar SPEC §13 casos 18-25.
 - [X] 18.2 `docs/DESIGN.md` §7.6: corregir lo de "reconciliación".
 - [X] 18.3 tsc, lint, test, build (Daniel autoriza).
 - [ ] 18.4 `code-reviewer`, `security-reviewer` (RPC sobre listas compartidas), `qa-checker`.

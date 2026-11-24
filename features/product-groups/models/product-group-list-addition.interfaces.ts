@@ -29,5 +29,7 @@ export interface ProductGroupCardAddToList {
 
 export interface ProductGroupListAdditionViewModel {
   getGroupAddToList: (groupId: string) => ProductGroupCardAddToList;
+  /** "Este grupo ya no existe.", fuera de las tarjetas: la del grupo desaparece al recargar. */
+  missingGroupNotice: NullableRef<string>;
   onAddToList: (group: ProductGroupListAdditionTarget) => void;
 }

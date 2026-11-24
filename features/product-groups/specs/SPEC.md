@@ -240,7 +240,7 @@ Por tarjeta: `idle` · `adding` · `added` · `error`.
 
 ## 7. Errores
 - Falla: "No pudimos agregar el grupo. Intenta de nuevo." (`role="alert"`).
-- El grupo ya no existe (lo borró otro miembro): "Este grupo ya no existe." y se recarga la pantalla.
+- El grupo ya no existe (lo borró otro miembro): "Este grupo ya no existe." (`role="alert"`, arriba de las tarjetas: la del grupo desaparece al recargar) y se recarga la pantalla.
 
 ## 8. UI esperada
 - Botón "Agregar a lista" en la tarjeta.
@@ -276,4 +276,4 @@ Por tarjeta: `idle` · `adding` · `added` · `error`.
 - Elegir cantidades al momento de agregar (para eso se edita el grupo, HU-75).
 - Etiqueta de origen "grupo" en las filas de la lista (doc :128): requiere guardar el origen, y la regla 6 dice que no se guarda.
 
-Dónde se prueba cada uno: casos 19-25 en `supabase/tests/057_add_group_to_general_list.test.sql` (reglas de la lista con datos reales); 18 y el mensaje en `tests/ProductGroups.test.tsx`; el recorrido completo (crear un grupo → agregarlo → verlo en la lista) en E2E, cuando HU-73 esté en `develop`.
+Dónde se prueba cada uno: casos 19-25 en `supabase/tests/057_add_group_to_general_list.test.sql` (reglas de la lista con datos reales); 18 y el mensaje en `tests/ProductGroups.test.tsx`; el recorrido completo (crear un grupo → agregarlo → verlo en la lista → agregarlo otra vez) en `E2E-GRUPOS-06` (casos 18, 19 y 21).

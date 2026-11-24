@@ -26,6 +26,11 @@ export const ProductGroups = (): React.JSX.Element => {
         <h1 className="font-display text-3xl font-bold text-tacha-text">{PRODUCT_GROUPS_TEXT.TITLE}</h1>
         <CreateProductGroupLink label={PRODUCT_GROUPS_TEXT.CREATE_GROUP} />
       </div>
+      {viewModel.missingGroupNotice !== null ? (
+        <p role="alert" className="font-body text-sm text-red-600">
+          {viewModel.missingGroupNotice}
+        </p>
+      ) : null}
 
       {viewModel.status === PRODUCT_GROUPS_STATUS.LOADING ? <Spinner label={PRODUCT_GROUPS_TEXT.LOADING} /> : null}
       {viewModel.status === PRODUCT_GROUPS_STATUS.ERROR ? (

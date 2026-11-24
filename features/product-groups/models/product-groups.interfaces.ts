@@ -26,6 +26,8 @@ export interface ProductGroupsViewModel {
   /** SCRUM-111: estado de "Agregar a lista" para la tarjeta de ese grupo. */
   getGroupAddToList: (groupId: string) => ProductGroupCardAddToList;
   groups: ProductGroupCardData[];
+  /** SCRUM-111: el grupo que se quiso agregar ya no existe (aviso de pantalla). */
+  missingGroupNotice: NullableRef<string>;
   onAddToList: (group: ProductGroupCardData) => void;
   /** Vuelve a pedir los grupos (botón "Reintentar"). */
   reload: () => void;

@@ -123,20 +123,20 @@
 | Archivo | Nuevo/toca | Responsabilidad |
 |---|---|---|
 | `supabase/migrations/057_add_group_to_general_list.sql` | nuevo | RPC + grant |
-| `supabase/tests/057_add_group_to_general_list.test.sql` | nuevo | Casos 2-8 en SQL |
+| `supabase/tests/057_add_group_to_general_list.test.sql` | nuevo | Casos 19-25 en SQL |
 | `types/database.types.ts` | toca | Bloque de la función nueva, a mano (como en 054 y 056) |
-| `features/product-groups/constants/product-groups.constants.ts` | toca | `PRODUCT_GROUPS_DB.RPC.ADD_TO_LIST`, textos, `PRODUCT_GROUP_ADD_STATUS` |
+| `features/product-groups/constants/product-groups.constants.ts` | toca | `PRODUCT_GROUPS_DB.RPC.ADD_GROUP_TO_GENERAL_LIST`, `PRODUCT_GROUP_ADD_TO_LIST_TEXT`, `PRODUCT_GROUP_LIST_ADDITION_STATUS` |
 | `features/product-groups/services/product-groups.service.ts` | toca | `addGroupToList(groupId) → { added, skipped }` |
 | `features/product-groups/hooks/useProductGroupListAddition.ts` | nuevo | Estado por tarjeta + mensaje (patrón de `features/recipes/hooks/useRecipeListAddition.ts`) |
 | `features/product-groups/hooks/useProductGroupsViewModel.ts` | toca | Expone `onAddToList(groupId)` y el resultado |
 | `features/product-groups/components/ProductGroupCard.tsx` | toca | Botón "Agregar a lista" |
-| `features/product-groups/components/ProductGroupAddResult.tsx` | nuevo | Mensaje + link "Ver lista" |
+| `features/product-groups/components/ProductGroupAddToListResult.tsx` | nuevo | Mensaje + link "Ver lista" |
 | `docs/DESIGN.md` §7.6 | toca | Quitar "dispara la reconciliación de cantidades (7.3)" |
-| tests + E2E-GRUPOS-06..08 | nuevo | |
+| tests + `E2E-GRUPOS-06` | nuevo | |
 
 ### Datos: migración 057
 ```sql
-create or replace function public.add_group_to_general_list(target_group_id uuid)
+create function public.add_group_to_general_list(target_group_id uuid)
 returns jsonb language plpgsql set search_path = '' as $$
 declare
   found_group_id uuid;

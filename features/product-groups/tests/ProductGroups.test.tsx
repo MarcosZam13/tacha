@@ -159,7 +159,9 @@ describe("ProductGroups", () => {
       await page.addToList(PERSONAL_GROUP.name);
 
       expect(page.getAddToListButton(PERSONAL_GROUP.name)).toBeDisabled();
+      expect(page.getAddToListButton(PERSONAL_GROUP.name)).toHaveTextContent("Agregando…");
       expect(page.getAddToListButton(SHARED_GROUP.name)).toBeDisabled();
+      expect(page.getAddToListButton(SHARED_GROUP.name)).toHaveTextContent("Agregar a lista");
       expect(addGroupToListMock).toHaveBeenCalledTimes(1);
     });
 
@@ -178,17 +180,20 @@ describe("ProductGroups", () => {
       expect(page.queryViewListLink(PERSONAL_GROUP.name)).not.toBeInTheDocument();
     });
 
-    // Otro miembro lo borró: se avisa y se vuelve a pedir la lista de grupos.
-    it("reloads the groups when the group no longer exists", async () => {
-      listProductGroupsMock.mockResolvedValue([PERSONAL_GROUP]);
+    // Otro miembro lo borró: se vuelve a pedir la lista de grupos (ya sin él)
+    // y el aviso sigue visible aunque su tarjeta desaparezca.
+    it("reloads the groups and keeps the notice when the group no longer exists", async () => {
+      listProductGroupsMock.mockResolvedValueOnce([PERSONAL_GROUP, SHARED_GROUP]).mockResolvedValueOnce([SHARED_GROUP]);
       addGroupToListMock.mockResolvedValue(null);
       render(<ProductGroups />);
       const page = createProductGroupsPage();
-      await waitFor(() => expect(page.queryCardNames()).toHaveLength(1));
+      await waitFor(() => expect(page.queryCardNames()).toHaveLength(2));
 
       await page.addToList(PERSONAL_GROUP.name);
 
-      await waitFor(() => expect(listProductGroupsMock).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(page.queryCardNames()).toEqual([SHARED_GROUP.name]));
+      expect(listProductGroupsMock).toHaveBeenCalledTimes(2);
+      expect(page.queryError()).toHaveTextContent("Este grupo ya no existe.");
     });
   });
 });

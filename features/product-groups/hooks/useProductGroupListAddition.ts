@@ -25,22 +25,22 @@ const IDLE_STATE: ProductGroupListAdditionState = { status: PRODUCT_GROUP_LIST_A
  * suma las cantidades, que es lo que pide CA-02.
  *
  * `onGroupMissing` lo llama la pantalla para recargar si el grupo ya no existe
- * (lo borró otro miembro de la familia).
+ * (lo borró otro miembro de la familia). Ese aviso va a nivel de pantalla
+ * (`missingGroupNotice`): con la recarga, la tarjeta del grupo desaparece.
  */
 export const useProductGroupListAddition = (onGroupMissing: () => void): ProductGroupListAdditionViewModel => {
   const [state, setState] = useState<ProductGroupListAdditionState>(IDLE_STATE);
+  const [missingGroupNotice, setMissingGroupNotice] = useState<NullableRef<string>>(null);
   const isAdding = state.status === PRODUCT_GROUP_LIST_ADDITION_STATUS.ADDING;
 
   const addGroup = async (group: ProductGroupListAdditionTarget): Promise<void> => {
     setState({ group, status: PRODUCT_GROUP_LIST_ADDITION_STATUS.ADDING });
+    setMissingGroupNotice(null);
     try {
       const response = await addGroupToList(group.id);
       if (!response) {
-        setState({
-          errorMessage: PRODUCT_GROUP_ADD_TO_LIST_TEXT.NOT_FOUND,
-          group,
-          status: PRODUCT_GROUP_LIST_ADDITION_STATUS.FAILED,
-        });
+        setState(IDLE_STATE);
+        setMissingGroupNotice(PRODUCT_GROUP_ADD_TO_LIST_TEXT.NOT_FOUND);
         onGroupMissing();
         return;
       }
@@ -77,5 +77,5 @@ export const useProductGroupListAddition = (onGroupMissing: () => void): Product
     isDisabled: isAdding,
   });
 
-  return { getGroupAddToList, onAddToList };
+  return { getGroupAddToList, missingGroupNotice, onAddToList };
 };
