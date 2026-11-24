@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { getCatalogVariantDetail, getCategories, listCatalogByCategory } from "../catalog.service";
+import { CATALOG_DB } from "@/constants";
+import { getCatalogVariantDetail, getCategories, listCatalogByCategory, searchCatalogIncludingOwn } from "../catalog.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso con un
 // rpc() y un from() que arma su propia cadena encadenable (mismo patrón que
@@ -7,7 +8,10 @@ import { getCatalogVariantDetail, getCategories, listCatalogByCategory } from ".
 const rpcMock = vi.fn();
 const fromMock = vi.fn();
 
+const ensureSessionMock = vi.fn();
+
 vi.mock("@/services/supabase.client", () => ({
+  ensureSession: () => ensureSessionMock(),
   getSupabaseClient: () => ({ from: fromMock, rpc: rpcMock }),
 }));
 
@@ -53,6 +57,41 @@ describe("listCatalogByCategory", () => {
     rpcMock.mockResolvedValue({ data: null, error });
 
     await expect(listCatalogByCategory(null)).rejects.toThrow("boom");
+  });
+});
+
+// SCRUM-110: la búsqueda del editor de grupos, que también trae productos propios.
+describe("searchCatalogIncludingOwn", () => {
+  // Solo authenticated la ejecuta: sin sesión (entrando directo a /lista/grupos/nuevo) fallaría.
+  it("makes sure there is a session, then calls search_catalog_including_own with the term", async () => {
+    ensureSessionMock.mockResolvedValue({});
+    rpcMock.mockResolvedValue({ data: [], error: null });
+
+    await searchCatalogIncludingOwn("leche");
+
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(CATALOG_DB.RPC.SEARCH_CATALOG_INCLUDING_OWN, { search_term: "leche" });
+  });
+
+  it("marks a personal product that is not shared", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        { category: "Lácteos", is_personal: true, name: "Queso casero", product_catalog_id: "product-1", variants: [] },
+        { category: "Lácteos", is_personal: false, name: "Leche", product_catalog_id: "product-2", variants: [] },
+      ],
+      error: null,
+    });
+
+    const [personal, global] = await searchCatalogIncludingOwn("que");
+
+    expect(personal.isPersonal).toBe(true);
+    expect(global.isPersonal).toBe(false);
+  });
+
+  it("throws when the RPC fails", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: new Error("boom") });
+
+    await expect(searchCatalogIncludingOwn("leche")).rejects.toThrow("boom");
   });
 });
 

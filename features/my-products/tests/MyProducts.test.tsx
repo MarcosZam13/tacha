@@ -142,7 +142,7 @@ describe("MyProducts", () => {
   it("asks before deleting, warns where the product is used and reloads after deleting", async () => {
     // Primera carga con el producto; la recarga después de eliminar ya no lo trae.
     listMyProductsMock.mockResolvedValueOnce([MANUAL_PRODUCT]).mockResolvedValueOnce([]);
-    getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 1, recipeCount: 0 });
+    getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 1, groupCount: 0, recipeCount: 0 });
     deletePersonalProductMock.mockResolvedValue("archived");
     render(<MyProducts />);
     const page = createMyProductsPage();

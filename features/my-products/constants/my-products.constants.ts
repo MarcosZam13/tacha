@@ -67,6 +67,10 @@ export const MY_PRODUCT_DELETE_TEXT = {
   // Aviso de CA-02: "Está en 2 listas activas y 1 receta; ahí lo vas a seguir
   // viendo." Las piezas se arman en utils/toUsageNoticeText.ts.
   USAGE_AND: "y",
+  // SCRUM-110: un producto en un grupo también está en uso.
+  USAGE_GROUP_PLURAL: "grupos",
+  USAGE_GROUP_SINGULAR: "grupo",
+  USAGE_LIST_SEPARATOR: ",",
   USAGE_LIST_PLURAL: "listas activas",
   USAGE_LIST_SINGULAR: "lista activa",
   USAGE_PREFIX: "Está en",

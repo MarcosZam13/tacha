@@ -20,13 +20,13 @@ afterEach(cleanup);
 
 beforeEach(() => {
   vi.resetAllMocks();
-  getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 0, recipeCount: 0 });
+  getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 0, groupCount: 0, recipeCount: 0 });
 });
 
 // HU-58 (SCRUM-89) CA-02: eliminar siempre pide confirmación; si se usa, avisa dónde.
 describe("useMyProductDeletion", () => {
   it("opens the dialog with the product name and counts where it is used", async () => {
-    getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 2, recipeCount: 1 });
+    getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 2, groupCount: 0, recipeCount: 1 });
     const { result } = renderHook(() => useMyProductDeletion({ onDeleted: vi.fn() }));
 
     act(() => result.current.onDeleteRequest(PRODUCT));
