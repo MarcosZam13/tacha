@@ -54,7 +54,7 @@ export const useProductGroupsViewModel = (): ProductGroupsViewModel => {
     errorMessage: response?.errorMessage ?? null,
     getGroupAddToList: listAddition.getGroupAddToList,
     groups,
-    onAddToList: (group) => listAddition.onAddToList({ id: group.id, name: group.name }),
+    onAddToList: listAddition.onAddToList,
     reload,
     status: resolveStatus(response, groups.length),
   };

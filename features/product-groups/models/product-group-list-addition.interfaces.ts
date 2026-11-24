@@ -1,4 +1,5 @@
 import type { NullableRef } from "@/types/nullable.types";
+import type { ProductGroupListAdditionTarget } from "./product-group-list-addition.types";
 
 // Interfaces de agregar un grupo a la lista (SCRUM-111). La unión de estados
 // está en product-group-list-addition.types.ts.
@@ -28,5 +29,5 @@ export interface ProductGroupCardAddToList {
 
 export interface ProductGroupListAdditionViewModel {
   getGroupAddToList: (groupId: string) => ProductGroupCardAddToList;
-  onAddToList: (group: { id: string; name: string }) => void;
+  onAddToList: (group: ProductGroupListAdditionTarget) => void;
 }

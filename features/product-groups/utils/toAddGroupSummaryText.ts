@@ -1,4 +1,4 @@
-import { PRODUCT_GROUP_COUNT_LABEL, PRODUCT_GROUP_ADD_TO_LIST_TEXT } from "../constants/product-groups.constants";
+import { PRODUCT_GROUP_ADD_TO_LIST_TEXT, PRODUCT_GROUP_COUNT_LABEL } from "../constants/product-groups.constants";
 import type { AddGroupToListResponse } from "../models/product-group-list-addition.interfaces";
 
 /**

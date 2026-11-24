@@ -39,3 +39,37 @@
 - [X] 6.3 TC-07 y TC-09 reescritos en la PR: TC-07 corta la red con la app ya cargada; TC-09 suma un nombre con espacios
 - [X] 6.4 `tsc`, lint, `npm test`, build; E2E-GRUPOS-01/02 y regresión de lista y shell
 - [X] 6.5 Descripción de la PR actualizada y paso a `waiting qa`
+
+## SCRUM-111 — HU-74 Agregar un grupo a la lista
+
+> El código se arma sin la 110; el E2E, la QA y el merge esperan a que esté en `develop`.
+
+### 14. Arranque
+- [X] 14.1 Re-verificar: PR propia `in progress` = ninguna; próximo número de migración (057); `add_units_to_list_item` y `ensure_general_list_id` sin cambios (base, 2026-11-24).
+- [X] 14.2 Rama `ticket/SCRUM-111-add-group-to-list` desde `develop`; PR con `in progress`.
+- [ ] 14.3 Acordar con el grupo el número de migración (057) ANTES de crear el archivo; nueva forma de llenar la lista general (Marcos/Roberto: lista y faltantes; aclarar que no escribe `list_item_recipe_requirements`).
+- [ ] 14.4 Sección HU-74 en SPEC/plan/tasks/E2E del equipo.
+
+### 15. Base
+- [X] 15.1 `057_add_group_to_general_list.sql`.
+- [X] 15.2 Prueba SQL: sin sesión 42501; grupo ajeno P0002; lista vacía → N filas con sus cantidades; misma variante pendiente → suma; dos veces → doble; otra variante → fila aparte; tachada → fila nueva; archivado → `skipped`; miembro con grupo compartido → lista de la familia; 0 filas en `list_item_recipe_requirements`.
+- [X] 15.3 Daniel autoriza → aplicar (SQL del archivo + fila en `supabase_migrations.schema_migrations`, en una transacción); correr prueba; regenerar tipos.
+
+### 16. Código
+- [X] 16.1 Constantes y `addGroupToList` en el servicio.
+- [X] 16.2 `useProductGroupListAddition.ts`.
+- [X] 16.3 Botón en `ProductGroupCard` + `ProductGroupAddResult`.
+- [X] 16.4 Cablear en `useProductGroupsViewModel` y `ProductGroups.tsx`.
+
+### 17. Tests
+- [X] 17.1 Servicio y hook (adding/added/error, mensaje con saltados).
+- [X] 17.2 Vista con Page Object (botón deshabilitado mientras agrega, link "Ver lista").
+- [ ] 17.3 E2E: E2E-GRUPOS-06 (con la 110 en `develop`: crear grupo → agregar → filas en `/lista`), -07 (misma presentación suma), -08 (otra presentación, fila aparte).
+
+### 18. Cierre
+- [ ] 18.1 Validar SPEC §13 casos 1-8.
+- [X] 18.2 `docs/DESIGN.md` §7.6: corregir lo de "reconciliación".
+- [ ] 18.3 tsc, lint, test, build (Daniel autoriza).
+- [ ] 18.4 `code-reviewer`, `security-reviewer` (RPC sobre listas compartidas), `qa-checker`.
+- [ ] 18.5 Body de la PR → `waiting qa`; Jira (Daniel).
+- [ ] 18.6 Actualizar should-know y progress.

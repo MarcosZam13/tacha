@@ -30,3 +30,13 @@ Nivel más bajo que alcanza: los estados de la pantalla (cargando, error, reinte
   1. Abrir `/lista/grupos`.
   2. Tocar "Volver a la lista".
 - **Resultado esperado:** en el paso 1 se ve "Agrupá los productos que siempre comprás juntos". Después del paso 2 la URL es `/lista`.
+
+### E2E-GRUPOS-06: agregar un grupo a la lista (pendiente: necesita HU-73 en `develop`)
+
+- **Cubre:** HU-74 CA-01, CA-02 y CA-03 (casos 18, 19, 20 y 22).
+- **Precondición:** usuario anónimo nuevo. El grupo se crea con la pantalla de HU-73: el cliente no puede escribir grupos directo.
+- **Pasos:**
+  1. Crear un grupo con dos veces la misma presentación de "Leche" (queda ×2) y un "Chocolate".
+  2. En "Mis grupos", tocar "Agregar a lista" en su tarjeta.
+  3. Tocar "Ver lista".
+- **Resultado esperado:** la tarjeta dice "Agregamos 2 productos de «…» a tu lista." y la lista general tiene la Leche ×2 y el Chocolate ×1. Agregar el grupo otra vez deja la Leche ×4, sin filas nuevas.

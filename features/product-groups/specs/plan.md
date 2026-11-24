@@ -45,3 +45,74 @@
 | `count` embebido de PostgREST | RPC `list_product_groups` | Una sola consulta con la RLS aplicada; no hay lógica que justifique una función |
 | `ensureSession()` antes de leer | Leer con la sesión que haya | Entrando directo a `/lista/grupos` puede no haber sesión todavía y la consulta saldría como `anon` |
 | Sin botón de crear en esta historia | Botón que lleva a una ruta que todavía no existe | No dejar links rotos entre PRs |
+
+## HU-74 — Agregar un grupo a la lista (SCRUM-111)
+
+### Archivos
+
+| Archivo | Nuevo/toca | Responsabilidad |
+|---|---|---|
+| `supabase/migrations/057_add_group_to_general_list.sql` | nuevo | RPC + grant |
+| `supabase/tests/057_add_group_to_general_list.test.sql` | nuevo | Casos 2-8 en SQL |
+| `types/database.types.ts` | toca | Bloque de la función nueva, a mano (como en 054 y 056) |
+| `features/product-groups/constants/product-groups.constants.ts` | toca | `PRODUCT_GROUPS_DB.RPC.ADD_TO_LIST`, textos, `PRODUCT_GROUP_ADD_STATUS` |
+| `features/product-groups/services/product-groups.service.ts` | toca | `addGroupToList(groupId) → { added, skipped }` |
+| `features/product-groups/hooks/useProductGroupListAddition.ts` | nuevo | Estado por tarjeta + mensaje (patrón de `features/recipes/hooks/useRecipeListAddition.ts`) |
+| `features/product-groups/hooks/useProductGroupsViewModel.ts` | toca | Expone `onAddToList(groupId)` y el resultado |
+| `features/product-groups/components/ProductGroupCard.tsx` | toca | Botón "Agregar a lista" |
+| `features/product-groups/components/ProductGroupAddResult.tsx` | nuevo | Mensaje + link "Ver lista" |
+| `docs/DESIGN.md` §7.6 | toca | Quitar "dispara la reconciliación de cantidades (7.3)" |
+| tests + E2E-GRUPOS-06..08 | nuevo | |
+
+### Datos: migración 057
+```sql
+create or replace function public.add_group_to_general_list(target_group_id uuid)
+returns jsonb language plpgsql set search_path = '' as $$
+declare
+  found_group_id uuid;
+  general_list_id uuid;
+  group_item record;
+  added_names text[] := '{}';
+  skipped_names text[] := '{}';
+begin
+  if auth.uid() is null then raise exception '...' using errcode = '42501'; end if;
+  select g.id into found_group_id from public.product_groups g where g.id = target_group_id; -- RLS
+  if found_group_id is null then raise exception 'Grupo no encontrado' using errcode = 'P0002'; end if;
+  general_list_id := public.ensure_general_list_id();
+  perform pg_advisory_xact_lock(hashtextextended(general_list_id::text, 0));
+  for group_item in
+    select gi.product_catalog_variant_id, gi.quantity, pc.name as product_name, pc.archived_at,
+           (v.id is not null) as is_visible
+    from public.product_group_items gi
+    left join public.product_catalog_variants v on v.id = gi.product_catalog_variant_id  -- RLS
+    left join public.product_catalog pc on pc.id = v.product_catalog_id
+    where gi.group_id = found_group_id
+    order by gi.position
+  loop
+    if not group_item.is_visible or group_item.archived_at is not null then
+      skipped_names := array_append(skipped_names, coalesce(group_item.product_name, '…'));
+      continue;
+    end if;
+    perform public.add_units_to_list_item(general_list_id, group_item.product_catalog_variant_id, group_item.quantity);
+    added_names := array_append(added_names, group_item.product_name);
+  end loop;
+  return jsonb_build_object('added', to_jsonb(added_names), 'skipped', to_jsonb(skipped_names));
+end $$;
+grant execute on function public.add_group_to_general_list(uuid) to authenticated;
+```
+- **Invoker**, como `add_recipe_to_general_list`: la RLS de `product_groups`, `product_catalog_variants` y `list_items` hace el trabajo. `ensure_general_list_id` ya es definer.
+- ⟳ Nombre del producto saltado cuando la variante no es visible: no se puede leer el nombre (RLS). Usar el texto genérico "un producto que ya no está disponible" (constante en la función).
+- ⟳ Antes de crear la migración, confirmar que `add_units_to_list_item` y el índice de 035 siguen iguales en `develop`.
+
+### Flujo
+Tarjeta → `onAddToList(id)` → `useProductGroupListAddition` (`adding`) → `addGroupToList` (RPC) → `added` + mensaje → link a `APP_ROUTE.LIST`.
+
+### Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Una RPC en una transacción | Llamar `add_item_to_general_list` N veces desde el cliente | Todo o nada; una ida y vuelta; esa RPC suma de a 1 |
+| Reusar `add_units_to_list_item` | `insert ... on conflict` propio | Ya implementa CA-02/CA-03 y la regla de filas tachadas (035) |
+| Mismo advisory lock que recetas | Sin lock | Dos agregados simultáneos (grupo + receta) no se pisan |
+| Quedarse en "Mis grupos" con link "Ver lista" | Navegar a `/lista` sola | Permite agregar varios grupos seguidos |
+| Saltar archivados y no visibles | Fallar todo | Un producto archivado no debería bloquear el resto del grupo (D12) |
