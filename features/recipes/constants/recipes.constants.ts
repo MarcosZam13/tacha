@@ -21,22 +21,24 @@ export const RECIPES_DB = {
   // Las columnas dentro del select no llevan constante propia: el genérico
   // Database de types/database.types.ts las valida al compilar.
   CATALOG_SELECT:
-    "id, name, base_servings, image_url, recipe_ingredients(id, position, product_catalog(name))",
+    "id, name, base_servings, photo_path, recipe_ingredients(id, position, product_catalog(name))",
   // .order() y .eq() aceptan cualquier string (no los valida el genérico), así
   // que esas columnas van como constante: un typo compilaría y fallaría en runtime.
   COLUMN: {
     CREATED_AT: "created_at",
     ID: "id",
+    PHOTO_PATH: "photo_path",
     RECIPE_ID: "recipe_id",
   },
   EDITOR_SELECT:
-    "id, name, base_servings, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
+    "id, name, base_servings, photo_path, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
   RPC: {
     ADD_RECIPE_TO_GENERAL_LIST: "add_recipe_to_general_list",
     // "Ver qué falta" con el faltante en vivo de la lista (037, SCRUM-115). La
     // get_recipe_coverage de la 017 queda en la base solo hasta el merge.
     GET_RECIPE_COVERAGE_TODAY: "get_recipe_coverage_today",
     SAVE_RECIPE: "save_recipe",
+    SET_RECIPE_PHOTO: "set_recipe_photo",
   },
   TABLE: {
     // meal_plans lo crea SCRUM-100: acá solo se cuenta cuántos espacios del plan usan una receta.
@@ -57,6 +59,50 @@ export const RECIPE_FORM_LIMIT = {
   QUANTITY_MAX: 100_000,
   SERVINGS_MAX: 50,
   SERVINGS_MIN: 1,
+} as const;
+
+// Foto de la receta (SCRUM-161). El bucket repite el límite (059).
+const RECIPE_PHOTO_MAX_MEGABYTES = 5;
+
+export const RECIPE_PHOTO_MAX_FILE_SIZE_BYTES = RECIPE_PHOTO_MAX_MEGABYTES * 1024 * 1024;
+
+export const RECIPE_PHOTO_STORAGE = {
+  BUCKET: "recipe-photos",
+  // Una hora: el bucket es privado y cada carga pide enlaces nuevos.
+  SIGNED_URL_SECONDS: 3600,
+} as const;
+
+// Qué pasa con la foto al guardar.
+export const RECIPE_PHOTO_CHANGE = {
+  KEEP: "keep",
+  REMOVE: "remove",
+  REPLACE: "replace",
+} as const;
+
+// Resultado de guardar el cambio de foto (services/recipe-photos.service.ts).
+export const SAVE_RECIPE_PHOTO_RESULT = {
+  FAILED: "failed",
+  NOT_FOUND: "notFound",
+  SAVED: "saved",
+} as const;
+
+export type SaveRecipePhotoResultType = (typeof SAVE_RECIPE_PHOTO_RESULT)[keyof typeof SAVE_RECIPE_PHOTO_RESULT];
+
+export const RECIPE_PHOTO_ERROR = {
+  EMPTY_FILE: "Ese archivo está vacío. Elige otra foto.",
+  TOO_LARGE: `La foto puede pesar hasta ${RECIPE_PHOTO_MAX_MEGABYTES} MB.`,
+  TYPE_NOT_ALLOWED: "Elige una foto JPG, PNG o WebP.",
+} as const;
+
+export const RECIPE_PHOTO_TEXT = {
+  ALT_PREFIX: "Foto de",
+  CHANGE: "Cambiar foto",
+  CHOOSE: "Elegir foto",
+  HELP: `JPG, PNG o WebP, hasta ${RECIPE_PHOTO_MAX_MEGABYTES} MB. Opcional.`,
+  LABEL: "Foto",
+  PREVIEW_ALT: "Vista previa de la foto",
+  REMOVE: "Quitar foto",
+  SAVE_FAILED: "La receta se guardó, pero la foto no. Intenta de nuevo o quítala.",
 } as const;
 
 // Cantidad: dígitos con decimales opcionales, ya con la coma pasada a punto
@@ -100,6 +146,7 @@ export const RECIPE_EDITOR_ACTION = {
   LOAD_FAILED: "loadFailed",
   NAME_CHANGED: "nameChanged",
   NOT_FOUND: "notFound",
+  PHOTO_FAILED: "photoFailed",
   SAVE_FAILED: "saveFailed",
   SAVE_STARTED: "saveStarted",
   VALIDATION_FAILED: "validationFailed",

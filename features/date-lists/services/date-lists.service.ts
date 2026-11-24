@@ -1,9 +1,9 @@
-import type { CatalogBaseUnitType } from "@/constants";
+import { DATE_LIST_TYPE } from "@/constants";
+import type { CatalogBaseUnitType, DateListStatusType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { DATE_LIST_DB } from "../constants/date-lists.constants";
-import type { DateListStatusType } from "../constants/date-lists.constants";
 import type { DateList, DateListDetail } from "../models/DateList.interface";
 import { sortPendingFirst } from "../utils/sortPendingFirst";
 
@@ -33,7 +33,7 @@ export const getDateLists = async (): Promise<DateList[]> => {
   const { data, error } = await getSupabaseClient()
     .from(DATE_LIST_DB.TABLE.LISTS)
     .select(DATE_LIST_DB.LIST_SELECT)
-    .eq("type", DATE_LIST_DB.LIST_TYPE)
+    .eq("type", DATE_LIST_TYPE)
     .order("event_date")
     .order("created_at");
   if (error) throw error;
@@ -62,7 +62,7 @@ export const getDateListDetail = async (listId: string): Promise<NullableRef<Dat
     .from(DATE_LIST_DB.TABLE.LISTS)
     .select(DATE_LIST_DB.DETAIL_SELECT)
     .eq("id", listId)
-    .eq("type", DATE_LIST_DB.LIST_TYPE)
+    .eq("type", DATE_LIST_TYPE)
     .order("created_at", { referencedTable: DATE_LIST_DB.TABLE.LIST_ITEMS })
     .maybeSingle();
   if (error) throw error;

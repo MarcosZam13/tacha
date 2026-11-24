@@ -12,6 +12,8 @@ export const APP_ROUTE = {
   LIST: "/lista",
   // "Mis grupos" (SCRUM-109): pantalla secundaria de General, no ítem del menú (DESIGN.md §3.1).
   LIST_GROUPS: "/lista/grupos",
+  // Crear un grupo (SCRUM-110): página y no modal, mismo patrón que /recetas/nueva.
+  LIST_GROUP_NEW: "/lista/grupos/nuevo",
   LIST_SETTINGS: "/perfil/configuracion",
   MEAL_PLANNER: "/recetas/planificador",
   PROFILE: "/perfil",

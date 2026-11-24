@@ -887,6 +887,7 @@ export type Database = {
           image_url: string | null
           name: string
           owner_id: string
+          photo_path: string | null
         }
         Insert: {
           base_servings: number
@@ -896,6 +897,7 @@ export type Database = {
           image_url?: string | null
           name: string
           owner_id?: string
+          photo_path?: string | null
         }
         Update: {
           base_servings?: number
@@ -905,6 +907,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           owner_id?: string
+          photo_path?: string | null
         }
         Relationships: []
       }
@@ -1159,6 +1162,10 @@ export type Database = {
         Args: { week_from: string; week_to: string }
         Returns: Json
       }
+      add_week_to_list: {
+        Args: { target_list_id?: string; week_from: string; week_to: string }
+        Returns: Json
+      }
       assert_local_day_start: {
         Args: { local_day_start: string }
         Returns: undefined
@@ -1282,6 +1289,14 @@ export type Database = {
           token: string
         }[]
       }
+      create_product_group: {
+        Args: {
+          group_name: string
+          item_list: Json
+          share_with_household: boolean
+        }
+        Returns: string
+      }
       create_personal_product: {
         Args: {
           base_quantity: number
@@ -1374,6 +1389,7 @@ export type Database = {
         Args: { target_product_id: string }
         Returns: {
           active_list_count: number
+          group_count: number
           recipe_count: number
         }[]
       }
@@ -1529,6 +1545,16 @@ export type Database = {
           variants: Json
         }[]
       }
+      search_catalog_including_own: {
+        Args: { household_id?: string; search_term?: string }
+        Returns: {
+          category: string
+          is_personal: boolean
+          name: string
+          product_catalog_id: string
+          variants: Json
+        }[]
+      }
       set_date_list_cancelled: {
         Args: { is_cancelled: boolean; target_list_id: string }
         Returns: {
@@ -1637,6 +1663,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_recipe_photo: {
+        Args: { new_photo_path?: string; target_recipe_id: string }
+        Returns: string
       }
       set_spending_budget: {
         Args: { budget_amount: number; budget_period: string }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { APP_ROUTE } from "@/constants";
 import { WEEK_LIST_TEXT } from "../constants/meal-planner.constants";
 import type { AddWeekToListResultProps } from "./models/AddWeekToListResultProps.type";
 
@@ -9,7 +8,10 @@ import type { AddWeekToListResultProps } from "./models/AddWeekToListResultProps
  * sin que cambie la página, así que el lector de pantalla lo anuncia solo.
  * Solo presentación: las líneas ya vienen armadas desde utils/toWeekAdditionSummary.ts.
  */
-export const AddWeekToListResult = ({ resultLines }: AddWeekToListResultProps): React.JSX.Element | null => {
+export const AddWeekToListResult = ({
+  resultLines,
+  resultListHref,
+}: AddWeekToListResultProps): React.JSX.Element | null => {
   if (!resultLines) return null;
 
   return (
@@ -17,7 +19,7 @@ export const AddWeekToListResult = ({ resultLines }: AddWeekToListResultProps): 
       {resultLines.map((line) => (
         <p key={line}>{line}</p>
       ))}
-      <Link href={APP_ROUTE.LIST} className="self-start font-semibold text-tacha-teal hover:underline">
+      <Link href={resultListHref} className="self-start font-semibold text-tacha-teal hover:underline">
         {WEEK_LIST_TEXT.VIEW_LIST}
       </Link>
     </div>

@@ -131,6 +131,15 @@ export const createMealPlannerPage = () => {
     within(getAddWeekDialog()).getByRole("button", { name: /^(Agregar|Agregando)/ });
   const getAddWeekCancelButton = (): HTMLElement =>
     within(getAddWeekDialog()).getByRole("button", { name: WEEK_LIST_TEXT.CANCEL });
+  // El selector de lista (SCRUM-160).
+  const findDestinationRadio = (name: string): Promise<HTMLElement> =>
+    within(getAddWeekDialog()).findByRole("radio", { name });
+  const queryDestinationRadios = (): HTMLElement[] => within(getAddWeekDialog()).queryAllByRole("radio");
+  const getDestinationGroup = (): HTMLElement =>
+    within(getAddWeekDialog()).getByRole("group", { name: WEEK_LIST_TEXT.DESTINATION_LABEL });
+  const getOptionsRetryButton = (): HTMLElement =>
+    within(getAddWeekDialog()).getByRole("button", { name: WEEK_LIST_TEXT.RETRY });
+  const findAddWeekError = (): Promise<HTMLElement> => within(getAddWeekDialog()).findByRole("alert");
   const getAddWeekError = (): HTMLElement => within(getAddWeekDialog()).getByRole("alert");
   const getAddWeekResult = (line: string): HTMLElement => screen.getByText(line);
   const queryAddWeekResult = (line: string): HTMLElement | null => screen.queryByText(line);
@@ -142,6 +151,12 @@ export const createMealPlannerPage = () => {
   };
   const confirmAddWeek = async (): Promise<void> => {
     await user.click(getAddWeekConfirmButton());
+  };
+  const chooseDestination = async (name: string): Promise<void> => {
+    await user.click(await findDestinationRadio(name));
+  };
+  const retryOptions = async (): Promise<void> => {
+    await user.click(getOptionsRetryButton());
   };
   const cancelAddWeek = async (): Promise<void> => {
     await user.click(getAddWeekCancelButton());
@@ -158,7 +173,10 @@ export const createMealPlannerPage = () => {
   return {
     cancel,
     cancelAddWeek,
+    chooseDestination,
     confirmAddWeek,
+    findAddWeekError,
+    findDestinationRadio,
     getAddWeekButton,
     getAddWeekCancelButton,
     getAddWeekConfirmButton,
@@ -166,11 +184,14 @@ export const createMealPlannerPage = () => {
     getAddWeekError,
     getAddWeekMessage,
     getAddWeekResult,
+    getDestinationGroup,
     getViewListLink,
     openAddWeek,
     queryAddWeekDialog,
     queryAddWeekResult,
+    queryDestinationRadios,
     queryViewListLink,
+    retryOptions,
     chooseCook,
     chooseRecipe,
     decreaseServings,

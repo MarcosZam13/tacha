@@ -33,6 +33,25 @@ const SHARED_GROUP: ProductGroupSummary = {
 };
 
 describe("ProductGroups", () => {
+  // SCRUM-110 (HU-73 CA-01): "+ Crear grupo" siempre; "Crear tu primer grupo" solo sin grupos.
+  it("links to the group editor from the header and from the empty state", async () => {
+    listProductGroupsMock.mockResolvedValue([]);
+    render(<ProductGroups />);
+    const page = createProductGroupsPage();
+
+    expect(page.getCreateGroupLink()).toHaveAttribute("href", APP_ROUTE.LIST_GROUP_NEW);
+    await waitFor(() => expect(page.queryCreateFirstGroupLink()).toHaveAttribute("href", APP_ROUTE.LIST_GROUP_NEW));
+  });
+
+  it("does not show the empty state button when there are groups", async () => {
+    listProductGroupsMock.mockResolvedValue([PERSONAL_GROUP]);
+    render(<ProductGroups />);
+    const page = createProductGroupsPage();
+
+    await waitFor(() => expect(page.queryCardNames()).toEqual([PERSONAL_GROUP.name]));
+    expect(page.queryCreateFirstGroupLink()).not.toBeInTheDocument();
+  });
+
   it("shows the title and a link back to the list", async () => {
     listProductGroupsMock.mockResolvedValue([]);
     render(<ProductGroups />);
