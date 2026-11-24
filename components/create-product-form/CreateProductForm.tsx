@@ -66,6 +66,7 @@ export const CreateProductForm = ({
   storeChoice,
   storeName,
   storeNameError,
+  title,
 }: CreateProductFormProps): React.JSX.Element => {
   const categorySelectId = useId();
   const categoryDescriptionId = `${categorySelectId}-descripcion`;
@@ -74,7 +75,7 @@ export const CreateProductForm = ({
   const categoryDescription = categoryError ?? categoriesErrorMessage;
 
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} title={CREATE_PRODUCT_FORM_TEXT.TITLE}>
+    <Modal isOpen={isOpen} onClose={onCancel} title={title}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <Input
           label={CREATE_PRODUCT_FORM_TEXT.NAME_LABEL}

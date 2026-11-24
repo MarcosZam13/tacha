@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { AssigneeField } from "@/components/assignee-field/AssigneeField";
 import { ASSIGNEE_LIST_SOURCE } from "@/components/assignee-field/constants/assignee-field.constants";
 import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/useListAssigneesViewModel";
 import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Button, Modal, Spinner } from "@/components/ui";
-import { BUTTON_VARIANT } from "@/constants";
+import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
 import { PURCHASE_SESSION_TEXT } from "./constants/purchase-session.constants";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ClosePurchasePanel } from "./components/ClosePurchasePanel";
@@ -50,7 +51,16 @@ export const ShoppingListInner = (): React.JSX.Element => {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
-      <h1 className="font-display text-3xl font-bold text-tacha-text">{SHOPPING_LIST_TEXT.TITLE}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold text-tacha-text">{SHOPPING_LIST_TEXT.TITLE}</h1>
+        {/* SCRUM-109 (HU-72 CA-01). Link y no Button: es navegación. */}
+        <Link
+          href={APP_ROUTE.LIST_GROUPS}
+          className="rounded-tacha-badge border border-tacha-teal px-4 py-2 font-body text-sm font-semibold text-tacha-teal hover:bg-tacha-teal/10"
+        >
+          {SHOPPING_LIST_TEXT.MANAGE_GROUPS}
+        </Link>
+      </div>
 
       {viewModel.activeStoreName ? (
         <ShoppingModeBar

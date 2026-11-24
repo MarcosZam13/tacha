@@ -107,6 +107,8 @@ export const SHOPPING_LIST_TEXT = {
   KEPT_PERSONAL_QUANTITY_PREFIX: "×",
   KEPT_PERSONAL_SECTION: "Mi lista personal",
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
+  // Entrada a "Mis grupos" (SCRUM-109, HU-72 CA-01).
+  MANAGE_GROUPS: "Gestionar mis grupos",
   OPEN_DETAIL: "Ver detalle",
   OPEN_DETAIL_ICON: "i",
   PENDING_SECTION: "Pendientes",

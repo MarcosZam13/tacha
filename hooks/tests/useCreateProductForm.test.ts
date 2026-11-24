@@ -11,7 +11,8 @@ import {
 } from "@/constants/create-product-form.constants";
 import { STORE_NAMES } from "@/constants/stores.constants";
 import { getCategories } from "@/services/catalog.service";
-import { createPersonalProduct, hasHousehold } from "@/services/personal-product.service";
+import { createPersonalProduct, hasHousehold, updatePersonalProduct } from "@/services/personal-product.service";
+import type { EditablePersonalProduct } from "@/types/personal-product.types";
 import type { Category } from "@/types/catalog.types";
 import { useCreateProductForm } from "../useCreateProductForm";
 import type { UseCreateProductFormReturn } from "../useCreateProductForm";
@@ -20,11 +21,13 @@ vi.mock("@/services/catalog.service", () => ({ getCategories: vi.fn() }));
 vi.mock("@/services/personal-product.service", () => ({
   createPersonalProduct: vi.fn(),
   hasHousehold: vi.fn(),
+  updatePersonalProduct: vi.fn(),
 }));
 
 const getCategoriesMock = vi.mocked(getCategories);
 const createPersonalProductMock = vi.mocked(createPersonalProduct);
 const hasHouseholdMock = vi.mocked(hasHousehold);
+const updatePersonalProductMock = vi.mocked(updatePersonalProduct);
 
 const CATEGORIES: Category[] = [{ id: "category-1", name: "Lácteos" }];
 
@@ -203,6 +206,156 @@ describe("useCreateProductForm: guardar", () => {
     expect(result.current.errorMessage).toBe(CREATE_PRODUCT_FORM_TEXT.SUBMIT_ERROR);
     expect(result.current.isOpen).toBe(true);
     expect(result.current.name).toBe("Tamal navideño");
+  });
+});
+
+// HU-58 (SCRUM-89): el mismo formulario edita un producto existente.
+describe("useCreateProductForm: editar (HU-58)", () => {
+  const PRODUCT: EditablePersonalProduct = {
+    baseQuantity: 250,
+    baseUnit: "g",
+    brandName: "Finca Eva",
+    categoryId: "category-1",
+    name: "Queso casero",
+    productId: "product-7",
+    referencePrice: null,
+    referenceStoreName: null,
+    referenceStoreSlug: null,
+  };
+
+  const renderEditing = async (onSuccess = vi.fn(), product: EditablePersonalProduct = PRODUCT) => {
+    hasHouseholdMock.mockResolvedValue(true);
+    const hook = renderHook(() => useCreateProductForm(onSuccess));
+    act(() => hook.result.current.onOpenEdit(product));
+    await waitFor(() => expect(hook.result.current.isCategoriesLoading).toBe(false));
+    return hook;
+  };
+
+  it("opens pre-filled with the product, with the edit title and without the share checkbox", async () => {
+    const { result } = await renderEditing();
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.title).toBe(CREATE_PRODUCT_FORM_TEXT.EDIT_TITLE);
+    expect(result.current.name).toBe("Queso casero");
+    expect(result.current.brandName).toBe("Finca Eva");
+    expect(result.current.categoryId).toBe("category-1");
+    expect(result.current.quantity).toBe("250");
+    expect(result.current.baseUnit).toBe("g");
+    expect(result.current.showShareCheckbox).toBe(false);
+  });
+
+  it("saves with updatePersonalProduct, never createPersonalProduct, and reports the same id", async () => {
+    updatePersonalProductMock.mockResolvedValue(undefined);
+    const onSuccess = vi.fn();
+    const { result } = await renderEditing(onSuccess);
+    act(() => result.current.onNameChange("Queso Turrialba"));
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(updatePersonalProductMock).toHaveBeenCalledWith({
+      baseQuantity: 250,
+      baseUnit: "g",
+      brandName: "Finca Eva",
+      categoryId: "category-1",
+      name: "Queso Turrialba",
+      productId: "product-7",
+    });
+    expect(createPersonalProductMock).not.toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalledWith("product-7");
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  // Tarea 22.3: con HU-57 mergeada, editar también cambia la tienda y el precio.
+  it("opens pre-filled with the supermarket and the price", async () => {
+    const { result } = await renderEditing(vi.fn(), {
+      ...PRODUCT,
+      referencePrice: 2850.5,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+
+    expect(result.current.storeChoice).toBe(STORE_NAMES.MAXIPALI);
+    expect(result.current.showStoreNameInput).toBe(false);
+    expect(result.current.price).toBe("2850.5");
+  });
+
+  it("opens pre-filled with a typed store and no price", async () => {
+    const { result } = await renderEditing(vi.fn(), { ...PRODUCT, referenceStoreName: "Feria de Zapote" });
+
+    expect(result.current.storeChoice).toBe(REFERENCE_STORE_CHOICE.CUSTOM);
+    expect(result.current.showStoreNameInput).toBe(true);
+    expect(result.current.storeName).toBe("Feria de Zapote");
+    expect(result.current.price).toBe("");
+  });
+
+  it("saves the edited store and price", async () => {
+    updatePersonalProductMock.mockResolvedValue(undefined);
+    const { result } = await renderEditing(vi.fn(), {
+      ...PRODUCT,
+      referencePrice: 2850,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("  Feria de Zapote  "));
+    act(() => result.current.onPriceChange("3100,50"));
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(updatePersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: "product-7",
+        referencePrice: 3100.5,
+        referenceStoreName: "Feria de Zapote",
+        referenceStoreSlug: undefined,
+      }),
+    );
+  });
+
+  it("sends no store and no price when both are cleared, so the update removes them", async () => {
+    updatePersonalProductMock.mockResolvedValue(undefined);
+    const { result } = await renderEditing(vi.fn(), {
+      ...PRODUCT,
+      referencePrice: 2850,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.NONE));
+    act(() => result.current.onPriceChange(""));
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(updatePersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({ referencePrice: undefined, referenceStoreName: undefined, referenceStoreSlug: undefined }),
+    );
+  });
+
+  it("does not save the edit while the price is invalid", async () => {
+    const { result } = await renderEditing();
+    act(() => result.current.onPriceChange("0"));
+
+    act(() => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.priceError).toBe(CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID);
+    expect(updatePersonalProductMock).not.toHaveBeenCalled();
+  });
+
+  it("goes back to create mode after closing an edit", async () => {
+    const { result } = await renderEditing();
+
+    act(() => result.current.onCancel());
+    act(() => result.current.onOpen());
+
+    expect(result.current.title).toBe(CREATE_PRODUCT_FORM_TEXT.TITLE);
+    expect(result.current.name).toBe("");
+  });
+
+  it("keeps the edit form open with what was typed when the update fails", async () => {
+    updatePersonalProductMock.mockRejectedValue({ code: "42501", message: "No encontramos ese producto" });
+    const { result } = await renderEditing();
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.errorMessage).toBe(CREATE_PRODUCT_FORM_TEXT.SUBMIT_ERROR);
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.title).toBe(CREATE_PRODUCT_FORM_TEXT.EDIT_TITLE);
   });
 });
 

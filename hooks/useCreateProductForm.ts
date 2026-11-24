@@ -18,9 +18,10 @@ import type {
 } from "@/constants/create-product-form.constants";
 import type { StoreSlug } from "@/constants/stores.constants";
 import { getCategories } from "@/services/catalog.service";
-import { createPersonalProduct, hasHousehold } from "@/services/personal-product.service";
+import { createPersonalProduct, hasHousehold, updatePersonalProduct } from "@/services/personal-product.service";
 import type { Category } from "@/types/catalog.types";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
+import type { EditablePersonalProduct } from "@/types/personal-product.types";
 
 export interface UseCreateProductFormReturn {
   baseUnit: CatalogBaseUnitType;
@@ -42,6 +43,8 @@ export interface UseCreateProductFormReturn {
   onCategoryChange: (categoryId: string) => void;
   onNameChange: (name: string) => void;
   onOpen: () => void;
+  /** HU-58: abre el mismo formulario precargado con un producto existente, para editarlo. */
+  onOpenEdit: (product: EditablePersonalProduct) => void;
   onPriceChange: (price: string) => void;
   /** HU-57: al salir del campo se muestra su error; "Guardar" deshabilitado no lo mostraría nunca. */
   onPriceBlur: () => void;
@@ -63,6 +66,8 @@ export interface UseCreateProductFormReturn {
   storeChoice: ReferenceStoreChoiceType;
   storeName: string;
   storeNameError: NullableUndefined<string>;
+  /** "Agregar producto" o, en modo edición (HU-58), "Editar producto". */
+  title: string;
 }
 
 const validateName = (name: string): NullableUndefined<string> =>
@@ -122,6 +127,12 @@ const INITIAL_UNIT = CREATE_PRODUCT_FORM_UNIT_OPTIONS[0].value;
  * (SCRUM-87 / HU-56), compartido entre "Mis productos" y el enlace de CA-04
  * en features/catalog/ (los dos consumen este mismo hook, no una copia).
  *
+ * HU-58 (SCRUM-89): el mismo formulario edita un producto existente
+ * (onOpenEdit). Mismos campos y mismas validaciones, también la tienda y el
+ * precio de HU-57; cambia el título, no se muestra "Compartir" (editar no
+ * cambia si está compartido) y al guardar llama a updatePersonalProduct en
+ * vez de createPersonalProduct.
+ *
  * `onSuccess` lo llama quien abrió el formulario para refrescar su propio
  * listado (SPEC.md §4: "visible de inmediato en el listado, sin recargar la
  * página") — este hook no sabe nada de qué pantalla lo usa.
@@ -149,6 +160,9 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
   const [isCategoriesLoading, setIsCategoriesLoading] = useState<boolean>(false);
   const [categoriesErrorMessage, setCategoriesErrorMessage] = useState<NullableRef<string>>(null);
   const [showShareCheckbox, setShowShareCheckbox] = useState<boolean>(false);
+  // HU-58: id del producto que se está editando; null al crear uno nuevo.
+  const [editingProductId, setEditingProductId] = useState<NullableRef<string>>(null);
+  const isEditing = editingProductId !== null;
 
   const isOpen = status !== CREATE_PRODUCT_FORM_STATUS.IDLE;
 
@@ -188,6 +202,7 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     setQuantityError(undefined);
     setBaseUnit(INITIAL_UNIT);
     setShareWithHousehold(false);
+    setEditingProductId(null);
     setStoreChoice(REFERENCE_STORE_CHOICE.NONE);
     setStoreName("");
     setStoreNameError(undefined);
@@ -198,6 +213,26 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
 
   const onOpen = (): void => {
     resetFields();
+    setIsCategoriesLoading(true);
+    setCategoriesErrorMessage(null);
+    setStatus(CREATE_PRODUCT_FORM_STATUS.OPEN);
+  };
+
+  const onOpenEdit = (product: EditablePersonalProduct): void => {
+    resetFields();
+    setEditingProductId(product.productId);
+    setName(product.name);
+    setBrandName(product.brandName ?? "");
+    setCategoryId(product.categoryId);
+    setQuantity(String(product.baseQuantity));
+    setBaseUnit(product.baseUnit);
+    // HU-57: la tienda es un supermercado, una escrita o ninguna (nunca dos).
+    setStoreChoice(
+      product.referenceStoreSlug ??
+        (product.referenceStoreName === null ? REFERENCE_STORE_CHOICE.NONE : REFERENCE_STORE_CHOICE.CUSTOM),
+    );
+    setStoreName(product.referenceStoreName ?? "");
+    setPrice(product.referencePrice === null ? "" : String(product.referencePrice));
     setIsCategoriesLoading(true);
     setCategoriesErrorMessage(null);
     setStatus(CREATE_PRODUCT_FORM_STATUS.OPEN);
@@ -285,19 +320,29 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     setErrorMessage(null);
     setStatus(CREATE_PRODUCT_FORM_STATUS.SUBMITTING);
 
+    const fields = {
+      baseQuantity: Number(quantity),
+      baseUnit,
+      brandName: brandName.trim() || undefined,
+      categoryId,
+      name: name.trim(),
+    };
+
     try {
-      const productId = await createPersonalProduct({
-        baseQuantity: Number(quantity),
-        baseUnit,
-        brandName: brandName.trim() || undefined,
-        categoryId,
-        name: name.trim(),
+      const referenceFields = {
         // Ya validado: si hay texto, es un precio ("2850,50" llega como 2850.5).
         referencePrice: parsePrice(price) ?? undefined,
         referenceStoreName: storeChoice === REFERENCE_STORE_CHOICE.CUSTOM ? storeName.trim() : undefined,
         referenceStoreSlug: isSupermarketChoice(storeChoice) ? storeChoice : undefined,
-        shareWithHousehold,
-      });
+      };
+      let productId: string;
+      if (editingProductId !== null) {
+        // Editar reemplaza la tienda y el precio: lo que no viaja se borra (055).
+        await updatePersonalProduct({ ...fields, ...referenceFields, productId: editingProductId });
+        productId = editingProductId;
+      } else {
+        productId = await createPersonalProduct({ ...fields, ...referenceFields, shareWithHousehold });
+      }
       resetFields();
       setStatus(CREATE_PRODUCT_FORM_STATUS.IDLE);
       onSuccess(productId);
@@ -340,6 +385,7 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     onCategoryChange,
     onNameChange,
     onOpen,
+    onOpenEdit,
     onPriceBlur,
     onPriceChange,
     onQuantityChange,
@@ -353,10 +399,12 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     quantity,
     quantityError,
     shareWithHousehold,
-    showShareCheckbox,
+    // HU-58: editar no cambia si el producto está compartido.
+    showShareCheckbox: showShareCheckbox && !isEditing,
     showStoreNameInput: storeChoice === REFERENCE_STORE_CHOICE.CUSTOM,
     storeChoice,
     storeName,
     storeNameError,
+    title: isEditing ? CREATE_PRODUCT_FORM_TEXT.EDIT_TITLE : CREATE_PRODUCT_FORM_TEXT.TITLE,
   };
 };

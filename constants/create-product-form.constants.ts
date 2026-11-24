@@ -17,11 +17,26 @@ export const PERSONAL_PRODUCT_DB = {
   },
   RPC: {
     CREATE_PERSONAL_PRODUCT: "create_personal_product",
+    // HU-58 (SCRUM-89, migración 052).
+    DELETE_PERSONAL_PRODUCT: "delete_personal_product",
+    GET_PERSONAL_PRODUCT_USAGE: "get_personal_product_usage",
+    UPDATE_PERSONAL_PRODUCT: "update_personal_product",
   },
   TABLE: {
     HOUSEHOLD_MEMBERS: "household_members",
   },
 } as const;
+
+// HU-58 (SCRUM-89): lo que devuelve delete_personal_product (migración 052).
+// "deleted": nada lo usaba y se borró; "archived": lo usa alguna lista o
+// receta, así que se ocultó de "Mis productos" sin borrarlo.
+export const PERSONAL_PRODUCT_DELETE_RESULT = {
+  ARCHIVED: "archived",
+  DELETED: "deleted",
+} as const;
+
+export type PersonalProductDeleteResultType =
+  (typeof PERSONAL_PRODUCT_DELETE_RESULT)[keyof typeof PERSONAL_PRODUCT_DELETE_RESULT];
 
 // Estados del formulario (SPEC.md §6): idle (cerrado), open (abierto, sin
 // enviar), submitting, error (el formulario sigue abierto con los datos ya
@@ -108,6 +123,8 @@ export const CREATE_PRODUCT_FORM_TEXT = {
   CATEGORIES_ERROR: "No pudimos cargar las categorías. Intenta de nuevo.",
   CATEGORY_LABEL: "Categoría",
   CATEGORY_PLACEHOLDER: "Selecciona una categoría",
+  // HU-58 (SCRUM-89): mismo formulario en modo edición.
+  EDIT_TITLE: "Editar producto",
   NAME_LABEL: "Nombre del producto",
   OPEN_BUTTON: "+ Agregar producto",
   PRICE_LABEL: "Precio de referencia (opcional)",
