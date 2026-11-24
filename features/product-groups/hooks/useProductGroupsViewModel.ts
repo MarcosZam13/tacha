@@ -5,6 +5,7 @@ import type { ProductGroupsStatusType } from "../constants/product-groups.consta
 import type { ProductGroupsResponse, ProductGroupsViewModel } from "../models/product-groups.interfaces";
 import { listProductGroups } from "../services/product-groups.service";
 import { toProductGroupCards } from "../utils/toProductGroupCards";
+import { useProductGroupListAddition } from "./useProductGroupListAddition";
 
 /** Estado de la pantalla según la última respuesta (null = todavía no llegó). */
 const resolveStatus = (response: NullableRef<ProductGroupsResponse>, groupCount: number): ProductGroupsStatusType => {
@@ -41,13 +42,20 @@ export const useProductGroupsViewModel = (): ProductGroupsViewModel => {
 
   const groups = toProductGroupCards(response?.groups ?? []);
 
+  const reload = (): void => {
+    setResponse(null);
+    setRefreshKey((key) => key + 1);
+  };
+
+  // SCRUM-111: si el grupo ya no existe al agregarlo, se recarga la pantalla.
+  const listAddition = useProductGroupListAddition(reload);
+
   return {
     errorMessage: response?.errorMessage ?? null,
+    getGroupAddToList: listAddition.getGroupAddToList,
     groups,
-    reload: () => {
-      setResponse(null);
-      setRefreshKey((key) => key + 1);
-    },
+    onAddToList: (group) => listAddition.onAddToList({ id: group.id, name: group.name }),
+    reload,
     status: resolveStatus(response, groups.length),
   };
 };

@@ -38,7 +38,12 @@ export const ProductGroups = (): React.JSX.Element => {
       {viewModel.status === PRODUCT_GROUPS_STATUS.READY ? (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {viewModel.groups.map((group) => (
-            <ProductGroupCard key={group.id} group={group} />
+            <ProductGroupCard
+              key={group.id}
+              addToList={viewModel.getGroupAddToList(group.id)}
+              group={group}
+              onAddToList={viewModel.onAddToList}
+            />
           ))}
         </ul>
       ) : null}

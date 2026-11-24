@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PRODUCT_GROUPS_DB } from "../constants/product-groups.constants";
-import { listProductGroups } from "../services/product-groups.service";
+import { addGroupToList, listProductGroups } from "../services/product-groups.service";
 
 // Sin Supabase real: un cliente falso con from() encadenable y una sesión.
 const ensureSessionMock = vi.fn();
 const fromMock = vi.fn();
 const selectMock = vi.fn();
 const orderMock = vi.fn();
+const rpcMock = vi.fn();
 
 vi.mock("@/services/supabase.client", () => ({
   ensureSession: () => ensureSessionMock(),
-  getSupabaseClient: () => ({ from: fromMock }),
+  getSupabaseClient: () => ({ from: fromMock, rpc: rpcMock }),
 }));
 
 beforeEach(() => {
@@ -18,6 +19,7 @@ beforeEach(() => {
   fromMock.mockReset().mockReturnValue({ select: selectMock });
   selectMock.mockReset().mockReturnValue({ order: orderMock });
   orderMock.mockReset();
+  rpcMock.mockReset();
 });
 
 describe("listProductGroups", () => {
@@ -70,5 +72,31 @@ describe("listProductGroups", () => {
 
     await expect(listProductGroups()).rejects.toThrow("no session");
     expect(fromMock).not.toHaveBeenCalled();
+  });
+});
+
+// SCRUM-111: agregar un grupo a la lista (add_group_to_general_list, 057).
+describe("addGroupToList", () => {
+  it("calls add_group_to_general_list and returns what was added and skipped", async () => {
+    rpcMock.mockResolvedValue({ data: { added: ["Leche", "Café"], skipped: ["Natilla"] }, error: null });
+
+    await expect(addGroupToList("group-1")).resolves.toEqual({ added: ["Leche", "Café"], skipped: ["Natilla"] });
+
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(PRODUCT_GROUPS_DB.RPC.ADD_GROUP_TO_GENERAL_LIST, { target_group_id: "group-1" });
+  });
+
+  // Otro miembro lo borró, o no es visible: la base responde P0002.
+  it("returns null when the group no longer exists", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { code: "P0002", message: "Grupo no encontrado" } });
+
+    await expect(addGroupToList("group-1")).resolves.toBeNull();
+  });
+
+  it("rethrows any other Supabase error", async () => {
+    const supabaseError = { code: "42501", message: "Se requiere una sesión" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(addGroupToList("group-1")).rejects.toBe(supabaseError);
   });
 });
