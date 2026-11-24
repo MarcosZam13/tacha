@@ -1639,6 +1639,9 @@ export type Database = {
           new_brand_name?: string
           new_category_id: string
           new_product_name: string
+          new_reference_price?: number
+          new_reference_store_name?: string
+          new_reference_store_slug?: string
           target_product_id: string
         }
         Returns: undefined

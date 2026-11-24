@@ -128,9 +128,10 @@ const INITIAL_UNIT = CREATE_PRODUCT_FORM_UNIT_OPTIONS[0].value;
  * en features/catalog/ (los dos consumen este mismo hook, no una copia).
  *
  * HU-58 (SCRUM-89): el mismo formulario edita un producto existente
- * (onOpenEdit). Mismos campos y mismas validaciones; cambia el título, no se
- * muestra "Compartir" (editar no cambia si está compartido) y al guardar
- * llama a updatePersonalProduct en vez de createPersonalProduct.
+ * (onOpenEdit). Mismos campos y mismas validaciones, también la tienda y el
+ * precio de HU-57; cambia el título, no se muestra "Compartir" (editar no
+ * cambia si está compartido) y al guardar llama a updatePersonalProduct en
+ * vez de createPersonalProduct.
  *
  * `onSuccess` lo llama quien abrió el formulario para refrescar su propio
  * listado (SPEC.md §4: "visible de inmediato en el listado, sin recargar la
@@ -225,6 +226,13 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
     setCategoryId(product.categoryId);
     setQuantity(String(product.baseQuantity));
     setBaseUnit(product.baseUnit);
+    // HU-57: la tienda es un supermercado, una escrita o ninguna (nunca dos).
+    setStoreChoice(
+      product.referenceStoreSlug ??
+        (product.referenceStoreName === null ? REFERENCE_STORE_CHOICE.NONE : REFERENCE_STORE_CHOICE.CUSTOM),
+    );
+    setStoreName(product.referenceStoreName ?? "");
+    setPrice(product.referencePrice === null ? "" : String(product.referencePrice));
     setIsCategoriesLoading(true);
     setCategoriesErrorMessage(null);
     setStatus(CREATE_PRODUCT_FORM_STATUS.OPEN);
@@ -329,7 +337,8 @@ export const useCreateProductForm = (onSuccess: (productId: string) => void): Us
       };
       let productId: string;
       if (editingProductId !== null) {
-        await updatePersonalProduct({ ...fields, productId: editingProductId });
+        // Editar reemplaza la tienda y el precio: lo que no viaja se borra (055).
+        await updatePersonalProduct({ ...fields, ...referenceFields, productId: editingProductId });
         productId = editingProductId;
       } else {
         productId = await createPersonalProduct({ ...fields, ...referenceFields, shareWithHousehold });

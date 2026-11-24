@@ -253,13 +253,15 @@ Verificado contra la base real (`ifvwumejbfpowxlkjfiu`), no supuesto.
 | `supabase/migrations/052_edit_delete_personal_products.sql` | `product_catalog.archived_at`; `can_manage_personal_product` (interna), `get_personal_product_usage`, `update_personal_product`, `delete_personal_product` |
 | `supabase/migrations/053_fix_personal_product_variant_name.sql` | `update_personal_product` arma el nombre de la variante sin ceros de sobra ("500 g", no "500.00 g"), igual que al crear |
 | `supabase/tests/052_edit_delete_personal_products.test.sql` | Prueba de 052 y 053 (transacción + rollback) |
+| `supabase/migrations/055_update_personal_product_reference_price.sql` | Tarea 22.3: `update_personal_product` con tienda y precio (los 3 parámetros de 051), y sin la firma de 6 |
+| `supabase/tests/055_update_personal_product_reference_price.test.sql` | Prueba de 055 (transacción + rollback) |
 | `types/database.types.ts` | `archived_at` y las 3 funciones, editados a mano solo para 052 |
 | `types/personal-product.types.ts` | `EditablePersonalProduct`: lo comparten la feature y el hook del formulario |
 | `constants/create-product-form.constants.ts` | Nombres de las RPC, `PERSONAL_PRODUCT_DELETE_RESULT`, título "Editar producto" |
 | `services/personal-product.service.ts` | `updatePersonalProduct`, `deletePersonalProduct`, `getPersonalProductUsage` |
 | `hooks/useCreateProductForm.ts`, `components/create-product-form/CreateProductForm.tsx` | Modo edición: `onOpenEdit`, `title`; sin "Compartir" al editar |
 | `components/catalog-card/*` | Prop `actions`, dibujada fuera del link |
-| `features/my-products/services/my-products.service.ts` | Trae categoría y marca (`editable`), filtra archivados |
+| `features/my-products/services/my-products.service.ts` | Trae categoría, marca, tienda y precio (`editable`), filtra archivados |
 | `features/my-products/hooks/useMyProductsViewModel.ts` | `items` (tarjeta + producto) y `deletion` |
 | `features/my-products/hooks/useMyProductDeletion.ts` | Estado del diálogo de eliminar (mismo patrón que `useRecipeDeletion`) |
 | `features/my-products/utils/toUsageNoticeText.ts` | Texto del aviso de CA-02 |
@@ -288,3 +290,4 @@ Verificado contra la base real (`ifvwumejbfpowxlkjfiu`), no supuesto.
 | Reusar `CreateProductForm` y `useCreateProductForm` con un modo edición | Un formulario y un hook nuevos para editar | Mismos campos y mismas validaciones; dos copias se desincronizarían. El nombre del hook se mantiene para no tocar a `features/catalog`, su otro consumidor |
 | Editar no cambia "compartido" | Mostrar el checkbox también al editar | Dejar de compartir rompería las listas de los demás miembros; re-decidir ya estaba fuera de alcance (§14) |
 | Botones debajo de la tarjeta, por composición (`actions`) | Botones dentro de la tarjeta | La tarjeta entera es un link; un botón adentro es HTML inválido |
+| Editar reemplaza la tienda y el precio: en null, se borran (055) | Parámetros que solo cambian lo que llega | El formulario manda siempre el estado completo, igual que con la marca. Sin esto no habría forma de quitar un precio |

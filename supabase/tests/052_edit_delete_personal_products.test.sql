@@ -4,7 +4,8 @@
 --
 -- Cómo se corre: completo en el SQL Editor (rol dueño de las tablas), después
 -- de aplicar 052 y 053 (053 corrige el nombre de la variante que revisan los
--- casos 3 y 4). Todo pasa dentro de una transacción que termina en
+-- casos 3 y 4). Con 055 aplicada, update_personal_product tiene 3 parámetros
+-- opcionales más (tienda y precio): el caso 1 revisa esa firma. Todo pasa dentro de una transacción que termina en
 -- rollback (mismo patrón que 031_create_personal_product.test.sql): nada de
 -- esto queda en la base compartida.
 --
@@ -100,11 +101,11 @@ do $$
 begin
   assert not has_function_privilege('anon', 'public.get_personal_product_usage(uuid)', 'execute'),
     'anon no debe ejecutar get_personal_product_usage';
-  assert not has_function_privilege('anon', 'public.update_personal_product(uuid, text, uuid, text, numeric, text)', 'execute'),
+  assert not has_function_privilege('anon', 'public.update_personal_product(uuid, text, uuid, text, numeric, text, numeric, text, text)', 'execute'),
     'anon no debe ejecutar update_personal_product';
   assert not has_function_privilege('anon', 'public.delete_personal_product(uuid)', 'execute'),
     'anon no debe ejecutar delete_personal_product';
-  assert has_function_privilege('authenticated', 'public.update_personal_product(uuid, text, uuid, text, numeric, text)', 'execute'),
+  assert has_function_privilege('authenticated', 'public.update_personal_product(uuid, text, uuid, text, numeric, text, numeric, text, text)', 'execute'),
     'authenticated debe ejecutar update_personal_product';
   assert has_function_privilege('authenticated', 'public.delete_personal_product(uuid)', 'execute'),
     'authenticated debe ejecutar delete_personal_product';

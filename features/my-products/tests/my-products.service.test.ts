@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
+import { STORE_NAMES } from "@/constants/stores.constants";
 import { MY_PRODUCTS_DB } from "../constants/my-products.constants";
 import { listMyProducts } from "../services/my-products.service";
 
@@ -85,6 +86,9 @@ const toExpectedProduct = (id: string, name: string) => ({
     categoryId: "category-1",
     name,
     productId: id,
+    referencePrice: null,
+    referenceStoreName: null,
+    referenceStoreSlug: null,
   },
 });
 
@@ -303,7 +307,16 @@ describe("listMyProducts", () => {
               id: "product-1",
               name: "Queso",
               product_catalog_variants: [
-                { base_quantity: 250, base_unit: "g", id: "v-1", image_url: null, product_brands: [{ name: "Finca Eva" }] },
+                {
+                  base_quantity: 250,
+                  base_unit: "g",
+                  id: "v-1",
+                  image_url: null,
+                  product_brands: [{ name: "Finca Eva" }],
+                  reference_price: 2850,
+                  reference_store_name: null,
+                  stores: { display_name: "MaxiPali", slug: "maxipali" },
+                },
               ],
             },
           ],
@@ -321,6 +334,9 @@ describe("listMyProducts", () => {
       categoryId: "category-9",
       name: "Queso",
       productId: "product-1",
+      referencePrice: 2850,
+      referenceStoreName: null,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
     });
   });
 

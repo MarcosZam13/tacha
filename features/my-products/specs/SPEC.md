@@ -56,22 +56,21 @@ No incluye (ver §14):
 - El detalle del producto (`features/catalog-product-detail`) muestra un bloque "Precio de referencia" con la tienda, el precio, el ícono "i" y el aviso visible.
 - Migración nueva `051`: tres columnas opcionales en `product_catalog_variants` y `create_personal_product` con tres parámetros opcionales más (ver §12).
 
-No incluye: editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-89), ni usar el precio manual en las sugerencias de dónde comprar (sección 4.8 del documento de proyecto, que todavía no tiene pantalla).
+No incluye: editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-89, se suma ahí con la migración `055`), ni usar el precio manual en las sugerencias de dónde comprar (sección 4.8 del documento de proyecto, que todavía no tiene pantalla).
 
 **HU-58 (SCRUM-89) — añadido:**
 
 - Botones "Editar" y "Eliminar" en cada tarjeta de "Mis productos" (CA-01), debajo de la tarjeta.
-- "Editar" abre el mismo formulario de HU-56, precargado, con el título "Editar producto". Se edita nombre, marca, categoría y tamaño.
+- "Editar" abre el mismo formulario de HU-56, precargado, con el título "Editar producto". Se edita nombre, marca, categoría y tamaño, y también la tienda y el precio de referencia de HU-57.
 - "Eliminar" abre siempre un diálogo de confirmación. Si el producto está en listas activas o recetas, el diálogo dice cuántas (CA-02).
 - Al eliminar:
   - si nada lo usa, se borra;
   - si lo usa alguna lista (de cualquier estado), receta o snapshot de faltante, se **archiva**: deja de aparecer en "Mis productos" y todo lo que lo usa sigue igual.
-- Migraciones nuevas `052` y `053` (ver §12). `053` corrige el formato de la cantidad en el nombre de la variante al editar.
+- Migraciones nuevas `052`, `053` y `055` (ver §12). `053` corrige el formato de la cantidad en el nombre de la variante al editar. `055` deja editar la tienda y el precio (HU-57, mergeada antes que esta historia).
 
 No incluye:
 - Cambiar si el producto está compartido.
 - Recuperar un producto archivado.
-- Editar la tienda y el precio de referencia (HU-57/SCRUM-88, PR aparte).
 - El caso "usado en un grupo": los grupos de productos (HU-72+) todavía no existen.
 
 ## 3. Entradas
@@ -137,7 +136,8 @@ No incluye:
   - un producto personal: su dueño;
   - un producto compartido: cualquier miembro actual de su household. Al compartirlo, `owner_id` queda en null (032), así que no se guarda quién lo creó; mismo criterio que las listas del household.
   - Nunca un producto del catálogo global ni uno ya archivado.
-- Editar usa las mismas validaciones que crear (HU-56 CA-02) y no cambia si el producto está compartido.
+- Editar usa las mismas validaciones que crear (HU-56 CA-02 y, para la tienda y el precio, HU-57) y no cambia si el producto está compartido.
+- Editar reemplaza la tienda y el precio, igual que la marca: lo que queda vacío en el formulario se borra.
 - Un producto personalizado tiene una sola variante. Editar el tamaño actualiza esa variante, así que las listas que lo tienen ven el tamaño nuevo.
 - Eliminar siempre pide confirmación. El aviso de CA-02 cuenta:
   - **listas activas**: `lists.status = 'active'`, con algún ítem del producto;
@@ -317,7 +317,8 @@ No incluye:
   - Devuelve solo cantidades.
 - `update_personal_product(target_product_id, new_product_name, new_category_id, new_base_unit, new_base_quantity, new_brand_name)`. Los parámetros llevan prefijo para no chocar con los nombres de columna.
 - `delete_personal_product(target_product_id)` → `'deleted' | 'archived'`.
-- Lectura: `listMyProducts()` agrega `category_id` y `product_brands(name)` y filtra `archived_at is null`.
+- Lectura: `listMyProducts()` agrega `category_id`, `product_brands(name)` y el `slug` del supermercado, y filtra `archived_at is null`.
+- Migración `055_update_personal_product_reference_price.sql`: `update_personal_product` suma `new_reference_price`, `new_reference_store_slug` y `new_reference_store_name`, opcionales, con las mismas validaciones que `create_personal_product` (051). En null, ese dato se borra. Se borra la firma de 6 parámetros para no dejar sobrecargas.
 
 ## 13. Casos de aceptación
 
@@ -350,6 +351,7 @@ No incluye:
 - Caso 18 (CA-02): eliminar un producto en listas activas o recetas avisa cuántas antes de confirmar.
 - Caso 19: un producto sin uso se borra; uno en uso se archiva, y sus listas y recetas siguen intactas.
 - Caso 20: nadie fuera del dueño (o del household, si está compartido) puede editarlo ni eliminarlo, ni siquiera llamando a la base directo.
+- Caso 21: editar abre el formulario con la tienda y el precio guardados, y guardar los cambia o los borra (prueba SQL de 055).
 
 ## 14. Casos fuera de alcance
 
@@ -361,7 +363,7 @@ No incluye:
 
 **HU-57, añadido:**
 
-- Editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-89).
+- Editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-89). *(Se suma en SCRUM-89, migración `055`.)*
 - Usar el precio manual en las sugerencias de dónde comprar (documento de proyecto §4.8, sin pantalla todavía).
 - Más de un precio por producto, o historial de precios manuales.
 
@@ -369,7 +371,6 @@ No incluye:
 
 - Cambiar si el producto está compartido, en cualquier sentido.
 - Ver o recuperar productos archivados.
-- Editar tienda y precio de referencia (HU-57, PR aparte).
 - "Usado en un grupo" (no existen grupos todavía).
 
 ## 15. Notas de implementación

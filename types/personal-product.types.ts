@@ -1,4 +1,5 @@
 import type { CatalogBaseUnitType } from "@/constants";
+import type { StoreSlug } from "@/constants/stores.constants";
 import type { NullableRef } from "@/types/nullable.types";
 
 /**
@@ -17,4 +18,10 @@ export interface EditablePersonalProduct {
   categoryId: string;
   name: string;
   productId: string;
+  /** HU-57: precio de referencia, o null si no tiene. */
+  referencePrice: NullableRef<number>;
+  /** HU-57: tienda escrita a mano. Nunca junto con referenceStoreSlug. */
+  referenceStoreName: NullableRef<string>;
+  /** HU-57: uno de los supermercados. Nunca junto con referenceStoreName. */
+  referenceStoreSlug: NullableRef<StoreSlug>;
 }

@@ -1,8 +1,10 @@
 import type { Session } from "@supabase/supabase-js";
 import type { CatalogBaseUnitType } from "@/constants";
 import { CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
+import { STORE_NAMES } from "@/constants/stores.constants";
+import type { StoreSlug } from "@/constants/stores.constants";
 import { getSupabaseClient } from "@/services/supabase.client";
-import type { NullableRef } from "@/types/nullable.types";
+import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import { MY_PRODUCTS_DB } from "../constants/my-products.constants";
 import type { MyProduct } from "../models/my-products.interfaces";
 
@@ -40,7 +42,7 @@ const toCatalogProduct = (productRow: {
     image_url: NullableRef<string>;
     reference_price: NullableRef<number>;
     reference_store_name: NullableRef<string>;
-    stores: NullableRef<{ display_name: string }>;
+    stores: NullableRef<{ display_name: string; slug: string }>;
   }[];
 }): Omit<MyProduct, "editable"> => ({
   // "Mis productos" todavía no asigna categoría (HU-55; el selector es
@@ -65,6 +67,11 @@ const toCatalogProduct = (productRow: {
   })),
 });
 
+// stores.slug es text en la base; el formulario solo conoce los supermercados
+// de STORE_NAMES. Uno que no conozca se trata como "sin supermercado".
+const toStoreSlug = (slug: NullableUndefined<string>): NullableRef<StoreSlug> =>
+  Object.values(STORE_NAMES).find((storeSlug) => storeSlug === slug) ?? null;
+
 // HU-58 (SCRUM-89): además, los datos para abrir el formulario de edición.
 // Un producto personalizado tiene una sola variante (create_personal_product
 // crea las dos filas en la misma transacción): de ella salen el tamaño y la
@@ -81,7 +88,7 @@ const toMyProduct = (productRow: {
     product_brands: { name: string }[];
     reference_price: NullableRef<number>;
     reference_store_name: NullableRef<string>;
-    stores: NullableRef<{ display_name: string }>;
+    stores: NullableRef<{ display_name: string; slug: string }>;
   }[];
 }): NullableRef<MyProduct> => {
   const [firstVariant] = productRow.product_catalog_variants;
@@ -97,6 +104,9 @@ const toMyProduct = (productRow: {
       categoryId: productRow.category_id,
       name: productRow.name,
       productId: productRow.id,
+      referencePrice: firstVariant.reference_price,
+      referenceStoreName: firstVariant.reference_store_name,
+      referenceStoreSlug: toStoreSlug(firstVariant.stores?.slug),
     },
   };
 };

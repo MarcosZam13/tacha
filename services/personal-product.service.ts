@@ -87,6 +87,10 @@ export interface PersonalProductUsage {
  * update_personal_product: quién puede hacerlo (dueño, o miembro del
  * household si está compartido) lo decide la base con auth.uid(), nunca el
  * cliente. Producto, variante y marca en una sola transacción.
+ *
+ * La tienda y el precio de referencia (HU-57, migración 055) se reemplazan
+ * igual que la marca: el formulario manda siempre el estado completo, y lo
+ * que no viaja queda vacío.
  */
 export const updatePersonalProduct = async (payload: UpdatePersonalProductPayload): Promise<void> => {
   await ensureSession();
@@ -97,6 +101,10 @@ export const updatePersonalProduct = async (payload: UpdatePersonalProductPayloa
     new_brand_name: payload.brandName,
     new_category_id: payload.categoryId,
     new_product_name: payload.name,
+    // HU-57 en edición (migración 055): ausente = se borra ese dato.
+    new_reference_price: payload.referencePrice,
+    new_reference_store_name: payload.referenceStoreName,
+    new_reference_store_slug: payload.referenceStoreSlug,
     target_product_id: payload.productId,
   });
   if (error) throw error;

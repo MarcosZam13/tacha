@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PERSONAL_PRODUCT_DB, PERSONAL_PRODUCT_DELETE_RESULT } from "@/constants/create-product-form.constants";
+import { STORE_NAMES } from "@/constants/stores.constants";
 import {
   createPersonalProduct,
   deletePersonalProduct,
@@ -240,6 +241,30 @@ describe("updatePersonalProduct / deletePersonalProduct / getPersonalProductUsag
       new_product_name: "Queso Turrialba",
       target_product_id: "product-7",
     });
+  });
+
+  // HU-57 en edición (055): la tienda y el precio viajan igual que al crear.
+  it("sends the reference store and price to update_personal_product", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await updatePersonalProduct({
+      baseQuantity: 500,
+      baseUnit: "g",
+      categoryId: "category-1",
+      name: "Queso Turrialba",
+      productId: "product-7",
+      referencePrice: 2850.5,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+
+    expect(rpcMock).toHaveBeenCalledWith(
+      PERSONAL_PRODUCT_DB.RPC.UPDATE_PERSONAL_PRODUCT,
+      expect.objectContaining({
+        new_reference_price: 2850.5,
+        new_reference_store_name: undefined,
+        new_reference_store_slug: STORE_NAMES.MAXIPALI,
+      }),
+    );
   });
 
   it("rethrows the Supabase error when the update fails", async () => {

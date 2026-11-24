@@ -153,6 +153,31 @@ test.describe("Mis productos: editar y eliminar", () => {
     await deleteProduct(page, editedName);
   });
 
+  test("E2E-MISPROD-06: editar cambia la tienda y el precio de referencia", async ({ page }) => {
+    const productName = uniqueProductName("Natilla casera");
+    await createProduct(page, productName, { price: "2850", supermarket: "MaxiPali" });
+
+    await getActionButton(page, "Editar", productName).click();
+    const dialog = page.getByRole("dialog", { name: "Editar producto" });
+    const storeSelect = dialog.getByLabel("Tienda (opcional)");
+    const priceInput = dialog.getByLabel("Precio de referencia (opcional)");
+    // Abre precargado con lo que se guardó al crear.
+    await expect(storeSelect.locator("option:checked")).toHaveText("MaxiPali");
+    await expect(priceInput).toHaveValue("2850");
+
+    await storeSelect.selectOption({ label: "Otra tienda" });
+    await dialog.getByLabel(/^Nombre de la tienda/).fill("Feria de Zapote");
+    await priceInput.fill("3100");
+    await dialog.getByRole("button", { name: "Guardar" }).click();
+    await expect(dialog).toBeHidden();
+
+    const card = getProductCard(page, productName);
+    await expect(card).toContainText("Feria de Zapote");
+    await expect(card).toContainText(toPricePattern("3", "100"));
+    await expect(card).not.toContainText("MaxiPali");
+    await deleteProduct(page, productName);
+  });
+
   test("E2E-MISPROD-04: eliminar un producto sin uso lo quita de la lista", async ({ page }) => {
     const productName = uniqueProductName("Natilla");
     await createProduct(page, productName);

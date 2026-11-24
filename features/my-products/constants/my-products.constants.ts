@@ -20,10 +20,10 @@ export const MY_PRODUCTS_DB = {
   // Una fila de product_catalog con sus variantes embebidas. HU-57 (SCRUM-88,
   // migración 051): precio y tienda de referencia; stores(display_name) es el
   // nombre del súper cuando se eligió uno de los 3 (reference_store_id).
-  // HU-58: también la categoría y la marca, para abrir el formulario de
-  // edición precargado.
+  // HU-58: también la categoría, la marca y el slug del súper, para abrir el
+  // formulario de edición precargado.
   SELECT:
-    "id, name, category_id, product_catalog_variants(id, base_unit, base_quantity, image_url, reference_price, reference_store_name, stores(display_name), product_brands(name))",
+    "id, name, category_id, product_catalog_variants(id, base_unit, base_quantity, image_url, reference_price, reference_store_name, stores(display_name, slug), product_brands(name))",
   TABLE: {
     HOUSEHOLD_MEMBERS: "household_members",
     PRODUCT_CATALOG: "product_catalog",

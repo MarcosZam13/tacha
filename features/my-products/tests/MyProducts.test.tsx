@@ -56,6 +56,9 @@ const MANUAL_PRODUCT: MyProduct = {
     categoryId: "category-1",
     name: "Leche",
     productId: "product-1",
+    referencePrice: null,
+    referenceStoreName: null,
+    referenceStoreSlug: null,
   },
 };
 

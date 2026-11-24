@@ -15,10 +15,10 @@ El navegador prueba los recorridos completos: crear → ver en la tarjeta → ve
 - **Usuario:** cada test abre un navegador nuevo y la app crea un usuario anónimo nuevo al guardar, sin familia: el producto queda personal.
 - **Categoría:** la primera del selector. Supuesto: la base compartida tiene categorías (las siembra la migración 020).
 - **Nombre:** cada test usa un nombre con la hora, para encontrar su tarjeta sin confundirla con otra.
-- **Migración:** requiere `051`, `052` y `053` aplicadas en la base.
+- **Migración:** requiere `051`, `052`, `053` y `055` aplicadas en la base.
 - **Limpieza:**
   - E2E-MISPROD-01 y -02 no limpian: su producto queda en la base, pero es de un usuario anónimo y nadie más lo ve (RLS de 032).
-  - E2E-MISPROD-03 elimina su producto al terminar, así que se borra.
+  - E2E-MISPROD-03 y -06 eliminan su producto al terminar, así que se borra.
   - E2E-MISPROD-04 lo borra como parte del test.
   - E2E-MISPROD-05 borra el ítem de la lista con el token de esa sesión (`deleteOwnListItems`). El producto queda archivado: es de un usuario anónimo y nadie más lo ve.
 
@@ -41,6 +41,12 @@ El navegador prueba los recorridos completos: crear → ver en la tarjeta → ve
 - **Cubre:** HU-58 CA-01; SPEC §13 casos 16 y 17.
 - **Pasos:** crear un producto, tocar "Editar" en su tarjeta, cambiar el nombre y guardar.
 - **Resultado:** el formulario abrió precargado con el nombre anterior, y sin recargar la tarjeta muestra el nombre nuevo. No queda ninguna tarjeta con el nombre anterior: se actualizó el mismo producto, no se creó otro.
+
+### E2E-MISPROD-06: editar la tienda y el precio
+
+- **Cubre:** HU-58 CA-01 con los campos de HU-57; SPEC §13 caso 21.
+- **Pasos:** crear un producto con "MaxiPali" y precio 2850, tocar "Editar", elegir "Otra tienda" = "Feria de Zapote", escribir 3100 y guardar.
+- **Resultado:** el formulario abrió con "MaxiPali" y 2850. Al guardar, la tarjeta muestra "Feria de Zapote" y el precio nuevo, y ya no dice "MaxiPali".
 
 ### E2E-MISPROD-04: eliminar un producto sin uso
 

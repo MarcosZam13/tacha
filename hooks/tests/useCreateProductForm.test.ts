@@ -218,12 +218,15 @@ describe("useCreateProductForm: editar (HU-58)", () => {
     categoryId: "category-1",
     name: "Queso casero",
     productId: "product-7",
+    referencePrice: null,
+    referenceStoreName: null,
+    referenceStoreSlug: null,
   };
 
-  const renderEditing = async (onSuccess = vi.fn()) => {
+  const renderEditing = async (onSuccess = vi.fn(), product: EditablePersonalProduct = PRODUCT) => {
     hasHouseholdMock.mockResolvedValue(true);
     const hook = renderHook(() => useCreateProductForm(onSuccess));
-    act(() => hook.result.current.onOpenEdit(PRODUCT));
+    act(() => hook.result.current.onOpenEdit(product));
     await waitFor(() => expect(hook.result.current.isCategoriesLoading).toBe(false));
     return hook;
   };
@@ -260,6 +263,78 @@ describe("useCreateProductForm: editar (HU-58)", () => {
     expect(createPersonalProductMock).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith("product-7");
     expect(result.current.isOpen).toBe(false);
+  });
+
+  // Tarea 22.3: con HU-57 mergeada, editar también cambia la tienda y el precio.
+  it("opens pre-filled with the supermarket and the price", async () => {
+    const { result } = await renderEditing(vi.fn(), {
+      ...PRODUCT,
+      referencePrice: 2850.5,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+
+    expect(result.current.storeChoice).toBe(STORE_NAMES.MAXIPALI);
+    expect(result.current.showStoreNameInput).toBe(false);
+    expect(result.current.price).toBe("2850.5");
+  });
+
+  it("opens pre-filled with a typed store and no price", async () => {
+    const { result } = await renderEditing(vi.fn(), { ...PRODUCT, referenceStoreName: "Feria de Zapote" });
+
+    expect(result.current.storeChoice).toBe(REFERENCE_STORE_CHOICE.CUSTOM);
+    expect(result.current.showStoreNameInput).toBe(true);
+    expect(result.current.storeName).toBe("Feria de Zapote");
+    expect(result.current.price).toBe("");
+  });
+
+  it("saves the edited store and price", async () => {
+    updatePersonalProductMock.mockResolvedValue(undefined);
+    const { result } = await renderEditing(vi.fn(), {
+      ...PRODUCT,
+      referencePrice: 2850,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("  Feria de Zapote  "));
+    act(() => result.current.onPriceChange("3100,50"));
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(updatePersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: "product-7",
+        referencePrice: 3100.5,
+        referenceStoreName: "Feria de Zapote",
+        referenceStoreSlug: undefined,
+      }),
+    );
+  });
+
+  it("sends no store and no price when both are cleared, so the update removes them", async () => {
+    updatePersonalProductMock.mockResolvedValue(undefined);
+    const { result } = await renderEditing(vi.fn(), {
+      ...PRODUCT,
+      referencePrice: 2850,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.NONE));
+    act(() => result.current.onPriceChange(""));
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(updatePersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({ referencePrice: undefined, referenceStoreName: undefined, referenceStoreSlug: undefined }),
+    );
+  });
+
+  it("does not save the edit while the price is invalid", async () => {
+    const { result } = await renderEditing();
+    act(() => result.current.onPriceChange("0"));
+
+    act(() => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.priceError).toBe(CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID);
+    expect(updatePersonalProductMock).not.toHaveBeenCalled();
   });
 
   it("goes back to create mode after closing an edit", async () => {
