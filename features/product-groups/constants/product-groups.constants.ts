@@ -7,8 +7,10 @@ export const PRODUCT_GROUPS_DB = {
   COLUMN: {
     UPDATED_AT: "updated_at",
   },
-  // Agregar un grupo a la lista general (SCRUM-111, migración 057).
+  // Funciones RPC: crear un grupo (SCRUM-110, migración 056) y agregarlo
+  // a la lista general (SCRUM-111, migración 057).
   RPC: {
+    CREATE_PRODUCT_GROUP: "create_product_group",
     ADD_GROUP_TO_GENERAL_LIST: "add_group_to_general_list",
   },
   // Cada grupo con el conteo de sus items (count embebido de PostgREST,
@@ -65,6 +67,9 @@ export const PRODUCT_GROUP_ADD_TO_LIST_TEXT = {
 
 export const PRODUCT_GROUPS_TEXT = {
   BACK_TO_LIST: "Volver a la lista",
+  // SCRUM-110: en la cabecera y en el estado vacío.
+  CREATE_FIRST_GROUP: "Crear tu primer grupo",
+  CREATE_GROUP: "+ Crear grupo",
   // Texto literal del CA-02 de HU-72.
   EMPTY_SUGGESTION: "Agrupá los productos que siempre comprás juntos",
   ERROR: "No pudimos cargar tus grupos. Intenta de nuevo.",

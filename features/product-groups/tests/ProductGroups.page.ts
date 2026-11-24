@@ -14,6 +14,10 @@ export const createProductGroupsPage = () => {
   const getSpinner = (): HTMLElement => screen.getByRole("status", { name: PRODUCT_GROUPS_TEXT.LOADING });
   const getError = (): HTMLElement => screen.getByRole("alert");
   const getEmptyState = (): HTMLElement => screen.getByText(PRODUCT_GROUPS_TEXT.EMPTY_SUGGESTION);
+  // SCRUM-110: los dos caminos a crear un grupo.
+  const getCreateGroupLink = (): HTMLElement => screen.getByRole("link", { name: PRODUCT_GROUPS_TEXT.CREATE_GROUP });
+  const queryCreateFirstGroupLink = (): HTMLElement | null =>
+    screen.queryByRole("link", { name: PRODUCT_GROUPS_TEXT.CREATE_FIRST_GROUP });
   // Cada tarjeta es un <li> con el nombre del grupo como <h2>.
   const getCard = (groupName: string): HTMLElement => {
     const card = screen.getByRole("heading", { level: 2, name: groupName }).closest("li");
@@ -51,6 +55,7 @@ export const createProductGroupsPage = () => {
     getAddToListButton,
     getBackLink,
     getCountLabel,
+    getCreateGroupLink,
     getEmptyState,
     getError,
     getSpinner,
@@ -58,6 +63,7 @@ export const createProductGroupsPage = () => {
     queryCardAlert,
     queryCardNames,
     queryCardStatus,
+    queryCreateFirstGroupLink,
     queryEmptyState,
     queryError,
     querySharedBadge,

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { APP_ROUTE, AUTH_ROUTE } from "@/constants";
+import { APP_ROUTE, AUTH_ROUTE, TERMS_ROUTE } from "@/constants";
 import { CompleteSignUp } from "../CompleteSignUp";
 import {
   COMPLETE_SIGN_UP_ACCOUNT_STATUS,
@@ -42,9 +42,67 @@ describe("CompleteSignUp", () => {
     expect(await page.findNameInput()).toHaveValue("Ana Pérez");
   });
 
+  // SCRUM-44, CA-01
+  it("shows the terms checkbox unchecked by default", async () => {
+    const page = renderPage();
+    await page.findNameInput();
+
+    expect(page.getTermsCheckbox()).toHaveAttribute("aria-checked", "false");
+  });
+
+  // SCRUM-44, CA-02
+  it("does not let the person continue without accepting the terms", async () => {
+    const page = renderPage();
+    await page.findNameInput();
+
+    expect(page.getSubmitButton()).toBeDisabled();
+  });
+
+  // SCRUM-44, CA-02
+  it("enables the button once the terms are accepted", async () => {
+    const page = renderPage();
+
+    await page.acceptTerms();
+
+    expect(page.getTermsCheckbox()).toHaveAttribute("aria-checked", "true");
+    expect(page.getSubmitButton()).toBeEnabled();
+  });
+
+  // SCRUM-44, CA-03
+  // En la misma pestaña: así el botón "Volver" de /terminos regresa a este formulario.
+  it("links to the full terms in the same tab", async () => {
+    const page = renderPage();
+    await page.findNameInput();
+
+    expect(page.getTermsLink()).toHaveAttribute("href", TERMS_ROUTE);
+    expect(page.getTermsLink()).not.toHaveAttribute("target");
+  });
+
+  // SCRUM-44, CA-02 (límite)
+  it("disables the button again when the terms are unchecked", async () => {
+    const page = renderPage();
+    await page.acceptTerms();
+
+    await page.toggleTerms();
+
+    expect(page.getTermsCheckbox()).toHaveAttribute("aria-checked", "false");
+    expect(page.getSubmitButton()).toBeDisabled();
+  });
+
+  // SCRUM-44, CA-02: aunque el formulario se envíe sin pasar por el botón, no se guarda.
+  it("does not save when the form is sent without accepting the terms", async () => {
+    const page = renderPage();
+    await page.findNameInput();
+
+    await page.submitForm();
+
+    expect(saveMock).not.toHaveBeenCalled();
+  });
+
   // SCRUM-43, CA-02
   it("does not save an empty name and shows the required error", async () => {
     const page = renderPage();
+    await page.acceptTerms();
     await page.replaceName("");
 
     await page.submit();
@@ -55,6 +113,7 @@ describe("CompleteSignUp", () => {
 
   it("clears the required error as soon as the person types again", async () => {
     const page = renderPage();
+    await page.acceptTerms();
     await page.replaceName("");
     await page.submit();
     await page.findText(COMPLETE_SIGN_UP_ERROR.NAME_REQUIRED);
@@ -64,10 +123,11 @@ describe("CompleteSignUp", () => {
     expect(page.queryText(COMPLETE_SIGN_UP_ERROR.NAME_REQUIRED)).not.toBeInTheDocument();
   });
 
-  // SCRUM-43, CA-03
-  it("saves the name and enters the app", async () => {
+  // SCRUM-43, CA-03 y SCRUM-44, CA-02
+  it("saves the name and enters the app once the terms are accepted", async () => {
     const page = renderPage();
     await page.replaceName("Ana María");
+    await page.acceptTerms();
 
     await page.submit();
 
@@ -79,7 +139,7 @@ describe("CompleteSignUp", () => {
   it("disables the button while saving, so a double click saves once", async () => {
     saveMock.mockReturnValue(new Promise(() => undefined));
     const page = renderPage();
-    await page.findNameInput();
+    await page.acceptTerms();
 
     await page.submit();
 
@@ -91,7 +151,7 @@ describe("CompleteSignUp", () => {
   it("keeps the form and shows an error when the name cannot be saved", async () => {
     saveMock.mockResolvedValue(COMPLETE_SIGN_UP_SAVE_RESULT.ERROR);
     const page = renderPage();
-    await page.findNameInput();
+    await page.acceptTerms();
 
     await page.submit();
 
@@ -103,7 +163,7 @@ describe("CompleteSignUp", () => {
   it("shows the save error when there is no network", async () => {
     saveMock.mockRejectedValue(new TypeError("Failed to fetch"));
     const page = renderPage();
-    await page.findNameInput();
+    await page.acceptTerms();
 
     await page.submit();
 

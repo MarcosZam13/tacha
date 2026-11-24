@@ -300,9 +300,13 @@ describe("updatePersonalProduct / deletePersonalProduct / getPersonalProductUsag
   });
 
   it("maps the usage row to camelCase", async () => {
-    rpcMock.mockResolvedValue({ data: [{ active_list_count: 2, recipe_count: 1 }], error: null });
+    rpcMock.mockResolvedValue({ data: [{ active_list_count: 2, group_count: 3, recipe_count: 1 }], error: null });
 
-    await expect(getPersonalProductUsage("product-7")).resolves.toEqual({ activeListCount: 2, recipeCount: 1 });
+    await expect(getPersonalProductUsage("product-7")).resolves.toEqual({
+      activeListCount: 2,
+      groupCount: 3,
+      recipeCount: 1,
+    });
     expect(rpcMock).toHaveBeenCalledWith(PERSONAL_PRODUCT_DB.RPC.GET_PERSONAL_PRODUCT_USAGE, {
       target_product_id: "product-7",
     });

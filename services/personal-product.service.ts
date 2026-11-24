@@ -79,6 +79,8 @@ export type UpdatePersonalProductPayload = Omit<CreatePersonalProductPayload, "s
 /** Cuántas listas activas y cuántas recetas usan un producto (aviso de HU-58 CA-02). */
 export interface PersonalProductUsage {
   activeListCount: number;
+  /** SCRUM-110 (migración 056): grupos de productos que lo tienen. */
+  groupCount: number;
   recipeCount: number;
 }
 
@@ -144,7 +146,11 @@ export const getPersonalProductUsage = async (productId: string): Promise<Person
   // La función devuelve siempre una sola fila; sin ella, es un error de contrato, no "0 usos".
   const [usageRow] = usageRows;
   if (!usageRow) throw new Error("get_personal_product_usage no devolvió ninguna fila");
-  return { activeListCount: usageRow.active_list_count, recipeCount: usageRow.recipe_count };
+  return {
+    activeListCount: usageRow.active_list_count,
+    groupCount: usageRow.group_count,
+    recipeCount: usageRow.recipe_count,
+  };
 };
 
 // Consulta propia y mínima: no se reusa getHouseholdMembership() de

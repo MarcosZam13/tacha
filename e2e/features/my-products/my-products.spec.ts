@@ -15,9 +15,10 @@ const USAGE_RPC_URL = /\/rpc\/get_personal_product_usage/;
 const toPricePattern = (thousands: string, rest: string): RegExp =>
   new RegExp(`₡${thousands}\\s?${rest}(?!\\d)`);
 
-// Fila que devuelve get_personal_product_usage (migración 052).
+// Fila que devuelve get_personal_product_usage (migración 052; group_count desde la 056).
 interface UsageRow {
   active_list_count: number;
+  group_count: number;
   recipe_count: number;
 }
 
@@ -183,7 +184,7 @@ test.describe("Mis productos: editar y eliminar", () => {
     await createProduct(page, productName);
 
     const { dialog, usage } = await openDeleteDialog(page, productName);
-    expect(usage).toEqual([{ active_list_count: 0, recipe_count: 0 }]);
+    expect(usage).toEqual([{ active_list_count: 0, group_count: 0, recipe_count: 0 }]);
     await expect(dialog.getByRole("status")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Eliminar" }).click();
 

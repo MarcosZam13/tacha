@@ -21,13 +21,21 @@ interface UseProductSearchReturn {
   setQuery: (query: string) => void;
 }
 
+/** Función que resuelve la búsqueda: la del catálogo global o una que también trae productos propios. */
+type SearchProductsFn = (searchTerm: string) => Promise<CatalogProduct[]>;
+
 /**
  * Buscador con debounce. Solo se guarda en estado lo que no se puede
  * calcular: el texto del input y la última respuesta. Si hay resultados,
  * si está buscando o si no hubo coincidencias se deriva en cada render.
  * Devuelve productos madre; cada feature los adapta a sus propias filas.
+ *
+ * `searchProducts` (SCRUM-110) cambia de dónde salen los resultados; por
+ * defecto, el catálogo global. Tiene que ser una referencia estable (una
+ * función del módulo, no una flecha creada en cada render): está en las
+ * dependencias del efecto.
  */
-export const useProductSearch = (): UseProductSearchReturn => {
+export const useProductSearch = (searchProducts: SearchProductsFn = searchCatalog): UseProductSearchReturn => {
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState<NullableRef<SearchResponse>>(null);
 
@@ -41,7 +49,7 @@ export const useProductSearch = (): UseProductSearchReturn => {
     // Debounce: solo se busca cuando el usuario deja de escribir DEBOUNCE_MS.
     // Cada tecla nueva corre el cleanup, que cancela el timer anterior.
     const timerId = setTimeout(() => {
-      searchCatalog(term)
+      searchProducts(term)
         .then((results) => {
           if (!isCancelled) setResponse({ errorMessage: null, results, term });
         })
@@ -57,7 +65,7 @@ export const useProductSearch = (): UseProductSearchReturn => {
       // Una respuesta de un término viejo que llegue tarde ya no pisa a la nueva.
       isCancelled = true;
     };
-  }, [term, isTermSearchable]);
+  }, [term, isTermSearchable, searchProducts]);
 
   // La respuesta solo vale si es del término que está escrito ahora.
   const currentResponse = isTermSearchable && response?.term === term ? response : null;
