@@ -33,6 +33,8 @@ const toPriceRangeByStore = (
 const toCatalogProducts = (
   products: ReadonlyArray<{
     category: string;
+    // Solo lo devuelve search_catalog_including_own (SCRUM-110).
+    is_personal?: boolean;
     name: string;
     product_catalog_id: string;
     variants: unknown;
@@ -40,6 +42,7 @@ const toCatalogProducts = (
 ): CatalogProduct[] =>
   products.map((product) => ({
     category: product.category,
+    isPersonal: product.is_personal,
     productId: product.product_catalog_id,
     productName: product.name,
     // variants es jsonb: la base no le da tipo, lo fija el contrato de la RPC.
@@ -59,6 +62,21 @@ const toCatalogProducts = (
  */
 export const searchCatalog = async (searchTerm: string): Promise<CatalogProduct[]> => {
   const { data: products, error } = await getSupabaseClient().rpc(CATALOG_DB.RPC.SEARCH_CATALOG, {
+    search_term: searchTerm,
+  });
+  if (error) throw error;
+
+  return toCatalogProducts(products);
+};
+
+/**
+ * Como searchCatalog(), pero también devuelve mis productos personalizados y
+ * los compartidos por mi familia (nunca los archivados), cada uno marcado con
+ * `isPersonal` si es personal sin compartir. Lo usa el editor de grupos
+ * (SCRUM-110); "Buscar" y la lista siguen usando searchCatalog().
+ */
+export const searchCatalogIncludingOwn = async (searchTerm: string): Promise<CatalogProduct[]> => {
+  const { data: products, error } = await getSupabaseClient().rpc(CATALOG_DB.RPC.SEARCH_CATALOG_INCLUDING_OWN, {
     search_term: searchTerm,
   });
   if (error) throw error;

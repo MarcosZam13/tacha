@@ -9,6 +9,7 @@ import { formatSizeLabel } from "@/utils/formatSizeLabel";
 export const toCatalogSearchResults = (products: CatalogProduct[]): CatalogSearchResult[] =>
   products.flatMap((product) =>
     product.variants.map((variant) => ({
+      isPersonal: product.isPersonal,
       productName: product.productName,
       sizeLabel: formatSizeLabel(variant.baseQuantity, variant.baseUnit),
       variantId: variant.variantId,

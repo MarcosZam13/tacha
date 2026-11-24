@@ -9,6 +9,11 @@ import type { NullableRef } from "@/types/nullable.types";
 export interface CatalogProduct {
   /** Nombre de la categoría del producto (HU-52); viene de search_catalog y list_catalog_by_category. */
   category: string;
+  /**
+   * SCRUM-110: producto personal sin compartir (solo lo trae
+   * search_catalog_including_own). Un grupo compartido no puede tenerlo.
+   */
+  isPersonal?: boolean;
   productId: string;
   productName: string;
   variants: CatalogProductVariant[];
@@ -19,6 +24,8 @@ export interface CatalogProduct {
  * a la lista general o a un grupo). Lo arma utils/toCatalogSearchResults.ts.
  */
 export interface CatalogSearchResult {
+  /** SCRUM-110: viene del producto (ver CatalogProduct.isPersonal). */
+  isPersonal?: boolean;
   productName: string;
   sizeLabel: string;
   variantId: string;

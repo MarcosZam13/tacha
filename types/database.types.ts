@@ -1205,6 +1205,14 @@ export type Database = {
           token: string
         }[]
       }
+      create_product_group: {
+        Args: {
+          group_name: string
+          item_list: Json
+          share_with_household: boolean
+        }
+        Returns: string
+      }
       create_personal_product: {
         Args: {
           base_quantity: number
@@ -1439,6 +1447,16 @@ export type Database = {
         Args: { household_id?: string; search_term?: string }
         Returns: {
           category: string
+          name: string
+          product_catalog_id: string
+          variants: Json
+        }[]
+      }
+      search_catalog_including_own: {
+        Args: { household_id?: string; search_term?: string }
+        Returns: {
+          category: string
+          is_personal: boolean
           name: string
           product_catalog_id: string
           variants: Json
