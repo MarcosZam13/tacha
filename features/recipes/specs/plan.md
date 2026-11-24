@@ -559,3 +559,108 @@ No se toca `features/shopping-list/` (SPEC §10): la lista no sabe que el panel 
 - **Una consulta por cambio:** la coalescencia limita las llamadas, pero no es incremental. Suficiente para una lista de decenas de filas.
 - **Cubierto no mide cantidad** (regla 31). Si el usuario cambia las cantidades de la lista después de agregar la receta, el faltante no se recalcula (regla 23, SCRUM-115).
 - **La RPC se prueba en el SQL Editor** con casos fijos (tasks). El runner cubre `toCoverageIngredients`, `toCoverageSummaryText`, `toCoverageReasonText` y las transiciones de `useRecipeCoverage` con un servicio simulado.
+
+---
+
+## SCRUM-161: foto de una receta
+
+> **Verificado el 2026-11-24** contra `develop` (8a6e69a): el único bucket es `avatars` (036), `recipes` solo permite escribir `name` y `base_servings` (008) y no hay E2E de recetas. Las PRs abiertas tienen la `050`, `056`, `057` y `058`: esta historia usa la **`059`** o la siguiente libre.
+
+### Archivos
+
+```
+supabase/
+  migrations/059_recipe_photos.sql                 columna, permiso, RPC, bucket y políticas
+  tests/059_recipe_photos.test.sql                 prueba con rollback
+
+constants/image-files.constants.ts                 nuevo: tipo MIME → extensión, promovido desde features/profile (+ barrel)
+features/profile/                                  solo el import de esa constante (revisión de Esteban)
+
+features/recipes/
+  components/
+    RecipePhotoField.tsx                           nuevo: vista previa, elegir, cambiar, quitar, error
+    RecipePhoto.tsx                                nuevo: foto 4:3, o la inicial si no hay o no carga
+    RecipeCard.tsx                                 usa RecipePhoto
+    models/…Props
+  hooks/
+    useRecipePhoto.ts                              nuevo: cambio pendiente, vista previa, error
+    useRecipeEditor.ts                             + foto al guardar y el id ya guardado
+    useRecipeEditorViewModel.ts                    + foto, aviso y cambios sin guardar
+  models/recipe-photo.interfaces.ts, .types.ts     nuevos
+  models/recipe-catalog.* y recipe-editor.*        + foto
+  services/
+    recipe-photos.service.ts                       nuevo: firmar, guardar el cambio y borrar archivos
+    recipes.service.ts                             pide los enlaces y borra la foto al eliminar
+  utils/
+    validateRecipePhoto.ts                         nuevo
+    toRecipeSummary.ts, toRecipeEditorValues.ts    + foto
+    recipe-editor.reducer.ts                       + PHOTO_FAILED y savedRecipeId
+  constants/recipes.constants.ts                   + límites, textos, estados, bucket, RPC
+  specs/E2E.md                                     nuevo
+  tests/                                           los de la historia y los pendientes de 94 y 95
+
+e2e/features/recipes/                              nuevo: recipes.spec.ts y recipes.helpers.ts
+types/database.types.ts                            + photo_path y set_recipe_photo (solo esas líneas)
+docs/documento-proyecto.md                         §6: recipes.photo_path y el bucket
+```
+
+### Datos
+
+**Migración `059`:**
+
+1. `recipes.photo_path text` con `check`: nulo, o `{id de la fila}/{uuid}.{jpg|png|webp}`. La regla vive en la tabla, así vale también para una escritura directa.
+2. `grant update (photo_path) on public.recipes to authenticated`. Sin permiso de insert. Las políticas de `recipes` (007) ya limitan el update al dueño.
+3. `set_recipe_photo(target_recipe_id uuid, new_photo_path text) returns text`, `security invoker`, `search_path` vacío: sesión (`42501`), lee la ruta actual con `for update` (sin fila: `P0002`), guarda la nueva y devuelve la anterior. Una ruta inválida la rechaza el `check` (`23514`).
+4. Bucket `recipe-photos`: privado, 5 242 880 bytes, tres tipos.
+5. Políticas de `storage.objects`:
+
+| Operación | Condición además del bucket |
+|---|---|
+| select | `exists` la receta de la carpeta (pasa por la RLS de `recipes`), **o** `owner_id = auth.uid()::text` |
+| insert | nombre `{uuid}/{uuid}.{ext}` y receta de la carpeta con `owner_id = auth.uid()` |
+| delete | `owner_id = auth.uid()::text` |
+
+Cuidados:
+- Dentro del `exists`, `name` sería el de la **receta**: siempre `storage.objects.name`. La prueba lo cubre con una receta cuyo nombre parece una ruta.
+- La carpeta se convierte a `uuid` dentro de un `case` que antes revisa su forma, para que un nombre raro dé "no" y no un error.
+- `owner_id` de `storage.objects` lo pone Storage con la sesión, no el cliente.
+
+**Lectura:** `CATALOG_SELECT` cambia `image_url` por `photo_path` y `EDITOR_SELECT` la suma. `createSignedUrls(rutas, 3600)` una vez por carga.
+
+### Flujo
+
+1. **Catálogo:** recetas → rutas que no son nulas → enlaces. Si firmar falla, el mapa queda vacío y el catálogo se muestra igual.
+2. **Elegir:** `validateRecipePhoto(file)`; con error se avisa y no cambia nada; si no, `replace` con `URL.createObjectURL`. El enlace local se libera al cambiar o salir.
+3. **Guardar:** `saveRecipe` → `SAVED` con el id → si la foto cambió, `saveRecipePhoto({ recipeId, change })`.
+4. **`saveRecipePhoto`** (no lanza): con `replace`, sube a `{recipeId}/{uuid}.{ext}`; llama a `set_recipe_photo`; borra la anterior. Si la base rechaza la ruta, borra la recién subida. Devuelve `saved`, `notFound` o `failed`.
+5. **Foto fallida:** `PHOTO_FAILED` guarda `savedRecipeId`, vuelve a `editing` con el aviso y sin navegar. El próximo guardado usa ese id, así que edita en vez de crear.
+6. **Eliminar:** `delete … select("photo_path")` devuelve la ruta de la fila borrada; después se borra el archivo, sin esperar ni mostrar un fallo.
+
+### Decisiones
+
+| Decisión | Alternativa descartada | Por qué |
+|---|---|---|
+| RPC aparte para la foto | Un parámetro más en `save_recipe` | Cambiar la firma crea una sobrecarga, y la ruta necesita el id que `save_recipe` devuelve |
+| RPC y no un update directo | `update` desde el cliente | Devuelve la ruta anterior en la misma operación: dos pestañas no dejan archivos perdidos |
+| `security invoker` | `security definer` | La RLS y el `check` ya dicen quién y qué; no hace falta más poder |
+| Borrar la receta con `select("photo_path")` | Leer la ruta antes | Una operación: es la ruta de lo que de verdad se borró |
+| Guardar dos veces la receta al reintentar | Un botón que reintente solo la foto | Editar es repetible y el usuario pudo cambiar algo más; un solo botón, un solo camino |
+| Foto en su propio hook y servicio | Todo en `useRecipeEditor` | El editor ya tiene reducer, carga y guardado; la foto tiene su propio ciclo |
+| Promover solo el mapa de tipos | Compartir el campo o la validación con el perfil | Es el mismo dato con dos consumidores; el campo (4:3 y cuadrado), los límites y los textos son distintos |
+| Sin tope de archivos por receta | Contar archivos en la política | No frena a quien crea muchas recetas, y archivos sueltos podrían bloquear a un usuario legítimo |
+
+### Seguridad
+
+- Bucket privado nuevo, políticas de Storage y una columna escribible: `security-reviewer` antes de `waiting qa`.
+- El cliente manda una ruta, nunca una URL; el `check` exige la carpeta de esa receta.
+- Para sumar a los miembros (D1) alcanza con la RLS de `recipes`: la lectura la sigue. **Subir y borrar quedan solo del dueño**, y ahí se decide si se abren.
+- Los enlaces firmados valen una hora: quien reciba uno ve la foto hasta que venza.
+
+### Deuda conocida
+
+- **Archivos sueltos** si falla la limpieza, si se cierra la pestaña justo al guardar o eliminar (la limpieza no se espera), o si se borra la cuenta: no hay un proceso que los junte (seguridad, Medio, aceptado).
+- **Subidas sin tope** (seguridad, Medio, aceptado): el dueño de una receta, también con sesión anónima como en `avatars`, puede subir por la API archivos que nadie usa. Un tope por receta no lo frena. Si molesta: un proceso que borre lo que no esté en `photo_path` y tenga más de un día.
+- **Ubicación en los metadatos:** decidir antes de D1.
+- **Sin caché ni miniaturas:** hasta 5 MB por tarjeta.
+- **`image_url`** queda sin uso hasta que `main` deje de leerla.
+- **Receta borrada por otra vía** (API o cascada al borrar la cuenta): su archivo queda suelto.

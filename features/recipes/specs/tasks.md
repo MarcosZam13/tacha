@@ -22,9 +22,9 @@ Bloqueado / pendiente de decisión del equipo:
 
 ## Pendiente cuando el proyecto tenga runner de tests
 
-- [ ] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
-- [ ] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
-- [ ] Tests de `hooks/useRecipeDeletion.ts` y de tarjeta + diálogo con Page Object (SCRUM-96).
+- [x] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
+- [x] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
+- [x] Tests de `hooks/useRecipeDeletion.ts` y de tarjeta + diálogo con Page Object (SCRUM-96).
 - [ ] Tests de `utils/toAddRecipeToListResponse.ts`, `utils/toAddToListSummaryText.ts` y `hooks/useRecipeListAddition.ts` (SCRUM-97).
 
 ## SCRUM-95: crear o editar una receta
@@ -105,3 +105,29 @@ Bloqueado / fuera de esta historia:
 
 - [ ] Inventario o despensa ("en casa"): sin historia ni tabla (SPEC §14).
 - [ ] Recalcular el faltante si cambia la lista: SCRUM-115.
+
+## SCRUM-161: foto de una receta
+
+- [x] 1. SPEC (sección 16; decisiones del responsable del 2026-11-24).
+- [x] 2. Plan y tareas.
+- [x] 3. Migración `059_recipe_photos.sql`: columna, permiso, `set_recipe_photo`, bucket y políticas. Revisar el número libre antes de crearla y antes del merge.
+- [x] 4. Prueba SQL `supabase/tests/059_recipe_photos.test.sql` con rollback: los casos SQL de SPEC 16.10, más una receta cuyo nombre parece una ruta y una carpeta que no es un uuid.
+- [x] 5. Aplicar la `059` (Roberto, SQL Editor: avisar al grupo, ensayo con la prueba y rollback, después con su fila `059`), correr la `059` y la `036`, y comparar lo nuevo de `types/database.types.ts` (escrito a mano) con lo que genera Supabase. Bloquea la validación, no el código del cliente. Aplicada por Roberto (con la función actualizada a `default null`); la `059` pasa en Supabase. La `036` se corrigió porque Storage ahora bloquea el delete directo, y también pasa en Supabase.
+- [x] 6. Promover el mapa de tipos MIME a `constants/image-files.constants.ts` (+ barrel). Los tests del perfil pasan igual.
+- [x] 7. Constantes y modelos: cambio de foto, límites, textos, bucket, RPC, estados.
+- [x] 8. Utils puros, con tests primero: `validateRecipePhoto`, `toRecipeSummary`, `toRecipeEditorValues` y el reducer (foto fallida, id guardado).
+- [x] 9. `recipe-photos.service.ts` y su test: firmar (vacío, error), guardar (subir, quitar, RPC que falla y limpia, receta que ya no existe, limpieza que falla) y borrar.
+- [x] 10. `recipes.service.ts` y su test: enlaces en una petición, catálogo sin enlaces si fallan, eliminar con y sin foto.
+- [x] 11. `useRecipePhoto` y su test (elegir, cambiar, quitar las dos formas, error, liberar la vista previa).
+- [x] 12. `useRecipeEditor` y `useRecipeEditorViewModel` con sus tests (orden, foto fallida sin navegar, reintento que no duplica, doble clic, sin cambio de foto).
+- [x] 13. Presentación: `RecipePhoto`, `RecipePhotoField`, `RecipeCard` y `RecipeEditor`; tests con Page Object (la tarjeta y el editor).
+- [x] 14. Tests pendientes: `formatServings`, `validateRecipeForm` y `toSaveRecipePayload`. Con los de las tareas 8 y 13 se cierran las casillas de SCRUM-94 y 95 de este archivo.
+- [x] 15. `docs/documento-proyecto.md` §6.
+- [x] 16. `E2E.md` y `e2e/features/recipes/`: crear con foto y verla tras recargar, quitarla, rechazar un archivo inválido, y foto que falla sin duplicar la receta. Cada test elimina su receta desde la pantalla.
+- [x] 17. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y los E2E de recetas y del planificador (usa recetas); validar SPEC 16.10 en el navegador (desktop y 360 px), incluido que el archivo se borra del bucket. (Hecho el 2026-11-24: E2E de recetas 10 de 10 y planificador 06 a 10 en chromium; bucket real con dos usuarios; escritorio y 360 px.)
+- [ ] 18. (Revisores hechos el 2026-11-24: código sin bloqueantes, corregido cuándo se borra la foto recién subida; seguridad sin Críticos ni Altos y dos Medios aceptados en el plan. Faltan los pasos de la PR y la revisión de Esteban.) `code-reviewer` y `security-reviewer` en paralelo, correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Esteban (toca `features/profile/`).
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Compartir recetas y su foto con la familia (D1), y decidir antes si se quitan los metadatos de ubicación.
+- [ ] Borrar `recipes.image_url`: cuando `main` ya no la lea.
