@@ -887,6 +887,7 @@ export type Database = {
           image_url: string | null
           name: string
           owner_id: string
+          photo_path: string | null
         }
         Insert: {
           base_servings: number
@@ -896,6 +897,7 @@ export type Database = {
           image_url?: string | null
           name: string
           owner_id?: string
+          photo_path?: string | null
         }
         Update: {
           base_servings?: number
@@ -905,6 +907,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           owner_id?: string
+          photo_path?: string | null
         }
         Relationships: []
       }
@@ -1660,6 +1663,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_recipe_photo: {
+        Args: { new_photo_path?: string; target_recipe_id: string }
+        Returns: string
       }
       set_spending_budget: {
         Args: { budget_amount: number; budget_period: string }

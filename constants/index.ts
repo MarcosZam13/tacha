@@ -5,6 +5,7 @@ export * from "./create-product-form.constants";
 export * from "./date-lists.constants";
 export * from "./email.constants";
 export * from "./icons.constants";
+export * from "./image-files.constants";
 export * from "./list-items.constants";
 export * from "./new-password.constants";
 export * from "./password.constants";

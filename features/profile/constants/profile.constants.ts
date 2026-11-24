@@ -62,16 +62,6 @@ export type ProfilePhotoChangeKindType =
 // cumplir Storage; acá solo se avisa antes de subir.
 export const AVATAR_MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 
-// Extensión del objeto según el tipo MIME; las claves son además la lista de tipos permitidos.
-export const AVATAR_FILE_EXTENSION_BY_MIME_TYPE: Readonly<Record<string, string>> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-
-// Valor del atributo `accept` del selector de archivos.
-export const AVATAR_ACCEPT = Object.keys(AVATAR_FILE_EXTENSION_BY_MIME_TYPE).join(",");
-
 export const AVATAR_STORAGE = {
   BUCKET: "avatars",
   // Tramo de la URL pública que separa el bucket de la ruta del objeto.

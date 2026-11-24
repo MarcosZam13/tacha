@@ -1,6 +1,6 @@
 import type { CatalogBaseUnitType } from "@/constants";
 import type { RECIPE_EDITOR_ACTION } from "../constants/recipes.constants";
-import type { RecipeEditorErrors, RecipeEditorIngredient, RecipeEditorValues } from "./recipe-editor.interfaces";
+import type { RecipeEditorErrors, RecipeEditorIngredient, RecipeForEditing } from "./recipe-editor.interfaces";
 
 // Types del editor de recetas (SCRUM-95). Las interfaces (formulario,
 // estado, ViewModel y mutación) están en recipe-editor.interfaces.ts.
@@ -16,9 +16,10 @@ export type RecipeEditorAction =
   | { type: typeof RECIPE_EDITOR_ACTION.INGREDIENT_REMOVED; productId: string }
   | { type: typeof RECIPE_EDITOR_ACTION.INGREDIENT_UNIT_CHANGED; productId: string; unit: CatalogBaseUnitType }
   | { type: typeof RECIPE_EDITOR_ACTION.LOAD_FAILED }
-  | { type: typeof RECIPE_EDITOR_ACTION.LOADED; values: RecipeEditorValues }
+  | ({ type: typeof RECIPE_EDITOR_ACTION.LOADED } & RecipeForEditing)
   | { type: typeof RECIPE_EDITOR_ACTION.NAME_CHANGED; name: string }
   | { type: typeof RECIPE_EDITOR_ACTION.NOT_FOUND }
+  | { type: typeof RECIPE_EDITOR_ACTION.PHOTO_FAILED; recipeId: string }
   | { type: typeof RECIPE_EDITOR_ACTION.SAVE_FAILED }
   | { type: typeof RECIPE_EDITOR_ACTION.SAVE_STARTED }
   | { type: typeof RECIPE_EDITOR_ACTION.VALIDATION_FAILED; errors: RecipeEditorErrors };

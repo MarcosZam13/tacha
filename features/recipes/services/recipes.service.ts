@@ -4,7 +4,7 @@ import { POSTGRES_ERROR_CODE } from "@/constants";
 import { RECIPES_DB } from "../constants/recipes.constants";
 import type { RecipeSummary } from "../models/recipe-catalog.interfaces";
 import type { DeleteRecipePayload, DeleteRecipeResponse } from "../models/recipe-deletion.interfaces";
-import type { RecipeEditorValues, SaveRecipePayload, SaveRecipeResponse } from "../models/recipe-editor.interfaces";
+import type { RecipeForEditing, SaveRecipePayload, SaveRecipeResponse } from "../models/recipe-editor.interfaces";
 import type {
   AddRecipeToListPayload,
   AddRecipeToListResponse,
@@ -13,6 +13,7 @@ import type {
 import { toAddRecipeToListResponse } from "../utils/toAddRecipeToListResponse";
 import { toRecipeEditorValues } from "../utils/toRecipeEditorValues";
 import { toRecipeSummary } from "../utils/toRecipeSummary";
+import { getRecipePhotoUrls, removeRecipePhotoFile } from "./recipe-photos.service";
 
 /**
  * Trae las recetas que el usuario puede ver, más nuevas primero, con sus
@@ -22,6 +23,9 @@ import { toRecipeSummary } from "../utils/toRecipeSummary";
  * política devuelve solo las recetas propias; cuando exista households se
  * suma la de miembros y esta consulta devuelve también las compartidas sin
  * cambiar nada acá.
+ *
+ * Las fotos están en un bucket privado: se piden sus enlaces en una sola
+ * petición, y si falla el catálogo se muestra igual.
  */
 export const getRecipeSummaries = async (): Promise<RecipeSummary[]> => {
   // Sin sesión la petición iría como anon, que no tiene permisos sobre recipes.
@@ -33,16 +37,22 @@ export const getRecipeSummaries = async (): Promise<RecipeSummary[]> => {
     .order(RECIPES_DB.COLUMN.CREATED_AT, { ascending: false });
   if (error) throw error;
 
-  return recipeRows.map(toRecipeSummary);
+  const urlByPath = await getRecipePhotoUrls(
+    recipeRows.flatMap((recipeRow) => (recipeRow.photo_path ? [recipeRow.photo_path] : [])),
+  );
+
+  return recipeRows.map((recipeRow) =>
+    toRecipeSummary(recipeRow, recipeRow.photo_path ? (urlByPath.get(recipeRow.photo_path) ?? null) : null),
+  );
 };
 
 /**
- * Trae una receta para editarla, ya convertida a valores del formulario.
+ * Trae una receta para editarla, ya convertida a valores del formulario, con su foto.
  * Devuelve null si no se encontró: no existe, es de otro usuario (RLS no la
  * devuelve) o el id de la URL no es un uuid. Las tres dan el mismo resultado
  * para no revelar si una receta ajena existe.
  */
-export const getRecipeForEditing = async (recipeId: string): Promise<NullableRef<RecipeEditorValues>> => {
+export const getRecipeForEditing = async (recipeId: string): Promise<NullableRef<RecipeForEditing>> => {
   await ensureSession();
 
   const { data: recipeRow, error } = await getSupabaseClient()
@@ -53,7 +63,15 @@ export const getRecipeForEditing = async (recipeId: string): Promise<NullableRef
   if (error?.code === POSTGRES_ERROR_CODE.INVALID_TEXT_REPRESENTATION) return null;
   if (error) throw error;
 
-  return recipeRow ? toRecipeEditorValues(recipeRow) : null;
+  if (!recipeRow) return null;
+
+  const { photo_path: photoPath } = recipeRow;
+  const urlByPath = await getRecipePhotoUrls(photoPath ? [photoPath] : []);
+
+  return {
+    photo: photoPath ? { url: urlByPath.get(photoPath) ?? null } : null,
+    values: toRecipeEditorValues(recipeRow),
+  };
 };
 
 /**
@@ -90,16 +108,21 @@ export const saveRecipe = async (payload: SaveRecipePayload): Promise<NullableRe
  * Si la receta ya no existe o es ajena, RLS no la ve: se borran 0 filas y no
  * hay error. Se responde igual que un borrado correcto, a propósito: para
  * quien la pidió la receta ya no está, y así no se revela si una ajena existe.
+ *
+ * El delete devuelve la foto de la fila que de verdad se borró; su archivo se
+ * borra después y sin esperar (SPEC regla 47).
  */
 export const deleteRecipe = async (payload: DeleteRecipePayload): Promise<DeleteRecipeResponse> => {
   await ensureSession();
 
-  const { error } = await getSupabaseClient()
+  const { data: deletedRows, error } = await getSupabaseClient()
     .from(RECIPES_DB.TABLE.RECIPES)
     .delete()
-    .eq(RECIPES_DB.COLUMN.ID, payload.recipeId);
+    .eq(RECIPES_DB.COLUMN.ID, payload.recipeId)
+    .select(RECIPES_DB.COLUMN.PHOTO_PATH);
   if (error) throw error;
 
+  deletedRows.forEach((deletedRow) => void removeRecipePhotoFile(deletedRow.photo_path));
   return { recipeId: payload.recipeId };
 };
 
