@@ -39,7 +39,7 @@ export const MealPlanner = (): React.JSX.Element => {
       {plan.hasLoadError ? <MealPlanLoadError onRetry={plan.onPlanRetry} /> : null}
       <div className="flex flex-col items-start gap-3">
         <AddWeekToListButton canOpen={weekAddition.canOpen} onOpen={weekAddition.onOpen} />
-        <AddWeekToListResult resultLines={weekAddition.resultLines} />
+        <AddWeekToListResult resultLines={weekAddition.resultLines} resultListHref={weekAddition.resultListHref} />
       </div>
       {isReady ? (
         // Sin leer el plan no se sabe qué espacios tienen receta: no se puede asignar a ciegas. Con la
@@ -54,11 +54,17 @@ export const MealPlanner = (): React.JSX.Element => {
       <MealSlotDialog {...dialog} />
       <AddWeekToListDialog
         confirmMessage={weekAddition.confirmMessage}
+        dateListOptions={weekAddition.dateListOptions}
+        destination={weekAddition.destination}
         errorMessage={weekAddition.errorMessage}
+        hasOptionsError={weekAddition.hasOptionsError}
         isAdding={weekAddition.isAdding}
+        isLoadingOptions={weekAddition.isLoadingOptions}
         isOpen={weekAddition.isOpen}
         onClose={weekAddition.onClose}
         onConfirm={weekAddition.onConfirm}
+        onDestinationChange={weekAddition.onDestinationChange}
+        onOptionsRetry={weekAddition.onOptionsRetry}
       />
     </div>
   );

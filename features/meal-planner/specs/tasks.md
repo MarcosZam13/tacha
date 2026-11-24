@@ -74,4 +74,29 @@ Bloqueado / fuera de esta historia:
 
 Bloqueado / fuera de esta historia:
 
-- [ ] Elegir una sublista de fecha como destino (HU-69 CA-03): depende de HU-44 a HU-46 (Sprint 4). Avisarlo en la PR.
+- [ ] Elegir una sublista de fecha como destino (HU-69 CA-03): SCRUM-160 (sección de abajo).
+
+## SCRUM-160: elegir a qué lista se agrega la semana
+
+- [x] 1. SPEC (sección 17; decisiones del responsable del 2026-11-24).
+- [x] 2. Plan y tareas.
+- [x] 3. Migración `058_add_week_to_list_target.sql`: `add_week_to_list` y `add_week_to_general_list` como envoltorio. Revisar el número libre antes de crearla y antes del merge.
+- [x] 4. Prueba SQL `supabase/tests/058_add_week_to_list_target.test.sql` con rollback y sus propios productos: los casos SQL de SPEC 17.10.
+- [x] 5. Aplicar la `058` (Roberto, SQL Editor: avisar al grupo, ensayo con la prueba y rollback, después con su fila `058`), correr la `058` y la `022`, y comparar `add_week_to_list` en `types/database.types.ts` (escrito a mano) con lo que genera Supabase. Bloquea la validación, no el código del cliente. Hecho: aplicada por Roberto y las dos pruebas pasan en Supabase; la `022` se corrigió para crear sus propios productos (le tocaban productos personales ajenos, que la RLS de la 032 oculta). La firma en `types/database.types.ts` se comprobó contra la API (nombres de los parámetros, `target_list_id` opcional, `anon` sin permiso).
+- [x] 6. Promover `DATE_LIST_STATUS`, `DateListStatusType` y `DATE_LIST_TYPE` a `constants/date-lists.constants.ts` (+ barrel) y `toDateListPath` a `utils/` (`git mv`). Sin cambio de comportamiento: los tests de sublistas pasan igual. Hecha con la PR #108 todavía abierta: al mergear develop puede haber un conflicto chico en las constantes y el servicio de sublistas.
+- [x] 7. Constantes y modelos: destino, opción, estados de carga, textos, RPC, hint.
+- [x] 8. Utils puros, con tests primero: `toDateListOption`, `toWeekAdditionSummary` y el reducer (destino por defecto, cambiarlo solo en `confirming` y `failed`, conservarlo al fallar, volver a la general).
+- [x] 9. Servicios y sus tests: `getDateListOptions()` (filtros y orden) y `addWeekToList()` con destino (general sin id, sublista con id, `P0002` con hint → `null`, sin hint → error).
+- [x] 10. `useDateListOptions` y su test: carga al abrir, reintento, respuesta vieja descartada, nada con el diálogo cerrado.
+- [x] 11. `useWeekListAddition` y su test (destino confirmado, sublista que desaparece, una sola petición) y la composición en `useMealPlannerViewModel`.
+- [x] 12. Presentación: `WeekListDestinationField`, `AddWeekToListDialog` y `AddWeekToListResult`.
+- [x] 13. Tests de la pantalla con Page Object: sin sublistas, elegir, falla de carga y reintento, no disponible, aviso y enlace de cada destino.
+- [x] 14. Tests de recetas pendientes de SCRUM-97: `toAddRecipeToListResponse`, `toAddToListSummaryText` y `useRecipeListAddition`; marcar la casilla de `features/recipes/specs/tasks.md`.
+- [x] 15. `docs/documento-proyecto.md`: agregar la semana a una sublista y qué pasa con el faltante.
+- [x] 16. `E2E.md` y `e2e/features/meal-planner/`: E2E-PLANNER-11 (elegir una sublista, agregar, "Ver lista" abre la sublista con productos y `/lista` no cambia). Los escenarios 09 y 10 siguen pasando.
+- [x] 17. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y los E2E del planificador y de sublistas; validar SPEC 17.10 en el navegador (desktop y 360 px). La familia con dos cuentas queda para QA. (Hecho el 2026-11-24: `tsc`, lint, build, 2206 unitarios, E2E del planificador 22 de 22 y de sublistas 20 de 20 en dos corridas, por el límite 429; diálogo revisado en escritorio y 360 px. En el navegador también: falla de carga y reintento, sublista cancelada y completada, faltante que no se muestra.)
+- [ ] 18. (Revisores hechos el 2026-11-24: código sin bloqueantes, menores corregidos; seguridad sin Críticos, Altos ni Medios. Marcos está de acuerdo con guardar el faltante sin mostrarlo; su revisión del código va en la PR.) `code-reviewer` y `security-reviewer` en paralelo, correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Marcos (toca `features/date-lists/`).
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Borrar `get_general_list_shortfalls()` y `get_recipe_coverage(uuid)`: cuando `main` tenga SCRUM-115.

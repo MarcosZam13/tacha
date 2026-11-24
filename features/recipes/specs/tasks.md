@@ -25,7 +25,7 @@ Bloqueado / pendiente de decisión del equipo:
 - [ ] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
 - [ ] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
 - [ ] Tests de `hooks/useRecipeDeletion.ts` y de tarjeta + diálogo con Page Object (SCRUM-96).
-- [ ] Tests de `utils/toAddRecipeToListResponse.ts`, `utils/toAddToListSummaryText.ts` y `hooks/useRecipeListAddition.ts` (SCRUM-97).
+- [x] Tests de `utils/toAddRecipeToListResponse.ts`, `utils/toAddToListSummaryText.ts` y `hooks/useRecipeListAddition.ts` (SCRUM-97).
 
 ## SCRUM-95: crear o editar una receta
 

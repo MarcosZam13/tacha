@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { COOK_CHOICE, MEAL_TYPE } from "../constants/meal-planner.constants";
+import { COOK_CHOICE, MEAL_TYPE, WEEK_LIST_DESTINATION } from "../constants/meal-planner.constants";
 import { useToday } from "../hooks/useToday";
 import type { MealPlanEntry, RecipeOption } from "../models/meal-plan.interfaces";
-import type { AddWeekToListResponse } from "../models/week-list-addition.interfaces";
+import type { AddWeekToListResponse, DateListOption } from "../models/week-list-addition.interfaces";
 import { MealPlanner } from "../MealPlanner";
+import { getDateListOptions } from "../services/date-list-options.service";
 import { getMealPlan, getRecipeOptions } from "../services/meal-plan.service";
 import { addWeekToList } from "../services/week-list.service";
 import { createMealPlannerPage } from "./MealPlanner.page";
@@ -22,6 +23,8 @@ vi.mock("../services/meal-plan.service", () => ({
   saveMealSlot: vi.fn(),
 }));
 vi.mock("../services/week-list.service", () => ({ addWeekToList: vi.fn() }));
+vi.mock("../services/date-list-options.service", () => ({ getDateListOptions: vi.fn() }));
+const getDateListOptionsMock = vi.mocked(getDateListOptions);
 const getMealPlanMock = vi.mocked(getMealPlan);
 const getRecipeOptionsMock = vi.mocked(getRecipeOptions);
 const addWeekToListMock = vi.mocked(addWeekToList);
@@ -58,6 +61,10 @@ const RESPONSE: AddWeekToListResponse = {
   skippedProductNames: [],
 };
 
+// Dos sublistas con el mismo nombre: solo la fecha las distingue.
+const BEACH: DateListOption = { id: "list-beach", label: "Playa · 17 oct", name: "Playa" };
+const OTHER_BEACH: DateListOption = { id: "list-beach-2", label: "Playa · 24 oct", name: "Playa" };
+
 const EMPTY_MONDAY_BREAKFAST = "Desayuno del lunes 12, vacío, asignar";
 const EMPTY_MONDAY_DINNER = "Cena del lunes 12, vacío, asignar";
 const CONFIRM_THIS_WEEK = "Vas a agregar a tu lista general los ingredientes de 2 comidas (12 – 18 oct).";
@@ -79,6 +86,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   getRecipeOptionsMock.mockResolvedValue([FLAN]);
   addWeekToListMock.mockResolvedValue(RESPONSE);
+  getDateListOptionsMock.mockResolvedValue([]);
 });
 
 describe("MealPlanner: add the week to the list", () => {
@@ -183,7 +191,11 @@ describe("MealPlanner: add the week to the list", () => {
       await page.confirmAddWeek();
 
       await waitFor(() => expect(page.queryAddWeekDialog()).not.toBeInTheDocument());
-      expect(addWeekToListMock).toHaveBeenCalledWith({ fromDateKey: "2026-10-12", toDateKey: "2026-10-18" });
+      expect(addWeekToListMock).toHaveBeenCalledWith({
+        destination: { kind: WEEK_LIST_DESTINATION.GENERAL },
+        fromDateKey: "2026-10-12",
+        toDateKey: "2026-10-18",
+      });
       expect(page.getAddWeekResult(SUCCESS_LINE)).toBeInTheDocument();
       expect(page.getViewListLink()).toHaveAttribute("href", "/lista");
     });
@@ -254,6 +266,88 @@ describe("MealPlanner: add the week to the list", () => {
 
       await waitFor(() => expect(page.getAddWeekResult("Te falta comprar: Harina")).toBeInTheDocument());
       expect(page.getAddWeekResult("No se pudieron agregar: Sal")).toBeInTheDocument();
+    });
+  });
+
+  describe("the list", () => {
+    it("offers no choice without sublists", async () => {
+      const page = await renderPlanner();
+
+      await page.openAddWeek();
+
+      expect(page.queryDestinationRadios()).toHaveLength(0);
+    });
+
+    it("offers the general list, already chosen, and each sublist with its date", async () => {
+      getDateListOptionsMock.mockResolvedValue([BEACH, OTHER_BEACH]);
+      const page = await renderPlanner();
+
+      await page.openAddWeek();
+
+      expect(await page.findDestinationRadio("Lista general")).toBeChecked();
+      expect(page.getDestinationGroup()).toBeInTheDocument();
+      expect(await page.findDestinationRadio("Playa · 17 oct")).not.toBeChecked();
+      expect(await page.findDestinationRadio("Playa · 24 oct")).not.toBeChecked();
+    });
+
+    it("adds to the chosen sublist, names it and links to it", async () => {
+      getDateListOptionsMock.mockResolvedValue([BEACH, OTHER_BEACH]);
+      const page = await renderPlanner();
+      await page.openAddWeek();
+      await page.chooseDestination("Playa · 24 oct");
+
+      await page.confirmAddWeek();
+
+      await waitFor(() =>
+        expect(page.getAddWeekResult("Agregaste 4 ingredientes de 2 comidas a Playa.")).toBeInTheDocument(),
+      );
+      expect(page.getViewListLink()).toHaveAttribute("href", "/fechas/list-beach-2");
+    });
+
+    it("cannot be changed while adding", async () => {
+      const response = createPending<AddWeekToListResponse>();
+      addWeekToListMock.mockReturnValue(response.promise);
+      getDateListOptionsMock.mockResolvedValue([BEACH]);
+      const page = await renderPlanner();
+      await page.openAddWeek();
+      await page.findDestinationRadio("Lista general");
+
+      await page.confirmAddWeek();
+
+      expect(page.getDestinationGroup()).toBeDisabled();
+      response.resolve(RESPONSE);
+      await waitFor(() => expect(page.queryAddWeekDialog()).not.toBeInTheDocument());
+    });
+
+    it("still adds to the general list when the sublists fail, and can retry them", async () => {
+      getDateListOptionsMock.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce([BEACH]);
+      const page = await renderPlanner();
+      await page.openAddWeek();
+
+      expect(await page.findAddWeekError()).toHaveTextContent(
+        "No se pudieron cargar tus sublistas. Puedes agregar a la lista general.",
+      );
+      expect(page.getAddWeekConfirmButton()).toBeEnabled();
+
+      await page.retryOptions();
+
+      expect(await page.findDestinationRadio("Playa · 17 oct")).toBeInTheDocument();
+    });
+
+    it("says when the sublist is gone and goes back to the general list", async () => {
+      addWeekToListMock.mockResolvedValueOnce(null);
+      getDateListOptionsMock.mockResolvedValueOnce([BEACH, OTHER_BEACH]).mockResolvedValueOnce([OTHER_BEACH]);
+      const page = await renderPlanner();
+      await page.openAddWeek();
+      await page.chooseDestination("Playa · 17 oct");
+
+      await page.confirmAddWeek();
+
+      expect(await page.findAddWeekError()).toHaveTextContent(
+        "Esa sublista ya no está disponible. Elige otra lista.",
+      );
+      expect(await page.findDestinationRadio("Lista general")).toBeChecked();
+      expect(page.queryDestinationRadios()).toHaveLength(2);
     });
   });
 });

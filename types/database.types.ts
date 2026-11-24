@@ -1159,6 +1159,10 @@ export type Database = {
         Args: { week_from: string; week_to: string }
         Returns: Json
       }
+      add_week_to_list: {
+        Args: { target_list_id?: string; week_from: string; week_to: string }
+        Returns: Json
+      }
       assert_local_day_start: {
         Args: { local_day_start: string }
         Returns: undefined
