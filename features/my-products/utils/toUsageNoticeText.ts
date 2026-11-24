@@ -6,10 +6,13 @@ const toCountText = (count: number, singular: string, plural: string): string =>
   `${count} ${count === 1 ? singular : plural}`;
 
 // "a", "a y b", "a, b y c".
-const joinParts = (parts: string[]): string =>
-  parts.length === 1
-    ? parts[0]
-    : `${parts.slice(0, -1).join(`${MY_PRODUCT_DELETE_TEXT.USAGE_LIST_SEPARATOR} `)} ${MY_PRODUCT_DELETE_TEXT.USAGE_AND} ${parts[parts.length - 1]}`;
+const joinParts = (parts: string[]): string => {
+  if (parts.length === 1) return parts[0];
+
+  const lastPart = parts[parts.length - 1];
+  const firstParts = parts.slice(0, -1).join(`${MY_PRODUCT_DELETE_TEXT.USAGE_LIST_SEPARATOR} `);
+  return `${firstParts} ${MY_PRODUCT_DELETE_TEXT.USAGE_AND} ${lastPart}`;
+};
 
 /**
  * Aviso de HU-58 CA-02 para el diálogo de eliminar: dónde se usa el producto.

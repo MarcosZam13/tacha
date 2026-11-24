@@ -55,6 +55,8 @@ export const useProductGroupEditor = (): UseProductGroupEditorReturn => {
     dispatch({ type: PRODUCT_GROUP_EDITOR_ACTION.SAVE_STARTED });
     try {
       await createProductGroup(state.values);
+      // Queda en SAVING a propósito: el ViewModel navega a "Mis grupos" y la
+      // pantalla se desmonta, lo que también retira el aviso de cambios sin guardar.
       return true;
     } catch {
       // Nunca el mensaje crudo de la base: el genérico, con todo lo escrito intacto.

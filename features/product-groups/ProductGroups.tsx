@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button, Spinner } from "@/components/ui";
 import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
+import { CreateProductGroupLink } from "./components/CreateProductGroupLink";
 import { ProductGroupCard } from "./components/ProductGroupCard";
 import { ProductGroupsEmptyState } from "./components/ProductGroupsEmptyState";
 import { PRODUCT_GROUPS_STATUS, PRODUCT_GROUPS_TEXT } from "./constants/product-groups.constants";
@@ -23,13 +24,7 @@ export const ProductGroups = (): React.JSX.Element => {
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold text-tacha-text">{PRODUCT_GROUPS_TEXT.TITLE}</h1>
-        {/* SCRUM-110 (HU-73 CA-01). Link y no Button: es navegación. */}
-        <Link
-          href={APP_ROUTE.LIST_GROUP_NEW}
-          className="rounded-tacha-badge bg-tacha-teal px-4 py-2 font-body text-sm font-semibold text-white transition-opacity hover:opacity-90"
-        >
-          {PRODUCT_GROUPS_TEXT.CREATE_GROUP}
-        </Link>
+        <CreateProductGroupLink label={PRODUCT_GROUPS_TEXT.CREATE_GROUP} />
       </div>
 
       {viewModel.status === PRODUCT_GROUPS_STATUS.LOADING ? <Spinner label={PRODUCT_GROUPS_TEXT.LOADING} /> : null}

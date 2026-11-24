@@ -83,8 +83,8 @@
 - [X] 12.5 `E2E-GRUPOS-03` a `-05`; regresión de "Mis productos" y de la lista general
 
 ### 13. Cierre
-- [ ] 13.1 Validar contra SPEC §13, casos 7 a 17
+- [X] 13.1 Validar contra SPEC §13, casos 7 a 17
 - [X] 13.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
-- [ ] 13.3 Subagentes `code-reviewer`, `security-reviewer` (RPC `security definer`) y `qa-checker`
+- [X] 13.3 Subagentes `code-reviewer`, `security-reviewer` (RPC `security definer`) y `qa-checker`
 - [X] 13.4 `docs/documento-proyecto.md` §4.11 y §6
-- [ ] 13.5 Descripción de la PR y paso a `waiting qa`
+- [X] 13.5 Descripción de la PR y paso a `waiting qa`

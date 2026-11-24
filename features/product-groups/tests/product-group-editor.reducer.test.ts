@@ -5,7 +5,6 @@ import {
   PRODUCT_GROUP_EDITOR_ERROR,
   PRODUCT_GROUP_EDITOR_STATUS,
   PRODUCT_GROUP_EDITOR_TEXT,
-  PRODUCT_GROUP_LIMIT,
   PRODUCT_GROUP_QUANTITY_STEP,
 } from "../constants/product-group-editor.constants";
 import type { ProductGroupQuantityStepType } from "../constants/product-group-editor.constants";
@@ -82,19 +81,17 @@ describe("productGroupEditorReducer", () => {
   // Regla 3: la cantidad no sale de 1-99.
   it("keeps the quantity between the minimum and the maximum", () => {
     const decreased = reduce([add(LECHE), step("variant-leche", PRODUCT_GROUP_QUANTITY_STEP.DECREASE)]);
-    expect(decreased.values.items[0].quantity).toBe(PRODUCT_GROUP_LIMIT.QUANTITY_MIN);
+    expect(decreased.values.items[0].quantity).toBe(1);
 
     const atMax: ProductGroupEditorState = {
       ...decreased,
       values: {
         ...decreased.values,
-        items: [{ ...decreased.values.items[0], quantity: PRODUCT_GROUP_LIMIT.QUANTITY_MAX }],
+        items: [{ ...decreased.values.items[0], quantity: 99 }],
       },
     };
-    expect(reduce([step("variant-leche", PRODUCT_GROUP_QUANTITY_STEP.INCREASE)], atMax).values.items[0].quantity).toBe(
-      PRODUCT_GROUP_LIMIT.QUANTITY_MAX,
-    );
-    expect(reduce([add(LECHE)], atMax).values.items[0].quantity).toBe(PRODUCT_GROUP_LIMIT.QUANTITY_MAX);
+    expect(reduce([step("variant-leche", PRODUCT_GROUP_QUANTITY_STEP.INCREASE)], atMax).values.items[0].quantity).toBe(99);
+    expect(reduce([add(LECHE)], atMax).values.items[0].quantity).toBe(99);
   });
 
   it("steps only the quantity of the row it names", () => {
@@ -125,15 +122,16 @@ describe("productGroupEditorReducer", () => {
 
   // SPEC §7: con 50 productos no entra otro, y se avisa.
   it("does not add a new row past the maximum, and announces the limit", () => {
+    // 50 escrito a mano (SPEC §5, regla 2): un oráculo que no depende de la constante.
     const full = reduce(
-      Array.from({ length: PRODUCT_GROUP_LIMIT.ITEMS_MAX }, (_, index) =>
+      Array.from({ length: 50 }, (_, index) =>
         add({ productName: `Producto ${index}`, sizeLabel: "1 u", variantId: `variant-${index}` }),
       ),
     );
 
     const state = reduce([add(LECHE)], full);
 
-    expect(state.values.items).toHaveLength(PRODUCT_GROUP_LIMIT.ITEMS_MAX);
+    expect(state.values.items).toHaveLength(50);
     expect(state.announcement).toBe(PRODUCT_GROUP_EDITOR_TEXT.ITEMS_LIMIT_REACHED);
   });
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_ROUTE } from "@/constants";
 import { useProductSearch } from "@/hooks/useProductSearch";
@@ -115,8 +115,27 @@ describe("ProductGroupEditor", () => {
     render(<ProductGroupEditor />);
     const page = createProductGroupEditorPage();
 
-    await waitFor(() => expect(hasHouseholdMock).toHaveBeenCalled());
+    // Mientras se pregunta también está oculta: hay que esperar la respuesta ya aplicada.
+    await act(async () => {
+      await hasHouseholdMock.mock.results[0]?.value;
+    });
     expect(page.queryShareCheckbox()).not.toBeInTheDocument();
+  });
+
+  // Caso 13 (CA-03): con familia, marcar "Compartir" guarda el grupo compartido.
+  it("saves the group shared with the household when the box is checked", async () => {
+    hasHouseholdMock.mockResolvedValue(true);
+    createProductGroupMock.mockResolvedValue("group-1");
+    render(<ProductGroupEditor />);
+    const page = createProductGroupEditorPage();
+
+    await page.typeName("Compra de la semana");
+    await page.pickOption("Leche");
+    await waitFor(() => expect(page.queryShareCheckbox()).toBeInTheDocument());
+    await page.toggleShare();
+    await page.save();
+
+    await waitFor(() => expect(createProductGroupMock).toHaveBeenCalledWith(expect.objectContaining({ shareWithHousehold: true })));
   });
 
   // Caso 15: sin nombre ni productos no guarda.

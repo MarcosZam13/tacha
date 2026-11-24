@@ -69,21 +69,21 @@ export const PRODUCT_GROUP_EDITOR_TEXT = {
   INCREASE_PREFIX: "Sumar uno a ",
   ITEMS_HINT: "Busca cada producto y elige su presentación. La cantidad es la que agregarás a tu lista.",
   ITEMS_LABEL: "Productos",
+  ITEMS_LIMIT_REACHED: `Llegaste al máximo de ${PRODUCT_GROUP_LIMIT.ITEMS_MAX} productos.`,
+  // role="status" al agregar, sumar o quitar una fila: + "{producto} — {tamaño}".
+  ITEM_ADDED_PREFIX: "Se agregó ",
+  ITEM_INCREASED_PREFIX: "Se sumó uno a ",
+  // Separa los nombres de productos en el error de compartir.
+  ITEM_NAMES_SEPARATOR: ", ",
+  ITEM_REMOVED_PREFIX: "Se quitó ",
   NAME_LABEL: "Nombre del grupo",
   NAME_PLACEHOLDER: "Ej. Desayuno de la semana",
   NO_ITEMS: "Todavía no agregaste productos.",
   REMOVE_ITEM: "Quitar",
   REMOVE_ITEM_PREFIX: "Quitar ",
   SAVE: "Guardar grupo",
+  SAVE_ERROR: "No pudimos guardar el grupo. Intenta de nuevo.",
   SAVING: "Guardando…",
   SHARE_LABEL: "Compartir con mi familia",
   TITLE: "Crear grupo",
-  // Separa los nombres de productos en el error de compartir.
-  ITEM_NAMES_SEPARATOR: ", ",
-  // role="status" al agregar, sumar o quitar una fila: + "{producto} — {tamaño}".
-  ITEM_ADDED_PREFIX: "Se agregó ",
-  ITEM_INCREASED_PREFIX: "Se sumó uno a ",
-  ITEM_REMOVED_PREFIX: "Se quitó ",
-  ITEMS_LIMIT_REACHED: `Llegaste al máximo de ${PRODUCT_GROUP_LIMIT.ITEMS_MAX} productos.`,
-  SAVE_ERROR: "No pudimos guardar el grupo. Intenta de nuevo.",
 } as const;

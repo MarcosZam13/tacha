@@ -35,9 +35,12 @@ export const createProductGroupEditorPage = () => {
   const typeName = async (name: string): Promise<void> => {
     await user.type(getNameInput(), name);
   };
-  // Un resultado del buscador es un botón con el nombre y el tamaño.
+  // Un resultado del buscador es un botón con el nombre y el tamaño: se elige
+  // el que tiene ese nombre exacto ("Leche", no "Leche condensada").
   const pickOption = async (productName: string): Promise<void> => {
-    await user.click(screen.getByRole("button", { name: new RegExp(`^${productName}`) }));
+    const option = screen.getByText(productName, { exact: true }).closest("button");
+    if (!option) throw new Error(`No hay una opción "${productName}" en el buscador`);
+    await user.click(option);
   };
   const increase = async (itemLabel: string): Promise<void> => {
     await user.click(screen.getByRole("button", { name: `${PRODUCT_GROUP_EDITOR_TEXT.INCREASE_PREFIX}${itemLabel}` }));

@@ -7,32 +7,12 @@ import { searchCatalogIncludingOwn } from "@/services/catalog.service";
 import { toCatalogSearchResults } from "@/utils/toCatalogSearchResults";
 import {
   PRODUCT_GROUP_EDITOR_STATUS,
-  PRODUCT_GROUP_EDITOR_TEXT,
-  PRODUCT_GROUP_LIMIT,
   PRODUCT_GROUP_QUANTITY_STEP,
   PRODUCT_GROUP_SHARE_VISIBILITY,
 } from "../constants/product-group-editor.constants";
-import type {
-  ProductGroupEditorItem,
-  ProductGroupEditorItemRow,
-  ProductGroupEditorViewModel,
-} from "../models/product-group-editor.interfaces";
-import { toProductGroupItemLabel } from "../utils/toProductGroupItemLabel";
+import type { ProductGroupEditorViewModel } from "../models/product-group-editor.interfaces";
+import { toProductGroupItemRow } from "../utils/toProductGroupItemRow";
 import { useProductGroupEditor } from "./useProductGroupEditor";
-
-const toItemRow = (item: ProductGroupEditorItem): ProductGroupEditorItemRow => {
-  const label = toProductGroupItemLabel(item);
-  return {
-    canDecrease: item.quantity > PRODUCT_GROUP_LIMIT.QUANTITY_MIN,
-    canIncrease: item.quantity < PRODUCT_GROUP_LIMIT.QUANTITY_MAX,
-    decreaseLabel: `${PRODUCT_GROUP_EDITOR_TEXT.DECREASE_PREFIX}${label}`,
-    increaseLabel: `${PRODUCT_GROUP_EDITOR_TEXT.INCREASE_PREFIX}${label}`,
-    label,
-    quantity: item.quantity,
-    removeLabel: `${PRODUCT_GROUP_EDITOR_TEXT.REMOVE_ITEM_PREFIX}${label}`,
-    variantId: item.variantId,
-  };
-};
 
 /**
  * Facade del editor de grupos (SCRUM-110): une el grupo en armado
@@ -83,7 +63,7 @@ export const useProductGroupEditorViewModel = (): ProductGroupEditorViewModel =>
       })),
       query: search.query,
     },
-    items: values.items.map(toItemRow),
+    items: values.items.map(toProductGroupItemRow),
     itemsError: errors.items,
     name: values.name,
     nameError: errors.name,

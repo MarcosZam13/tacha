@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PRODUCT_GROUP_EDITOR_ERROR, PRODUCT_GROUP_LIMIT } from "../constants/product-group-editor.constants";
+import { PRODUCT_GROUP_EDITOR_ERROR } from "../constants/product-group-editor.constants";
 import type { ProductGroupEditorItem, ProductGroupEditorValues } from "../models/product-group-editor.interfaces";
 import { hasProductGroupFormErrors, validateProductGroupForm } from "../utils/validateProductGroupForm";
 
@@ -19,17 +19,18 @@ describe("validateProductGroupForm", () => {
     expect(hasProductGroupFormErrors(validateProductGroupForm(VALID))).toBe(false);
   });
 
-  // Regla 1: de 1 a 60 caracteres, sin contar los espacios a los costados.
+  // Regla 1 del SPEC: de 1 a 60 caracteres, sin contar los espacios a los costados.
+  // 60/61 escritos a mano: si alguien cambia la constante, el test lo nota.
   it.each([
     ["", PRODUCT_GROUP_EDITOR_ERROR.NAME_REQUIRED],
     ["   ", PRODUCT_GROUP_EDITOR_ERROR.NAME_REQUIRED],
-    ["a".repeat(PRODUCT_GROUP_LIMIT.NAME_MAX_LENGTH + 1), PRODUCT_GROUP_EDITOR_ERROR.NAME_TOO_LONG],
+    ["a".repeat(61), PRODUCT_GROUP_EDITOR_ERROR.NAME_TOO_LONG],
   ])("rejects the name %j", (name, expectedError) => {
     expect(validateProductGroupForm({ ...VALID, name }).name).toBe(expectedError);
   });
 
   it("accepts a name of exactly the maximum length, with spaces around", () => {
-    const name = ` ${"a".repeat(PRODUCT_GROUP_LIMIT.NAME_MAX_LENGTH)} `;
+    const name = ` ${"a".repeat(60)} `;
 
     expect(validateProductGroupForm({ ...VALID, name }).name).toBeUndefined();
   });

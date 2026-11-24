@@ -55,7 +55,7 @@ test.describe("Crear un grupo", () => {
     const itemLabel = await addFirstOptionOf(page, "leche", "Leche");
     await page.getByRole("button", { name: `Sumar uno a ${itemLabel}` }).click();
     await expect(getGroupItemRows(page)).toHaveCount(1);
-    await expect(getGroupItemRows(page).first()).toContainText("2");
+    await expect(getGroupItemRows(page).first().getByText("2", { exact: true })).toBeVisible();
     await getSaveGroupButton(page).click();
 
     await expect(page).toHaveURL(GROUPS_PATH);
@@ -72,6 +72,7 @@ test.describe("Crear un grupo", () => {
     await expect(getGroupItemRows(page)).toHaveCount(2);
     await page.getByRole("button", { name: `Quitar ${lecheLabel}` }).click();
     await expect(getGroupItemRows(page)).toHaveCount(1);
+    await expect(getGroupItemRows(page).first()).toContainText("Chocolate");
     await getSaveGroupButton(page).click();
 
     await expect(page).toHaveURL(GROUPS_PATH);
