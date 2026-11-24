@@ -45,6 +45,9 @@ begin
 
   perform set_config('tacha_test.user_a', user_a::text, true);
   perform set_config('tacha_test.user_b', user_b::text, true);
+  -- Las versiones nuevas de Storage bloquean el delete directo si no se pide: la
+  -- API lo pide sola, acá hace falta para probar la política.
+  perform set_config('storage.allow_delete_query', 'true', true);
 end;
 $$;
 
