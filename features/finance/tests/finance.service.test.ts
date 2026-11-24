@@ -1,10 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { COLONES_AMOUNT, FINANCE_DB, SPENDING_PERIOD, TOTAL_SAVE_ERROR } from "../constants/finance.constants";
+import {
+  COLONES_AMOUNT,
+  FINANCE_DB,
+  PRODUCT_HISTORY,
+  PRODUCT_TARGET_KIND,
+  SPENDING_PERIOD,
+  TOTAL_SAVE_ERROR,
+} from "../constants/finance.constants";
 import {
   getPeriodFinance,
   getPeriodPurchases,
   getPeriodSpending,
+  getProductPurchases,
+  getPurchasedProducts,
   getPurchasesWithoutTotal,
+  getSavedTimeZone,
   getSpendingBudgets,
   hasRegisteredSession,
   setPeriodTotal,
@@ -705,5 +715,254 @@ describe("getPurchasesWithoutTotal (SCRUM-92)", () => {
     mockResponse({ count: null, data: null, error: SUPABASE_ERROR });
 
     await expect(getPurchasesWithoutTotal()).rejects.toBe(SUPABASE_ERROR);
+  });
+});
+
+describe("getPurchasedProducts", () => {
+  const PRODUCT_ROW = {
+    appearance_count: 4,
+    last_purchased_at: "2026-10-18T21:00:00+00:00",
+    product_catalog_variant_id: null,
+    product_key: "azucar",
+    product_name: "Azúcar",
+  };
+
+  const mockPage = (products: unknown[], totalCount: number): void => {
+    rpcMock.mockResolvedValue({ data: { products, total_count: totalCount }, error: null });
+  };
+
+  it("sends the search, the fixed block size and the offset: the owner comes from the database", async () => {
+    mockPage([PRODUCT_ROW], 1);
+
+    await getPurchasedProducts({ offset: 0, search: "azúcar" });
+
+    // Nombre literal a propósito: fija el contrato con la base (049).
+    expect(rpcMock).toHaveBeenCalledWith("get_purchased_products", {
+      page_limit: PRODUCT_HISTORY.PAGE_SIZE,
+      page_offset: 0,
+      search_text: "azúcar",
+    });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it("never asks for a block larger than the database allows (049: page_limit 1 to 50)", () => {
+    expect(PRODUCT_HISTORY.PAGE_SIZE).toBeGreaterThanOrEqual(1);
+    expect(PRODUCT_HISTORY.PAGE_SIZE).toBeLessThanOrEqual(50);
+  });
+
+  it("trims the search and sends it without normalizing (rule 93)", async () => {
+    mockPage([], 0);
+
+    await getPurchasedProducts({ offset: 0, search: "  Azúcar  " });
+
+    expect(rpcMock).toHaveBeenCalledWith(
+      FINANCE_DB.RPC.GET_PURCHASED_PRODUCTS,
+      expect.objectContaining({ search_text: "Azúcar" }),
+    );
+  });
+
+  it("sends a blank search as empty: the whole list", async () => {
+    mockPage([], 0);
+
+    await getPurchasedProducts({ offset: 0, search: "   " });
+
+    expect(rpcMock).toHaveBeenCalledWith(
+      FINANCE_DB.RPC.GET_PURCHASED_PRODUCTS,
+      expect.objectContaining({ search_text: "" }),
+    );
+  });
+
+  it("cuts a long search to the maximum, after trimming, without an error (SPEC §7, D44)", async () => {
+    mockPage([], 0);
+
+    await getPurchasedProducts({ offset: 0, search: `  ${"a".repeat(PRODUCT_HISTORY.SEARCH_MAX_LENGTH + 20)}` });
+
+    expect(rpcMock).toHaveBeenCalledWith(
+      FINANCE_DB.RPC.GET_PURCHASED_PRODUCTS,
+      expect.objectContaining({ search_text: "a".repeat(PRODUCT_HISTORY.SEARCH_MAX_LENGTH) }),
+    );
+  });
+
+  it("counts characters like the database, so an emoji is never split", async () => {
+    mockPage([], 0);
+
+    await getPurchasedProducts({ offset: 0, search: "🍎".repeat(PRODUCT_HISTORY.SEARCH_MAX_LENGTH + 1) });
+
+    const [, { search_text: searchText }] = rpcMock.mock.calls[0];
+    expect(Array.from(searchText)).toEqual(Array(PRODUCT_HISTORY.SEARCH_MAX_LENGTH).fill("🍎"));
+  });
+
+  it("gives the block through the adapter", async () => {
+    mockPage([PRODUCT_ROW], 1);
+
+    await expect(getPurchasedProducts({ offset: 0, search: "" })).resolves.toEqual({
+      products: [
+        {
+          appearanceCount: 4,
+          lastPurchasedAt: "2026-10-18T21:00:00+00:00",
+          name: "Azúcar",
+          target: { kind: PRODUCT_TARGET_KIND.BY_NAME, productKey: "azucar" },
+        },
+      ],
+      totalCount: 1,
+    });
+  });
+
+  it("fails on a block that does not match its count instead of showing it cut (SPEC §7)", async () => {
+    mockPage([PRODUCT_ROW], 45);
+
+    await expect(getPurchasedProducts({ offset: 0, search: "" })).rejects.toThrow(/no coincide con su conteo/);
+  });
+
+  it.each([-1, 2.5, PRODUCT_HISTORY.MAX_OFFSET + 1])(
+    "rejects the offset %s without calling the database",
+    async (offset) => {
+      await expect(getPurchasedProducts({ offset, search: "" })).rejects.toBeInstanceOf(RangeError);
+      expect(rpcMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("accepts the last offset the database allows", async () => {
+    mockPage([], 0);
+
+    await expect(getPurchasedProducts({ offset: PRODUCT_HISTORY.MAX_OFFSET, search: "" })).resolves.toEqual({
+      products: [],
+      totalCount: 0,
+    });
+  });
+
+  it("rethrows the Supabase error", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: SUPABASE_ERROR });
+
+    await expect(getPurchasedProducts({ offset: 0, search: "" })).rejects.toBe(SUPABASE_ERROR);
+  });
+});
+
+describe("getProductPurchases", () => {
+  const BY_NAME = { kind: PRODUCT_TARGET_KIND.BY_NAME, productKey: "azucar" } as const;
+  const PURCHASE_ROW = {
+    appearance_count: 2,
+    closed_at: "2026-10-18T21:00:00+00:00",
+    id: "purchase-2",
+    store_name: "MaxiPali",
+    total_amount: 10000,
+    variant_names: ["1 kg", "2 kg"],
+  };
+
+  const mockRows = (rows: unknown[], count: number | null = rows.length): void => {
+    rpcMock.mockResolvedValue({ count, data: rows, error: null });
+  };
+
+  it("asks by the product key from the list, as is, with an exact count", async () => {
+    mockRows([PURCHASE_ROW]);
+
+    await getProductPurchases(BY_NAME);
+
+    // Nombre literal a propósito: fija el contrato con la base (049).
+    expect(rpcMock).toHaveBeenCalledWith(
+      "get_product_purchases",
+      { target_product_key: "azucar", target_variant_id: null },
+      { count: "exact" },
+    );
+  });
+
+  it("asks an unavailable product by its variant only (rule 96)", async () => {
+    mockRows([]);
+
+    await getProductPurchases({ kind: PRODUCT_TARGET_KIND.UNAVAILABLE, variantId: "variant-1" });
+
+    expect(rpcMock).toHaveBeenCalledWith(
+      FINANCE_DB.RPC.GET_PRODUCT_PURCHASES,
+      { target_product_key: null, target_variant_id: "variant-1" },
+      { count: "exact" },
+    );
+  });
+
+  it("maps one purchase per row, in the database order (rules 88 and 89)", async () => {
+    mockRows([PURCHASE_ROW, { ...PURCHASE_ROW, appearance_count: 1, id: "purchase-1", variant_names: [] }]);
+
+    await expect(getProductPurchases(BY_NAME)).resolves.toEqual([
+      {
+        appearanceCount: 2,
+        closedAt: "2026-10-18T21:00:00+00:00",
+        id: "purchase-2",
+        storeName: "MaxiPali",
+        totalAmount: 10000,
+        variantNames: ["1 kg", "2 kg"],
+      },
+      {
+        appearanceCount: 1,
+        closedAt: "2026-10-18T21:00:00+00:00",
+        id: "purchase-1",
+        storeName: "MaxiPali",
+        totalAmount: 10000,
+        variantNames: [],
+      },
+    ]);
+  });
+
+  it.each([null, "   "])("keeps a purchase without a readable store name as null: %j (rule 29)", async (storeName) => {
+    mockRows([{ ...PURCHASE_ROW, store_name: storeName }]);
+
+    const [purchase] = await getProductPurchases(BY_NAME);
+
+    expect(purchase.storeName).toBeNull();
+  });
+
+  it("keeps a purchase without a total as null, not 0", async () => {
+    mockRows([{ ...PURCHASE_ROW, total_amount: null }]);
+
+    const [purchase] = await getProductPurchases(BY_NAME);
+
+    expect(purchase.totalAmount).toBeNull();
+  });
+
+  it("gives an empty list for a product with no purchases left (rule 90)", async () => {
+    mockRows([]);
+
+    await expect(getProductPurchases(BY_NAME)).resolves.toEqual([]);
+  });
+
+  it.each([null, 2])("fails on an incomplete result: count %s for one row (rule 30)", async (count) => {
+    mockRows([PURCHASE_ROW], count);
+
+    await expect(getProductPurchases(BY_NAME)).rejects.toThrow(/resultado incompleto/);
+  });
+
+  it("fails on an appearance count below 1", async () => {
+    mockRows([{ ...PURCHASE_ROW, appearance_count: 0 }]);
+
+    await expect(getProductPurchases(BY_NAME)).rejects.toThrow(/conteo de apariciones/);
+  });
+
+  it("rethrows the Supabase error", async () => {
+    rpcMock.mockResolvedValue({ count: null, data: null, error: SUPABASE_ERROR });
+
+    await expect(getProductPurchases(BY_NAME)).rejects.toBe(SUPABASE_ERROR);
+  });
+});
+
+describe("getSavedTimeZone", () => {
+  const mockTimeZoneRow = (response: { data: unknown; error: unknown }): void => {
+    fromMock.mockReturnValue({ select: () => ({ maybeSingle: () => Promise.resolve(response) }) });
+  };
+
+  it("reads only its own saved zone: RLS of spending_time_zones (040)", async () => {
+    mockTimeZoneRow({ data: { time_zone: "America/Costa_Rica" }, error: null });
+
+    await expect(getSavedTimeZone()).resolves.toBe("America/Costa_Rica");
+    expect(fromMock).toHaveBeenCalledWith("spending_time_zones");
+  });
+
+  it("is null without a confirmed zone (rule 59)", async () => {
+    mockTimeZoneRow({ data: null, error: null });
+
+    await expect(getSavedTimeZone()).resolves.toBeNull();
+  });
+
+  it("rethrows the Supabase error", async () => {
+    mockTimeZoneRow({ data: null, error: SUPABASE_ERROR });
+
+    await expect(getSavedTimeZone()).rejects.toBe(SUPABASE_ERROR);
   });
 });

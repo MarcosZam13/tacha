@@ -5,6 +5,7 @@ import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { Spinner } from "@/components/ui";
 import { FinanceNoAccount } from "./components/FinanceNoAccount";
 import { FinanceTabs } from "./components/FinanceTabs";
+import { HistoryViewSwitch } from "./components/HistoryViewSwitch";
 import { PendingTotalReminder } from "./components/PendingTotalReminder";
 import { PeriodAdjustmentRow } from "./components/PeriodAdjustmentRow";
 import { PurchaseSessionRow } from "./components/PurchaseSessionRow";
@@ -16,6 +17,7 @@ import {
   FINANCE_TAB,
   FINANCE_TEXT,
   HISTORY_ROW_KIND,
+  HISTORY_VIEW,
   PENDING_SECTION_ID,
   SPENDING_STATUS,
 } from "./constants/finance.constants";
@@ -66,6 +68,8 @@ export const PurchaseHistory = (): React.JSX.Element => {
       {viewModel.accessStatus === FINANCE_ACCESS_STATUS.REGISTERED ? (
         <>
           <FinanceTabs activeTab={FINANCE_TAB.HISTORY} />
+          {/* SCRUM-93 (D31): la vista "Compras" no cambia; solo suma el selector. */}
+          <HistoryViewSwitch activeView={HISTORY_VIEW.PURCHASES} />
           <SpendingPeriodSelector options={viewModel.periodOptions} />
           <section className="rounded-tacha-card border border-tacha-border bg-tacha-surface p-6">
             <SpendingTotal {...viewModel.spending} edit={viewModel.periodEdit} editor={viewModel.periodEditor} />

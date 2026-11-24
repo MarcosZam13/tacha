@@ -101,6 +101,13 @@ describe("Profile", () => {
     expect(page.getChangePasswordLink()).toHaveAttribute("href", APP_ROUTE.CHANGE_PASSWORD);
   });
 
+  // SCRUM-108, CA-01: la pantalla de Configuración se alcanza desde el perfil.
+  it("links to the settings screen", () => {
+    const page = renderProfile();
+
+    expect(page.getSettingsLink()).toHaveAttribute("href", APP_ROUTE.LIST_SETTINGS);
+  });
+
   it("shows a spinner while the session loads, not an empty form", () => {
     useUserProfileMock.mockReturnValue(null);
 

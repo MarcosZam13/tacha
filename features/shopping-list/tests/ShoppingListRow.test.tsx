@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ShoppingListRow } from "../components/ShoppingListRow";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
@@ -36,10 +36,11 @@ const createRow = (overrides: Partial<ShoppingListRowViewModel> = {}): ShoppingL
   ...overrides,
 });
 
-const renderRow = (row: ShoppingListRowViewModel, onToggleChecked = vi.fn()) =>
+const renderRow = (row: ShoppingListRowViewModel, onToggleChecked = vi.fn(), assigneeSlot?: React.ReactNode) =>
   render(
     <ul>
       <ShoppingListRow
+        assigneeSlot={assigneeSlot}
         onDecrease={vi.fn()}
         onIncrease={vi.fn()}
         onOpenDetail={vi.fn()}
@@ -90,5 +91,21 @@ describe("ShoppingListRow: recipe shortfall note (SCRUM-114)", () => {
 
     expect(page.queryShortfallNotes()).toBeNull();
     expect(page.getToggleButton()).not.toHaveAttribute("aria-describedby");
+  });
+});
+
+describe("ShoppingListRow: assignee slot (SCRUM-108)", () => {
+  it("draws the slot it is given inside the row, outside the check button", () => {
+    renderRow(createRow(), vi.fn(), <span>Encargado: Ana</span>);
+    const page = createShoppingListRowPage(PRODUCT_NAME);
+
+    expect(page.getRow()).toContainElement(screen.getByText("Encargado: Ana"));
+    expect(page.getToggleButton()).not.toContainElement(screen.getByText("Encargado: Ana"));
+  });
+
+  it("draws nothing extra when there is no slot", () => {
+    renderRow(createRow());
+
+    expect(screen.queryByText("Encargado: Ana")).toBeNull();
   });
 });

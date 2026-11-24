@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { AssigneeField } from "@/components/assignee-field/AssigneeField";
+import { ASSIGNEE_LIST_SOURCE } from "@/components/assignee-field/constants/assignee-field.constants";
+import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/useListAssigneesViewModel";
 import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Button, Modal, Spinner } from "@/components/ui";
 import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
@@ -29,11 +32,14 @@ import type { ShoppingListRowViewModel } from "./models/ShoppingListRowViewModel
  */
 export const ShoppingListInner = (): React.JSX.Element => {
   const viewModel = useShoppingListViewModel();
+  // El campo "Encargado" (SCRUM-108): solo se dibuja si la lista general lo tiene encendido en Configuración.
+  const assignees = useListAssigneesViewModel({ kind: ASSIGNEE_LIST_SOURCE.GENERAL });
 
   // Misma fila en las dos secciones; solo cambia en cuál se dibuja.
   const renderRow = (row: ShoppingListRowViewModel): React.JSX.Element => (
     <ShoppingListRow
       key={row.item.id}
+      assigneeSlot={<AssigneeField className="px-3 pb-2" itemId={row.item.id} viewModel={assignees} />}
       row={row}
       onDecrease={() => viewModel.onDecreaseQuantity(row.item.id)}
       onIncrease={() => viewModel.onIncreaseQuantity(row.item.id)}

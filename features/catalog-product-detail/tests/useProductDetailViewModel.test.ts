@@ -25,6 +25,8 @@ const DETAIL: CatalogVariantDetail = {
   brands: [{ logoUrl: null, name: "Dos Pinos" }],
   imageUrl: "https://example.com/leche.jpg",
   productName: "Leche",
+  referencePrice: null,
+  referenceStoreName: null,
   sizeLabel: "1000 ml",
   storePriceRanges: [
     { maxPrice: 900, minPrice: 800, storeName: "MaxiPali", storeSlug: "maxipali" },
