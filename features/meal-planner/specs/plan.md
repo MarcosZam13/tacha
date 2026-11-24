@@ -335,9 +335,113 @@ La tabla `list_item_recipe_requirements` y `list_items` no cambian. Un espacio c
 
 ### Deuda conocida
 
-- **Sin sublistas de fecha (CA-03):** el destino es solo la lista general hasta HU-44 a HU-46 (Sprint 4).
+- **Sin sublistas de fecha (CA-03):** lo resuelve SCRUM-160 (sección de abajo).
 - **El efecto del multiplicador y de las repeticiones no se ve en pantalla en ml o g:** el producto que ya está en la lista no suma envases (regla 20 de SCRUM-97), solo crece el faltante registrado, que hoy solo muestra el aviso al agregar (nombres). El aviso bajo cada producto en `/lista` es de SCRUM-114 (Marcos); el panel "Ver qué falta" de SCRUM-98 solo da cantidades al tachar. Decidido el 2026-10-10 dejarlo así (SPEC §16.11).
 - **Los conteos pueden sobrar** con presentaciones de varias unidades (SPEC §16.12).
 - **Dos copias de las reglas 17 a 26** (`add_recipe_to_general_list` y `add_week_ingredients_to_list`): una corrección a una hay que hacerla en la otra. Cuando los dueños lo acuerden, la original puede llamar a la interna con multiplicador 1 y se borra la copia.
 - **La función interna queda expuesta en la API** (mismo caso que las dos auxiliares de la 013).
 - **El aviso no se guarda:** al recargar desaparece, igual que el de recetas.
+
+---
+
+## SCRUM-160: elegir a qué lista se agrega la semana
+
+> **Verificado el 2026-11-24** contra `develop` (8a6e69a): la versión vigente de `add_week_to_general_list` es la de la 024 y la de `add_week_ingredients_to_list` la de la 022. La última migración es la `055` y las PRs abiertas tienen la `050`, la `056` y la `057`: esta historia usa la **`058`** o la siguiente libre.
+
+### Archivos
+
+```
+supabase/
+  migrations/058_add_week_to_list_target.sql       add_week_to_list (nueva) y add_week_to_general_list como envoltorio
+  tests/058_add_week_to_list_target.test.sql       prueba con rollback
+
+constants/
+  date-lists.constants.ts                          nuevo: DATE_LIST_STATUS, DateListStatusType y DATE_LIST_TYPE, promovidos desde features/date-lists (+ barrel)
+
+features/date-lists/                               solo imports: usa las constantes promovidas y utils/toDateListPath (revisión de Marcos)
+utils/toDateListPath.ts                            git mv desde features/date-lists/utils: segundo consumidor
+
+features/meal-planner/
+  components/
+    AddWeekToListDialog.tsx                        + selector, aviso de carga y error de sublistas
+    AddWeekToListResult.tsx                        + enlace según el destino
+    WeekListDestinationField.tsx                   nuevo: fieldset de radios
+    models/WeekListDestinationFieldProps.type.ts   nuevo
+  hooks/
+    useDateListOptions.ts                          nuevo: carga al abrir, reintento, descarta respuestas viejas
+    useWeekListAddition.ts                         + destino y opciones
+    useMealPlannerViewModel.ts                     + pasa "hoy"
+  models/week-list-addition.*.ts                   + WeekListDestination, opción, payload, estados
+  services/
+    date-list-options.service.ts                   nuevo: getDateListOptions(todayKey)
+    week-list.service.ts                           + destino
+  utils/
+    toDateListOption.ts                            nuevo: fila → opción con su etiqueta
+    toWeekAdditionSummary.ts                       + nombre del destino
+    week-list-addition.reducer.ts                  + destino
+  constants/meal-planner.constants.ts              + textos, RPC, estados de carga
+
+features/recipes/tests/                            toAddRecipeToListResponse, toAddToListSummaryText, useRecipeListAddition
+types/database.types.ts                            + add_week_to_list (solo esas líneas)
+docs/documento-proyecto.md                         línea 378: la semana puede ir a una sublista
+```
+
+### Datos
+
+**Migración `058`** (`security invoker`, `search_path` vacío, objetos con `public.`):
+
+1. `add_week_to_list(week_from date, week_to date, target_list_id uuid default null) returns jsonb`. En este orden:
+   1. sesión (`42501`) y rango (`22023`), como hoy;
+   2. con `target_list_id`: la lista se ve (RLS), es `date` y está `active`. Si no, `P0002` con `hint = 'date_list_unavailable'`;
+   3. semana vacía: devuelve ceros sin escribir (ni crea la general);
+   4. sin `target_list_id`: `ensure_general_list_id()`;
+   5. bloqueo `pg_advisory_xact_lock` de la lista y, si es sublista, se vuelve a comprobar el paso 2;
+   6. el recorrido y el resultado de la 024, sin cambios.
+2. `add_week_to_general_list(week_from, week_to)` pasa a llamar a `add_week_to_list(week_from, week_to)`. Misma firma, respuesta y errores: lo sigue llamando el código mergeado, incluido `main`.
+3. `revoke … from public, anon` y `grant execute … to authenticated` en la nueva. La otra conserva sus permisos con `create or replace`.
+
+**Lectura de opciones:** `lists` con `select("id, name, event_date")`, `type = date`, `status = active`, `event_date >= hoy`, orden por `event_date` y `created_at`. Sin filtro de dueño: lo decide la RLS.
+
+**Destino en el cliente:** unión `{ kind: general } | { kind: dateList, id, name }`. Con `general` no se manda `target_list_id`.
+
+### Flujo
+
+1. **Abrir:** `onOpen()` → `confirming` con destino `general`; `useDateListOptions` pide las sublistas. Con el diálogo cerrado no pide nada.
+2. **Llegan las opciones:** aparece el selector si hay al menos una. Si fallan, aviso y "Reintentar"; la general sigue usable.
+3. **Elegir:** `DESTINATION_CHANGED`, solo en `confirming` y `failed`. Limpia el error anterior.
+4. **Confirmar:** el destino queda dentro de `adding`; `addWeekToList({ ...range, destination })`.
+5. **Éxito:** `done` guarda el destino: el aviso lo nombra y "Ver lista" usa `APP_ROUTE.LIST` o `toDateListPath(id)`.
+6. **`P0002` con ese hint:** el servicio devuelve `null`; el hook pasa a `failed` con "Esa sublista ya no está disponible…", vuelve a `general` y recarga las opciones. Cualquier otro error (también el `P0002` de una receta) es el general y conserva el destino.
+7. **Recarga:** si la sublista elegida ya no viene en las opciones, el destino vuelve a `general`.
+
+### Decisiones
+
+| Decisión | Alternativa descartada | Por qué |
+|---|---|---|
+| Una función con `target_list_id` opcional y la vieja como envoltorio | Una segunda RPC con el recorrido copiado (`add_week_to_date_list`) | Evita una segunda copia del recorrido. Las dos funciones son de SCRUM-101; las de otras historias no se tocan |
+| Nombre nuevo | Agregar el parámetro a `add_week_to_general_list` | Cambiar la firma crea una sobrecarga que PostgREST no sabe resolver y rompe el código mergeado |
+| Destino validado en la base | Confiar en el selector | El selector puede estar viejo, y la función interna acepta cualquier lista visible |
+| `hint` para distinguir la sublista de la receta | Inventar un SQLSTATE o comparar el mensaje | El código sigue siendo el que ya traduce la app; el mensaje se puede reescribir sin romper el cliente |
+| Servicio propio para leer opciones | Promover `getDateLists` a `services/` | Pide otras filas (filtradas en la base) y menos columnas. Además evita mover un archivo que la PR #108 está cambiando |
+| Promover solo estado, tipo y `toDateListPath` | Repetir `"active"` y `"date"` en el planificador, o importar entre features | Son valores de la base con dos consumidores; las features no se importan entre sí |
+| Destino en el reducer y carga en su propio hook | Todo en el reducer | El destino tiene reglas con el estado del diálogo; la carga es independiente (SPEC 17.5) |
+| Sin caché de opciones | Pedirlas una vez por pantalla | Regla 41 |
+| Etiqueta corta con el año solo si no es el actual | `formatEventDate` ("sábado, 28 de noviembre de 2026") | Cabe en 360 px y no es ambigua; reusa `MONTH_SHORT_LABEL` |
+
+### Seguridad
+
+- RPC nueva con escritura y destino por id: `security-reviewer` antes de `waiting qa`.
+- `security invoker`: un id ajeno no se ve por RLS y da el mismo `P0002` que uno inexistente. No recibe ids de usuario.
+- El nombre de la sublista se dibuja como texto de React, sin HTML.
+- **Deuda que no empeora:** `add_week_ingredients_to_list` ya era llamable directo con cualquier lista visible, también cancelada (022). No se cierra aquí: es `security invoker` y solo escribe donde la RLS ya deja escribir.
+
+### Deuda conocida
+
+- **Deadlock posible** si alguien tacha en la sublista mientras se agrega. El trigger de 043 bloquea la lista después del producto; con `security invoker` no se puede bloquear la lista antes, porque `lists` no tiene update para el cliente. Postgres aborta una transacción y el usuario reintenta.
+- **Cancelar a mitad** puede dejar productos en una sublista cancelada (SPEC 17.12).
+- **"Hoy" se lee al abrir la pantalla** (`useToday`): pasada la medianoche se ofrece la sublista de ayer hasta recargar.
+- **Las funciones viejas** siguen hasta que `main` tenga SCRUM-115.
+
+### Orden con otras PRs
+
+La #108 (`qa accepted`) toca `features/date-lists/`. Conviene que entre primero y hacer la promoción de constantes encima; si no, habrá conflictos chicos de imports.
