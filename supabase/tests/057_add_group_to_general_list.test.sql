@@ -20,13 +20,16 @@
 --   4. Lista vacía: una fila por producto con la cantidad del grupo; otra
 --      presentación del mismo producto va en fila aparte (casos 19 y 22).
 --   5. Agregar el mismo grupo otra vez suma las cantidades, sin filas nuevas
---      (casos 20 y 21).
+--      (caso 21).
+--   5b. Con filas que ya estaban en la lista: la misma presentación suma en
+--      su fila (caso 20) y otra presentación va en fila aparte (caso 22).
 --   6. Una fila tachada no se reabre: se crea una pendiente nueva (caso 23).
 --   7. Un producto archivado y uno que el usuario no puede ver se saltan y se
---      nombran; el resto se agrega (caso 24).
---   8. Un miembro agrega un grupo compartido: va a la lista de la familia
---      (caso 25).
---   9. No escribe list_item_recipe_requirements (no es una receta).
+--      nombran; el resto se agrega y suma (caso 24).
+--   8. Un miembro agrega un grupo compartido: va a la lista de la familia y
+--      no a su lista personal (caso 25).
+--   9. No escribe list_item_recipe_requirements (no es una receta), y la
+--      lista no guarda ninguna referencia al grupo (regla 6).
 -- ============================================================================
 
 begin;
@@ -136,6 +139,7 @@ declare
   e_group_id uuid;
   e_mixed_group_id uuid;
   m_shared_group_id uuid;
+  a_group_id uuid;
   archived_variant_id uuid;
   a_variant_id uuid;
 begin
@@ -172,6 +176,16 @@ begin
   insert into public.product_group_items (group_id, product_catalog_variant_id, quantity, position)
   values (m_shared_group_id, current_setting('tacha_test.leche_small_id')::uuid, 3, 0);
 
+  -- Para el caso 5b: la presentación chica (que A ya tendrá en su lista) y la grande.
+  insert into public.product_groups (owner_id, household_id, name)
+  values (current_setting('tacha_test.user_a')::uuid, null, 'Merienda SCRUM-111')
+  returning id into a_group_id;
+  insert into public.product_group_items (group_id, product_catalog_variant_id, quantity, position)
+  values
+    (a_group_id, current_setting('tacha_test.leche_small_id')::uuid, 2, 0),
+    (a_group_id, current_setting('tacha_test.leche_large_id')::uuid, 1, 1);
+
+  perform set_config('tacha_test.a_group_id', a_group_id::text, true);
   perform set_config('tacha_test.e_group_id', e_group_id::text, true);
   perform set_config('tacha_test.e_mixed_group_id', e_mixed_group_id::text, true);
   perform set_config('tacha_test.m_shared_group_id', m_shared_group_id::text, true);
@@ -257,6 +271,42 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
+-- 5b. Con filas que ya estaban: A ya tiene la Leche chica ×1 en su lista.
+-- ----------------------------------------------------------------------------
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('tacha_test.user_a'), 'role', 'authenticated')::text, true);
+
+do $$
+declare
+  general_list_id uuid;
+  small_quantity integer;
+  large_quantity integer;
+  pending_rows integer;
+begin
+  -- La fila previa, por el mismo camino que usa la app (013/035).
+  general_list_id := public.ensure_general_list_id();
+  perform public.add_units_to_list_item(general_list_id, current_setting('tacha_test.leche_small_id')::uuid, 1);
+
+  perform public.add_group_to_general_list(current_setting('tacha_test.a_group_id')::uuid);
+
+  select quantity_requested into small_quantity from public.list_items
+  where list_id = general_list_id and checked_at is null
+    and product_catalog_variant_id = current_setting('tacha_test.leche_small_id')::uuid;
+  select quantity_requested into large_quantity from public.list_items
+  where list_id = general_list_id and checked_at is null
+    and product_catalog_variant_id = current_setting('tacha_test.leche_large_id')::uuid;
+  select count(*) into pending_rows from public.list_items where list_id = general_list_id and checked_at is null;
+
+  assert small_quantity = 3, 'la fila previa de la misma presentación suma (1 + 2), tiene ' || small_quantity;
+  assert large_quantity = 1, 'la otra presentación va en su propia fila, tiene ' || coalesce(large_quantity::text, 'ninguna');
+  assert pending_rows = 2, 'dos filas: una por presentación, hay ' || pending_rows;
+end $$;
+
+-- De vuelta a E para los casos 6 y 7.
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('tacha_test.user_e'), 'role', 'authenticated')::text, true);
+
+-- ----------------------------------------------------------------------------
 -- 6. Una fila tachada no se reabre.
 -- ----------------------------------------------------------------------------
 reset role;
@@ -304,6 +354,11 @@ begin
     where li.list_id = current_setting('tacha_test.e_list_id')::uuid
       and pcv.product_catalog_id = current_setting('tacha_test.e_archived_product_id')::uuid
   ), 'el producto archivado no llega a la lista';
+  -- Lo disponible se suma igual: Chocolate tenía 3 (1 + 1 + 1 de los casos 4-6) y el grupo trae 4.
+  assert (select quantity_requested from public.list_items
+          where list_id = current_setting('tacha_test.e_list_id')::uuid and checked_at is null
+            and product_catalog_variant_id = current_setting('tacha_test.chocolate_id')::uuid) = 7,
+    'el Chocolate del grupo mixto se suma aunque se salten los otros (3 + 4)';
 end $$;
 
 -- ----------------------------------------------------------------------------
@@ -324,6 +379,11 @@ begin
       and li.product_catalog_variant_id = current_setting('tacha_test.leche_small_id')::uuid
       and li.quantity_requested = 3
   ), 'F agrega el grupo compartido de M a la lista de la familia';
+  assert not exists (
+    select 1 from public.list_items li
+    join public.lists l on l.id = li.list_id
+    where l.owner_id = current_setting('tacha_test.user_f')::uuid and l.household_id is null
+  ), 'el grupo compartido no cae en una lista personal de F';
 end $$;
 
 -- ----------------------------------------------------------------------------
@@ -337,8 +397,17 @@ begin
     select 1 from public.list_item_recipe_requirements r
     join public.list_items li on li.id = r.list_item_id
     join public.lists l on l.id = li.list_id
-    where l.owner_id in (current_setting('tacha_test.user_e')::uuid, current_setting('tacha_test.user_f')::uuid)
+    where l.owner_id in (
+      current_setting('tacha_test.user_a')::uuid,
+      current_setting('tacha_test.user_e')::uuid,
+      current_setting('tacha_test.user_f')::uuid
+    )
   ), 'agregar un grupo no escribe list_item_recipe_requirements';
+  -- Regla 6: se copian presentación y cantidad; editar o borrar el grupo no toca la lista.
+  assert not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'list_items' and column_name like '%group%'
+  ), 'list_items no guarda ninguna referencia al grupo';
 end $$;
 
 select 'SQL test 057 passed' as result;

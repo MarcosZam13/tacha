@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { NullableRef } from "@/types/nullable.types";
 import {
   PRODUCT_GROUP_ADD_TO_LIST_TEXT,
@@ -31,9 +31,13 @@ const IDLE_STATE: ProductGroupListAdditionState = { status: PRODUCT_GROUP_LIST_A
 export const useProductGroupListAddition = (onGroupMissing: () => void): ProductGroupListAdditionViewModel => {
   const [state, setState] = useState<ProductGroupListAdditionState>(IDLE_STATE);
   const [missingGroupNotice, setMissingGroupNotice] = useState<NullableRef<string>>(null);
+  // El estado llega en el próximo render; dos clics en el mismo render verían
+  // "idle" los dos. La ref se marca en el acto y corta el segundo.
+  const isRequestInFlight = useRef<boolean>(false);
   const isAdding = state.status === PRODUCT_GROUP_LIST_ADDITION_STATUS.ADDING;
 
   const addGroup = async (group: ProductGroupListAdditionTarget): Promise<void> => {
+    isRequestInFlight.current = true;
     setState({ group, status: PRODUCT_GROUP_LIST_ADDITION_STATUS.ADDING });
     setMissingGroupNotice(null);
     try {
@@ -48,12 +52,14 @@ export const useProductGroupListAddition = (onGroupMissing: () => void): Product
     } catch {
       // La RPC es todo o nada: si falló, la lista quedó como estaba.
       setState({ errorMessage: PRODUCT_GROUP_ADD_TO_LIST_TEXT.ERROR, group, status: PRODUCT_GROUP_LIST_ADDITION_STATUS.FAILED });
+    } finally {
+      isRequestInFlight.current = false;
     }
   };
 
   const onAddToList = (group: ProductGroupListAdditionTarget): void => {
     // Un grupo a la vez, y un doble clic no manda dos veces.
-    if (isAdding) return;
+    if (isRequestInFlight.current) return;
     void addGroup(group);
   };
 
