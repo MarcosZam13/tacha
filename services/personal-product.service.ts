@@ -1,10 +1,11 @@
 import type { Session } from "@supabase/supabase-js";
 import { PERSONAL_PRODUCT_DB } from "@/constants/create-product-form.constants";
 import type { CatalogBaseUnitType } from "@/constants/catalog.constants";
+import type { StoreSlug } from "@/constants/stores.constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 
-/** Lo que necesita create_personal_product (migración 031), ya en camelCase. */
+/** Lo que necesita create_personal_product (migraciones 031 y 051), ya en camelCase. */
 export interface CreatePersonalProductPayload {
   baseQuantity: number;
   baseUnit: CatalogBaseUnitType;
@@ -12,6 +13,12 @@ export interface CreatePersonalProductPayload {
   brandName?: string;
   categoryId: string;
   name: string;
+  /** HU-57: precio de referencia, opcional. Ausente: sin precio. */
+  referencePrice?: number;
+  /** HU-57: tienda escrita a mano. Nunca junto con referenceStoreSlug. */
+  referenceStoreName?: string;
+  /** HU-57: uno de los 3 supermercados. Nunca junto con referenceStoreName. */
+  referenceStoreSlug?: StoreSlug;
   shareWithHousehold: boolean;
 }
 
@@ -48,6 +55,9 @@ export const createPersonalProduct = async (payload: CreatePersonalProductPayloa
       brand_name: payload.brandName,
       category_id: payload.categoryId,
       product_name: payload.name,
+      reference_price: payload.referencePrice,
+      reference_store_name: payload.referenceStoreName,
+      reference_store_slug: payload.referenceStoreSlug,
       share_with_household: payload.shareWithHousehold,
     },
   );

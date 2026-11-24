@@ -140,6 +140,60 @@ describe("listMyProducts", () => {
   // Caso 7/8 de SPEC.md §13: un producto compartido (household_id) y uno sin
   // compartir (owner_id) del mismo usuario se ven juntos, sin duplicarse —
   // nunca tienen ambos campos a la vez (lo decide create_personal_product).
+  // HU-57 (SCRUM-88): precio y tienda de referencia; la tienda es el súper
+  // (stores.display_name) o la escrita a mano, nunca las dos.
+  it("maps the reference price and store of each variant", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: {
+          data: [
+            {
+              id: "product-1",
+              name: "Chorizo",
+              product_catalog_variants: [
+                {
+                  base_quantity: 400,
+                  base_unit: "g",
+                  id: "variant-1",
+                  image_url: null,
+                  reference_price: 3200,
+                  reference_store_name: "Carnicería Los Ángeles",
+                  stores: null,
+                },
+              ],
+            },
+            {
+              id: "product-2",
+              name: "Queso",
+              product_catalog_variants: [
+                {
+                  base_quantity: 500,
+                  base_unit: "g",
+                  id: "variant-2",
+                  image_url: null,
+                  reference_price: null,
+                  reference_store_name: null,
+                  stores: { display_name: "MaxiPali" },
+                },
+              ],
+            },
+          ],
+          error: null,
+        },
+      });
+    });
+
+    const [chorizo, queso] = await listMyProducts();
+
+    expect(chorizo.variants[0]).toMatchObject({ referencePrice: 3200, referenceStoreName: "Carnicería Los Ángeles" });
+    expect(queso.variants[0].referencePrice).toBeUndefined();
+    expect(queso.variants[0].referenceStoreName).toBe("MaxiPali");
+  });
+
   it("merges household and owner results, sorted alphabetically by product name", async () => {
     mockSession();
     fromMock.mockImplementation((table: string) => {

@@ -26,6 +26,14 @@ export interface CatalogProductVariant {
   imageUrl: NullableRef<string>;
   /** Rango de precio por tienda (clave: slug de la tienda). Solo trae tiendas con precio. */
   priceRangeByStore: Record<string, PriceRange>;
+  /**
+   * HU-57 (SCRUM-88): precio que el usuario anotó en su producto
+   * personalizado. Solo "Mis productos" lo trae; nunca viene del scraping ni
+   * se mezcla con priceRangeByStore (CA-03).
+   */
+  referencePrice?: number;
+  /** HU-57: tienda de referencia (súper o escrita a mano), con su nombre visible. */
+  referenceStoreName?: string;
   variantId: string;
 }
 
@@ -66,8 +74,12 @@ export interface CatalogCardData {
   imageUrl: NullableRef<string>;
   /** Letra que se muestra cuando la variante no tiene foto. */
   placeholderInitial: string;
+  /** HU-57: true si priceLabel es el precio de referencia que anotó el usuario (lleva el ícono "i"). */
+  isReferencePrice?: boolean;
   /** "₡800 – ₡1 200", un solo precio si coinciden, o el aviso de que no hay precio. */
   priceLabel: string;
+  /** HU-57: tienda de referencia del producto personalizado, como texto secundario. */
+  storeName?: string;
   /** "Leche — 1000 ml". Sin marca. */
   title: string;
 }
@@ -111,6 +123,10 @@ export interface CatalogBrand {
 export interface CatalogVariantDetail {
   brands: CatalogBrand[];
   imageUrl: NullableRef<string>;
+  /** HU-57: precio de referencia del usuario (solo productos personalizados); nunca del scraping. */
+  referencePrice: NullableRef<number>;
+  /** HU-57: tienda de referencia (súper o escrita a mano). */
+  referenceStoreName: NullableRef<string>;
   productName: string;
   sizeLabel: string;
   storePriceRanges: StorePriceRange[];

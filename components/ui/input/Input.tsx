@@ -19,6 +19,7 @@ export const Input = ({
   errorMessage,
   placeholder,
   type = "text",
+  inputMode,
   isRequired = false,
 }: InputProps): React.JSX.Element => {
   // useId da un id único y estable entre el servidor y el navegador, aunque haya varios Input en la pantalla.
@@ -41,6 +42,7 @@ export const Input = ({
       <input
         id={inputId}
         type={type}
+        inputMode={inputMode}
         value={value}
         placeholder={placeholder}
         required={isRequired}
