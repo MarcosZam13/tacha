@@ -4,24 +4,32 @@ import { UNSAVED_CHANGES_SOURCE } from "@/constants";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useReportUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import type { NullableUndefined } from "@/types/nullable.types";
-import { RECIPE_EDITOR_STATUS, RECIPE_EDITOR_TEXT, RECIPE_ROUTE } from "../constants/recipes.constants";
+import {
+  RECIPE_EDITOR_STATUS,
+  RECIPE_EDITOR_TEXT,
+  RECIPE_PHOTO_TEXT,
+  RECIPE_ROUTE,
+} from "../constants/recipes.constants";
 import type { RecipeEditorViewModel } from "../models/recipe-editor.interfaces";
 import { getDefaultUnit } from "../utils/getDefaultUnit";
 import { useRecipeEditor } from "./useRecipeEditor";
+import { useRecipePhoto } from "./useRecipePhoto";
 
 /**
- * Facade del editor: une el formulario (useRecipeEditor), el buscador
- * compartido del catálogo y la navegación, y le entrega a RecipeEditor.tsx
+ * Facade del editor: une el formulario (useRecipeEditor), la foto
+ * (useRecipePhoto), el buscador compartido del catálogo y la navegación, y le entrega a RecipeEditor.tsx
  * exactamente lo que dibuja.
  */
 export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): RecipeEditorViewModel => {
   const router = useRouter();
   const editor = useRecipeEditor(recipeId);
   const search = useProductSearch();
-  const { errors, hasChanges, ingredientNotice, saveErrorMessage, status, values } = editor.state;
+  const { errors, hasChanges, ingredientNotice, savedPhoto, savedRecipeId, saveErrorMessage, status, values } =
+    editor.state;
+  const photo = useRecipePhoto(savedPhoto);
 
   // Cerrar sesión (SCRUM-55) pide confirmación mientras haya una receta sin guardar.
-  useReportUnsavedChanges(UNSAVED_CHANGES_SOURCE.RECIPE_EDITOR, hasChanges);
+  useReportUnsavedChanges(UNSAVED_CHANGES_SOURCE.RECIPE_EDITOR, hasChanges || photo.hasPendingChange);
 
   // CA-02: el ingrediente queda ligado al producto madre desde que se elige;
   // la cantidad la escribe el usuario después, y la unidad viene sugerida.
@@ -40,7 +48,7 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     // save maneja su propio error (lo pasa al estado); acá solo se navega si guardó.
-    void editor.save().then((isSaved) => {
+    void editor.save(photo.change).then((isSaved) => {
       if (isSaved) router.push(RECIPE_ROUTE.CATALOG);
     });
   };
@@ -76,8 +84,17 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
     onNameChange: editor.changeName,
     onRemoveIngredient: editor.removeIngredient,
     onSubmit,
+    photo: {
+      alt: photo.isPreview ? RECIPE_PHOTO_TEXT.PREVIEW_ALT : `${RECIPE_PHOTO_TEXT.ALT_PREFIX} ${values.name}`,
+      errorMessage: photo.errorMessage,
+      hasPhoto: photo.hasPhoto,
+      onPhotoRemove: photo.onPhotoRemove,
+      onPhotoSelect: photo.onPhotoSelect,
+      photoUrl: photo.photoUrl,
+    },
     saveErrorMessage,
     showForm: status === RECIPE_EDITOR_STATUS.EDITING || status === RECIPE_EDITOR_STATUS.SAVING,
-    title: recipeId ? RECIPE_EDITOR_TEXT.EDIT_TITLE : RECIPE_EDITOR_TEXT.NEW_TITLE,
+    // Una nueva que se guardó sin su foto ya existe: desde ahí se está editando.
+    title: (recipeId ?? savedRecipeId) ? RECIPE_EDITOR_TEXT.EDIT_TITLE : RECIPE_EDITOR_TEXT.NEW_TITLE,
   };
 };

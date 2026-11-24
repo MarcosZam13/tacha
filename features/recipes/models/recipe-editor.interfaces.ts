@@ -3,6 +3,8 @@ import type { ProductSearchProps } from "@/components/product-search/models/Prod
 import type { CatalogBaseUnitType } from "@/constants";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import type { RecipeEditorStatusType } from "../constants/recipes.constants";
+import type { RecipePhotoFieldViewModel, SavedRecipePhoto } from "./recipe-photo.interfaces";
+import type { RecipePhotoChange } from "./recipe-photo.types";
 
 // Interfaces del editor de recetas (SCRUM-95), en el orden en que se usan:
 // la entrada, la fila de la base, el formulario, el estado del reducer, lo que
@@ -22,6 +24,7 @@ export interface RecipeEditorRow {
   base_servings: number;
   id: string;
   name: string;
+  photo_path: NullableRef<string>;
   recipe_ingredients: {
     position: number;
     product_catalog: { id: string; name: string };
@@ -49,6 +52,12 @@ export interface RecipeEditorValues {
   name: string;
 }
 
+/** Una receta guardada, lista para editar: los valores del formulario y su foto (null si no tiene). */
+export interface RecipeForEditing {
+  photo: NullableRef<SavedRecipePhoto>;
+  values: RecipeEditorValues;
+}
+
 /**
  * Un mensaje por campo; sin valor = sin error. Los de cantidad van por
  * productId porque cada ingrediente tiene su propio input.
@@ -67,6 +76,9 @@ export interface RecipeEditorState {
   /** Aviso no bloqueante del buscador, ej. "ese producto ya está". */
   ingredientNotice: NullableRef<string>;
   saveErrorMessage: NullableRef<string>;
+  savedPhoto: NullableRef<SavedRecipePhoto>;
+  /** Id de la receta que se guardó sin su foto: reintentar edita esa en vez de crear otra. */
+  savedRecipeId: NullableRef<string>;
   status: RecipeEditorStatusType;
   values: RecipeEditorValues;
 }
@@ -79,8 +91,8 @@ export interface UseRecipeEditorReturn {
   changeIngredientUnit: (productId: string, unit: CatalogBaseUnitType) => void;
   changeName: (name: string) => void;
   removeIngredient: (productId: string) => void;
-  /** Valida y guarda. Devuelve true si se guardó, para que quien llama navegue. */
-  save: () => Promise<boolean>;
+  /** Valida y guarda la receta y su foto. Devuelve true si se guardó todo, para que quien llama navegue. */
+  save: (photoChange: RecipePhotoChange) => Promise<boolean>;
   state: RecipeEditorState;
 }
 
@@ -114,6 +126,7 @@ export interface RecipeEditorViewModel {
   onNameChange: (name: string) => void;
   onRemoveIngredient: (productId: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  photo: RecipePhotoFieldViewModel;
   saveErrorMessage: NullableRef<string>;
   showForm: boolean;
   title: string;
