@@ -120,7 +120,7 @@ Daniel no tiene historias en el Sprint 1 porque arranca con el pipeline de scrap
 | SCRUM-90 | HU-59: Ver historial de sesiones de compra | Laura | 3 |
 | SCRUM-91 | HU-60: Editar el total de una sesión o periodo | Laura | 3 |
 | SCRUM-92 | HU-61: Ver sesiones sin total ingresado | Laura | 2 |
-| SCRUM-93 | HU-62: Filtrar historial por supermercado y categoría | Laura | 3 |
+| SCRUM-93 | HU-62: Consultar frecuencia e historial de compra por producto | Laura | 3 |
 | SCRUM-53 | HU-30: Editar datos de perfil | Esteban | 3 |
 | SCRUM-54 | HU-31: Cambiar contraseña | Esteban | 3 |
 | SCRUM-55 | HU-32: Cerrar sesión (logout) | Esteban | 2 |

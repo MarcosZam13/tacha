@@ -38,6 +38,9 @@ const toCatalogProduct = (productRow: {
     base_unit: string;
     base_quantity: number;
     image_url: NullableRef<string>;
+    reference_price: NullableRef<number>;
+    reference_store_name: NullableRef<string>;
+    stores: NullableRef<{ display_name: string }>;
   }[];
 }): Omit<MyProduct, "editable"> => ({
   // "Mis productos" todavía no asigna categoría (HU-55; el selector es
@@ -52,9 +55,12 @@ const toCatalogProduct = (productRow: {
     // base_unit es text en la base; el check de la migración garantiza que es uno de los valores de CATALOG_BASE_UNIT.
     baseUnit: variantRow.base_unit as CatalogBaseUnitType,
     imageUrl: variantRow.image_url,
-    // Sin RPC de precio para productos manuales todavía (HU-57): toCatalogCards
-    // ya sabe mostrar "Sin precio disponible" cuando el rango viene vacío.
+    // Un producto personal nunca tiene precios del scraping: su único precio
+    // es el de referencia que anotó el usuario (HU-57), que va aparte (CA-03).
     priceRangeByStore: {},
+    referencePrice: variantRow.reference_price ?? undefined,
+    // La tienda es una u otra, nunca las dos (check de la migración 051).
+    referenceStoreName: variantRow.reference_store_name ?? variantRow.stores?.display_name ?? undefined,
     variantId: variantRow.id,
   })),
 });
@@ -73,6 +79,9 @@ const toMyProduct = (productRow: {
     base_quantity: number;
     image_url: NullableRef<string>;
     product_brands: { name: string }[];
+    reference_price: NullableRef<number>;
+    reference_store_name: NullableRef<string>;
+    stores: NullableRef<{ display_name: string }>;
   }[];
 }): NullableRef<MyProduct> => {
   const [firstVariant] = productRow.product_catalog_variants;

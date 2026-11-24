@@ -2,7 +2,14 @@
 import type { FormEvent } from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CREATE_PRODUCT_FORM_ERROR, CREATE_PRODUCT_FORM_TEXT } from "@/constants/create-product-form.constants";
+import {
+  CREATE_PRODUCT_FORM_ERROR,
+  CREATE_PRODUCT_FORM_TEXT,
+  REFERENCE_PRICE_LIMIT,
+  REFERENCE_STORE_CHOICE,
+  REFERENCE_STORE_NAME_MAX_LENGTH,
+} from "@/constants/create-product-form.constants";
+import { STORE_NAMES } from "@/constants/stores.constants";
 import { getCategories } from "@/services/catalog.service";
 import { createPersonalProduct, hasHousehold, updatePersonalProduct } from "@/services/personal-product.service";
 import type { EditablePersonalProduct } from "@/types/personal-product.types";
@@ -277,3 +284,202 @@ describe("useCreateProductForm: editar (HU-58)", () => {
   });
 });
 
+// HU-57 (SCRUM-88): tienda y precio de referencia, los dos opcionales.
+describe("useCreateProductForm: tienda y precio de referencia (HU-57)", () => {
+  it("saves without a store or a price", async () => {
+    createPersonalProductMock.mockResolvedValue("product-1");
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+
+    expect(result.current.canSubmit).toBe(true);
+    expect(result.current.showStoreNameInput).toBe(false);
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(createPersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({ referencePrice: undefined, referenceStoreName: undefined, referenceStoreSlug: undefined }),
+    );
+  });
+
+  // SPEC §7: "Guardar" está deshabilitado con un precio inválido, así que el
+  // error tiene que verse al salir del campo, sin necesidad de guardar.
+  it.each([
+    ["0", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["-5", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["abc", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["-", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Number() los aceptaría, pero no son precios.
+    ["1e3", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    ["0x10", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Separador de miles y decimal a la vez: ambiguo.
+    ["2.850,50", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Se guardaría 0.00: la columna es numeric(12,2).
+    ["0.001", CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID],
+    // Se guardaría 10^10, que ya no entra.
+    ["9999999999.996", CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH],
+  ])("shows the price error on blur for %s, without submitting", async (typedPrice, expectedError) => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange(typedPrice));
+
+    act(() => result.current.onPriceBlur());
+
+    expect(result.current.priceError).toBe(expectedError);
+    expect(result.current.canSubmit).toBe(false);
+  });
+
+  // En Costa Rica el decimal se escribe con coma.
+  it("accepts a decimal comma and sends it as a number", async () => {
+    createPersonalProductMock.mockResolvedValue("product-1");
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange("2850,50"));
+    act(() => result.current.onPriceBlur());
+
+    expect(result.current.priceError).toBeUndefined();
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(createPersonalProductMock).toHaveBeenCalledWith(expect.objectContaining({ referencePrice: 2850.5 }));
+  });
+
+  it("accepts the highest price the column can hold", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange("9999999999.99"));
+
+    act(() => result.current.onPriceBlur());
+
+    expect(result.current.priceError).toBeUndefined();
+    expect(result.current.canSubmit).toBe(true);
+  });
+
+  it("shows the store name error on blur, without submitting", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("   "));
+
+    act(() => result.current.onStoreNameBlur());
+
+    expect(result.current.storeNameError).toBe(CREATE_PRODUCT_FORM_ERROR.STORE_NAME_REQUIRED);
+    expect(result.current.canSubmit).toBe(false);
+  });
+
+  it("accepts a store name of exactly the maximum length", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("a".repeat(REFERENCE_STORE_NAME_MAX_LENGTH)));
+
+    act(() => result.current.onStoreNameBlur());
+
+    expect(result.current.storeNameError).toBeUndefined();
+    expect(result.current.canSubmit).toBe(true);
+  });
+
+  it("shows the price error and does not call the service when the price is 0 or less", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange("0"));
+
+    act(() => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.priceError).toBe(CREATE_PRODUCT_FORM_ERROR.PRICE_INVALID);
+    expect(result.current.canSubmit).toBe(false);
+    expect(createPersonalProductMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a price that does not fit in the database column", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onPriceChange(String(REFERENCE_PRICE_LIMIT)));
+
+    act(() => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.priceError).toBe(CREATE_PRODUCT_FORM_ERROR.PRICE_TOO_HIGH);
+    expect(createPersonalProductMock).not.toHaveBeenCalled();
+  });
+
+  it("asks for the store name when the custom store is chosen without one", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+
+    act(() => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.showStoreNameInput).toBe(true);
+    expect(result.current.storeNameError).toBe(CREATE_PRODUCT_FORM_ERROR.STORE_NAME_REQUIRED);
+    expect(createPersonalProductMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a store name longer than the database allows", async () => {
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("a".repeat(REFERENCE_STORE_NAME_MAX_LENGTH + 1)));
+
+    act(() => result.current.onSubmit(createSubmitEvent()));
+
+    expect(result.current.storeNameError).toBe(CREATE_PRODUCT_FORM_ERROR.STORE_NAME_TOO_LONG);
+    expect(createPersonalProductMock).not.toHaveBeenCalled();
+  });
+
+  it("sends the chosen supermarket and the parsed price", async () => {
+    createPersonalProductMock.mockResolvedValue("product-1");
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(STORE_NAMES.MAXIPALI));
+    act(() => result.current.onPriceChange("2850.5"));
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(createPersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referencePrice: 2850.5,
+        referenceStoreName: undefined,
+        referenceStoreSlug: STORE_NAMES.MAXIPALI,
+      }),
+    );
+  });
+
+  it("sends the custom store name trimmed, without a supermarket", async () => {
+    createPersonalProductMock.mockResolvedValue("product-1");
+    const { result } = await renderOpen();
+    fillRequiredFields(result);
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("  Carnicería Los Ángeles  "));
+
+    await act(async () => result.current.onSubmit(createSubmitEvent()));
+
+    expect(createPersonalProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referencePrice: undefined,
+        referenceStoreName: "Carnicería Los Ángeles",
+        referenceStoreSlug: undefined,
+      }),
+    );
+  });
+
+  it("clears the typed store name when another store is chosen", async () => {
+    const { result } = await renderOpen();
+    act(() => result.current.onStoreChoiceChange(REFERENCE_STORE_CHOICE.CUSTOM));
+    act(() => result.current.onStoreNameChange("Pulpería"));
+
+    act(() => result.current.onStoreChoiceChange(STORE_NAMES.WALMART));
+
+    expect(result.current.storeName).toBe("");
+    expect(result.current.showStoreNameInput).toBe(false);
+  });
+
+  it("resets the store and the price on cancel", async () => {
+    const { result } = await renderOpen();
+    act(() => result.current.onStoreChoiceChange(STORE_NAMES.WALMART));
+    act(() => result.current.onPriceChange("1500"));
+
+    act(() => result.current.onCancel());
+
+    expect(result.current.storeChoice).toBe(REFERENCE_STORE_CHOICE.NONE);
+    expect(result.current.price).toBe("");
+  });
+});

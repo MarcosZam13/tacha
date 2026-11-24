@@ -117,6 +117,7 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
     brands: detail?.brands ?? [],
     canDecreaseQuantity: quantity > ITEM_QUANTITY.MIN,
     errorMessage: currentResponse?.errorMessage ?? null,
+    hasReferencePrice: detail !== null && (detail.referencePrice !== null || detail.referenceStoreName !== null),
     imageUrl: detail?.imageUrl ?? null,
     isNotFound: currentResponse?.isNotFound ?? false,
     onAddToList,
@@ -126,6 +127,11 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
     placeholderInitial: detail ? detail.productName.trim().charAt(0).toUpperCase() : "",
     productName: detail?.productName ?? "",
     quantity,
+    referencePriceLabel:
+      detail && detail.referencePrice !== null
+        ? formatPriceRange({ maxPrice: detail.referencePrice, minPrice: detail.referencePrice })
+        : null,
+    referenceStoreName: detail?.referenceStoreName ?? null,
     sizeLabel: detail?.sizeLabel ?? "",
     status: isAdding
       ? PRODUCT_DETAIL_STATUS.ADDING

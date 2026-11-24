@@ -11,6 +11,12 @@ export interface InputProps {
   errorMessage?: NullableUndefined<string>;
   placeholder?: string;
   type?: "text" | "email" | "password" | "number" | "date";
+  /**
+   * Teclado del celular. "decimal" con type="text" en vez de type="number":
+   * un campo number entrega "" cuando lo escrito no es un número ("-", "e"),
+   * y un campo opcional lo confundiría con vacío (HU-57).
+   */
+  inputMode?: "text" | "decimal" | "numeric";
   isRequired?: boolean;
 }
 

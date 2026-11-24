@@ -196,6 +196,54 @@ Verificado contra la base real (`ifvwumejbfpowxlkjfiu`), no supuesto.
 
 ---
 
+# HU-57 (SCRUM-88): tienda y precio de referencia
+
+## Archivos
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/migrations/051_personal_product_reference_price.sql` | Columnas `reference_price`, `reference_store_id`, `reference_store_name` en `product_catalog_variants` (+ 3 checks); `create_personal_product` con 3 parámetros opcionales más |
+| `supabase/tests/051_personal_product_reference_price.test.sql` | Prueba de la migración (transacción + rollback) |
+| `types/database.types.ts` | Columnas y parámetros nuevos, editados a mano solo para 051 (sin regenerar: arrastraría migraciones de otras PRs abiertas) |
+| `constants/create-product-form.constants.ts` | Textos, errores, `REFERENCE_STORE_CHOICE`, opciones de supermercado, largo máximo |
+| `constants/catalog.constants.ts` | `REFERENCE_PRICE_TEXT` (aviso CA-02, compartido por tarjeta y detalle); `VARIANT_DETAIL_SELECT` con las columnas nuevas |
+| `services/personal-product.service.ts` | `createPersonalProduct` manda los 3 parámetros nuevos |
+| `hooks/useCreateProductForm.ts` | Estado y validación de tienda, nombre de tienda y precio |
+| `components/create-product-form/CreateProductForm.tsx` | Selector de tienda, campo "Nombre de la tienda" (solo con "Otra tienda"), campo de precio (texto con teclado decimal); el error de precio y de tienda se valida al salir del campo |
+| `components/ui/input/Input.tsx` | Prop opcional `inputMode` (teclado del celular). Sin ella, el campo se comporta igual que antes en el resto de la app |
+| `features/my-products/constants/my-products.constants.ts`, `services/my-products.service.ts` | El listado lee el precio y la tienda |
+| `types/catalog.types.ts`, `utils/toCatalogCards.ts`, `components/catalog-card/CatalogCard.tsx` | La tarjeta muestra la tienda y el precio con el ícono "i" |
+| `services/catalog.service.ts`, `features/catalog-product-detail/*` | Sección "Precio de referencia" en el detalle (`ProductDetailReferencePrice`) |
+
+## Datos
+
+- **Escritura:** solo `create_personal_product`, igual que en HU-56.
+  - El supermercado viaja como slug y la base lo traduce al id de `stores`. Así el formulario no lee la tabla: los 3 supermercados ya están en `constants/stores.constants.ts`.
+- **Lectura:** las mismas consultas directas de siempre, con `reference_price, reference_store_name, stores(display_name)`.
+  - `stores(display_name)` sale de `reference_store_id`, la única FK de la variante a `stores`.
+
+## Flujo
+
+1. El usuario elige una tienda.
+   - "Otra tienda" muestra el campo de nombre.
+   - Cambiar de opción borra lo escrito en ese campo, así nunca viajan las dos.
+2. Escribe un precio, o no. El hook valida al guardar, igual que los otros campos, y "Guardar" se habilita solo con todo válido.
+3. `createPersonalProduct` manda `reference_price`, `reference_store_slug` o `reference_store_name`.
+4. El listado se recarga (`reload()`, HU-56) y la tarjeta muestra precio, "i" y tienda.
+
+## Decisiones
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Precio y tienda en columnas de `product_catalog_variants` | `product_prices` con `source = 'manual'`, como decía `docs/documento-proyecto.md §4.5.1` | En `product_prices`: <ul><li>`store_id` solo admite los 3 supermercados, y el propio ejemplo del documento es una carnicería</li><li>exige una marca, opcional en un producto personal</li><li>su lectura es pública, y el precio de un producto sin compartir quedaría a la vista de cualquiera</li><li>`latest_prices` lo metería en los rangos de "Buscar" y en el desglose del detalle, contra CA-03</li></ul>En la variante, CA-03 se cumple solo y la RLS de 032 cubre el precio |
+| En la variante y no en `product_catalog` | Columnas en el producto | El precio depende del tamaño, y el catálogo ya guarda sus precios por variante |
+| Supermercado (FK a `stores`) o tienda escrita, nunca las dos | Solo texto libre | Con la FK, el nombre del súper sale siempre de `stores`, igual que en el resto de la app |
+| El RPC recibe el slug del súper, no su id | Recibir el id y leer `stores` desde el formulario | El formulario no necesita una consulta más ni un estado de carga: los slugs ya son constantes del cliente |
+| Borrar la firma vieja de `create_personal_product` | `create or replace` con parámetros nuevos | Con parámetros nuevos, `create or replace` crea una sobrecarga en vez de reemplazar; dos firmas de la misma función confunden a PostgREST |
+| Aviso de CA-02 como texto oculto en la tarjeta y visible en el detalle | Un botón "i" que abre el aviso | La tarjeta entera es un link (SCRUM-85) y no admite un botón adentro |
+
+---
+
 # HU-58 (SCRUM-89): editar o eliminar
 
 ## Archivos

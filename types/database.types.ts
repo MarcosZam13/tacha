@@ -253,6 +253,7 @@ export type Database = {
       }
       list_items: {
         Row: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -264,6 +265,7 @@ export type Database = {
           quantity_requested: number
         }
         Insert: {
+          assigned_to?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string
@@ -275,6 +277,7 @@ export type Database = {
           quantity_requested?: number
         }
         Update: {
+          assigned_to?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string
@@ -305,6 +308,29 @@ export type Database = {
             columns: ["purchase_session_id"]
             isOneToOne: false
             referencedRelation: "purchase_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_settings: {
+        Row: {
+          assignee_enabled: boolean
+          list_id: string
+        }
+        Insert: {
+          assignee_enabled?: boolean
+          list_id: string
+        }
+        Update: {
+          assignee_enabled?: boolean
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_settings_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: true
+            referencedRelation: "lists"
             referencedColumns: ["id"]
           },
         ]
@@ -540,6 +566,9 @@ export type Database = {
           image_url: string | null
           name: string
           product_catalog_id: string
+          reference_price: number | null
+          reference_store_id: string | null
+          reference_store_name: string | null
         }
         Insert: {
           base_quantity: number
@@ -549,6 +578,9 @@ export type Database = {
           image_url?: string | null
           name: string
           product_catalog_id: string
+          reference_price?: number | null
+          reference_store_id?: string | null
+          reference_store_name?: string | null
         }
         Update: {
           base_quantity?: number
@@ -558,6 +590,9 @@ export type Database = {
           image_url?: string | null
           name?: string
           product_catalog_id?: string
+          reference_price?: number | null
+          reference_store_id?: string | null
+          reference_store_name?: string | null
         }
         Relationships: [
           {
@@ -565,6 +600,13 @@ export type Database = {
             columns: ["product_catalog_id"]
             isOneToOne: false
             referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_catalog_variants_reference_store_id_fkey"
+            columns: ["reference_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -980,6 +1022,7 @@ export type Database = {
       add_item_to_date_list: {
         Args: { target_list_id: string; target_variant_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -1000,6 +1043,7 @@ export type Database = {
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -1058,6 +1102,7 @@ export type Database = {
       change_bought_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -1078,6 +1123,7 @@ export type Database = {
       change_item_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -1098,6 +1144,7 @@ export type Database = {
       check_list_item_in_session: {
         Args: { target_item_id: string; target_session_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -1168,6 +1215,9 @@ export type Database = {
           brand_name?: string
           category_id: string
           product_name: string
+          reference_price?: number
+          reference_store_name?: string
+          reference_store_slug?: string
           share_with_household?: boolean
         }
         Returns: string
@@ -1237,6 +1287,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_list_assignee_candidates: {
+        Args: { target_list_id: string }
+        Returns: {
+          display_name: string
+          is_current_user: boolean
+          user_id: string
+        }[]
+      }
       get_period_finance: { Args: { target_scope: string }; Returns: Json }
       get_personal_product_usage: {
         Args: { target_product_id: string }
@@ -1246,6 +1304,21 @@ export type Database = {
         }[]
       }
       get_personal_lists_decision_state: { Args: never; Returns: string }
+      get_product_purchases: {
+        Args: { target_product_key: string | null; target_variant_id: string | null }
+        Returns: {
+          appearance_count: number
+          closed_at: string
+          id: string
+          store_name: string | null
+          total_amount: number | null
+          variant_names: string[]
+        }[]
+      }
+      get_purchased_products: {
+        Args: { page_limit: number; page_offset: number; search_text: string }
+        Returns: Json
+      }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
         Returns: {
@@ -1401,9 +1474,44 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_list_assignee_enabled: {
+        Args: { enabled: boolean; target_list_id: string }
+        Returns: {
+          assignee_enabled: boolean
+          list_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_list_item_assignee: {
+        Args: { new_assignee: string; target_item_id: string }
+        Returns: {
+          assigned_to: string | null
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_list_item_checked: {
         Args: { is_checked: boolean; target_item_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string

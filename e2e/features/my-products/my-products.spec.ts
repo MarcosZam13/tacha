@@ -4,10 +4,16 @@ import { deleteOwnListItems } from "../../support/supabase";
 
 // Escenarios: features/my-products/specs/E2E.md.
 const MY_PRODUCTS_PATH = "/catalogo/mis-productos";
+const REFERENCE_PRICE_NOTICE = "Precio ingresado por ti: no está verificado ni se actualiza automáticamente.";
 const LIST_PATH = "/lista";
 const DETAIL_URL = /\/catalogo\/producto\/[0-9a-f-]+$/;
 // El diálogo de eliminar pide el uso del producto después de abrirse.
 const USAGE_RPC_URL = /\/rpc\/get_personal_product_usage/;
+// Intl separa los miles con un espacio que puede ser normal o duro según el
+// navegador. Anclado al símbolo ₡ y sin más dígitos detrás: el nombre del
+// producto lleva la hora y podría contener los mismos números.
+const toPricePattern = (thousands: string, rest: string): RegExp =>
+  new RegExp(`₡${thousands}\\s?${rest}(?!\\d)`);
 
 // Fila que devuelve get_personal_product_usage (migración 052).
 interface UsageRow {
@@ -18,7 +24,14 @@ interface UsageRow {
 // Nombre único por test: la tarjeta se busca por él.
 const uniqueProductName = (base: string): string => `${base} ${Date.now()}`;
 
-const createProduct = async (page: Page, productName: string): Promise<void> => {
+interface ReferenceStoreInput {
+  customStoreName?: string;
+  price: string;
+  supermarket?: string;
+}
+
+// Sin `store`, el producto se crea sin tienda ni precio (HU-58 no los necesita).
+const createProduct = async (page: Page, productName: string, store?: ReferenceStoreInput): Promise<void> => {
   await page.getByRole("button", { name: "+ Agregar producto" }).click();
   const dialog = page.getByRole("dialog", { name: "Agregar producto" });
 
@@ -28,16 +41,32 @@ const createProduct = async (page: Page, productName: string): Promise<void> => 
   await categorySelect.selectOption({ index: 1 });
   await dialog.getByLabel(/^Cantidad/).fill("500");
 
+  if (store) {
+    const storeSelect = dialog.getByLabel("Tienda (opcional)");
+    if (store.supermarket) {
+      await storeSelect.selectOption({ label: store.supermarket });
+    }
+    if (store.customStoreName) {
+      await storeSelect.selectOption({ label: "Otra tienda" });
+      await dialog.getByLabel(/^Nombre de la tienda/).fill(store.customStoreName);
+    }
+    await dialog.getByLabel("Precio de referencia (opcional)").fill(store.price);
+  }
+
   await dialog.getByRole("button", { name: "Guardar" }).click();
   await expect(dialog).toBeHidden();
 };
 
-// La tarjeta se encuentra por su título (h2): "{nombre} — {tamaño}". El enlace
-// que la envuelve no tiene nombre accesible propio: el contenido es un
-// <article>. Anclado al nombre entero, para que "Queso" no coincida con
-// "Queso editado".
+// La tarjeta es el enlace que contiene su título (h2): "{nombre} — {tamaño}".
+// El enlace no tiene nombre accesible propio (su contenido es un <article>),
+// así que no se puede buscar por nombre. Anclado al nombre entero.
 const getProductCard = (page: Page, productName: string) =>
-  page.getByRole("heading", { level: 2, name: new RegExp(`^${productName} — `) });
+  page.getByRole("link").filter({
+    has: page.getByRole("heading", { level: 2, name: new RegExp(`^${productName} — `) }),
+  });
+
+const getReferencePriceSection = (page: Page) =>
+  page.locator("section").filter({ has: page.getByRole("heading", { name: "Precio de referencia" }) });
 
 const getActionButton = (page: Page, action: string, productName: string) =>
   page.getByRole("button", { name: `${action} ${productName}` });
@@ -60,6 +89,43 @@ const deleteProduct = async (page: Page, productName: string): Promise<void> => 
   await dialog.getByRole("button", { name: "Eliminar" }).click();
   await expect(dialog).toBeHidden();
 };
+
+test.describe("Mis productos: tienda y precio de referencia", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(MY_PRODUCTS_PATH);
+  });
+
+  test("E2E-MISPROD-01: la tarjeta muestra el supermercado y el precio con su aviso", async ({ page }) => {
+    const productName = uniqueProductName("Queso Turrialba");
+
+    await createProduct(page, productName, { price: "2850", supermarket: "MaxiPali" });
+
+    const card = getProductCard(page, productName);
+    await expect(card).toContainText("MaxiPali");
+    await expect(card).toContainText(toPricePattern("2", "850"));
+    await expect(card).toContainText(REFERENCE_PRICE_NOTICE);
+
+    // El detalle lee el supermercado por su relación con stores (051).
+    await card.click();
+    await expect(page).toHaveURL(DETAIL_URL);
+    const section = getReferencePriceSection(page);
+    await expect(section).toContainText("MaxiPali");
+    await expect(section).toContainText(toPricePattern("2", "850"));
+  });
+
+  test("E2E-MISPROD-02: el detalle muestra la tienda escrita y el precio de referencia", async ({ page }) => {
+    const productName = uniqueProductName("Chorizo artesanal");
+
+    await createProduct(page, productName, { customStoreName: "Carnicería Los Ángeles", price: "3200" });
+    await getProductCard(page, productName).click();
+    await expect(page).toHaveURL(DETAIL_URL);
+
+    const section = getReferencePriceSection(page);
+    await expect(section).toContainText("Carnicería Los Ángeles");
+    await expect(section).toContainText(toPricePattern("3", "200"));
+    await expect(section.getByText(REFERENCE_PRICE_NOTICE)).toBeVisible();
+  });
+});
 
 test.describe("Mis productos: editar y eliminar", () => {
   test.beforeEach(async ({ page }) => {

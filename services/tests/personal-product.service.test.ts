@@ -92,6 +92,30 @@ describe("createPersonalProduct", () => {
     });
   });
 
+  // HU-57 (SCRUM-88): tienda y precio de referencia viajan como parámetros propios del RPC.
+  it("passes the reference price and store to the RPC", async () => {
+    rpcMock.mockResolvedValue({ data: "product-1", error: null });
+
+    await createPersonalProduct({
+      baseQuantity: 500,
+      baseUnit: "g",
+      categoryId: "category-1",
+      name: "Queso Turrialba",
+      referencePrice: 2850,
+      referenceStoreSlug: "maxipali",
+      shareWithHousehold: false,
+    });
+
+    expect(rpcMock).toHaveBeenCalledWith(
+      PERSONAL_PRODUCT_DB.RPC.CREATE_PERSONAL_PRODUCT,
+      expect.objectContaining({
+        reference_price: 2850,
+        reference_store_name: undefined,
+        reference_store_slug: "maxipali",
+      }),
+    );
+  });
+
   it("passes brand_name as undefined when there is no brand", async () => {
     rpcMock.mockResolvedValue({ data: "product-1", error: null });
 

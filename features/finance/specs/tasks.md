@@ -290,3 +290,165 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Contraste AA del resto de los textos y chips terracota de la app (household, recetas, catálogo): hallazgo para el equipo (D27).
 - [ ] Filtros por supermercado y categoría (HU-62, SCRUM-93).
 - [ ] Pedir el total al cerrar una compra en el modo compra (`shopping-list`).
+
+## SCRUM-93: consultar frecuencia e historial de compra por producto
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir.
+
+**Las etapas 1 a 6 están bloqueadas** hasta que se cumpla todo esto:
+
+- las tareas 0.2 a 0.5 cerradas;
+- la tarea 0.7 aprobada;
+- SCRUM-92 en `develop`: **cumplido** (PR #100, `18c5003`). La rama lo trae desde el merge `4bf2a2a`.
+
+### Etapa 0 — Decisiones y specs
+
+- [x] 0.1 Decisiones de la dueña de la historia (2026-11-14): D28 a D38, SPEC §5.
+  - D28 B: producto madre. **Sustituida por D39** (0.1b); queda como antecedente.
+  - D29 B: cada fila cuenta.
+  - D30 A: todo el historial.
+  - D31 A: selector "Compras / Productos".
+  - D32 A: detalle en la misma pantalla.
+  - D33 A: orden y buscador.
+  - D34 A: solo lectura.
+  - D35 B: paginación por bloques.
+  - D36 A: `security invoker`.
+  - D37 A: "Producto no disponible".
+  - D38 A: los filtros, como funcionalidad futura.
+- [x] 0.1b Decisiones de la dueña de la historia (2026-11-16): D39 a D43, SPEC §5, reglas 97 a 101.
+  - D39: juntar los productos madre con el mismo nombre normalizado. Sustituye a D28.
+  - D40: el mismo nombre, sin distinguir mayúsculas, espacios de los extremos ni tildes; la búsqueda usa la misma regla.
+  - D41: quitar las tildes con la extensión `unaccent`, que se activará en la migración `049`. La ñ pasa a n.
+  - D42: la relación con HU-42 se decide en HU-42.
+  - D43: al juntar, se muestra el nombre del catálogo global; si no hay, el de la aparición más reciente.
+- [ ] 0.2 D36 y la activación de `unaccent` (D41) revisadas con `security-reviewer` antes de escribir la migración.
+  - [x] **Revisión** (2026-11-16): sin hallazgos críticos y sin cambios de RLS. No hay fuga entre usuarios ni familias.
+  - [x] **Los 8 hallazgos están incorporados** a la documentación (SPEC §12; plan, "Datos", "Seguridad" y "Pruebas"). Los dos de severidad alta son los permisos y la forma de llamar a `unaccent` de la función de normalización.
+  - [x] **Esquema de `unaccent`** (2026-11-16): la dueña de la historia corrió en Supabase la consulta de solo lectura del plan ("Datos"). **No está instalada.** La migración `049` la activará en `extensions` y la función de normalización usará `extensions.unaccent`.
+  - [x] **Número de la migración:** `049`, elegido y comunicado al equipo por la dueña de la historia el 2026-11-16 (plan, "Número de la migración"). La migración está aplicada (1.4); que ningún PR abierto use otra `049` se comprueba en la 1.2.
+  - [ ] **Pendiente:** revisión y aprobación de estos cambios de documentación (junto con 0.7).
+- [ ] 0.3 **Pendiente:** el equipo confirma D38. Después se actualiza documento-proyecto §4.6 (plan, "Documento del proyecto").
+- [x] 0.4 (2026-11-16) Resuelta con D42: se decide en HU-42 (SCRUM-74). SCRUM-93 no recibe periodo.
+- [x] 0.5 (2026-11-16) Problemas del modelo de SPEC §15:
+  - **Problema 1:** resuelto con D39 y D43, que juntan por nombre y muestran el del catálogo global.
+  - **Problema 3:** resuelto con D40 y D41, búsqueda sin tildes con `unaccent`.
+  - **Problemas 2, 4 y 5:** quedan como límites declarados.
+- [x] 0.6 `SPEC.md`, `plan.md`, `tasks.md` y `E2E.md`, sección SCRUM-93, y HU-62 en `docs/historias-usuario.md` y `docs/sprints.md` con el texto de Jira. Actualizados con D28 a D38 el 2026-11-14, y con D39 a D43, la revisión de seguridad y el número de migración `049` el 2026-11-16.
+- [ ] 0.7 Revisión y aprobación de la documentación.
+- [ ] 0.8 Commit de documentación, push y PR hacia `develop` con un solo label; Jira en el estado equivalente. **El PR existe** (#102, `in progress`, comprobado el 2026-11-16). No se comprobó el estado en Jira. SCRUM-92 ya está en `develop`, así que no hace falta `on hold` por esa dependencia. Igual se respeta que haya una sola PR `in progress` por persona.
+- [x] 0.9 (2026-11-16) Decidido por la dueña de la historia (D43, SPEC regla 101): si varios productos del catálogo global comparten el nombre normalizado, se muestra el del menor `product_catalog.id`. Es solo el desempate del nombre; la agrupación por nombre normalizado no cambia, y se quita la elección por la aparición más reciente entre globales.
+- [x] 0.10 (2026-11-16) Decidido por la dueña de la historia (D44, SPEC regla 102): `search_text` hasta 100 caracteres y `target_product_key` hasta 500. La RPC de detalle y su prueba SQL validan el 500. La medición del nombre más largo queda en la 1.2.
+
+### Etapa 1 — Base
+
+Empezada el 2026-11-16 por indicación de la dueña de la historia, con la 0.3 (D38) y la aprobación de la 0.2 y la 0.7 todavía abiertas. D38 no toca la base: los filtros quedan fuera de la `049`.
+
+
+- [x] 1.1 Traer `develop` con SCRUM-92: hecho en el merge `4bf2a2a`. La rama ya lo incluye (comprobado el 2026-11-16 con referencias locales, sin `fetch`).
+- [x] 1.2 Antes de implementar:
+  - [x] verificar que la `049`, ya elegida y comunicada al equipo (0.2), sigue libre en `develop` y en los PRs abiertos. **Hecho (2026-11-16)**, con `git fetch origin` y la lista pública de PRs abiertos de GitHub (`gh` no está instalado):
+    - ninguna rama de `origin`, `develop` incluida, tiene una `049`;
+    - ninguno de los 8 PRs abiertos usa la `049`; SCRUM-79 (#108) agrega la `050`, sin conflicto;
+    - al aplicarla, la fila `049` del historial se insertó sin conflicto: nadie la había aplicado antes en la base;
+  - [x] medir el nombre original más largo del catálogo: 16 caracteres (medido por la dueña de la historia el 2026-11-16);
+  - [x] medir el largo normalizado: 16 caracteres (medido por la dueña de la historia después de aplicar la `049`). Coincide con el original, y los dos quedan muy por debajo del tope de 500 (D44).
+- [x] 1.3 Migración con `get_purchased_products` (búsqueda y bloques) y `get_product_purchases`, `security invoker` (SPEC §12), y su prueba SQL (plan, "Pruebas"). Incluye:
+  - activar `unaccent` en `extensions` (0.2 y D41), y la función interna de normalización (D40): `security definer`, `stable`, `search_path = ''`, `unaccent` de dos argumentos y `execute` para `authenticated` (plan, "Datos");
+  - rechazar la sesión anónima dentro de cada RPC y validar las entradas, con `position()` y los topes, con `search_text` hasta 100 y `target_product_key` hasta 500 (D44; plan, "Seguridad");
+  - agrupar por nombre normalizado (D39, que sustituye a D28), con el nombre que se muestra según D43, con el menor `product_catalog.id` entre varios globales (0.9);
+  - contar por fila;
+  - buscar con la misma normalización;
+  - una presentación aparte cuando el producto no está disponible (regla 96);
+  - acotar los parámetros.
+
+  Hecho el 2026-11-16: `supabase/migrations/049_product_purchase_history.sql` y `supabase/tests/049_product_purchase_history.test.sql`.
+  - **Prueba local:** pasó en un PostgreSQL 17.5 local (no Supabase), con `schema.sql`, todas las migraciones reales y stubs de `auth`, como `authenticated` y con un dueño que no es superusuario. En ese entorno, `001` a `003` se aplicaron sin sus `comment on function`, que PostgreSQL rechaza.
+  - **Mutaciones:** la prueba falla con siete cambios a propósito en la migración:
+    - `unaccent` de un argumento;
+    - D43 por la aparición más reciente;
+    - una clave de 100;
+    - `like` en vez de `position()`;
+    - sin rechazo de la sesión anónima;
+    - el largo medido después de recortar;
+    - la lista `security definer`.
+  - **Lo que no distingue:** quitar el `grant execute` de la normalización, porque los privilegios por defecto de Supabase (y del harness) ya lo dan. Comprueba el permiso efectivo.
+  - **Topes elegidos al implementar:** `page_limit` de 1 a 50 y `page_offset` de 0 a 10 000 (SPEC §12).
+- [ ] 1.4 Revisión, aprobación y aplicación:
+  - [x] `security-reviewer` (2026-11-16): sin hallazgos críticos, altos ni medios, y los 8 de la revisión anterior se cumplen. Dejó dos bajos sin acción (el costo por fila de la normalización, acotado a las compras propias; `create function` sin `or replace`, que es el patrón del repo). Sobre la prueba: es segura en la base compartida si se corre completa, y bloquea las escrituras en `list_items` por unos segundos, como la `015`, así que conviene avisar al equipo y correrla fuera de horario.
+  - [ ] aprobación de la dueña de la historia: no quedó registrada aparte. La aplicó ella misma, pero falta que la confirme;
+  - [x] justo antes de aplicarla, repetir la consulta de `unaccent` del plan ("Datos"): la hizo la dueña de la historia. Después de aplicarla, `unaccent` está en `extensions`;
+  - [x] aplicada por la dueña de la historia, con su fila `049` en `supabase_migrations.schema_migrations` (`supabase/README.md#migraciones`);
+  - [x] verificada después de aplicarla: `unaccent` en `extensions`; `get_purchased_products` y `get_product_purchases` con `prosecdef = false`; `normalize_product_name` con `prosecdef = true`;
+  - [x] `supabase/tests/049_product_purchase_history.test.sql` corrida completa, de una vez, en el SQL Editor: terminó sin errores;
+  - [x] largo normalizado medido (1.2): 16.
+- [ ] 1.5 **Omitida por decisión de la usuaria** (dueña de la historia, 2026-11-16); no está completada. Los tipos de `types/database.types.ts` están escritos según la `049`, pero **no se compararon con los tipos remotos**. No bloquea las etapas siguientes.
+  - [x] escritos (2026-11-16): `get_purchased_products` devuelve `Json` (el servicio lo valida en la 2.1) y `get_product_purchases`, una fila por compra. `normalize_product_name` no se tipa: es interna, como `require_registered_user`. `npx tsc --noEmit`, `eslint`, `npm test` y `git diff --check` pasaron;
+  - [x] nulos según la `049`: `target_product_key` y `target_variant_id` aceptan `null`, porque se manda exactamente uno; `store_name` y `total_amount` pueden venir en `null` (supermercado no visible y "Sin total"). `closed_at` no, porque solo hay compras cerradas;
+  - [ ] comparar con los tipos que genera Supabase desde la base: **omitida por decisión de la usuaria**, no se hizo. Se intentó el 2026-11-16 y la CLI pidió un token de acceso (`AccessTokenRequiredError`); la dueña decidió no iniciar sesión en la CLI. No bloquea la historia: los tipos se mantienen como están, y si alguien regenera el archivo, el servicio de la 2.1 valida la respuesta en tiempo de ejecución.
+
+### Etapa 2 — Lectura
+
+- [x] 2.1 Modelos, constantes (tamaño de bloque, largo de búsqueda, espera), `getPurchasedProducts` y `getProductPurchases`, con sus tests (conteo exacto, recorte de la búsqueda).
+  Hecho el 2026-11-16, por indicación de la dueña de la historia, con la 0.3 (D38) y la aprobación de la 0.2 y la 0.7 todavía abiertas. D38 no toca la lectura: no hay filtros.
+  - **Modelos:** `PurchasedProduct`, `PurchasedProductsPage` (con la forma de la respuesta y la consulta), `ProductPurchase` y `ProductPurchaseTarget`, una unión: por nombre (`product_key`, tal cual) o por presentación (no disponible).
+  - **Constantes:** `PRODUCT_HISTORY` (bloque de 20, `MAX_OFFSET` 10 000, búsqueda de 100 y espera de 300 ms), `PRODUCT_TARGET_KIND` y los nombres de las dos RPC en `FINANCE_DB`. Los textos y los estados se agregan con los hooks y la pantalla (2.3 y 3.x).
+  - **Adapter** `utils/toPurchasedProductsPage.ts`: un bloque que no coincide con `min(PAGE_SIZE, total_count - offset)` es un error (SPEC §7); exactamente uno entre clave y presentación, y nombre solo con clave.
+  - **Servicio:** la búsqueda se recorta y se corta a 100 caracteres contados como `char_length` (sin partir un emoji); un `offset` fuera de 0..10 000 es `RangeError` sin llamar a la base; el detalle se pide con `count: "exact"` (regla 30) y un supermercado en blanco llega como `null` (regla 29).
+  - **Pruebas:** `toPurchasedProductsPage.test.ts` y `finance.service.test.ts`. `npx tsc --noEmit`, `npm run lint`, `npm test` (162 archivos, 1751 pruebas) y `git diff --check` pasan. Sin `code-reviewer` todavía: queda para la 6.4, o antes si se pide.
+- [x] 2.2 `mergeProductPages`, con sus tests (sin repetidos).
+  Hecho el 2026-11-16: `features/finance/utils/mergeProductPages.ts` y `features/finance/tests/mergeProductPages.test.ts` (11 pruebas). Función pura:
+  - **Orden:** lo cargado, tal cual, y después el bloque nuevo en el orden de la base (D33).
+  - **Repetidos (regla 94):** se identifican por el tipo y la clave (`product_key`, o la presentación si no está disponible), así que una clave y una presentación con el mismo texto no se confunden. Un repetido se muestra una sola vez, en el lugar donde ya estaba, aunque su conteo haya cambiado; también se descartan los repetidos dentro del mismo bloque.
+  - **Conteo:** `totalCount` es el del bloque nuevo, el más reciente de la base.
+  - **Casos de las pruebas:** bloque vacío, último bloque incompleto, nada cargado, los dos vacíos, un bloque solo de repetidos, y que no cambia las páginas que recibe.
+  - **Para la 2.3:** con repetidos descartados, lo cargado puede quedar por debajo de `total_count`. El próximo `offset` sale de los productos que llegaron de la base, no del largo de la lista unida.
+  - `npx vitest run features/finance/tests/mergeProductPages.test.ts`, `npx tsc --noEmit`, `npm run lint` y `git diff --check` pasan.
+- [x] 2.3 `usePurchasedProducts` y `useProductPurchases`, con sus tests (2026-11-16). `usePurchasedProducts.test.ts` (13) y `useProductPurchases.test.ts` (7):
+  - bloques y fin de la lista; el próximo `offset` cuenta las filas recibidas, repetidos incluidos, no el largo de la lista unida;
+  - búsqueda que reinicia los bloques; espacios en los extremos no vuelven a pedir;
+  - respuestas viejas descartadas: primer bloque, "Cargar más" y detalle de un producto anterior;
+  - sin pedidos duplicados: "Cargar más" se ignora mientras otro bloque está en camino;
+  - fallo de "Cargar más" que conserva lo cargado, y reintento del mismo bloque;
+  - el detalle pide también la zona guardada (`getSavedTimeZone`, regla 87; servicio nuevo con sus tests); al cerrarlo se olvida la respuesta.
+
+### Etapa 3 — Selector y lista de productos (CA-01)
+
+Hechas el 2026-11-16, con D38 todavía sin confirmar por el equipo: no hay filtros (fuera de la historia).
+
+- [x] 3.1 `HistoryViewSwitch` en `PurchaseHistory` y en la ruta nueva `app/(app)/finanzas/historial/productos/page.tsx`; `APP_ROUTE.FINANCE_HISTORY_PRODUCTS`. Tests: "Compras" no cambia y el selector usa `aria-current` (`PurchaseHistory.test.tsx`, `ProductPurchaseHistory.test.tsx`). El tono activo es el de los sub-tabs, no el chip `TEAL` (plan, "Riesgos").
+- [x] 3.2 `useProductPurchaseHistoryViewModel` (búsqueda con espera, selección, estados y anuncios). Los textos salen de `utils/toProductHistoryTexts.ts` y `utils/formatCount.ts`, con sus tests. Se prueba a través de la pantalla (`ProductPurchaseHistory.test.tsx`), como los ViewModel de SCRUM-90 a 92.
+- [x] 3.3 `ProductPurchaseHistory`, `ProductSearch`, `ProductPurchaseList` y `ProductPurchaseRow`, con Page Object (`ProductPurchaseHistory.page.ts`) y tests (18): "1 vez" y "N veces"; "Producto no disponible"; vacío y "Sin resultados"; "Cargar más" con el foco al primer producto nuevo; errores con "Reintentar"; sesión vencida al reintentar.
+
+### Etapa 4 — Compras de un producto (CA-02)
+
+- [x] 4.1 `ProductPurchaseDetail`, con tests: una fila por compra con presentaciones y apariciones (regla 89); "Total de la compra" y la aclaración visible (regla 85); "Sin total" y "Supermercado no disponible"; foco al título y de vuelta al producto; error dentro del detalle; vacío (regla 90); un solo detalle abierto (D32).
+
+### Etapa 5 — E2E
+
+- [x] 5.1 Respuestas simuladas en `finance.helpers.ts` (bloques según `page_limit`, búsqueda, detalle, `spending_time_zones` y errores por bloque). Los escenarios anteriores siguen pasando: `e2e/features/finance` completo, 60 pruebas en `chromium` y `mobile-chrome`.
+- [x] 5.2 `e2e/features/finance/product-history.spec.ts` (E2E-FIN-19 a 23; E2E-FIN-22 en dos pruebas): 12 pasaron en `chromium` y `mobile-chrome`. El servidor de desarrollo necesita red para las fuentes de Google; se corrió con red.
+
+### Etapa 6 — QA y cierre
+
+- [x] 6.1 `npx tsc --noEmit`, `npm run lint`, `npm test` (vitest completo), `npm run build` y `git diff --check` pasan (2026-11-16).
+- [x] 6.2 Pruebas manuales de SPEC §13 y `TC-SCRUM-93-01` a `07` (plan), con capturas sin correos. **Dadas por completadas por la dueña de la historia** (2026-11-16), paginación incluida. Evidencia registrada en capturas:
+  - `01_historial_productos_detalle_y_frecuencia.png`: frecuencia y detalle de un producto (CA-01 y CA-02);
+  - `02_busqueda_y_detalle_de_producto.png`: búsqueda y detalle del producto encontrado;
+  - `03_busqueda_sin_acentos_y_coincidencia_de_producto.png`: búsqueda sin tildes (D40 y D41);
+  - `04_busqueda_sin_resultados.png`: "Sin resultados" (regla 93).
+
+  El resto de los casos (paginación, TC-SCRUM-93-04 a 07 y el detalle contra "Compras") no tiene captura. La paginación la cubren además E2E-FIN-21 y las pruebas de la 2.2, la 2.3 y la 3.3.
+- [x] 6.3 SPEC §13 marcado con lo validado: las pruebas automatizadas, la prueba SQL y la QA manual de la 6.2. `documento-proyecto.md` §4.6: hecho (nota "Implementado (SCRUM-93 / HU-62)", con D38 como pendiente del equipo).
+- [x] 6.4 `code-reviewer`, `security-reviewer` y `qa-checker` (2026-11-16). Resultado y correcciones: plan, "Revisiones de cierre".
+- [ ] 6.5 **Pendiente (dueña de la historia):** traer `develop`, descripción del PR con la evidencia, `waiting qa` y Jira.
+  - [x] número de la migración en los PRs abiertos, revisado otra vez (2026-11-16, 1.2): la `049` sigue libre;
+  - [x] el PR #102 está abierto hacia `develop`, con un solo label, `in progress`;
+  - [ ] traer `develop`: tiene 30 commits que la rama no tiene, entre ellos las migraciones `037`, `041` y `043`, que no tocan lo que lee la `049`. Un merge de prueba, sin escribir en la rama, no da conflictos;
+  - [ ] subir los commits, actualizar la descripción del PR, pasarlo a `waiting qa` y mover Jira.
+
+### Fuera de esta historia
+
+- [ ] Filtros por supermercado y categoría (D38, funcionalidad futura).
+- [ ] Productos más comprados y más costosos del Dashboard (HU-42).
+- [ ] Precio o gasto por producto.
+- [ ] Paginar el detalle de un producto y juntar los "Producto no disponible" bajo su producto madre.
