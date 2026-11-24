@@ -8,7 +8,10 @@ import { getCatalogVariantDetail, getCategories, listCatalogByCategory, searchCa
 const rpcMock = vi.fn();
 const fromMock = vi.fn();
 
+const ensureSessionMock = vi.fn();
+
 vi.mock("@/services/supabase.client", () => ({
+  ensureSession: () => ensureSessionMock(),
   getSupabaseClient: () => ({ from: fromMock, rpc: rpcMock }),
 }));
 
@@ -59,11 +62,14 @@ describe("listCatalogByCategory", () => {
 
 // SCRUM-110: la búsqueda del editor de grupos, que también trae productos propios.
 describe("searchCatalogIncludingOwn", () => {
-  it("calls search_catalog_including_own with the term", async () => {
+  // Solo authenticated la ejecuta: sin sesión (entrando directo a /lista/grupos/nuevo) fallaría.
+  it("makes sure there is a session, then calls search_catalog_including_own with the term", async () => {
+    ensureSessionMock.mockResolvedValue({});
     rpcMock.mockResolvedValue({ data: [], error: null });
 
     await searchCatalogIncludingOwn("leche");
 
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
     expect(rpcMock).toHaveBeenCalledWith(CATALOG_DB.RPC.SEARCH_CATALOG_INCLUDING_OWN, { search_term: "leche" });
   });
 

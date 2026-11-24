@@ -1,6 +1,6 @@
 import { CATALOG_DB, POSTGRES_ERROR_CODE } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
-import { getSupabaseClient } from "@/services/supabase.client";
+import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import type {
   CatalogProduct,
@@ -74,8 +74,14 @@ export const searchCatalog = async (searchTerm: string): Promise<CatalogProduct[
  * los compartidos por mi familia (nunca los archivados), cada uno marcado con
  * `isPersonal` si es personal sin compartir. Lo usa el editor de grupos
  * (SCRUM-110); "Buscar" y la lista siguen usando searchCatalog().
+ *
+ * ensureSession() primero: la función solo la puede ejecutar authenticated
+ * (los anónimos de Supabase también lo son), y entrando directo a
+ * /lista/grupos/nuevo todavía puede no haber sesión.
  */
 export const searchCatalogIncludingOwn = async (searchTerm: string): Promise<CatalogProduct[]> => {
+  await ensureSession();
+
   const { data: products, error } = await getSupabaseClient().rpc(CATALOG_DB.RPC.SEARCH_CATALOG_INCLUDING_OWN, {
     search_term: searchTerm,
   });
