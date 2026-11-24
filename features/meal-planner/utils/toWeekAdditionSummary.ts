@@ -1,18 +1,28 @@
-import { WEEK_LIST_TEXT, WEEK_LIST_TOKEN } from "../constants/meal-planner.constants";
+import { WEEK_LIST_DESTINATION, WEEK_LIST_TEXT, WEEK_LIST_TOKEN } from "../constants/meal-planner.constants";
 import type { AddWeekToListResponse } from "../models/week-list-addition.interfaces";
+import type { WeekListDestination } from "../models/week-list-addition.types";
 import { toCountLabel } from "./toCountLabel";
 
 /**
  * Arma las líneas del aviso que queda después de agregar la semana. Función
  * pura: los casos (sin comidas, todo agregado, con faltantes, sin presentación,
  * la lista ya alcanzaba) se pueden probar sin React.
+ *
+ * El nombre de la sublista lo escribe el usuario: se reemplaza al final y con una
+ * función, para que un "{meals}" o un "$&" en el nombre se muestren tal cual.
  */
-export const toWeekAdditionSummary = (response: AddWeekToListResponse): string[] => {
+export const toWeekAdditionSummary = (
+  response: AddWeekToListResponse,
+  destination: WeekListDestination,
+): string[] => {
   const { addedProductNames, ingredientCount, mealCount, missingProductNames, skippedProductNames } = response;
 
   if (mealCount === 0) return [WEEK_LIST_TEXT.NO_MEALS];
 
   const summaryLines: string[] = [];
+  const isDateList = destination.kind === WEEK_LIST_DESTINATION.DATE_LIST;
+  const withListName = (text: string): string =>
+    isDateList ? text.replace(WEEK_LIST_TOKEN.LIST, () => destination.name) : text;
 
   if (addedProductNames.length > 0 || missingProductNames.length > 0) {
     const ingredientsText = toCountLabel(
@@ -23,14 +33,17 @@ export const toWeekAdditionSummary = (response: AddWeekToListResponse): string[]
     const mealsText = toCountLabel(mealCount, WEEK_LIST_TEXT.MEAL_SINGULAR, WEEK_LIST_TEXT.MEAL_PLURAL);
 
     summaryLines.push(
-      WEEK_LIST_TEXT.SUCCESS.replace(WEEK_LIST_TOKEN.INGREDIENTS, ingredientsText).replace(
-        WEEK_LIST_TOKEN.MEALS,
-        mealsText,
+      withListName(
+        (isDateList ? WEEK_LIST_TEXT.SUCCESS_DATE_LIST : WEEK_LIST_TEXT.SUCCESS)
+          .replace(WEEK_LIST_TOKEN.INGREDIENTS, ingredientsText)
+          .replace(WEEK_LIST_TOKEN.MEALS, mealsText),
       ),
     );
   } else if (skippedProductNames.length === 0) {
     // No se sumó nada y no falta nada: lo que había en la lista ya alcanzaba (regla 20 de recetas).
-    summaryLines.push(WEEK_LIST_TEXT.ALREADY_COVERED);
+    summaryLines.push(
+      withListName(isDateList ? WEEK_LIST_TEXT.ALREADY_COVERED_DATE_LIST : WEEK_LIST_TEXT.ALREADY_COVERED),
+    );
   }
 
   if (missingProductNames.length > 0) {

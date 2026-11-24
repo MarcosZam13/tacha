@@ -6,6 +6,7 @@ import { buildWeek } from "../utils/buildWeek";
 import { formatWeekRange } from "../utils/formatWeekRange";
 import { getPlanRange } from "../utils/getPlanRange";
 import { getWeekStartForOffset } from "../utils/getWeekStartForOffset";
+import { toLocalDateKey } from "../utils/toLocalDateKey";
 import { useMealSlotDialog } from "./useMealSlotDialog";
 import { useToday } from "./useToday";
 import { useWeekListAddition } from "./useWeekListAddition";
@@ -50,6 +51,7 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
     isBlocked: dialog.isOpen,
     isPlanReady: plan.isPlanReady,
     rangeLabel,
+    todayKey: today ? toLocalDateKey(today) : null,
   });
 
   return {

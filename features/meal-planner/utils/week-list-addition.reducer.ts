@@ -1,5 +1,7 @@
-import { WEEK_LIST_ACTION, WEEK_LIST_STATUS } from "../constants/meal-planner.constants";
-import type { WeekListAction, WeekListState } from "../models/week-list-addition.types";
+import { WEEK_LIST_ACTION, WEEK_LIST_DESTINATION, WEEK_LIST_STATUS } from "../constants/meal-planner.constants";
+import type { WeekListAction, WeekListDestination, WeekListState } from "../models/week-list-addition.types";
+
+export const GENERAL_DESTINATION: WeekListDestination = { kind: WEEK_LIST_DESTINATION.GENERAL };
 
 export const CLOSED_WEEK_LIST_STATE: WeekListState = { status: WEEK_LIST_STATUS.CLOSED };
 
@@ -13,18 +15,57 @@ export const weekListReducer = (state: WeekListState, action: WeekListAction): W
     case WEEK_LIST_ACTION.OPENED:
       // Un aviso anterior (done) se reemplaza; con el diálogo abierto o agregando, otra apertura no cambia nada.
       return state.status === WEEK_LIST_STATUS.CLOSED || state.status === WEEK_LIST_STATUS.DONE
-        ? { status: WEEK_LIST_STATUS.CONFIRMING, range: action.range, mealCount: action.mealCount }
+        ? {
+            status: WEEK_LIST_STATUS.CONFIRMING,
+            range: action.range,
+            mealCount: action.mealCount,
+            // Siempre la general: no se recuerda la elección anterior (SPEC regla 39).
+            destination: GENERAL_DESTINATION,
+          }
+        : state;
+
+    case WEEK_LIST_ACTION.DESTINATION_CHANGED:
+      // Elegir otra lista deja atrás el error anterior. Mientras agrega no cambia (SPEC regla 47).
+      return state.status === WEEK_LIST_STATUS.CONFIRMING || state.status === WEEK_LIST_STATUS.FAILED
+        ? {
+            status: WEEK_LIST_STATUS.CONFIRMING,
+            range: state.range,
+            mealCount: state.mealCount,
+            destination: action.destination,
+          }
+        : state;
+
+    case WEEK_LIST_ACTION.DESTINATION_LOST:
+      // La sublista ya no sirve: se vuelve a la general en vez de dejar elegido algo que va a fallar otra vez.
+      return state.status === WEEK_LIST_STATUS.ADDING
+        ? {
+            status: WEEK_LIST_STATUS.FAILED,
+            range: state.range,
+            mealCount: state.mealCount,
+            destination: GENERAL_DESTINATION,
+            errorMessage: action.errorMessage,
+          }
         : state;
 
     case WEEK_LIST_ACTION.CONFIRMED:
       // Desde la confirmación o desde un error (reintentar). Ya agregando: un segundo clic no hace nada.
       return state.status === WEEK_LIST_STATUS.CONFIRMING || state.status === WEEK_LIST_STATUS.FAILED
-        ? { status: WEEK_LIST_STATUS.ADDING, range: state.range, mealCount: state.mealCount }
+        ? {
+            status: WEEK_LIST_STATUS.ADDING,
+            range: state.range,
+            mealCount: state.mealCount,
+            destination: state.destination,
+          }
         : state;
 
     case WEEK_LIST_ACTION.SUCCEEDED:
       return state.status === WEEK_LIST_STATUS.ADDING
-        ? { status: WEEK_LIST_STATUS.DONE, range: state.range, summaryLines: action.summaryLines }
+        ? {
+            status: WEEK_LIST_STATUS.DONE,
+            range: state.range,
+            destination: state.destination,
+            summaryLines: action.summaryLines,
+          }
         : state;
 
     case WEEK_LIST_ACTION.FAILED:
@@ -33,6 +74,7 @@ export const weekListReducer = (state: WeekListState, action: WeekListAction): W
             status: WEEK_LIST_STATUS.FAILED,
             range: state.range,
             mealCount: state.mealCount,
+            destination: state.destination,
             errorMessage: action.errorMessage,
           }
         : state;
