@@ -1382,6 +1382,7 @@ export type Database = {
         Args: { target_product_id: string }
         Returns: {
           active_list_count: number
+          group_count: number
           recipe_count: number
         }[]
       }

@@ -1,5 +1,12 @@
+import type { FormEvent } from "react";
+import type { ProductSearchProps } from "@/components/product-search/models/ProductSearchProps.interface";
+import type { CatalogSearchResult } from "@/types/catalog.types";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
-import type { ProductGroupEditorStatusType } from "../constants/product-group-editor.constants";
+import type {
+  ProductGroupEditorStatusType,
+  ProductGroupQuantityStepType,
+  ProductGroupShareVisibilityType,
+} from "../constants/product-group-editor.constants";
 
 // Interfaces del editor de grupos (SCRUM-110 / HU-73). La unión de acciones
 // del reducer está en product-group-editor.types.ts.
@@ -38,4 +45,51 @@ export interface ProductGroupEditorState {
   saveErrorMessage: NullableRef<string>;
   status: ProductGroupEditorStatusType;
   values: ProductGroupEditorValues;
+}
+
+/** Lo que useProductGroupEditor le da al ViewModel: el estado y una función por cambio. */
+export interface UseProductGroupEditorReturn {
+  addItem: (option: CatalogSearchResult) => void;
+  changeName: (name: string) => void;
+  changeShare: (shareWithHousehold: boolean) => void;
+  removeItem: (variantId: string) => void;
+  /** true si guardó; false si no pasó la validación o falló (el error queda en el estado). */
+  save: () => Promise<boolean>;
+  /** La casilla de compartir solo existe si el usuario tiene familia (CA-03). */
+  shareVisibility: ProductGroupShareVisibilityType;
+  state: ProductGroupEditorState;
+  stepItemQuantity: (variantId: string, step: ProductGroupQuantityStepType) => void;
+}
+
+/** Una fila ya lista para dibujar, con sus textos accesibles armados. */
+export interface ProductGroupEditorItemRow {
+  canDecrease: boolean;
+  canIncrease: boolean;
+  decreaseLabel: string;
+  increaseLabel: string;
+  label: string;
+  quantity: number;
+  removeLabel: string;
+  variantId: string;
+}
+
+/** Lo que useProductGroupEditorViewModel le entrega a ProductGroupEditor.tsx. */
+export interface ProductGroupEditorViewModel {
+  announcement: NullableRef<string>;
+  isSaving: boolean;
+  itemSearch: ProductSearchProps;
+  items: ProductGroupEditorItemRow[];
+  itemsError: NullableUndefined<string>;
+  name: string;
+  nameError: NullableUndefined<string>;
+  onDecreaseItem: (variantId: string) => void;
+  onIncreaseItem: (variantId: string) => void;
+  onNameChange: (name: string) => void;
+  onRemoveItem: (variantId: string) => void;
+  onShareChange: (shareWithHousehold: boolean) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  saveErrorMessage: NullableRef<string>;
+  shareError: NullableUndefined<string>;
+  shareWithHousehold: boolean;
+  showShareCheckbox: boolean;
 }

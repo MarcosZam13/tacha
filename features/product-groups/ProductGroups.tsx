@@ -21,7 +21,16 @@ export const ProductGroups = (): React.JSX.Element => {
       <Link href={APP_ROUTE.LIST} className="self-start font-body text-sm text-tacha-teal hover:underline">
         {PRODUCT_GROUPS_TEXT.BACK_TO_LIST}
       </Link>
-      <h1 className="font-display text-3xl font-bold text-tacha-text">{PRODUCT_GROUPS_TEXT.TITLE}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold text-tacha-text">{PRODUCT_GROUPS_TEXT.TITLE}</h1>
+        {/* SCRUM-110 (HU-73 CA-01). Link y no Button: es navegación. */}
+        <Link
+          href={APP_ROUTE.LIST_GROUP_NEW}
+          className="rounded-tacha-badge bg-tacha-teal px-4 py-2 font-body text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          {PRODUCT_GROUPS_TEXT.CREATE_GROUP}
+        </Link>
+      </div>
 
       {viewModel.status === PRODUCT_GROUPS_STATUS.LOADING ? <Spinner label={PRODUCT_GROUPS_TEXT.LOADING} /> : null}
       {viewModel.status === PRODUCT_GROUPS_STATUS.ERROR ? (

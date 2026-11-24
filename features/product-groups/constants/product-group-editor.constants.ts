@@ -22,6 +22,17 @@ export const PRODUCT_GROUP_EDITOR_STATUS = {
 export type ProductGroupEditorStatusType =
   (typeof PRODUCT_GROUP_EDITOR_STATUS)[keyof typeof PRODUCT_GROUP_EDITOR_STATUS];
 
+// La casilla "Compartir con mi familia": se sabe recién cuando responde
+// hasHousehold(); sin familia no se muestra (CA-03).
+export const PRODUCT_GROUP_SHARE_VISIBILITY = {
+  HIDDEN: "hidden",
+  LOADING: "loading",
+  VISIBLE: "visible",
+} as const;
+
+export type ProductGroupShareVisibilityType =
+  (typeof PRODUCT_GROUP_SHARE_VISIBILITY)[keyof typeof PRODUCT_GROUP_SHARE_VISIBILITY];
+
 // Cuánto cambia la cantidad cada botón del stepper.
 export const PRODUCT_GROUP_QUANTITY_STEP = {
   DECREASE: -1,
@@ -51,6 +62,22 @@ export const PRODUCT_GROUP_EDITOR_ERROR = {
 } as const;
 
 export const PRODUCT_GROUP_EDITOR_TEXT = {
+  BACK_TO_GROUPS: "Volver a Mis grupos",
+  CANCEL: "Cancelar",
+  // Nombres accesibles del stepper y de "Quitar": + "{producto} — {tamaño}".
+  DECREASE_PREFIX: "Restar uno a ",
+  INCREASE_PREFIX: "Sumar uno a ",
+  ITEMS_HINT: "Busca cada producto y elige su presentación. La cantidad es la que agregarás a tu lista.",
+  ITEMS_LABEL: "Productos",
+  NAME_LABEL: "Nombre del grupo",
+  NAME_PLACEHOLDER: "Ej. Desayuno de la semana",
+  NO_ITEMS: "Todavía no agregaste productos.",
+  REMOVE_ITEM: "Quitar",
+  REMOVE_ITEM_PREFIX: "Quitar ",
+  SAVE: "Guardar grupo",
+  SAVING: "Guardando…",
+  SHARE_LABEL: "Compartir con mi familia",
+  TITLE: "Crear grupo",
   // Separa los nombres de productos en el error de compartir.
   ITEM_NAMES_SEPARATOR: ", ",
   // role="status" al agregar, sumar o quitar una fila: + "{producto} — {tamaño}".
