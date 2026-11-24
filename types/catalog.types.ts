@@ -14,6 +14,16 @@ export interface CatalogProduct {
   variants: CatalogProductVariant[];
 }
 
+/**
+ * Un resultado del buscador aplanado a una variante concreta (lo que se añade
+ * a la lista general o a un grupo). Lo arma utils/toCatalogSearchResults.ts.
+ */
+export interface CatalogSearchResult {
+  productName: string;
+  sizeLabel: string;
+  variantId: string;
+}
+
 /** Fila de la tabla categories (lectura directa, sin RPC — HU-52). */
 export interface Category {
   id: string;
