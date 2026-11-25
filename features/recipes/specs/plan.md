@@ -664,3 +664,115 @@ Cuidados:
 - **Sin caché ni miniaturas:** hasta 5 MB por tarjeta.
 - **`image_url`** queda sin uso hasta que `main` deje de leerla.
 - **Receta borrada por otra vía** (API o cascada al borrar la cuenta): su archivo queda suelto.
+
+---
+
+## SCRUM-162: compartir recetas con la familia
+
+> **Verificado el 2026-11-24** contra `develop` (7f7c46b): la última migración es la `059`; la PR abierta 108 tiene la `050`. Esta historia usa la **`060`** o la siguiente libre. Reemplaza "Integración con households (pendiente)".
+
+### Archivos
+
+```
+supabase/
+  migrations/060_share_recipes.sql                 funciones, políticas, RPC, trigger
+  tests/060_share_recipes.test.sql                 prueba con rollback y varios usuarios
+
+features/recipes/
+  components/
+    RecipeAudienceField.tsx                        nuevo: "¿Para quién es?"
+    RecipeCopyAction.tsx                           nuevo: "Guardar copia personal" y su resultado
+    RecipeCard.tsx                                 + etiqueta "Familia" y la copia
+    RecipeDeleteDialog.tsx                         + aviso para toda la familia
+    RecipeEditor.tsx                               + el campo
+    models/…Props
+  hooks/
+    useRecipeCopy.ts                               nuevo: estado por tarjeta, doble clic
+    useRecipeEditor.ts, useRecipeEditorViewModel.ts  + destino y guardado completo
+    useRecipeCatalogViewModel.ts                   + copia y recarga
+  models/
+    recipe-sharing.interfaces.ts, .types.ts        nuevos
+    recipe-catalog.*, recipe-editor.*, recipe-photo.*  + destino y ruta de la foto
+  services/
+    recipe-sharing.service.ts                      nuevo: tengo familia, compartir, copiar
+    recipe-save.service.ts                         nuevo: receta → foto → compartir
+    recipe-photos.service.ts                       + limpiar al subir, + limpiar la guardada
+    recipes.service.ts                             + household_id y el error de productos personales
+  utils/
+    removePhotoMetadata.ts                         nuevo
+    toRecipeSummary.ts, recipe-editor.reducer.ts   + destino y SHARE_FAILED
+  constants/recipes.constants.ts                   textos, RPC, estados
+  tests/
+
+types/database.types.ts                            solo las funciones y la relación nuevas
+docs/documento-proyecto.md                         §6: recetas personales y de la familia
+```
+
+`features/meal-planner/` y `features/household/` no cambian de código: el selector del planificador y la lista ya leen lo que la RLS deja ver. Se agrega un test al planificador solo si algún texto da por hecho "tus recetas".
+
+### Datos: migración `060`
+
+1. **`current_household_id() returns uuid`**, `stable`, `security definer`, `search_path` vacío: la familia de quien llama; nulo sin sesión o con sesión anónima. Una sola fuente para políticas y RPC.
+2. **FK** `recipes.household_id → households (id) on delete set null` e índice. Antes, un `do` que se detiene si hay filas con una familia que no existe. `set null` y no `no action`: con `no action` la FK fallaría antes de que corra el trigger de la `024`.
+3. **Políticas.** Receta visible = `(household_id is null and owner_id = (select auth.uid())) or household_id = (select public.current_household_id())`.
+
+| Tabla | Operación | Regla nueva |
+|---|---|---|
+| `recipes` | select, update, delete | receta visible (el insert no cambia: propia y personal) |
+| `recipe_ingredients` | select, delete | `exists` la receta, que ya pasa por su RLS |
+| `recipe_ingredients` | insert, update | lo anterior y, si la receta es de la familia, producto común o de esa familia |
+| `list_item_recipe_requirements` | insert, update | item visible y receta visible |
+| `meal_plans` | insert, update | las de hoy, con receta visible en vez de propia |
+| `storage.objects` | select | la subió, o una receta visible tiene `photo_path = storage.objects.name` |
+| `storage.objects` | insert | la forma de hoy y receta visible en vez de propia |
+| `storage.objects` | delete | la subió **y** ninguna receta la usa |
+
+4. **`is_recipe_photo_in_use(text) returns boolean`**, `security definer`: la política de borrado debe contar también recetas que no ve quien borra. Índice en `photo_path`.
+5. **`photo_path`:** se quita el permiso de update; el `check` pasa a `{uuid}/{uuid}.{ext}` porque una copia apunta a otra carpeta.
+6. **`set_recipe_photo`** pasa a `security definer` (ya no hay permiso de columna): repite la regla de visible, exige la carpeta de la receta (`23514`) y conserva firma y errores.
+7. **`save_recipe`**: misma firma, sigue `invoker`. Tras el update, si la receta es de la familia y hay productos personales, lanza `22023` con hint `recipe_personal_products` y los nombres en `detail`. La política del punto 3 lo cubre por la API directa.
+8. **`share_recipe(target_recipe_id uuid) returns text[]`**, `security definer`: cuenta registrada (`42501`); bloquea la familia y después la propia fila de `household_members` (`for key share`, el orden de 023 y 026) y sin familia responde `42501` con hint `recipe_no_household`; bloquea la receta propia y personal (`for update`; si no, `P0002`, salvo que ya sea de esa familia, que cuenta como hecho). Devuelve los nombres de los productos personales y, si no hay, comparte y devuelve vacío.
+9. **`copy_recipe(target_recipe_id uuid) returns uuid`**, `security definer`: receta de la familia de quien llama, o `P0002`.
+10. **`clone_recipe(source_id, new_owner_id, excluded_household_id)`**, sin permiso de ejecución para nadie: la usan la 9 y el trigger. Con `excluded_household_id` omite los productos de esa familia, y devuelve nulo si no queda ninguno.
+11. **Trigger** `after delete on household_members`, `security definer`. Sale sin hacer nada si la familia ya no existe (disolución) o el usuario ya no existe (cuenta borrada). Si no:
+    1. por cada receta de la familia de la que era dueño: clona, mueve sus espacios de plan a la copia y pasa el original al admin;
+    2. borra sus espacios de plan que sigan en recetas de esa familia.
+
+**Concurrencia:** compartir y salir a la vez se ordenan por el bloqueo de la membresía (regla 66); compartir y guardar, por el de la receta. Un insert directo de ingrediente en el mismo instante se puede colar (aceptado: lo hace el propio dueño por la API y solo deja un ingrediente vacío).
+
+### Flujo del editor
+
+1. Al cargar se pide `current_household_id` (¿tiene familia?) y, si se edita, el destino guardado. Si falla la primera, el campo no aparece.
+2. `saveRecipeWithExtras` (no lanza) hace receta → foto → compartir y devuelve una unión discriminada: `saved`, `notFound`, `saveFailed`, `personalProducts` (nombres), `photoFailed`, `shareFailed`, `noHousehold`. El hook solo traduce cada una a una acción; las que ya guardaron la receta llevan su id.
+3. **Foto:** `removePhotoMetadata(file)` antes de toda subida: `createImageBitmap` con la orientación aplicada → canvas → `toBlob`. El lado mayor baja a 2048 px, porque los navegadores de celular no dibujan fotos muy grandes. La extensión sale del tipo del resultado (Safari puede devolver PNG al pedir WebP). Si pesa más de 5 MB o el tipo no sirve, foto fallida.
+4. **Al compartir con la foto guardada sin cambios:** se descarga, se limpia y se guarda como una nueva. Si falla: `shareFailed`.
+5. Reintentar vuelve a hacer los pasos: todos son repetibles.
+
+### Catálogo
+
+`household_id` se suma a `CATALOG_SELECT`; `toRecipeSummary` da `isShared`. Copiar llama a la RPC y vuelve a pedir el catálogo, para que la copia traiga su foto y orden. Si la recarga falla, la copia igual se anuncia.
+
+### Decisiones
+
+| Decisión | Alternativa descartada | Por qué |
+|---|---|---|
+| Función de familia, usada en las políticas | Repetir el `in (select …)` de la `024` | Falta excluir anónimos en cinco tablas; con `(select …)` se calcula una vez por consulta |
+| RPC `share_recipe` aparte | Un parámetro en `save_recipe` | La foto va entre guardar y compartir, y cambiar la firma crea una sobrecarga |
+| Devolver los nombres | Solo un error | La interfaz tiene que decir cuáles cambiar |
+| Archivo compartido por referencia | Copiar el archivo | La base no copia archivos, y al remover no está el dueño |
+| Trigger | Editar `023` y `026` | Cubre toda salida sin tocar lo de Laura |
+| Consultar la familia desde esta feature | Importar el servicio de `household` | Una feature no importa de otra; la respuesta es un booleano |
+| Servicio que orquesta el guardado | Dejarlo en `useRecipeEditor` | Siete desenlaces; se prueba sin React |
+
+### Seguridad
+
+- `security-reviewer` obligatorio: cinco tablas con RLS nueva, Storage y siete funciones, varias `security definer`. Todas con `search_path` vacío, `revoke … from public, anon` y el usuario desde `auth.uid()`.
+- Prueba SQL con: dueño, miembro, admin, exmiembro, otra familia, anónimo y `anon`.
+- Un miembro puede borrar lo de todos: decidido por producto y avisado en la ayuda y el diálogo.
+
+### Deuda conocida
+
+- **Archivos sueltos** (regla 74).
+- **Productos de la familia:** tras disolverla quedan sin dueño visible (`product_catalog.household_id` no tiene FK ni la `024` los libera). Una receta que los usaba conserva el ingrediente, pero sin nombre: verificar que las pantallas lo toleren. Arreglarlo es del módulo de productos; avisar a su responsable.
+- **Cuenta borrada:** tarea aparte (17.11).
+- **PNG grande:** recodificado puede pesar más de 5 MB; con el tope de 2048 px es raro.

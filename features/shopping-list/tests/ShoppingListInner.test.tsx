@@ -10,6 +10,8 @@ import { useShoppingListViewModel } from "../hooks/useShoppingListViewModel";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
 
 vi.mock("../hooks/useShoppingListViewModel", () => ({ useShoppingListViewModel: vi.fn() }));
+// La fila de sugerencias (SCRUM-102) tiene su propio ViewModel y sus propios tests; acá no se dibuja.
+vi.mock("@/features/inventory-suggestions/InventorySuggestions", () => ({ InventorySuggestions: () => null }));
 vi.mock("@/components/assignee-field/hooks/useListAssigneesViewModel", () => ({
   useListAssigneesViewModel: vi.fn(),
 }));

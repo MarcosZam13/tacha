@@ -7,6 +7,7 @@ import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/use
 import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Button, Modal, Spinner } from "@/components/ui";
 import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
+import { InventorySuggestions } from "@/features/inventory-suggestions/InventorySuggestions";
 import { PURCHASE_SESSION_TEXT } from "./constants/purchase-session.constants";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ClosePurchasePanel } from "./components/ClosePurchasePanel";
@@ -76,6 +77,10 @@ export const ShoppingListInner = (): React.JSX.Element => {
           onFinish={viewModel.onRequestClosePurchase}
         />
       ) : null}
+
+      {/* SCRUM-102 (HU-70 CA-01): debajo del encabezado (y de la barra del modo compra, que sigue primero) y antes de la lista. Si falla, no se dibuja (CA-03). */}
+      <InventorySuggestions />
+
       {viewModel.canStartPurchase ? (
         <div>
           <Button variant={BUTTON_VARIANT.PRIMARY} onClick={viewModel.onStartPurchase}>

@@ -1,7 +1,7 @@
 import type { NullableRef } from "@/types/nullable.types";
 import type { MealPlanEntry } from "./meal-plan.interfaces";
 import type { WeekDay } from "./meal-planner.interfaces";
-import type { MealTypeType } from "./meal-planner.types";
+import type { MealTypeType, PlanScopeType } from "./meal-planner.types";
 import type { DateListOptionsState, WeekListDestination } from "./week-list-addition.types";
 
 // Interfaces de agregar la semana a la lista (SCRUM-101), en el orden en que se
@@ -15,7 +15,7 @@ export interface WeekRange {
 }
 
 /**
- * Lo que devuelve la RPC add_week_to_list (058), tal cual. Solo lo
+ * Lo que devuelve la RPC add_plan_week_to_list (062), tal cual. Solo lo
  * conoce el adapter (utils/toAddWeekToListResponse.ts).
  */
 export interface AddWeekToListRow {
@@ -29,6 +29,7 @@ export interface AddWeekToListRow {
 /** Lo que se manda para agregar la semana: el rango y a qué lista; lo demás lo calcula la base. */
 export interface AddWeekToListPayload extends WeekRange {
   destination: WeekListDestination;
+  scope: PlanScopeType;
 }
 
 /** Una sublista tal como la devuelve la base. Solo la conoce el adapter (utils/toDateListOption.ts). */
@@ -79,8 +80,10 @@ export interface UseWeekListAdditionParams {
   /** true mientras otro diálogo (el de asignar) está abierto: solo uno a la vez. */
   isBlocked: boolean;
   isPlanReady: boolean;
+  onHouseholdLost: () => void;
   /** "12 – 18 oct": el rango que dice la confirmación. */
   rangeLabel: NullableRef<string>;
+  scope: PlanScopeType;
   /** Hoy en hora local: desde qué fecha se ofrecen sublistas. */
   todayKey: NullableRef<string>;
 }

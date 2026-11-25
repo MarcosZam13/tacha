@@ -194,6 +194,7 @@ describe("MealPlanner: add the week to the list", () => {
       expect(addWeekToListMock).toHaveBeenCalledWith({
         destination: { kind: WEEK_LIST_DESTINATION.GENERAL },
         fromDateKey: "2026-10-12",
+        scope: "personal",
         toDateKey: "2026-10-18",
       });
       expect(page.getAddWeekResult(SUCCESS_LINE)).toBeInTheDocument();

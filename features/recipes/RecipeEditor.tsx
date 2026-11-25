@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Spinner } from "@/components/ui";
 import { RECIPE_EDITOR_TEXT, RECIPE_ROUTE } from "./constants/recipes.constants";
+import { RecipeAudienceField } from "./components/RecipeAudienceField";
 import { RecipeBasicsFields } from "./components/RecipeBasicsFields";
 import { RecipeEditorActions } from "./components/RecipeEditorActions";
 import { RecipeIngredientsField } from "./components/RecipeIngredientsField";
@@ -47,6 +48,7 @@ export const RecipeEditor = ({ recipeId }: RecipeEditorProps): React.JSX.Element
             onBaseServingsChange={viewModel.onBaseServingsChange}
             onNameChange={viewModel.onNameChange}
           />
+          <RecipeAudienceField {...viewModel.audience} isSaving={viewModel.isSaving} />
           <RecipeIngredientsField
             ingredientNotice={viewModel.ingredientNotice}
             ingredients={viewModel.ingredients}

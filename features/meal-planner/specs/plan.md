@@ -445,3 +445,57 @@ docs/documento-proyecto.md                         línea 378: la semana puede i
 ### Orden con otras PRs
 
 La #108 (`qa accepted`) toca `features/date-lists/`. Conviene que entre primero y hacer la promoción de constantes encima; si no, habrá conflictos chicos de imports.
+
+## SCRUM-162: plan semanal de la familia
+
+> Verificado el 2026-11-25: la `060` está aplicada y en esta rama; esta parte usa la **`062`**.
+
+### Archivos
+
+```
+supabase/migrations/062_household_meal_plan.sql, supabase/tests/062_household_meal_plan.test.sql
+
+services/household-membership.service.ts     hasHousehold, promovida de features/recipes (segundo consumidor)
+hooks/useHasHousehold.ts                     ídem
+
+features/meal-planner/
+  components/PlanScopeSelector.tsx           nuevo
+  components/MealSlotCookField.tsx           opciones que recibe, con error y reintento
+  hooks/usePlanScope.ts                      nuevo: plan a la vista
+  hooks/useCookOptions.ts                    nuevo: miembros
+  hooks/useWeekMealPlan, useMealSlotDialog, useWeekListAddition, useMealPlannerViewModel   + plan a la vista
+  services/household-meal-plan.service.ts    nuevo: leer, asignar, quitar, miembros
+  services/meal-plan.service.ts, week-list.service.ts
+  utils/toCookLabel, toMealPlanEntry…        cocinero = "self" | "none" | id
+types/database.types.ts · docs/documento-proyecto.md §6
+```
+
+### Migración `062`
+
+1. FK `meal_plans.household_id → households`, `deferrable initially deferred`, tras revisar huérfanos. Índice único `(household_id, date, meal_type) where household_id is not null`.
+2. `get_household_meal_plan(plan_from date, plan_to date)`: espacios con receta, porciones, cocinero y su nombre. Rango de hasta 14 días.
+3. `assign_household_meal_slot(slot_date, slot_meal_type, target_recipe_id, cook_user_id, slot_servings_multiplier) returns uuid`: bloquea familia y membresías (propia y del cocinero) en el orden de 023; exige receta de la familia y cocinero miembro (hint `cook_not_member`); `on conflict` sobre el índice nuevo, sin cambiar el dueño.
+4. `clear_household_meal_slot(slot_date, slot_meal_type)`: sin fila no falla.
+5. `add_plan_week_to_list(week_from, week_to, from_household boolean, target_list_id default null)`: el cuerpo de la `058`, con el origen elegido. `add_week_to_list` queda como llamada a esa con `false`. Sigue `invoker`.
+6. Trigger de salida (`create or replace` de la función de la 060): los dos pasos sobre el plan miran solo `household_id is null`; además `assigned_cook = null` en los espacios de la familia donde cocinaba, y `owner_id` al admin en los que asignó.
+
+Las de 2 a 4 son `security definer`, `search_path` vacío, sin `anon`, y parten de `current_household_id()`.
+
+### Decisiones
+
+| Decisión | Alternativa descartada | Por qué |
+|---|---|---|
+| Funciones para la familia | Políticas de miembros | El cliente desplegado borraría y mezclaría planes (SPEC 18.12) |
+| Función nueva para la semana | Un parámetro en `add_week_to_list` | Crearía una sobrecarga ambigua para el cliente desplegado |
+| El cocinero de la familia va por id | Solo "yo sí/no" | Puede ser otro; la base valida que sea miembro |
+| Miembros de `get_household_members_page` | Otra función | Ya da id, nombre y si soy yo, sin correos |
+| El plan a la vista en el ViewModel | Ruta o parámetro de URL | Es estado de pantalla; nadie enlaza a un plan |
+
+### Seguridad
+
+`security-reviewer` antes de aplicar la `062` y al final, como en la 060. Prueba SQL con dueño, miembro, admin, exmiembro, otra familia, anónimo y `anon`.
+
+### Deuda conocida
+
+- Cuenta borrada y más de 50 miembros (SPEC 18.11).
+- Dos personas mirando a la vez no ven los cambios de la otra hasta recargar.

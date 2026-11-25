@@ -1,20 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RECIPE_PHOTO_CHANGE } from "../constants/recipes.constants";
-import { getRecipePhotoUrls, removeRecipePhotoFile, saveRecipePhoto } from "../services/recipe-photos.service";
+import { cleanSavedRecipePhoto, getRecipePhotoUrls, removeRecipePhotoFile, saveRecipePhoto } from "../services/recipe-photos.service";
+import { removePhotoMetadata } from "../utils/removePhotoMetadata";
 import { createPhotoFile } from "./recipe.fixtures";
 
 const createSignedUrlsMock = vi.fn();
+const downloadMock = vi.fn();
 const fromMock = vi.fn();
 const removeMock = vi.fn();
+const maybeSingleMock = vi.fn();
 const rpcMock = vi.fn();
 const uploadMock = vi.fn();
 
 vi.mock("@/services/supabase.client", () => ({
-  getSupabaseClient: () => ({ rpc: rpcMock, storage: { from: fromMock } }),
+  getSupabaseClient: () => ({
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: maybeSingleMock }) }) }),
+    rpc: rpcMock,
+    storage: { from: fromMock },
+  }),
 }));
+vi.mock("../utils/removePhotoMetadata", () => ({ removePhotoMetadata: vi.fn() }));
+const removeMetadataMock = vi.mocked(removePhotoMetadata);
 
 const PREVIOUS_PATH = "flan/anterior.png";
 const NEW_PATH = expect.stringMatching(/^flan\/[0-9a-f-]{36}\.jpg$/);
+const CLEAN_FILE = createPhotoFile("image/jpeg", "limpia");
 const REPLACE = { file: createPhotoFile(), kind: RECIPE_PHOTO_CHANGE.REPLACE };
 const REMOVE = { kind: RECIPE_PHOTO_CHANGE.REMOVE };
 
@@ -22,7 +32,8 @@ const save = (change: Parameters<typeof saveRecipePhoto>[0]["change"]) => saveRe
 
 beforeEach(() => {
   vi.resetAllMocks();
-  fromMock.mockReturnValue({ createSignedUrls: createSignedUrlsMock, remove: removeMock, upload: uploadMock });
+  fromMock.mockReturnValue({ createSignedUrls: createSignedUrlsMock, download: downloadMock, remove: removeMock, upload: uploadMock });
+  removeMetadataMock.mockResolvedValue(CLEAN_FILE);
   uploadMock.mockResolvedValue({ error: null });
   removeMock.mockResolvedValue({ error: null });
   rpcMock.mockResolvedValue({ data: null, error: null });
@@ -71,7 +82,7 @@ describe("saveRecipePhoto", () => {
 
     await expect(save(REPLACE)).resolves.toBe("saved");
 
-    expect(uploadMock).toHaveBeenCalledWith(NEW_PATH, REPLACE.file, { contentType: "image/jpeg", upsert: false });
+    expect(uploadMock).toHaveBeenCalledWith(NEW_PATH, CLEAN_FILE, { contentType: "image/jpeg", upsert: false });
     expect(rpcMock).toHaveBeenCalledWith("set_recipe_photo", { new_photo_path: NEW_PATH, target_recipe_id: "flan" });
     expect(removeMock).toHaveBeenCalledExactlyOnceWith([PREVIOUS_PATH]);
     expect(uploadMock.mock.invocationCallOrder[0]).toBeLessThan(rpcMock.mock.invocationCallOrder[0]);
@@ -102,7 +113,25 @@ describe("saveRecipePhoto", () => {
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
+  it("uploads nothing when the metadata could not be removed", async () => {
+    removeMetadataMock.mockRejectedValue(new Error("canvas"));
+
+    await expect(save(REPLACE)).resolves.toBe("failed");
+
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the type the browser produced", async () => {
+    removeMetadataMock.mockResolvedValue(createPhotoFile("image/png"));
+
+    await save({ ...REPLACE, file: createPhotoFile("image/webp") });
+
+    expect(uploadMock.mock.calls[0][0]).toMatch(/\.png$/);
+    expect(uploadMock.mock.calls[0][2]).toMatchObject({ contentType: "image/png" });
+  });
+
   it("does not upload a file of another type", async () => {
+    removeMetadataMock.mockResolvedValue(createPhotoFile("image/gif"));
     await expect(save({ ...REPLACE, file: createPhotoFile("image/gif") })).resolves.toBe("failed");
 
     expect(uploadMock).not.toHaveBeenCalled();
@@ -153,5 +182,49 @@ describe("removeRecipePhotoFile", () => {
 
     removeMock.mockRejectedValue(new Error("network"));
     await expect(removeRecipePhotoFile("a/1.jpg")).resolves.toBeUndefined();
+  });
+});
+
+describe("cleanSavedRecipePhoto", () => {
+  const savedPhoto = new Blob(["Exif con ubicación"], { type: "image/jpeg" });
+
+  beforeEach(() => {
+    maybeSingleMock.mockResolvedValue({ data: { photo_path: PREVIOUS_PATH }, error: null });
+    downloadMock.mockResolvedValue({ data: savedPhoto, error: null });
+    rpcMock.mockResolvedValue({ data: PREVIOUS_PATH, error: null });
+  });
+
+  it("replaces the current photo with a clean one", async () => {
+    await expect(cleanSavedRecipePhoto("flan")).resolves.toBe(true);
+
+    expect(downloadMock).toHaveBeenCalledWith(PREVIOUS_PATH);
+    expect(uploadMock).toHaveBeenCalledWith(NEW_PATH, CLEAN_FILE, expect.anything());
+    expect(removeMock).toHaveBeenCalledWith([PREVIOUS_PATH]);
+  });
+
+  it("does not compress again a photo that is already clean", async () => {
+    downloadMock.mockResolvedValue({ data: new Blob(["JFIF"], { type: "image/jpeg" }), error: null });
+
+    await expect(cleanSavedRecipePhoto("flan")).resolves.toBe(true);
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  it("has nothing to clean without a photo", async () => {
+    maybeSingleMock.mockResolvedValue({ data: { photo_path: null }, error: null });
+
+    await expect(cleanSavedRecipePhoto("flan")).resolves.toBe(true);
+    expect(downloadMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the recipe cannot be read", () => maybeSingleMock.mockResolvedValue({ data: null, error: { code: "x" } })],
+    ["the recipe is gone", () => maybeSingleMock.mockResolvedValue({ data: null, error: null })],
+    ["the photo cannot be downloaded", () => downloadMock.mockResolvedValue({ data: null, error: { message: "x" } })],
+    ["the photo cannot be cleaned", () => removeMetadataMock.mockRejectedValue(new Error("canvas"))],
+    ["something breaks", () => downloadMock.mockRejectedValue(new Error("network"))],
+  ])("is not ready when %s", async (_case, arrange) => {
+    arrange();
+
+    await expect(cleanSavedRecipePhoto("flan")).resolves.toBe(false);
   });
 });

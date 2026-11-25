@@ -13,8 +13,9 @@ vi.mock("../services/recipe-photos.service", () => ({ getRecipePhotoUrls: vi.fn(
 const getUrlsMock = vi.mocked(getRecipePhotoUrls);
 const removeFileMock = vi.mocked(removeRecipePhotoFile);
 
-const createRow = (id: string, photoPath: string | null) => ({
+const createRow = (id: string, photoPath: string | null, householdId: string | null = null) => ({
   base_servings: 4,
+  household_id: householdId,
   id,
   name: id,
   photo_path: photoPath,
@@ -61,6 +62,14 @@ describe("getRecipeForEditing", () => {
 
     query.maybeSingle.mockResolvedValueOnce({ data: createRow("flan", null), error: null });
     expect((await getRecipeForEditing("flan"))?.photo).toBeNull();
+  });
+
+  it("tells if it belongs to the family", async () => {
+    query.maybeSingle.mockResolvedValueOnce({ data: createRow("flan", null, "family"), error: null });
+    expect((await getRecipeForEditing("flan"))?.isShared).toBe(true);
+
+    query.maybeSingle.mockResolvedValueOnce({ data: createRow("flan", null), error: null });
+    expect((await getRecipeForEditing("flan"))?.isShared).toBe(false);
   });
 
   it("is null when the recipe is not found", async () => {

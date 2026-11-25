@@ -5,13 +5,14 @@ import { MEAL_SLOT_FORM, MEAL_SLOT_TEXT, RECIPE_OPTIONS_STATUS } from "../consta
 import type { MealSlotRecipeListProps } from "./models/MealSlotRecipeListProps.type";
 
 /**
- * Las recetas del usuario como un grupo de opciones (radio): cargando, con
+ * Las recetas que se pueden elegir como un grupo de opciones (radio): cargando, con
  * error, sin recetas o la lista. Solo presentación: qué receta está elegida lo
  * decide el ViewModel del diálogo. Un `fieldset` con `legend` le da al lector de
  * pantalla el nombre del grupo; cada opción dice su nombre y sus porciones base.
  */
 export const MealSlotRecipeList = ({
   isSaving,
+  noRecipesText,
   onRecipeChoose,
   onRecipesRetry,
   recipeOptions,
@@ -34,7 +35,7 @@ export const MealSlotRecipeList = ({
 
     {recipesStatus === RECIPE_OPTIONS_STATUS.READY && recipeOptions.length === 0 ? (
       <div className="flex flex-col items-start gap-1 font-body text-sm">
-        <p className="text-tacha-textsec">{MEAL_SLOT_TEXT.NO_RECIPES}</p>
+        <p className="text-tacha-textsec">{noRecipesText}</p>
         <Link href={MEAL_SLOT_FORM.NEW_RECIPE_PATH} className="font-semibold text-tacha-teal hover:underline">
           {MEAL_SLOT_TEXT.CREATE_RECIPE}
         </Link>
