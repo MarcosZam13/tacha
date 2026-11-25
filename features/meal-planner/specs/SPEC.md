@@ -607,7 +607,7 @@ Decidido con el responsable:
 - El plan de la familia va **solo por funciones**: leer, asignar y quitar. Ninguna recibe la familia: sale de la membresía. `42501` sin cuenta o sin familia; `P0002` receta o cocinero que no es de la familia.
 - **`assign_meal_slot` y `add_week_to_list` conservan firma y comportamiento** (plan personal). Una función nueva agrega la semana de cualquiera de los dos.
 - El trigger de salida de la `060` se reescribe: no debe mover ni borrar espacios del plan de la familia.
-- Migración: la `061` o la siguiente libre.
+- Migración: la `062` o la siguiente libre.
 
 ### 18.10 Casos de aceptación
 

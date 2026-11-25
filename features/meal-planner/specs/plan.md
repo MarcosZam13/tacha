@@ -448,12 +448,12 @@ La #108 (`qa accepted`) toca `features/date-lists/`. Conviene que entre primero 
 
 ## SCRUM-162: plan semanal de la familia
 
-> Verificado el 2026-11-25: la `060` está aplicada y en esta rama; esta parte usa la **`061`**.
+> Verificado el 2026-11-25: la `060` está aplicada y en esta rama; esta parte usa la **`062`**.
 
 ### Archivos
 
 ```
-supabase/migrations/061_household_meal_plan.sql, supabase/tests/061_household_meal_plan.test.sql
+supabase/migrations/062_household_meal_plan.sql, supabase/tests/062_household_meal_plan.test.sql
 
 services/household-membership.service.ts     hasHousehold, promovida de features/recipes (segundo consumidor)
 hooks/useHasHousehold.ts                     ídem
@@ -470,7 +470,7 @@ features/meal-planner/
 types/database.types.ts · docs/documento-proyecto.md §6
 ```
 
-### Migración `061`
+### Migración `062`
 
 1. FK `meal_plans.household_id → households`, `deferrable initially deferred`, tras revisar huérfanos. Índice único `(household_id, date, meal_type) where household_id is not null`.
 2. `get_household_meal_plan(plan_from date, plan_to date)`: espacios con receta, porciones, cocinero y su nombre. Rango de hasta 14 días.
@@ -493,7 +493,7 @@ Las de 2 a 4 son `security definer`, `search_path` vacío, sin `anon`, y parten 
 
 ### Seguridad
 
-`security-reviewer` antes de aplicar la `061` y al final, como en la 060. Prueba SQL con dueño, miembro, admin, exmiembro, otra familia, anónimo y `anon`.
+`security-reviewer` antes de aplicar la `062` y al final, como en la 060. Prueba SQL con dueño, miembro, admin, exmiembro, otra familia, anónimo y `anon`.
 
 ### Deuda conocida
 
