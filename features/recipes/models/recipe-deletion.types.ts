@@ -5,10 +5,10 @@ import type { RecipeSummary } from "./recipe-catalog.interfaces";
 // recipe-deletion.interfaces.ts.
 
 /**
- * La receta que se está por borrar: el id para la base y el nombre para el
- * diálogo. Se deriva de RecipeSummary para que no se desincronice de la tarjeta.
+ * La receta que se está por borrar: el id para la base, el nombre y si
+ * es de la familia para el diálogo. Se deriva de RecipeSummary para que no se desincronice de la tarjeta.
  */
-export type RecipeDeletionTarget = Pick<RecipeSummary, "id" | "name">;
+export type RecipeDeletionTarget = Pick<RecipeSummary, "id" | "isShared" | "name">;
 
 /**
  * Unión discriminada por `status`. Fuera de `idle` siempre hay una receta

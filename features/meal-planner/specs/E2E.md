@@ -130,7 +130,15 @@ Nivel más bajo que alcanza: las fechas (`getWeekStart`, `buildWeek`, `formatWee
 - **Resultado esperado:** después del paso 1 está elegida "Lista general". Después del paso 2 el diálogo se cierra y el aviso dice "Agregaste N ingrediente(s) de 1 comida a E2E Paseo." Después del paso 3 la URL es la de la sublista y tiene al menos un producto. Después del paso 4 la lista general sigue vacía.
 - **Limpieza:** se borran los productos y las recetas. La sublista vacía queda en el usuario anónimo de la prueba, igual que en los E2E de sublistas.
 
+### E2E-PLANNER-12: sin familia no se ofrece el plan de la familia
+
+- **Cubre:** SCRUM-162 CA-13.
+- **Pasos:** abrir el planificador con una sesión sin familia.
+- **Resultado esperado:** la base responde, la grilla se puede usar y no aparece "Mi plan" / "Plan de la familia".
+
 ### Fuera del navegador
+
+- El plan de la familia (varias cuentas registradas): `supabase/tests/062_household_meal_plan.test.sql` y prueba manual con dos cuentas.
 
 - El cálculo de la semana en domingo, cambio de mes, año, año bisiesto, hora de verano y después de las 6 p. m. en UTC-6: `tests/getWeekStart.test.ts`, `buildWeek.test.ts`, `toLocalDateKey.test.ts`, `formatWeekRange.test.ts`.
 - Que el servidor no dibuje "hoy" (sin desajuste de hidratación): `tests/useToday.test.tsx` y la prueba manual (consola sin errores al recargar).

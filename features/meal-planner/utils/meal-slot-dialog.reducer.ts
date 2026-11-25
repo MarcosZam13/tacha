@@ -63,7 +63,8 @@ export const mealSlotDialogReducer = (state: MealSlotDialogState, action: MealSl
         ? {
             status: MEAL_SLOT_DIALOG_STATUS.FAILED,
             target: state.target,
-            values: state.values,
+            // Un cocinero que ya no sirve no se arrastra al próximo intento.
+            values: action.cookChoice ? { ...state.values, cookChoice: action.cookChoice } : state.values,
             errorMessage: action.errorMessage,
           }
         : state;

@@ -1,9 +1,24 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { COOK_CHOICE, MEAL_SLOT_TEXT, MEAL_TYPE, RECIPE_OPTIONS_STATUS } from "../constants/meal-planner.constants";
+import {
+  COOK_CHOICE,
+  COOK_OPTIONS_STATUS,
+  MEAL_SLOT_TEXT,
+  MEAL_TYPE,
+  PLAN_SCOPE,
+  RECIPE_OPTIONS_STATUS,
+  SAVE_SLOT_RESULT,
+} from "../constants/meal-planner.constants";
 import { useMealSlotDialog } from "../hooks/useMealSlotDialog";
 import type { MealPlanEntry, RecipeOption, SaveMealSlotResponse } from "../models/meal-plan.interfaces";
+import type { PlanScopeType } from "../models/meal-planner.types";
+import {
+  clearHouseholdMealSlot,
+  getHouseholdRecipeOptions,
+  getOtherHouseholdCooks,
+  saveHouseholdMealSlot,
+} from "../services/household-meal-plan.service";
 import { clearMealSlot, getRecipeOptions, saveMealSlot } from "../services/meal-plan.service";
 import { createPending } from "./mealPlan.fixtures";
 
@@ -12,6 +27,16 @@ vi.mock("../services/meal-plan.service", () => ({
   getRecipeOptions: vi.fn(),
   saveMealSlot: vi.fn(),
 }));
+vi.mock("../services/household-meal-plan.service", () => ({
+  clearHouseholdMealSlot: vi.fn(),
+  getHouseholdRecipeOptions: vi.fn(),
+  getOtherHouseholdCooks: vi.fn(),
+  saveHouseholdMealSlot: vi.fn(),
+}));
+const clearFamilySlotMock = vi.mocked(clearHouseholdMealSlot);
+const getCooksMock = vi.mocked(getOtherHouseholdCooks);
+const getFamilyRecipesMock = vi.mocked(getHouseholdRecipeOptions);
+const saveFamilySlotMock = vi.mocked(saveHouseholdMealSlot);
 const getRecipeOptionsMock = vi.mocked(getRecipeOptions);
 const saveMealSlotMock = vi.mocked(saveMealSlot);
 const clearMealSlotMock = vi.mocked(clearMealSlot);
@@ -37,16 +62,19 @@ const getEntryMock = vi.fn();
 const onSavedMock = vi.fn();
 const onRemovedMock = vi.fn();
 const onRecipeGoneMock = vi.fn();
+const onHouseholdLostMock = vi.fn();
 
-const renderDialog = (entry: MealPlanEntry | null = null) => {
+const renderDialog = (entry: MealPlanEntry | null = null, scope: PlanScopeType = PLAN_SCOPE.PERSONAL) => {
   getEntryMock.mockReturnValue(entry);
   return renderHook(() =>
     useMealSlotDialog({
       getDayLongLabel: () => "Lunes 12",
       getEntry: getEntryMock,
+      onHouseholdLost: onHouseholdLostMock,
       onRecipeGone: onRecipeGoneMock,
       onRemoved: onRemovedMock,
       onSaved: onSavedMock,
+      scope,
     }),
   );
 };
@@ -61,6 +89,8 @@ const openAndWaitForRecipes = async (hook: DialogHook): Promise<void> => {
 beforeEach(() => {
   vi.resetAllMocks();
   getRecipeOptionsMock.mockResolvedValue([ARROZ, FLAN]);
+  getFamilyRecipesMock.mockResolvedValue([FLAN]);
+  getCooksMock.mockResolvedValue([{ label: "Beto", value: "user-beto" }]);
 });
 
 describe("useMealSlotDialog", () => {
@@ -411,5 +441,138 @@ describe("useMealSlotDialog", () => {
 
     // El foco de vuelta al espacio ya no es de este hook: lo hace el Modal compartido (SCRUM-142, D4),
     // y se prueba en components/ui/modal/tests/ y en MealPlannerAssign.test.tsx.
+  });
+});
+
+describe("useMealSlotDialog: the family plan", () => {
+  const BETO_ENTRY: MealPlanEntry = {
+    ...ARROZ_ENTRY,
+    cookChoice: "user-beto",
+    cookLabel: "Beto",
+    recipeId: FLAN.id,
+    recipeName: FLAN.name,
+  };
+
+  const openFamily = async (entry: MealPlanEntry | null = null): Promise<DialogHook> => {
+    const hook = renderDialog(entry, PLAN_SCOPE.FAMILY);
+    await openAndWaitForRecipes(hook);
+    await waitFor(() => expect(hook.result.current.cooksStatus).not.toBe(COOK_OPTIONS_STATUS.LOADING));
+    return hook;
+  };
+
+  const chooseAndSave = async (hook: DialogHook, cookChoice: string): Promise<void> => {
+    act(() => hook.result.current.onRecipeChoose(FLAN.id));
+    act(() => hook.result.current.onCookChange(cookChoice));
+    await act(async () => hook.result.current.onSave());
+  };
+
+  it("offers the recipes of the family and its members as cooks", async () => {
+    const { result } = await openFamily();
+
+    expect(result.current.recipeOptions).toEqual([FLAN]);
+    expect(result.current.cookOptions.map((option) => option.label)).toEqual(["Yo", "Beto", "Sin cocinero"]);
+    expect(result.current.cookChoice).toBe(COOK_CHOICE.SELF);
+    expect(getRecipeOptionsMock).not.toHaveBeenCalled();
+  });
+
+  it("does not ask for members in the personal plan", async () => {
+    const hook = renderDialog();
+    await openAndWaitForRecipes(hook);
+
+    expect(hook.result.current.cookOptions.map((option) => option.label)).toEqual(["Yo", "Sin cocinero"]);
+    expect(getCooksMock).not.toHaveBeenCalled();
+  });
+
+  it("saves in the family plan and shows the name of the cook", async () => {
+    saveFamilySlotMock.mockResolvedValue({ kind: SAVE_SLOT_RESULT.SAVED, slotId: "slot-9" });
+    const hook = await openFamily();
+
+    await chooseAndSave(hook, "user-beto");
+
+    expect(saveFamilySlotMock).toHaveBeenCalledWith(expect.objectContaining({ cookChoice: "user-beto", recipeId: FLAN.id }));
+    expect(onSavedMock).toHaveBeenCalledWith(expect.objectContaining({ cookLabel: "Beto", id: "slot-9" }));
+    expect(saveMealSlotMock).not.toHaveBeenCalled();
+  });
+
+  it("says the cook left and asks for the members again", async () => {
+    saveFamilySlotMock.mockResolvedValue({ kind: SAVE_SLOT_RESULT.COOK_GONE });
+    const hook = await openFamily();
+    getCooksMock.mockResolvedValue([]);
+
+    await chooseAndSave(hook, "user-beto");
+
+    expect(hook.result.current.errorMessage).toBe(MEAL_SLOT_TEXT.COOK_GONE);
+    await waitFor(() => expect(hook.result.current.cooksStatus).toBe(COOK_OPTIONS_STATUS.READY));
+    expect(hook.result.current.cookChoice).toBe(COOK_CHOICE.NONE);
+    expect(hook.result.current.selectedRecipeId).toBe(FLAN.id);
+
+    await act(async () => hook.result.current.onSave());
+    expect(saveFamilySlotMock).toHaveBeenLastCalledWith(expect.objectContaining({ cookChoice: COOK_CHOICE.NONE }));
+  });
+
+  it("does not choose again a cook that left, even if the members cannot be loaded", async () => {
+    saveFamilySlotMock.mockResolvedValue({ kind: SAVE_SLOT_RESULT.COOK_GONE });
+    const hook = await openFamily(BETO_ENTRY);
+    getCooksMock.mockRejectedValue(new Error("network"));
+
+    await act(async () => hook.result.current.onSave());
+
+    await waitFor(() => expect(hook.result.current.cooksStatus).toBe(COOK_OPTIONS_STATUS.ERROR));
+    expect(hook.result.current.cookChoice).toBe(COOK_CHOICE.NONE);
+  });
+
+  it("says the recipe is no longer available", async () => {
+    saveFamilySlotMock.mockResolvedValue({ kind: SAVE_SLOT_RESULT.RECIPE_GONE });
+    const hook = await openFamily();
+
+    await chooseAndSave(hook, COOK_CHOICE.SELF);
+
+    expect(hook.result.current.errorMessage).toBe(MEAL_SLOT_TEXT.RECIPE_UNAVAILABLE);
+    expect(onRecipeGoneMock).toHaveBeenCalledWith(FLAN.id);
+  });
+
+  it("closes and warns when there is no family any more, saving or removing", async () => {
+    saveFamilySlotMock.mockResolvedValue({ kind: SAVE_SLOT_RESULT.NO_HOUSEHOLD });
+    const saving = await openFamily();
+    await chooseAndSave(saving, COOK_CHOICE.SELF);
+    expect(saving.result.current.isOpen).toBe(false);
+    expect(onHouseholdLostMock).toHaveBeenCalledTimes(1);
+
+    clearFamilySlotMock.mockResolvedValue(false);
+    const removing = await openFamily(BETO_ENTRY);
+    await act(async () => removing.result.current.onRemove());
+    expect(removing.result.current.isOpen).toBe(false);
+    expect(onHouseholdLostMock).toHaveBeenCalledTimes(2);
+    expect(onRemovedMock).not.toHaveBeenCalled();
+  });
+
+  it("removes a slot of the family plan", async () => {
+    clearFamilySlotMock.mockResolvedValue(true);
+    const hook = await openFamily(BETO_ENTRY);
+
+    await act(async () => hook.result.current.onRemove());
+
+    expect(clearFamilySlotMock).toHaveBeenCalledWith(TARGET);
+    expect(onRemovedMock).toHaveBeenCalledWith(TARGET);
+    expect(clearMealSlotMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the current cook when the members cannot be loaded, and loads them on retry", async () => {
+    getCooksMock.mockRejectedValueOnce(new Error("network"));
+    const hook = await openFamily(BETO_ENTRY);
+
+    expect(hook.result.current.cooksStatus).toBe(COOK_OPTIONS_STATUS.ERROR);
+    expect(hook.result.current.cookChoice).toBe("user-beto");
+    expect(hook.result.current.cookOptions.map((option) => option.label)).toEqual(["Beto", "Yo", "Sin cocinero"]);
+
+    act(() => hook.result.current.onCooksRetry());
+    await waitFor(() => expect(hook.result.current.cooksStatus).toBe(COOK_OPTIONS_STATUS.READY));
+    expect(hook.result.current.cookOptions).toHaveLength(3);
+  });
+
+  it("says the family has no recipes", async () => {
+    getFamilyRecipesMock.mockResolvedValue([]);
+
+    expect((await openFamily()).result.current.noRecipesText).toBe("Tu familia todavía no tiene recetas.");
   });
 });

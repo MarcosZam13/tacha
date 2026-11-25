@@ -159,8 +159,8 @@ begin
     'políticas de list_items';
   assert (select array_agg(p.policyname::text order by p.policyname) from pg_policies p
           where p.schemaname = 'public' and p.tablename = 'list_item_recipe_requirements')
-         = array['adds requirements of own recipes to visible items', 'reads requirements of visible items',
-                 'updates requirements of own recipes on visible items'],
+         = array['adds requirements of visible recipes to visible items', 'reads requirements of visible items',
+                 'updates requirements of visible recipes on visible items'],
     'políticas de list_item_recipe_requirements';
 end $$;
 
@@ -691,7 +691,7 @@ end $$;
 -- 9. La familia 2 se elimina (sale C, su único miembro): su lista se va con
 --    ella; las recetas y los planes que la nombraban quedan personales. Un
 --    plan de la familia que choca con un espacio personal se borra (gana el
---    personal) y de dos planes de la familia en el mismo espacio queda uno.
+--    personal). Dos de la familia en el mismo espacio ya no pueden existir (062).
 -- ----------------------------------------------------------------------------
 
 do $$
@@ -709,10 +709,7 @@ begin
     (user_c, household_2, date '2026-10-22', 'lunch', recipe_c, 1),
     (user_c, null, date '2026-10-22', 'lunch', recipe_c, 2),
     -- Sin choque: queda personal.
-    (user_c, household_2, date '2026-10-23', 'dinner', recipe_c, 1),
-    -- Dos de la familia en el mismo espacio: queda uno.
-    (user_c, household_2, date '2026-10-24', 'breakfast', recipe_c, 1),
-    (user_c, household_2, date '2026-10-24', 'breakfast', recipe_c, 1.5);
+    (user_c, household_2, date '2026-10-23', 'dinner', recipe_c, 1);
 
   perform set_config('tacha_test.recipe_c', recipe_c::text, true);
 end $$;
@@ -763,10 +760,6 @@ begin
           where p.recipe_id = current_setting('tacha_test.recipe_c')::uuid
             and p.date = date '2026-10-23' and p.meal_type = 'dinner') = 1,
     'el plan de la familia sin choque sigue existiendo, ahora personal';
-  assert (select count(*) from public.meal_plans p
-          where p.recipe_id = current_setting('tacha_test.recipe_c')::uuid
-            and p.date = date '2026-10-24' and p.meal_type = 'breakfast') = 1,
-    'de dos planes de la familia en el mismo espacio queda uno';
   assert not exists (select 1 from public.lists l
                      where l.household_id is not null
                        and not exists (select 1 from public.households h where h.id = l.household_id)),

@@ -19,10 +19,8 @@ import { getRecipePhotoUrls, removeRecipePhotoFile } from "./recipe-photos.servi
  * Trae las recetas que el usuario puede ver, más nuevas primero, con sus
  * ingredientes (el adapter los ordena por `position`).
  *
- * No filtra por dueño a propósito: eso lo decide RLS en la base. Hoy la
- * política devuelve solo las recetas propias; cuando exista households se
- * suma la de miembros y esta consulta devuelve también las compartidas sin
- * cambiar nada acá.
+ * No filtra por dueño a propósito: eso lo decide RLS en la base, que devuelve
+ * las personales propias y las de la familia (060).
  *
  * Las fotos están en un bucket privado: se piden sus enlaces en una sola
  * petición, y si falla el catálogo se muestra igual.
@@ -69,6 +67,7 @@ export const getRecipeForEditing = async (recipeId: string): Promise<NullableRef
   const urlByPath = await getRecipePhotoUrls(photoPath ? [photoPath] : []);
 
   return {
+    isShared: recipeRow.household_id !== null,
     photo: photoPath ? { url: urlByPath.get(photoPath) ?? null } : null,
     values: toRecipeEditorValues(recipeRow),
   };

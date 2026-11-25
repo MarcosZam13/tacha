@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RECIPE_CATALOG_STATUS, RECIPE_TEXT } from "../constants/recipes.constants";
 import type { RecipeCatalogViewModel } from "../models/recipe-catalog.interfaces";
 import type { RecipeCatalogState } from "../models/recipe-catalog.types";
 import { getRecipeSummaries } from "../services/recipes.service";
+import { useRecipeCopy } from "./useRecipeCopy";
 import { useRecipeCoverage } from "./useRecipeCoverage";
 import { useRecipeDeletion } from "./useRecipeDeletion";
 import { useRecipeListAddition } from "./useRecipeListAddition";
@@ -11,8 +12,8 @@ import { useRecipeListAddition } from "./useRecipeListAddition";
  * Catálogo de recetas: carga al montar y le entrega a RecipeCatalog.tsx lo
  * que dibuja. En estado solo se guarda lo que no se puede calcular (en qué
  * estado está la carga y, si terminó, las recetas); el resto se deriva.
- * La eliminación, agregar a la lista y "Ver qué falta" viven en sus propios
- * hooks (useRecipeDeletion, useRecipeListAddition, useRecipeCoverage); este
+ * La eliminación, agregar a la lista, copiar y "Ver qué falta" viven en sus propios
+ * hooks (useRecipeDeletion, useRecipeListAddition, useRecipeCopy, useRecipeCoverage); este
  * solo quita de la lista la receta que el primero avisa que se borró.
  */
 export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
@@ -20,9 +21,13 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   // síncrono para empezar (nextjs-enterprise-patterns §3).
   const [state, setState] = useState<RecipeCatalogState>({ status: RECIPE_CATALOG_STATUS.LOADING });
 
+  // Borradas en esta pantalla: una recarga que ya venía en camino no las trae de vuelta.
+  const removedIdsRef = useRef(new Set<string>());
+
   // Forma con función: la respuesta del borrado llega después, y así filtra
   // sobre la lista de ese momento y no sobre la que había al hacer clic.
   const removeRecipe = (recipeId: string): void => {
+    removedIdsRef.current.add(recipeId);
     setState((currentState) =>
       currentState.status === RECIPE_CATALOG_STATUS.READY
         ? { ...currentState, recipes: currentState.recipes.filter((recipe) => recipe.id !== recipeId) }
@@ -41,6 +46,20 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
     },
   });
   const listAddition = useRecipeListAddition();
+
+  // Se pide de nuevo para que la copia traiga su foto y su lugar. Si falla, la
+  // copia existe igual y aparece en la próxima carga.
+  const reloadRecipes = (): void => {
+    getRecipeSummaries()
+      .then((recipes) =>
+        setState({
+          recipes: recipes.filter((recipe) => !removedIdsRef.current.has(recipe.id)),
+          status: RECIPE_CATALOG_STATUS.READY,
+        }),
+      )
+      .catch(() => undefined);
+  };
+  const copy = useRecipeCopy({ onCopied: reloadRecipes });
 
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
@@ -63,6 +82,7 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   const recipes = state.status === RECIPE_CATALOG_STATUS.READY ? state.recipes : [];
 
   return {
+    copy,
     coverage,
     deletion,
     errorMessage: state.status === RECIPE_CATALOG_STATUS.ERROR ? RECIPE_TEXT.LOAD_ERROR : null,

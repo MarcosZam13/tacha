@@ -1,6 +1,6 @@
 import type { NullableRef } from "@/types/nullable.types";
 import type { MealSlotDialogViewModel, WeekMealPlanViewModel } from "./meal-plan.interfaces";
-import type { MealTypeType } from "./meal-planner.types";
+import type { MealTypeType, PlanScopeType } from "./meal-planner.types";
 import type { WeekListAdditionViewModel } from "./week-list-addition.interfaces";
 
 // Interfaces del planificador semanal (SCRUM-99). Los types (la semana a la
@@ -26,6 +26,21 @@ export interface WeekDay {
   slots: WeekSlot[];
 }
 
+/** Lo que usePlanScope entrega: qué plan se ve y cómo cambiarlo. */
+export interface PlanScopeViewModel {
+  /** Tiene familia: se ofrece elegir. */
+  canChoose: boolean;
+  /** Aviso de que dejó de tener familia; null si no pasó. */
+  notice: NullableRef<string>;
+  onScopeChange: (scope: PlanScopeType) => void;
+  scope: PlanScopeType;
+}
+
+export interface UsePlanScopeReturn extends PlanScopeViewModel {
+  /** La base dijo que ya no tiene familia: vuelve a lo personal y lo avisa. */
+  onHouseholdLost: () => void;
+}
+
 /** Lo que useMealPlannerViewModel le entrega a MealPlanner.tsx, ya calculado. */
 export interface MealPlannerViewModel {
   canGoToNextWeek: boolean;
@@ -40,6 +55,8 @@ export interface MealPlannerViewModel {
   onPreviousWeek: () => void;
   /** El plan cargado (SCRUM-100): qué espacios tienen receta y si ya se puede tocar la grilla. */
   plan: Pick<WeekMealPlanViewModel, "getEntry" | "hasLoadError" | "isPlanReady" | "onPlanRetry">;
+  /** "Mi plan" o "Plan de la familia" (SCRUM-162). */
+  planScope: PlanScopeViewModel & { isDisabled: boolean; isPlanLoading: boolean };
   /** "12 – 18 oct"; null mientras no se conoce "hoy". */
   rangeLabel: NullableRef<string>;
   /** Agregar la semana a la lista (SCRUM-101): el botón, la confirmación y el aviso. */

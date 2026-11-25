@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { WEEK_LIST_DESTINATION } from "../constants/meal-planner.constants";
+import { PLAN_SCOPE, WEEK_LIST_DESTINATION } from "../constants/meal-planner.constants";
 import { addWeekToList } from "../services/week-list.service";
 
 // Sin Supabase real: getSupabaseClient devuelve un cliente falso que responde lo que el test decide.
@@ -11,7 +11,7 @@ vi.mock("@/services/supabase.client", () => ({
   getSupabaseClient: () => ({ rpc: rpcMock }),
 }));
 
-const RANGE = { fromDateKey: "2026-10-12", toDateKey: "2026-10-18" };
+const RANGE = { fromDateKey: "2026-10-12", scope: PLAN_SCOPE.PERSONAL, toDateKey: "2026-10-18" };
 const TO_GENERAL = { ...RANGE, destination: { kind: WEEK_LIST_DESTINATION.GENERAL } };
 const TO_BEACH = {
   ...RANGE,
@@ -40,7 +40,8 @@ describe("addWeekToList", () => {
     const response = await addWeekToList(TO_GENERAL);
 
     expect(ensureSessionMock).toHaveBeenCalledTimes(1);
-    expect(rpcMock).toHaveBeenCalledWith("add_week_to_list", {
+    expect(rpcMock).toHaveBeenCalledWith("add_plan_week_to_list", {
+      from_household: false,
       week_from: "2026-10-12",
       week_to: "2026-10-18",
     });
@@ -58,7 +59,7 @@ describe("addWeekToList", () => {
 
     await addWeekToList(TO_GENERAL);
 
-    expect(Object.keys(rpcMock.mock.calls[0][1]).sort()).toEqual(["week_from", "week_to"]);
+    expect(Object.keys(rpcMock.mock.calls[0][1]).sort()).toEqual(["from_household", "week_from", "week_to"]);
   });
 
   it("sends the chosen sublist, only its id", async () => {
@@ -66,8 +67,9 @@ describe("addWeekToList", () => {
 
     await addWeekToList(TO_BEACH);
 
-    expect(rpcMock).toHaveBeenCalledWith("add_week_to_list", {
+    expect(rpcMock).toHaveBeenCalledWith("add_plan_week_to_list", {
       target_list_id: "list-beach",
+      from_household: false,
       week_from: "2026-10-12",
       week_to: "2026-10-18",
     });
@@ -98,5 +100,19 @@ describe("addWeekToList", () => {
 
     await expect(addWeekToList(TO_GENERAL)).rejects.toThrow("no session");
     expect(rpcMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("addWeekToList: the family plan", () => {
+  it("asks for the family plan without sending which family", async () => {
+    rpcMock.mockResolvedValue({ data: EMPTY_ROW, error: null });
+
+    await addWeekToList({ ...TO_GENERAL, scope: PLAN_SCOPE.FAMILY });
+
+    expect(rpcMock).toHaveBeenCalledWith("add_plan_week_to_list", {
+      from_household: true,
+      week_from: "2026-10-12",
+      week_to: "2026-10-18",
+    });
   });
 });

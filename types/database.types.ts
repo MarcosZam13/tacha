@@ -412,6 +412,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "meal_plans_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "meal_plans_recipe_id_fkey"
             columns: ["recipe_id"]
             isOneToOne: false
@@ -909,7 +916,15 @@ export type Database = {
           owner_id?: string
           photo_path?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recipes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       search_cache: {
         Row: {
@@ -1166,6 +1181,15 @@ export type Database = {
         Args: { week_from: string; week_to: string }
         Returns: Json
       }
+      add_plan_week_to_list: {
+        Args: {
+          from_household: boolean
+          target_list_id?: string
+          week_from: string
+          week_to: string
+        }
+        Returns: Json
+      }
       add_week_to_list: {
         Args: { target_list_id?: string; week_from: string; week_to: string }
         Returns: Json
@@ -1173,6 +1197,16 @@ export type Database = {
       assert_local_day_start: {
         Args: { local_day_start: string }
         Returns: undefined
+      }
+      assign_household_meal_slot: {
+        Args: {
+          cook_user_id?: string
+          slot_date: string
+          slot_meal_type: string
+          slot_servings_multiplier: number
+          target_recipe_id: string
+        }
+        Returns: string
       }
       assign_meal_slot: {
         Args: {
@@ -1266,6 +1300,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      clear_household_meal_slot: {
+        Args: { slot_date: string; slot_meal_type: string }
+        Returns: undefined
+      }
+      copy_recipe: { Args: { target_recipe_id: string }; Returns: string }
       create_date_list: {
         Args: { list_event_date: string; list_name: string }
         Returns: {
@@ -1315,6 +1354,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_household_id: { Args: never; Returns: string }
       date_list_status_from_items: {
         Args: { target_list_id: string }
         Returns: string
@@ -1365,6 +1405,21 @@ export type Database = {
           is_current_user: boolean
           role: string
           user_id: string
+        }[]
+      }
+      get_household_meal_plan: {
+        Args: { plan_from: string; plan_to: string }
+        Returns: {
+          cook_is_current_user: boolean
+          cook_name: string
+          cook_user_id: string
+          meal_type: string
+          recipe_base_servings: number
+          recipe_id: string
+          recipe_name: string
+          servings_multiplier: number
+          slot_date: string
+          slot_id: string
         }[]
       }
       get_household_members_page: {
@@ -1436,6 +1491,10 @@ export type Database = {
           period_end: string
           period_start: string
         }[]
+      }
+      is_recipe_photo_in_use: {
+        Args: { target_photo_path: string }
+        Returns: boolean
       }
       leave_household: { Args: { new_admin_user_id?: string }; Returns: string }
       list_catalog_by_category: {
@@ -1699,6 +1758,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      share_recipe: { Args: { target_recipe_id: string }; Returns: string[] }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_purchase_session: {
