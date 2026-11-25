@@ -72,7 +72,11 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
     onPreviousWeek: (): void => setWeekOffset(WEEK_OFFSET.CURRENT),
     plan,
     // Con un diálogo abierto no se cambia de plan: guardaría en otro del que se ve.
-    planScope: { ...planScope, isDisabled: dialog.isOpen || weekAddition.isOpen },
+    planScope: {
+      ...planScope,
+      isDisabled: dialog.isOpen || weekAddition.isOpen,
+      isPlanLoading: !plan.isPlanReady && !plan.hasLoadError,
+    },
     rangeLabel,
     weekAddition,
     weekLabel: isNextWeek ? MEAL_PLANNER_TEXT.NEXT_WEEK : MEAL_PLANNER_TEXT.THIS_WEEK,

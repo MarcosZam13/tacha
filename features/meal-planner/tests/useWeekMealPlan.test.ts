@@ -210,4 +210,19 @@ describe("useWeekMealPlan: changing between plans", () => {
 
     await waitFor(() => expect(onHouseholdLost).toHaveBeenCalledTimes(1));
   });
+
+  it("does not show old data when coming back before the other plan answers", async () => {
+    const second = createPending<MealPlanEntry[]>();
+    getMealPlanMock.mockResolvedValueOnce([MONDAY_LUNCH]).mockReturnValueOnce(second.promise);
+    getHouseholdMealPlanMock.mockReturnValue(new Promise(() => undefined));
+    const { rerender, result } = renderScoped();
+    await waitFor(() => expect(result.current.isPlanReady).toBe(true));
+
+    rerender({ scope: PLAN_SCOPE.FAMILY });
+    rerender({ scope: PLAN_SCOPE.PERSONAL });
+
+    expect(result.current.isPlanReady).toBe(false);
+    await act(async () => second.resolve([]));
+    expect(result.current.isPlanReady).toBe(true);
+  });
 });

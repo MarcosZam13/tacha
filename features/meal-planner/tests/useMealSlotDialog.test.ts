@@ -505,6 +505,20 @@ describe("useMealSlotDialog: the family plan", () => {
     await waitFor(() => expect(hook.result.current.cooksStatus).toBe(COOK_OPTIONS_STATUS.READY));
     expect(hook.result.current.cookChoice).toBe(COOK_CHOICE.NONE);
     expect(hook.result.current.selectedRecipeId).toBe(FLAN.id);
+
+    await act(async () => hook.result.current.onSave());
+    expect(saveFamilySlotMock).toHaveBeenLastCalledWith(expect.objectContaining({ cookChoice: COOK_CHOICE.NONE }));
+  });
+
+  it("does not choose again a cook that left, even if the members cannot be loaded", async () => {
+    saveFamilySlotMock.mockResolvedValue({ kind: SAVE_SLOT_RESULT.COOK_GONE });
+    const hook = await openFamily(BETO_ENTRY);
+    getCooksMock.mockRejectedValue(new Error("network"));
+
+    await act(async () => hook.result.current.onSave());
+
+    await waitFor(() => expect(hook.result.current.cooksStatus).toBe(COOK_OPTIONS_STATUS.ERROR));
+    expect(hook.result.current.cookChoice).toBe(COOK_CHOICE.NONE);
   });
 
   it("says the recipe is no longer available", async () => {

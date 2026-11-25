@@ -60,6 +60,7 @@ export const createMealPlannerPage = () => {
     within(screen.getByRole("dialog")).findByRole("radio", { name: new RegExp(`^${recipeName}`) });
   const findPlanOption = (name: string): Promise<HTMLElement> => screen.findByRole("radio", { name });
   const queryPlanScope = (): HTMLElement | null => screen.queryByRole("group", { name: "Qué plan ver" });
+  const getPlanStatus = (): HTMLElement => within(screen.getByRole("group", { name: "Qué plan ver" })).getByRole("status");
   const querySlotButton = (name: string): HTMLElement | null => screen.queryByRole("button", { name });
   const findNotice = (): Promise<HTMLElement> => screen.findByRole("alert");
   const findDialogText = (text: string): Promise<HTMLElement> => inDialog().findByText(text);
@@ -205,6 +206,7 @@ export const createMealPlannerPage = () => {
     findDialogText,
     findNotice,
     findPlanOption,
+    getPlanStatus,
     queryPlanScope,
     querySlotButton,
     chooseRecipe,

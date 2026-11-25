@@ -70,9 +70,10 @@ describe("MealPlanner: the family plan", () => {
     await page.waitForEnabledSlot("Almuerzo del lunes 12: Sopa, cambiar");
     expect(page.getSlotButton("Almuerzo del lunes 12: Sopa, cambiar")).toHaveTextContent("Beto");
     expect(page.querySlotButton("Almuerzo del lunes 12: Arroz, cambiar")).not.toBeInTheDocument();
+    expect(page.getPlanStatus()).toHaveTextContent(/^Plan de la familia$/);
   });
 
-  it("lets the user choose a member as cook and cannot change of plan meanwhile", async () => {
+  it("shows the cook of the slot and cannot change of plan meanwhile", async () => {
     const page = renderPlanner();
     await page.choosePlan("Plan de la familia");
     await page.waitForEnabledSlot("Almuerzo del lunes 12: Sopa, cambiar");
@@ -101,6 +102,7 @@ describe("MealPlanner: the family plan", () => {
     await page.choosePlan("Plan de la familia");
 
     expect(await page.findNotice()).toHaveTextContent("Ya no formas parte de una familia. Te mostramos tu plan.");
+    expect(await page.findNotice()).toHaveFocus();
     expect(page.queryPlanScope()).not.toBeInTheDocument();
     await page.waitForEnabledSlot("Almuerzo del lunes 12: Arroz, cambiar");
   });

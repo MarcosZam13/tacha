@@ -148,7 +148,11 @@ export const useMealSlotDialog = ({
       return;
     }
     if (reason === SAVE_SLOT_RESULT.COOK_GONE) {
-      dispatch({ type: MEAL_SLOT_DIALOG_ACTION.SAVE_FAILED, errorMessage: MEAL_SLOT_TEXT.COOK_GONE });
+      dispatch({
+        type: MEAL_SLOT_DIALOG_ACTION.SAVE_FAILED,
+        cookChoice: COOK_CHOICE.NONE,
+        errorMessage: MEAL_SLOT_TEXT.COOK_GONE,
+      });
       cooks.reload();
       return;
     }

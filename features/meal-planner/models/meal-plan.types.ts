@@ -76,6 +76,6 @@ export type MealSlotDialogAction =
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.MULTIPLIER_INCREASED }
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.MULTIPLIER_DECREASED }
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.SAVE_STARTED }
-  | { type: typeof MEAL_SLOT_DIALOG_ACTION.SAVE_FAILED; errorMessage: string }
+  | { type: typeof MEAL_SLOT_DIALOG_ACTION.SAVE_FAILED; errorMessage: string; cookChoice?: CookChoiceType }
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.SAVE_SUCCEEDED }
   | { type: typeof MEAL_SLOT_DIALOG_ACTION.CLOSED };

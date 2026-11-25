@@ -56,7 +56,7 @@ export interface MealPlannerViewModel {
   /** El plan cargado (SCRUM-100): qué espacios tienen receta y si ya se puede tocar la grilla. */
   plan: Pick<WeekMealPlanViewModel, "getEntry" | "hasLoadError" | "isPlanReady" | "onPlanRetry">;
   /** "Mi plan" o "Plan de la familia" (SCRUM-162). */
-  planScope: PlanScopeViewModel & { isDisabled: boolean };
+  planScope: PlanScopeViewModel & { isDisabled: boolean; isPlanLoading: boolean };
   /** "12 – 18 oct"; null mientras no se conoce "hoy". */
   rangeLabel: NullableRef<string>;
   /** Agregar la semana a la lista (SCRUM-101): el botón, la confirmación y el aviso. */

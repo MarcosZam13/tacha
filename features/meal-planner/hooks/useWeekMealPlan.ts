@@ -63,6 +63,8 @@ export const useWeekMealPlan = ({ onHouseholdLost, range, scope }: UseWeekMealPl
 
     return () => {
       isCancelled = true;
+      // Al volver a este plan no se muestra lo viejo mientras se pide de nuevo.
+      setLoaded({ scope, state: LOADING_PLAN });
     };
   }, [fromDateKey, toDateKey, reloadKey, scope]);
 

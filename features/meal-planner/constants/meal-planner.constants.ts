@@ -263,6 +263,7 @@ export const PLAN_SCOPE_TEXT = {
   FAMILY: "Plan de la familia",
   HOUSEHOLD_LOST: "Ya no formas parte de una familia. Te mostramos tu plan.",
   LEGEND: "Qué plan ver",
+  LOADING_PREFIX: "Cargando:",
   PERSONAL: "Mi plan",
 } as const;
 

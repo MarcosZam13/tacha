@@ -1,13 +1,18 @@
 import { PLAN_SCOPE_FORM, PLAN_SCOPE_OPTIONS, PLAN_SCOPE_TEXT } from "../constants/meal-planner.constants";
 import type { PlanScopeSelectorProps } from "./models/PlanScopeSelectorProps.type";
 
+// Función del módulo: como no cambia en cada render, solo corre al montar.
+const focusOnMount = (element: HTMLElement | null): void => element?.focus();
+
 /**
  * "Mi plan" o "Plan de la familia". Sin familia no dibuja el selector, solo el
- * aviso si la acaba de perder. Solo presentación.
+ * aviso si la acaba de perder; el foco pasa a él, porque el selector desaparece.
+ * Solo presentación.
  */
 export const PlanScopeSelector = ({
   canChoose,
   isDisabled,
+  isPlanLoading,
   notice,
   onScopeChange,
   scope,
@@ -33,10 +38,15 @@ export const PlanScopeSelector = ({
             </label>
           ))}
         </div>
+        {/* Al cambiar de plan se dice cuál quedó y su carga. */}
+        <p role="status" className="sr-only">
+          {isPlanLoading ? `${PLAN_SCOPE_TEXT.LOADING_PREFIX} ` : ""}
+          {PLAN_SCOPE_OPTIONS.find((option) => option.value === scope)?.label}
+        </p>
       </fieldset>
     ) : null}
     {notice ? (
-      <p role="alert" className="font-body text-sm text-tacha-terracotta">
+      <p ref={focusOnMount} role="alert" tabIndex={-1} className="font-body text-sm text-tacha-terracotta">
         {notice}
       </p>
     ) : null}
