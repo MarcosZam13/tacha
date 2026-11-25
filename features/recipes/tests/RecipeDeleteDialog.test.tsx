@@ -16,6 +16,7 @@ const createProps = (overrides: Partial<RecipeDeleteDialogProps> = {}): RecipeDe
   onDeleteCancel: vi.fn(),
   onDeleteConfirm: vi.fn(),
   recipeName: "Tres leches",
+  sharedNotice: null,
   ...overrides,
 });
 
@@ -47,5 +48,14 @@ describe("RecipeDeleteDialog", () => {
     const page = createRecipeDeleteDialogPage();
 
     expect(page.getDeleteButton()).toBeEnabled();
+  });
+
+  it("warns that a family recipe is deleted for everyone, and only then", () => {
+    const { rerender } = render(<RecipeDeleteDialog {...createProps()} />);
+    const page = createRecipeDeleteDialogPage();
+    expect(page.querySharedNotice()).not.toBeInTheDocument();
+
+    rerender(<RecipeDeleteDialog {...createProps({ sharedNotice: "Se eliminará para toda tu familia." })} />);
+    expect(page.querySharedNotice()).toBeInTheDocument();
   });
 });

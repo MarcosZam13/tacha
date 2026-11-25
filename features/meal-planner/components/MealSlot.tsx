@@ -15,6 +15,9 @@ const ASSIGNED_SLOT_CLASS_NAME = `${SLOT_BASE_CLASS_NAME} flex flex-col gap-1 bo
  * contiene varias líneas y no una acción con texto de una línea (el compartido
  * es un pill). Su nombre accesible completo ("Almuerzo del lunes 12, vacío,
  * asignar") reemplaza al contenido para el lector de pantalla; el "+" es decorativo.
+ *
+ * Antes de abrir, el botón se enfoca a sí mismo: en Safari un clic no enfoca los botones, y el Modal
+ * compartido devuelve el foco al elemento enfocado al abrir (SCRUM-142, duda 7, opción B).
  */
 export const MealSlot = ({ entry, isDisabled, label, onOpen, slot }: MealSlotProps): React.JSX.Element => (
   <li>
@@ -22,7 +25,10 @@ export const MealSlot = ({ entry, isDisabled, label, onOpen, slot }: MealSlotPro
       type="button"
       aria-label={label}
       disabled={isDisabled}
-      onClick={(event) => onOpen(event.currentTarget)}
+      onClick={(event) => {
+        event.currentTarget.focus();
+        onOpen();
+      }}
       className={entry ? ASSIGNED_SLOT_CLASS_NAME : EMPTY_SLOT_CLASS_NAME}
     >
       {entry ? (

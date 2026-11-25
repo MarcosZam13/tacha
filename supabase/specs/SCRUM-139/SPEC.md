@@ -3,7 +3,7 @@
 Ticket: [SCRUM-139](https://tacha.atlassian.net/browse/SCRUM-139) · Dueño: Daniel Salas · Sprint 4
 Origen: encontrado en la revisión de QA de SCRUM-131 (2026-10-11). QA lo marcó explícitamente como no bloqueante para ese PR, pero a arreglar antes de que SCRUM-132 (ingesta mensual) empiece a traer categorías nuevas.
 
-Ver también: [docs/documento-proyecto.md §4.7](../../../docs/documento-proyecto.md#47-web-scraping--motor-de-datos-prioridad-alta-del-proyecto) (decisión de arquitectura, 2026-11-01) · [supabase/specs/SCRUM-131/SPEC.md §6](../SCRUM-131/SPEC.md) (comportamiento original de `normalize_staging_row`) · [docs/catalogo-scraping/DECISION-SCRUM-126-poblacion-del-catalogo.md](../../../docs/catalogo-scraping/DECISION-SCRUM-126-poblacion-del-catalogo.md) (mismo riesgo de falso positivo que ese documento ya advertía, ahora a nivel de categoría en vez de keyword) · [SCRUM-138/SPEC.md](../SCRUM-138/SPEC.md) (mismo origen, arreglar ambos antes de SCRUM-132)
+Ver también: [docs/documento-proyecto.md §4.7](../../../docs/documento-proyecto.md#47-web-scraping--motor-de-datos-prioridad-alta-del-proyecto) (decisión de arquitectura, 2026-11-01) · [supabase/specs/SCRUM-131/SPEC.md §6](../SCRUM-131/SPEC.md) (comportamiento original de `normalize_staging_row`) · [docs/catalogo-scraping/DECISION-SCRUM-126-poblacion-del-catalogo.md](../../../docs/catalogo-scraping/DECISION-SCRUM-126-poblacion-del-catalogo.md) (mismo riesgo de falso positivo que ese documento ya advertía, ahora a nivel de categoría en vez de keyword) · [SCRUM-138/SPEC.md](../SCRUM-138/SPEC.md) (mismo origen, arreglar ambos antes de SCRUM-132) · [SCRUM-132/SPEC.md](../SCRUM-132/SPEC.md) (depende de este ticket)
 
 ## 1. Intención
 

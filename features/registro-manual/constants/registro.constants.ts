@@ -1,3 +1,4 @@
+import { TERMS_ACCEPTANCE_LABEL } from "@/constants";
 import type { NullableUndefined } from "@/types/nullable.types";
 
 export const REGISTER_RESULT = {
@@ -130,9 +131,9 @@ export const VERIFICATION_LINK_PARAM = {
 } as const;
 
 export const TERMS_LABEL = {
-  CHECKBOX: "Acepto los términos y condiciones",
+  CHECKBOX: TERMS_ACCEPTANCE_LABEL.CHECKBOX,
   MODAL_TITLE: "Términos y condiciones",
-  VIEW_LINK: "Ver términos y condiciones",
+  VIEW_LINK: TERMS_ACCEPTANCE_LABEL.VIEW_LINK,
 } as const;
 
 // Placeholder hasta que el equipo redacte el texto legal real (ver Developer Notes del PR SCRUM-41).

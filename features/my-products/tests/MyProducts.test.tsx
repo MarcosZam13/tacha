@@ -3,22 +3,40 @@ import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CATALOG_CATEGORY_TEXT } from "@/constants";
 import { createPriceDisclaimerPage } from "@/components/price-disclaimer/tests/PriceDisclaimer.page";
-import type { CatalogProduct } from "@/types/catalog.types";
+import { getCategories } from "@/services/catalog.service";
+import { deletePersonalProduct, getPersonalProductUsage, hasHousehold } from "@/services/personal-product.service";
+import type { MyProduct } from "../models/my-products.interfaces";
 import { listMyProducts } from "../services/my-products.service";
+import { MY_PRODUCT_DELETE_TEXT } from "../constants/my-products.constants";
 import { MyProducts } from "../MyProducts";
 import { createMyProductsPage } from "./MyProducts.page";
 
 // Sin Supabase real: los productos salen de un servicio simulado.
 vi.mock("../services/my-products.service", () => ({ listMyProducts: vi.fn() }));
+// HU-58: editar y eliminar llaman a la base por estos servicios.
+vi.mock("@/services/catalog.service", () => ({ getCategories: vi.fn() }));
+vi.mock("@/services/personal-product.service", () => ({
+  createPersonalProduct: vi.fn(),
+  deletePersonalProduct: vi.fn(),
+  getPersonalProductUsage: vi.fn(),
+  hasHousehold: vi.fn(),
+  updatePersonalProduct: vi.fn(),
+}));
 const listMyProductsMock = vi.mocked(listMyProducts);
+const getCategoriesMock = vi.mocked(getCategories);
+const deletePersonalProductMock = vi.mocked(deletePersonalProduct);
+const getPersonalProductUsageMock = vi.mocked(getPersonalProductUsage);
+const hasHouseholdMock = vi.mocked(hasHousehold);
 
 afterEach(cleanup);
 
 beforeEach(() => {
-  listMyProductsMock.mockReset();
+  vi.resetAllMocks();
+  getCategoriesMock.mockResolvedValue([{ id: "category-1", name: "Lácteos" }]);
+  hasHouseholdMock.mockResolvedValue(false);
 });
 
-const MANUAL_PRODUCT: CatalogProduct = {
+const MANUAL_PRODUCT: MyProduct = {
   category: CATALOG_CATEGORY_TEXT.UNASSIGNED,
   productId: "product-1",
   productName: "Leche",
@@ -31,6 +49,17 @@ const MANUAL_PRODUCT: CatalogProduct = {
       variantId: "variant-1",
     },
   ],
+  editable: {
+    baseQuantity: 1000,
+    baseUnit: "ml",
+    brandName: null,
+    categoryId: "category-1",
+    name: "Leche",
+    productId: "product-1",
+    referencePrice: null,
+    referenceStoreName: null,
+    referenceStoreSlug: null,
+  },
 };
 
 describe("MyProducts", () => {
@@ -94,5 +123,42 @@ describe("MyProducts", () => {
     expect(
       (cardsList as HTMLElement).compareDocumentPosition(disclaimer.getDisclaimer()) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  // HU-58 (SCRUM-89) CA-01: editar abre el mismo formulario, precargado.
+  it("opens the edit form pre-filled from a card", async () => {
+    listMyProductsMock.mockResolvedValue([MANUAL_PRODUCT]);
+    render(<MyProducts />);
+    const page = createMyProductsPage();
+    await waitFor(() => expect(page.getEditButton("Leche")).toBeInTheDocument());
+
+    await page.clickEdit("Leche");
+
+    expect(await page.findEditDialog()).toBeInTheDocument();
+    expect(page.getNameInput().value).toBe("Leche");
+  });
+
+  // HU-58 CA-02: eliminar pide confirmación y avisa dónde se usa; al confirmar, refresca el listado.
+  it("asks before deleting, warns where the product is used and reloads after deleting", async () => {
+    // Primera carga con el producto; la recarga después de eliminar ya no lo trae.
+    listMyProductsMock.mockResolvedValueOnce([MANUAL_PRODUCT]).mockResolvedValueOnce([]);
+    getPersonalProductUsageMock.mockResolvedValue({ activeListCount: 1, groupCount: 0, recipeCount: 0 });
+    deletePersonalProductMock.mockResolvedValue("archived");
+    render(<MyProducts />);
+    const page = createMyProductsPage();
+    await waitFor(() => expect(page.getDeleteButton("Leche")).toBeInTheDocument());
+
+    await page.clickDelete("Leche");
+    const dialog = await page.findDeleteDialog();
+    expect(page.getTextInDialog(dialog, "Leche")).toBeInTheDocument();
+    expect(page.getTextInDialog(dialog, MY_PRODUCT_DELETE_TEXT.IRREVERSIBLE_NOTICE)).toBeInTheDocument();
+    expect(await page.findUsageNotice()).toHaveTextContent("1 lista activa");
+    expect(deletePersonalProductMock).not.toHaveBeenCalled();
+
+    await page.confirmDelete();
+
+    expect(deletePersonalProductMock).toHaveBeenCalledWith("product-1");
+    await waitFor(() => expect(listMyProductsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(page.queryCards()).toHaveLength(0));
   });
 });

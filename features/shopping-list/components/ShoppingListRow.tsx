@@ -32,6 +32,7 @@ import { ShoppingListShortfallNotes } from "./ShoppingListShortfallNotes";
  * fila debajo. Desde md vuelve a ser una sola línea, como antes.
  */
 export const ShoppingListRow = ({
+  assigneeSlot,
   onDecrease,
   onIncrease,
   onOpenDetail,
@@ -70,6 +71,7 @@ export const ShoppingListRow = ({
             notes={row.shortfallNotes}
           />
         ) : null}
+        {assigneeSlot}
       </div>
       <div className="flex items-center justify-end gap-1 px-3 pb-2 md:p-0">
         <QuantityStepper

@@ -1,4 +1,9 @@
-import { RECIPE_EDITOR_ACTION, RECIPE_EDITOR_STATUS, RECIPE_EDITOR_TEXT } from "../constants/recipes.constants";
+import {
+  RECIPE_AUDIENCE,
+  RECIPE_EDITOR_ACTION,
+  RECIPE_EDITOR_STATUS,
+  RECIPE_EDITOR_TEXT,
+} from "../constants/recipes.constants";
 import type { RecipeEditorAction } from "../models/recipe-editor.types";
 import type { RecipeEditorErrors, RecipeEditorIngredient, RecipeEditorState } from "../models/recipe-editor.interfaces";
 
@@ -10,10 +15,15 @@ const NO_ERRORS: RecipeEditorErrors = { quantityByProductId: {} };
  * hacer un dispatch síncrono para "empezar a cargar").
  */
 export const createInitialRecipeEditorState = (isEditingExistingRecipe: boolean): RecipeEditorState => ({
+  audience: RECIPE_AUDIENCE.PERSONAL,
   errors: NO_ERRORS,
   hasChanges: false,
+  hasLostHousehold: false,
   ingredientNotice: null,
+  isShared: false,
   saveErrorMessage: null,
+  savedPhoto: null,
+  savedRecipeId: null,
   status: isEditingExistingRecipe ? RECIPE_EDITOR_STATUS.LOADING : RECIPE_EDITOR_STATUS.EDITING,
   values: { baseServings: "", ingredients: [], name: "" },
 });
@@ -42,13 +52,24 @@ const updateIngredient = (
 export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEditorAction): RecipeEditorState => {
   switch (action.type) {
     case RECIPE_EDITOR_ACTION.LOADED:
-      return { ...state, hasChanges: false, status: RECIPE_EDITOR_STATUS.EDITING, values: action.values };
+      return {
+        ...state,
+        audience: action.isShared ? RECIPE_AUDIENCE.FAMILY : RECIPE_AUDIENCE.PERSONAL,
+        hasChanges: false,
+        isShared: action.isShared,
+        savedPhoto: action.photo,
+        status: RECIPE_EDITOR_STATUS.EDITING,
+        values: action.values,
+      };
 
     case RECIPE_EDITOR_ACTION.NOT_FOUND:
       return { ...state, status: RECIPE_EDITOR_STATUS.NOT_FOUND };
 
     case RECIPE_EDITOR_ACTION.LOAD_FAILED:
       return { ...state, status: RECIPE_EDITOR_STATUS.LOAD_FAILED };
+
+    case RECIPE_EDITOR_ACTION.AUDIENCE_CHANGED:
+      return { ...state, audience: action.audience, hasChanges: true };
 
     case RECIPE_EDITOR_ACTION.NAME_CHANGED:
       return {
@@ -123,7 +144,18 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
 
     case RECIPE_EDITOR_ACTION.SAVE_FAILED:
       // Vuelve a editar con todo lo escrito intacto, para poder reintentar.
-      return { ...state, saveErrorMessage: RECIPE_EDITOR_TEXT.SAVE_ERROR, status: RECIPE_EDITOR_STATUS.EDITING };
+      return { ...state, saveErrorMessage: action.message, status: RECIPE_EDITOR_STATUS.EDITING };
+
+    case RECIPE_EDITOR_ACTION.SAVED_PARTIALLY:
+      // La receta quedó guardada: se recuerda su id para que reintentar no cree otra.
+      return {
+        ...state,
+        audience: action.hasLostHousehold ? RECIPE_AUDIENCE.PERSONAL : state.audience,
+        hasLostHousehold: action.hasLostHousehold,
+        saveErrorMessage: action.message,
+        savedRecipeId: action.recipeId,
+        status: RECIPE_EDITOR_STATUS.EDITING,
+      };
 
     default:
       return state;

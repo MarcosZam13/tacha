@@ -10,15 +10,16 @@ import {
 } from "../constants/social-sign-up.constants";
 import { completeSocialSignUp, startSocialSignUp } from "../services/social-sign-up.service";
 
-const { getUser, signInWithOAuth, unlinkIdentity, updateUser } = vi.hoisted(() => ({
+const { getUser, refreshSession, signInWithOAuth, unlinkIdentity, updateUser } = vi.hoisted(() => ({
   getUser: vi.fn(),
+  refreshSession: vi.fn(),
   signInWithOAuth: vi.fn(),
   unlinkIdentity: vi.fn(),
   updateUser: vi.fn(),
 }));
 
 vi.mock("@/services/supabase.client", () => ({
-  getSupabaseClient: () => ({ auth: { getUser, signInWithOAuth, unlinkIdentity, updateUser } }),
+  getSupabaseClient: () => ({ auth: { getUser, refreshSession, signInWithOAuth, unlinkIdentity, updateUser } }),
 }));
 vi.mock("@/services/session.service", () => ({ signOutUser: vi.fn() }));
 
@@ -45,6 +46,7 @@ beforeEach(() => {
   window.sessionStorage.clear();
   window.history.replaceState(null, "", AUTH_ROUTE.SOCIAL_SIGN_UP);
   updateUser.mockResolvedValue({ error: null });
+  refreshSession.mockResolvedValue({ error: null });
 });
 
 describe("startSocialSignUp", () => {
@@ -71,29 +73,16 @@ describe("startSocialSignUp", () => {
 });
 
 describe("completeSocialSignUp", () => {
-  // CA-05
-  it("saves the completed mark and keeps the session of a new account", async () => {
+  // CA-05 y SCRUM-43: la marca la guarda el formulario, no el retorno.
+  it("keeps the session of a new account without saving the completed mark", async () => {
     markFlowAsPending();
     mockUser();
 
     const result = await completeSocialSignUp();
 
     expect(result).toBe(SOCIAL_SIGN_UP_STATUS.SUCCESS);
-    expect(updateUser).toHaveBeenCalledWith({
-      data: { [SOCIAL_SIGN_UP_COMPLETED_KEY]: expect.any(String) },
-    });
+    expect(updateUser).not.toHaveBeenCalled();
     expect(signOutUser).not.toHaveBeenCalled();
-  });
-
-  it("closes the session when the completed mark cannot be saved", async () => {
-    markFlowAsPending();
-    mockUser();
-    updateUser.mockResolvedValue({ error: new Error("failed") });
-
-    const result = await completeSocialSignUp();
-
-    expect(result).toBe(SOCIAL_SIGN_UP_STATUS.ERROR);
-    expect(signOutUser).toHaveBeenCalledOnce();
   });
 
   // CA-04
@@ -141,10 +130,39 @@ describe("completeSocialSignUp", () => {
   });
 
   it("does not touch the session when the page was opened directly", async () => {
+    mockUser({ app_metadata: { provider: "email" } });
+
     const result = await completeSocialSignUp();
 
     expect(result).toBe(SOCIAL_SIGN_UP_STATUS.ERROR);
-    expect(getUser).not.toHaveBeenCalled();
+    expect(signOutUser).not.toHaveBeenCalled();
+  });
+
+  // SCRUM-43: volver con "atrás" desde el formulario pasa otra vez por esta página sin la marca del flujo.
+  it("sends an account that has not completed its sign up back to the form", async () => {
+    mockUser({ app_metadata: { provider: SOCIAL_PROVIDER.GOOGLE } });
+
+    const result = await completeSocialSignUp();
+
+    expect(result).toBe(SOCIAL_SIGN_UP_STATUS.SUCCESS);
+    expect(signOutUser).not.toHaveBeenCalled();
+  });
+
+  // SCRUM-43: al volver con "atrás", el proveedor puede repetir una autorización vieja y Supabase vuelve con error.
+  it("sends a pending account back to the form even when the provider returns an error", async () => {
+    window.history.replaceState(null, "", `${AUTH_ROUTE.SOCIAL_SIGN_UP}?error=invalid_request`);
+    mockUser({ app_metadata: { provider: SOCIAL_PROVIDER.GOOGLE } });
+
+    const result = await completeSocialSignUp();
+
+    expect(result).toBe(SOCIAL_SIGN_UP_STATUS.SUCCESS);
+    expect(signOutUser).not.toHaveBeenCalled();
+  });
+
+  it("reports an error without a session when the page was opened directly", async () => {
+    getUser.mockResolvedValue({ data: { user: null }, error: new Error("no session") });
+
+    expect(await completeSocialSignUp()).toBe(SOCIAL_SIGN_UP_STATUS.ERROR);
     expect(signOutUser).not.toHaveBeenCalled();
   });
 

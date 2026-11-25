@@ -18,14 +18,14 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 Bloqueado / pendiente de decisión del equipo:
 
 - [ ] Enganchar `/recetas` al sidebar cuando exista (ver SPEC, fuera de alcance).
-- [ ] Integración con households (ver [plan.md](plan.md#integración-con-households-pendiente)).
+- [x] Integración con households: SCRUM-162.
 
 ## Pendiente cuando el proyecto tenga runner de tests
 
-- [ ] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
-- [ ] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
-- [ ] Tests de `hooks/useRecipeDeletion.ts` y de tarjeta + diálogo con Page Object (SCRUM-96).
-- [ ] Tests de `utils/toAddRecipeToListResponse.ts`, `utils/toAddToListSummaryText.ts` y `hooks/useRecipeListAddition.ts` (SCRUM-97).
+- [x] Tests unitarios de `utils/toRecipeSummary.ts` y `utils/formatServings.ts`, según unit-testing-standards.
+- [x] Tests unitarios de `utils/recipe-editor.reducer.ts`, `utils/validateRecipeForm.ts` y `utils/toSaveRecipePayload.ts` (SCRUM-95).
+- [x] Tests de `hooks/useRecipeDeletion.ts` y de tarjeta + diálogo con Page Object (SCRUM-96).
+- [x] Tests de `utils/toAddRecipeToListResponse.ts`, `utils/toAddToListSummaryText.ts` y `hooks/useRecipeListAddition.ts` (SCRUM-97).
 
 ## SCRUM-95: crear o editar una receta
 
@@ -105,3 +105,55 @@ Bloqueado / fuera de esta historia:
 
 - [ ] Inventario o despensa ("en casa"): sin historia ni tabla (SPEC §14).
 - [ ] Recalcular el faltante si cambia la lista: SCRUM-115.
+
+## SCRUM-161: foto de una receta
+
+- [x] 1. SPEC (sección 16; decisiones del responsable del 2026-11-24).
+- [x] 2. Plan y tareas.
+- [x] 3. Migración `059_recipe_photos.sql`: columna, permiso, `set_recipe_photo`, bucket y políticas. Revisar el número libre antes de crearla y antes del merge.
+- [x] 4. Prueba SQL `supabase/tests/059_recipe_photos.test.sql` con rollback: los casos SQL de SPEC 16.10, más una receta cuyo nombre parece una ruta y una carpeta que no es un uuid.
+- [x] 5. Aplicar la `059` (Roberto, SQL Editor: avisar al grupo, ensayo con la prueba y rollback, después con su fila `059`), correr la `059` y la `036`, y comparar lo nuevo de `types/database.types.ts` (escrito a mano) con lo que genera Supabase. Bloquea la validación, no el código del cliente. Aplicada por Roberto (con la función actualizada a `default null`); la `059` pasa en Supabase. La `036` se corrigió porque Storage ahora bloquea el delete directo, y también pasa en Supabase.
+- [x] 6. Promover el mapa de tipos MIME a `constants/image-files.constants.ts` (+ barrel). Los tests del perfil pasan igual.
+- [x] 7. Constantes y modelos: cambio de foto, límites, textos, bucket, RPC, estados.
+- [x] 8. Utils puros, con tests primero: `validateRecipePhoto`, `toRecipeSummary`, `toRecipeEditorValues` y el reducer (foto fallida, id guardado).
+- [x] 9. `recipe-photos.service.ts` y su test: firmar (vacío, error), guardar (subir, quitar, RPC que falla y limpia, receta que ya no existe, limpieza que falla) y borrar.
+- [x] 10. `recipes.service.ts` y su test: enlaces en una petición, catálogo sin enlaces si fallan, eliminar con y sin foto.
+- [x] 11. `useRecipePhoto` y su test (elegir, cambiar, quitar las dos formas, error, liberar la vista previa).
+- [x] 12. `useRecipeEditor` y `useRecipeEditorViewModel` con sus tests (orden, foto fallida sin navegar, reintento que no duplica, doble clic, sin cambio de foto).
+- [x] 13. Presentación: `RecipePhoto`, `RecipePhotoField`, `RecipeCard` y `RecipeEditor`; tests con Page Object (la tarjeta y el editor).
+- [x] 14. Tests pendientes: `formatServings`, `validateRecipeForm` y `toSaveRecipePayload`. Con los de las tareas 8 y 13 se cierran las casillas de SCRUM-94 y 95 de este archivo.
+- [x] 15. `docs/documento-proyecto.md` §6.
+- [x] 16. `E2E.md` y `e2e/features/recipes/`: crear con foto y verla tras recargar, quitarla, rechazar un archivo inválido, y foto que falla sin duplicar la receta. Cada test elimina su receta desde la pantalla.
+- [x] 17. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y los E2E de recetas y del planificador (usa recetas); validar SPEC 16.10 en el navegador (desktop y 360 px), incluido que el archivo se borra del bucket. (Hecho el 2026-11-24: E2E de recetas 10 de 10 y planificador 06 a 10 en chromium; bucket real con dos usuarios; escritorio y 360 px.)
+- [ ] 18. (Revisores hechos el 2026-11-24: código sin bloqueantes, corregido cuándo se borra la foto recién subida; seguridad sin Críticos ni Altos y dos Medios aceptados en el plan. Faltan los pasos de la PR y la revisión de Esteban.) `code-reviewer` y `security-reviewer` en paralelo, correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Esteban (toca `features/profile/`).
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Compartir recetas y su foto con la familia (D1), y decidir antes si se quitan los metadatos de ubicación.
+- [ ] Borrar `recipes.image_url`: cuando `main` ya no la lea.
+
+## SCRUM-162: compartir recetas con la familia
+
+- [x] 1. SPEC (sección 17; decisiones del responsable del 2026-11-24).
+- [x] 2. Plan y tareas.
+- [x] 3. Migración `060_share_recipes.sql` (plan, puntos 1 a 11). Revisar el número libre antes de crearla y antes del merge.
+- [x] 4. Prueba SQL `supabase/tests/060_share_recipes.test.sql` con rollback: los casos SQL de SPEC 17.10 con todos los roles. Probarla en un Postgres local y con mutaciones (quitar cada regla la hace fallar). Volver a correr 013/019/022/023/024/026/033/037/058/059 y adaptar las que den por hecho "solo el dueño".
+- [x] 5. Avisar a Laura (trigger sobre `household_members`) y al responsable de productos (deuda). Aplicar la `060` (Roberto, SQL Editor: ensayo con rollback, después con su fila) y sumar lo nuevo a `types/database.types.ts`.
+- [x] 6. Constantes y modelos: destino, resultados del guardado, textos, RPC, estados de copia.
+- [x] 7. `removePhotoMetadata` y su test (tipo, tamaño, límite, imagen que no se puede leer).
+- [x] 8. `recipe-photos.service.ts`: limpiar al subir y limpiar la guardada; tests.
+- [x] 9. `recipe-sharing.service.ts` y `recipes.service.ts` con sus tests (sin familia, productos personales, receta que no se ve).
+- [x] 10. `recipe-save.service.ts` y su test: orden y los siete desenlaces.
+- [x] 11. Reducer, `useRecipeEditor` y su ViewModel, con tests (reintento que no duplica, destino fijo, sin familia).
+- [x] 12. `useRecipeCopy` y el ViewModel del catálogo, con tests (doble clic, error, recarga fallida).
+- [x] 13. Presentación: `RecipeAudienceField`, `RecipeCopyAction`, tarjeta, diálogo y editor; tests con Page Object. Verificar que un ingrediente sin producto visible no rompe las pantallas.
+- [x] 14. `docs/documento-proyecto.md` §6; marcar como resueltos los pendientes de household en esta carpeta y en `features/meal-planner/specs/`.
+- [x] 15. `E2E.md` y E2E: sin familia no hay selector; una foto subida queda sin metadatos. Lo de varios usuarios, en SQL y a mano.
+- [x] 16. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E de recetas y planificador; validar SPEC 17.10 en el navegador (desktop y 360 px).
+- [x] 17. `code-reviewer` y `security-reviewer` en paralelo, correcciones, pasos de prueba manual con dos cuentas y `waiting qa`.
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Plan semanal compartido y cocinero miembro: se sumó a SCRUM-162 (`features/meal-planner/specs/` §18).
+- [ ] Error previo hallado al probar: la lista de la familia no carga si tiene un producto personal de otro miembro (módulo de listas; reportado aparte).
+- [ ] Que borrar una cuenta no borre lo compartido con su familia.

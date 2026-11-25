@@ -6,6 +6,8 @@ import { DATE_LIST_ITEM_ICON, DATE_LIST_TEXT } from "../constants/date-lists.con
 import type { DateListItem } from "../models/DateList.interface";
 
 interface DateListItemRowProps {
+  /** El campo "Encargado" (SCRUM-108), que arma la pantalla; la fila solo le da su lugar. */
+  assigneeSlot?: React.ReactNode;
   isDisabled: boolean;
   item: DateListItem;
   onDecrease: () => void;
@@ -20,6 +22,7 @@ interface DateListItemRowProps {
  * y eliminar como ícono rojo sin borde, con "Eliminar" como nombre accesible.
  */
 export const DateListItemRow = ({
+  assigneeSlot,
   isDisabled,
   item,
   onDecrease,
@@ -34,7 +37,7 @@ export const DateListItemRow = ({
       isDisabled={isDisabled}
       onChange={onToggle}
     />
-    <span className="min-w-0 flex-1">
+    <div className="flex min-w-0 flex-1 flex-col">
       <span
         title={item.productName}
         className={`line-clamp-2 font-body text-sm text-tacha-text ${item.isChecked ? "line-through" : ""}`}
@@ -42,7 +45,8 @@ export const DateListItemRow = ({
         {item.productName}
       </span>
       <span className="block font-body text-xs text-tacha-textsec">{item.sizeLabel}</span>
-    </span>
+      {assigneeSlot}
+    </div>
     {item.isChecked ? null : (
       <QuantityStepper
         canDecrease={!isDisabled && item.quantity > ITEM_QUANTITY.MIN}

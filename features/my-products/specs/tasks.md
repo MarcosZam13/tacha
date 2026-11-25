@@ -85,3 +85,91 @@ volver a marcarlas). Sección 6 en adelante: SCRUM-87 / HU-56.
 - [X] 11.3 Subagente `code-reviewer` (siempre) y `security-reviewer` (toca auth/household/formularios — obligatorio según `AGENTS.md`) — hallazgos y resolución en `plan.md`/`SPEC.md` (migración 032) y en el historial del chat
 - [ ] 11.4 Comentario en Jira SCRUM-88 (HU-57) señalando dónde quedó el formulario, para cuando se agreguen los campos de tienda/precio
 - [ ] 11.5 Descripción del PR (incluyendo "How should this be manually tested?") y paso de label `in progress` → `waiting qa`
+
+---
+
+# SCRUM-88 (HU-57): tienda y precio de referencia
+
+## 12. Spec y datos
+
+- [X] 12.1 Secciones HU-57 en `SPEC.md` y `plan.md`
+- [X] 12.2 `supabase/migrations/051_personal_product_reference_price.sql` (número libre re-verificado contra la base y las ramas abiertas el 2026-11-17)
+- [X] 12.3 `supabase/tests/051_personal_product_reference_price.test.sql`
+- [X] 12.4 Avisar al grupo y aplicar 051 en la base compartida (SQL Editor, con su fila del historial — `supabase/README.md#migraciones`); correr la prueba SQL
+- [X] 12.5 `types/database.types.ts`: columnas y parámetros nuevos
+
+## 13. Formulario
+
+- [X] 13.1 Constantes: textos, errores, opciones de tienda, largo máximo, aviso CA-02
+- [X] 13.2 `createPersonalProduct` con precio y tienda
+- [X] 13.3 `useCreateProductForm`: estado y validación de tienda, nombre y precio
+- [X] 13.4 `CreateProductForm`: selector de tienda, campo de nombre condicional, campo de precio
+
+## 14. Mostrar el precio
+
+- [X] 14.1 `listMyProducts()` lee precio y tienda
+- [X] 14.2 `toCatalogCards` + `CatalogCard`: precio con ícono "i", aviso y tienda
+- [X] 14.3 Detalle: `getCatalogVariantDetail` + `ProductDetailReferencePrice`
+
+## 15. Tests
+
+- [X] 15.1 Unitarios: hook, formulario, servicios, `toCatalogCards`, tarjeta, detalle
+- [X] 15.2 `specs/E2E.md` (E2E-MISPROD-nn) y `e2e/features/my-products/my-products.spec.ts`
+- [X] 15.3 Correr los E2E con 051 aplicada
+
+## 16. Cierre
+
+- [X] 16.1 `docs/documento-proyecto.md` §4.5.1 y §6 corregidos
+- [X] 16.2 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`
+- [X] 16.3 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
+- [ ] 16.4 Descripción del PR y paso a `waiting qa`
+
+---
+
+# SCRUM-89 (HU-58): editar o eliminar
+
+## 17. Spec y datos
+
+- [X] 17.1 Secciones HU-58 en `SPEC.md` y `plan.md`
+- [X] 17.2 `supabase/migrations/052_edit_delete_personal_products.sql` (052: 051 la tiene SCRUM-88, PR #110)
+- [X] 17.3 `supabase/tests/052_edit_delete_personal_products.test.sql`
+- [X] 17.4 Avisar al grupo y aplicar 052 en la base compartida (`supabase/README.md#migraciones`)
+- [X] 17.6 `supabase/migrations/053_fix_personal_product_variant_name.sql`: la prueba SQL mostró que editar dejaba "500.00 g" en el nombre de la variante; avisar al grupo y aplicarla
+- [X] 17.7 Correr la prueba SQL con 052 y 053 aplicadas
+- [X] 17.5 `types/database.types.ts`
+
+## 18. Editar
+
+- [X] 18.1 `updatePersonalProduct` en el servicio
+- [X] 18.2 Modo edición en `useCreateProductForm` y `CreateProductForm`
+- [X] 18.3 `listMyProducts()` trae categoría y marca
+
+## 19. Eliminar
+
+- [X] 19.1 `deletePersonalProduct` y `getPersonalProductUsage` en el servicio
+- [X] 19.2 `useMyProductDeletion`, `toUsageNoticeText`, `MyProductDeleteDialog`
+- [X] 19.3 `listMyProducts()` no lista archivados
+
+## 20. Pantalla
+
+- [X] 20.1 `CatalogCard` con `actions` fuera del link
+- [X] 20.2 `MyProductCardActions` y conexión en `MyProducts.tsx`
+
+## 21. Tests
+
+- [X] 21.1 Unitarios: servicio, hook del formulario (edición), `useMyProductDeletion`, `toUsageNoticeText`, tarjeta, pantalla
+- [X] 21.2 `specs/E2E.md` y `e2e/features/my-products/my-products.spec.ts`
+- [X] 21.3 Correr los E2E con 052 y 053 aplicadas
+
+## 22. Cierre
+
+- [X] 22.1 `docs/documento-proyecto.md` §6
+- [X] 22.2 Subagentes `code-reviewer`, `security-reviewer`, `qa-checker`
+- [X] 22.3 Cuando se mergee SCRUM-88: editar tienda y precio (la PR que entre segunda los cablea)
+  - [X] 22.3.1 Merge de `develop` con SCRUM-88 y resolución de conflictos
+  - [X] 22.3.2 `supabase/migrations/055_update_personal_product_reference_price.sql` y su prueba SQL; caso 1 de la prueba de 052 con la firma nueva
+  - [X] 22.3.3 Avisar al grupo, aplicar 055 en la base compartida y correr las pruebas SQL de 052 y 055
+  - [X] 22.3.4 Servicio, `EditablePersonalProduct`, listado y `useCreateProductForm`: precarga y guarda tienda y precio
+  - [X] 22.3.5 Unitarios y E2E-MISPROD-06
+  - [X] 22.3.6 Correr los E2E de "Mis productos" con 055 aplicada
+- [ ] 22.4 Descripción del PR y paso a `waiting qa`

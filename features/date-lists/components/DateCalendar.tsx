@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui";
+import { DATE_LIST_STATUS } from "@/constants";
 import {
   DATE_CALENDAR,
   DATE_CALENDAR_ICON,
-  DATE_LIST_STATUS,
   DATE_LIST_STATUS_DOT,
   DATE_LIST_STATUS_LABEL,
   DATE_LIST_STATUS_MARK,
@@ -14,7 +14,7 @@ import type { DateCalendarViewModel } from "../hooks/useDateCalendar";
 import type { DateList } from "../models/DateList.interface";
 import type { CalendarDay } from "../utils/calendarMonth";
 import { formatEventDate } from "../utils/eventDate";
-import { toDateListPath } from "../utils/toDateListPath";
+import { toDateListPath } from "@/utils/toDateListPath";
 
 interface DateCalendarProps {
   calendar: DateCalendarViewModel;

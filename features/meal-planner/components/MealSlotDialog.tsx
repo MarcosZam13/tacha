@@ -18,13 +18,17 @@ export const MealSlotDialog = ({
   canIncreaseServings,
   canSave,
   cookChoice,
+  cookOptions,
+  cooksStatus,
   errorMessage,
   isAssigned,
   isOpen,
   isSaving,
   multiplierLabel,
+  noRecipesText,
   onClose,
   onCookChange,
+  onCooksRetry,
   onMultiplierDecrease,
   onMultiplierIncrease,
   onRecipeChoose,
@@ -44,13 +48,21 @@ export const MealSlotDialog = ({
 
       <MealSlotRecipeList
         isSaving={isSaving}
+        noRecipesText={noRecipesText}
         onRecipeChoose={onRecipeChoose}
         onRecipesRetry={onRecipesRetry}
         recipeOptions={recipeOptions}
         recipesStatus={recipesStatus}
         selectedRecipeId={selectedRecipeId}
       />
-      <MealSlotCookField cookChoice={cookChoice} isSaving={isSaving} onCookChange={onCookChange} />
+      <MealSlotCookField
+        cookChoice={cookChoice}
+        cookOptions={cookOptions}
+        cooksStatus={cooksStatus}
+        isSaving={isSaving}
+        onCookChange={onCookChange}
+        onCooksRetry={onCooksRetry}
+      />
       <MealSlotServingsField
         canDecreaseServings={canDecreaseServings}
         canIncreaseServings={canIncreaseServings}

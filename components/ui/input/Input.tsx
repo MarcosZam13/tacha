@@ -19,6 +19,7 @@ export const Input = ({
   errorMessage,
   placeholder,
   type = "text",
+  inputMode,
   isRequired = false,
   combobox,
 }: InputProps): React.JSX.Element => {
@@ -42,6 +43,7 @@ export const Input = ({
       <input
         id={inputId}
         type={type}
+        inputMode={inputMode}
         value={value}
         placeholder={placeholder}
         required={isRequired}

@@ -8,6 +8,8 @@ import { PriceDisclaimer } from "@/components/price-disclaimer/PriceDisclaimer";
 import { CATALOG_TAB, CATALOG_TABS_TEXT } from "@/constants";
 import { CREATE_PRODUCT_FORM_TEXT } from "@/constants/create-product-form.constants";
 import { useCreateProductForm } from "@/hooks/useCreateProductForm";
+import { MyProductCardActions } from "./components/MyProductCardActions";
+import { MyProductDeleteDialog } from "./components/MyProductDeleteDialog";
 import { MyProductsEmptyState } from "./components/MyProductsEmptyState";
 import { MY_PRODUCTS_STATUS, MY_PRODUCTS_TEXT } from "./constants/my-products.constants";
 import { useMyProductsViewModel } from "./hooks/useMyProductsViewModel";
@@ -20,6 +22,9 @@ import { useMyProductsViewModel } from "./hooks/useMyProductsViewModel";
  * título (SPEC.md §8) — abre su propia instancia de CreateProductForm;
  * al crear con éxito, refresca el listado (viewModel.reload()) para que el
  * producto nuevo se vea de inmediato, sin recargar la página.
+ *
+ * HU-58 (SCRUM-89): cada tarjeta lleva "Editar" (abre el mismo formulario,
+ * precargado) y "Eliminar" (abre el diálogo de confirmación).
  */
 export const MyProducts = (): React.JSX.Element => {
   const viewModel = useMyProductsViewModel();
@@ -46,8 +51,18 @@ export const MyProducts = (): React.JSX.Element => {
       {viewModel.status === MY_PRODUCTS_STATUS.EMPTY ? <MyProductsEmptyState /> : null}
       {viewModel.status === MY_PRODUCTS_STATUS.READY ? (
         <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {viewModel.cards.map((card) => (
-            <CatalogCard key={card.id} card={card} />
+          {viewModel.items.map(({ card, product }) => (
+            <CatalogCard
+              key={card.id}
+              card={card}
+              actions={
+                <MyProductCardActions
+                  productName={product.name}
+                  onEdit={() => createProductForm.onOpenEdit(product)}
+                  onDelete={() => viewModel.deletion.onDeleteRequest(product)}
+                />
+              }
+            />
           ))}
         </ul>
       ) : null}
@@ -56,6 +71,7 @@ export const MyProducts = (): React.JSX.Element => {
       <PriceDisclaimer />
 
       <CreateProductForm {...createProductForm} />
+      <MyProductDeleteDialog {...viewModel.deletion} />
     </div>
   );
 };

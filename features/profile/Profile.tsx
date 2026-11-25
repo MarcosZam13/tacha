@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui";
 import { AVATAR_SIZE } from "@/constants";
 import { ProfileChangePasswordLink } from "./components/ProfileChangePasswordLink";
 import { ProfileForm } from "./components/ProfileForm";
+import { ProfileSettingsLink } from "./components/ProfileSettingsLink";
 import { PROFILE_TEXT } from "./constants/profile.constants";
 import { useProfileViewModel } from "./hooks/useProfileViewModel";
 
@@ -31,6 +32,8 @@ export const Profile = (): React.JSX.Element => {
       </header>
       {isLoading ? <Spinner /> : <ProfileForm {...formViewModel} />}
       <ProfileChangePasswordLink />
+      {/* Configuración (SCRUM-108): los ajustes por lista, entre cambiar contraseña y cerrar sesión. */}
+      <ProfileSettingsLink />
       {/* Cerrar sesión (SCRUM-55), al final y siempre a la vista: en mobile es el lugar del criterio ("Más → Perfil"). */}
       <div>
         <SignOutButton />

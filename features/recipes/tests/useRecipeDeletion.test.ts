@@ -11,8 +11,8 @@ vi.mock("../services/recipes.service", () => ({
 const countMock = vi.mocked(countRecipeMealPlans);
 const deleteMock = vi.mocked(deleteRecipe);
 
-const FLAN = { id: "recipe-flan", name: "Flan" };
-const ARROZ = { id: "recipe-arroz", name: "Arroz con leche" };
+const FLAN = { id: "recipe-flan", isShared: false, name: "Flan" };
+const ARROZ = { id: "recipe-arroz", isShared: false, name: "Arroz con leche" };
 
 const onDeletedMock = vi.fn();
 

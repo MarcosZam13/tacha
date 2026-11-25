@@ -1,10 +1,12 @@
 import type { Session } from "@supabase/supabase-js";
 import type { CatalogBaseUnitType } from "@/constants";
 import { CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
+import { STORE_NAMES } from "@/constants/stores.constants";
+import type { StoreSlug } from "@/constants/stores.constants";
 import { getSupabaseClient } from "@/services/supabase.client";
-import type { CatalogProduct } from "@/types/catalog.types";
-import type { NullableRef } from "@/types/nullable.types";
+import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
 import { MY_PRODUCTS_DB } from "../constants/my-products.constants";
+import type { MyProduct } from "../models/my-products.interfaces";
 
 // Consulta propia y mínima a household_members: no se reutiliza
 // getHouseholdMembership() de features/household porque esa función expone
@@ -38,8 +40,11 @@ const toCatalogProduct = (productRow: {
     base_unit: string;
     base_quantity: number;
     image_url: NullableRef<string>;
+    reference_price: NullableRef<number>;
+    reference_store_name: NullableRef<string>;
+    stores: NullableRef<{ display_name: string; slug: string }>;
   }[];
-}): CatalogProduct => ({
+}): Omit<MyProduct, "editable"> => ({
   // "Mis productos" todavía no asigna categoría (HU-55; el selector es
   // SCRUM-87) ni la muestra en esta pantalla: category queda sin asignar,
   // sin consultar categories, hasta que haga falta de verdad (HU-52 solo
@@ -52,27 +57,76 @@ const toCatalogProduct = (productRow: {
     // base_unit es text en la base; el check de la migración garantiza que es uno de los valores de CATALOG_BASE_UNIT.
     baseUnit: variantRow.base_unit as CatalogBaseUnitType,
     imageUrl: variantRow.image_url,
-    // Sin RPC de precio para productos manuales todavía (HU-57): toCatalogCards
-    // ya sabe mostrar "Sin precio disponible" cuando el rango viene vacío.
+    // Un producto personal nunca tiene precios del scraping: su único precio
+    // es el de referencia que anotó el usuario (HU-57), que va aparte (CA-03).
     priceRangeByStore: {},
+    referencePrice: variantRow.reference_price ?? undefined,
+    // La tienda es una u otra, nunca las dos (check de la migración 051).
+    referenceStoreName: variantRow.reference_store_name ?? variantRow.stores?.display_name ?? undefined,
     variantId: variantRow.id,
   })),
 });
+
+// stores.slug es text en la base; el formulario solo conoce los supermercados
+// de STORE_NAMES. Uno que no conozca se trata como "sin supermercado".
+const toStoreSlug = (slug: NullableUndefined<string>): NullableRef<StoreSlug> =>
+  Object.values(STORE_NAMES).find((storeSlug) => storeSlug === slug) ?? null;
+
+// HU-58 (SCRUM-89): además, los datos para abrir el formulario de edición.
+// Un producto personalizado tiene una sola variante (create_personal_product
+// crea las dos filas en la misma transacción): de ella salen el tamaño y la
+// marca. Si faltara, no se inventan datos: el producto no se lista (null).
+const toMyProduct = (productRow: {
+  category_id: NullableRef<string>;
+  id: string;
+  name: string;
+  product_catalog_variants: {
+    id: string;
+    base_unit: string;
+    base_quantity: number;
+    image_url: NullableRef<string>;
+    product_brands: { name: string }[];
+    reference_price: NullableRef<number>;
+    reference_store_name: NullableRef<string>;
+    stores: NullableRef<{ display_name: string; slug: string }>;
+  }[];
+}): NullableRef<MyProduct> => {
+  const [firstVariant] = productRow.product_catalog_variants;
+  if (!firstVariant || productRow.category_id === null) return null;
+
+  return {
+    ...toCatalogProduct(productRow),
+    editable: {
+      baseQuantity: firstVariant.base_quantity,
+      // base_unit es text en la base; el check de la migración garantiza que es uno de los valores de CATALOG_BASE_UNIT.
+      baseUnit: firstVariant.base_unit as CatalogBaseUnitType,
+      brandName: firstVariant.product_brands[0]?.name ?? null,
+      categoryId: productRow.category_id,
+      name: productRow.name,
+      productId: productRow.id,
+      referencePrice: firstVariant.reference_price,
+      referenceStoreName: firstVariant.reference_store_name,
+      referenceStoreSlug: toStoreSlug(firstVariant.stores?.slug),
+    },
+  };
+};
 
 /** Productos `source = 'manual'` donde `column = value` (household_id u owner_id). */
 const queryManualProductsBy = async (
   column: typeof MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID | typeof MY_PRODUCTS_DB.COLUMN.OWNER_ID,
   value: string,
-): Promise<CatalogProduct[]> => {
+): Promise<MyProduct[]> => {
   const { data: productRows, error } = await getSupabaseClient()
     .from(MY_PRODUCTS_DB.TABLE.PRODUCT_CATALOG)
     .select(MY_PRODUCTS_DB.SELECT)
     .eq(MY_PRODUCTS_DB.COLUMN.SOURCE, CATALOG_SOURCE.MANUAL)
     .eq(column, value)
+    // HU-58: un producto eliminado que seguía en uso queda archivado y ya no se lista.
+    .is(MY_PRODUCTS_DB.COLUMN.ARCHIVED_AT, null)
     .order(MY_PRODUCTS_DB.COLUMN.NAME);
   if (error) throw error;
 
-  return productRows.map(toCatalogProduct);
+  return productRows.map(toMyProduct).filter((product): product is MyProduct => product !== null);
 };
 
 /**
@@ -91,7 +145,7 @@ const queryManualProductsBy = async (
  * productos madre curados globalmente en SCRUM-131 (`household_id = null`,
  * `owner_id = null`), que no son de ningún usuario.
  */
-export const listMyProducts = async (): Promise<CatalogProduct[]> => {
+export const listMyProducts = async (): Promise<MyProduct[]> => {
   const session = await getStoredSession();
   if (!session) return [];
 
@@ -100,7 +154,7 @@ export const listMyProducts = async (): Promise<CatalogProduct[]> => {
   const [byHousehold, byOwner] = await Promise.all([
     householdId
       ? queryManualProductsBy(MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID, householdId)
-      : Promise.resolve<CatalogProduct[]>([]),
+      : Promise.resolve<MyProduct[]>([]),
     queryManualProductsBy(MY_PRODUCTS_DB.COLUMN.OWNER_ID, session.user.id),
   ]);
 

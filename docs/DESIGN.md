@@ -222,7 +222,7 @@ Cada prompt asume que Stitch ya tiene cargada la personalidad (sección 1), los 
 
 ### 7.6 Mis grupos — listar, crear y editar
 
-> Pantalla "Mis grupos", accesible desde un botón "Gestionar mis grupos" en la vista General. Lista de tarjetas (`group-card`), cada una con nombre del grupo (ej. "Mercado quincenal"), cantidad de productos que contiene, y un botón directo "Agregar a lista" que dispara la reconciliación de cantidades (7.3) si corresponde. Botón de cabecera "+ Crear grupo" que abre un flujo corto: nombre del grupo, luego búsqueda de productos (mismo patrón de búsqueda del catálogo, 7.1) para ir agregándolos con su cantidad/variante por defecto — nunca un formulario largo de una sola vez. Cada producto agregado al grupo aparece como una fila compacta con opción de quitar. Estado vacío (primera vez): "Agrupá los productos que siempre comprás juntos" + botón CTA grande.
+> Pantalla "Mis grupos", accesible desde un botón "Gestionar mis grupos" en la vista General. Lista de tarjetas (`group-card`), cada una con nombre del grupo (ej. "Mercado quincenal"), cantidad de productos que contiene, y un botón directo "Agregar a lista" que suma sus productos a la lista sin pantallas intermedias: la misma presentación suma la cantidad y otra presentación va en fila aparte, sin reconciliación (un producto de grupo ya es una unidad de compra, [documento de proyecto §4.9.1](documento-proyecto.md#491-reconciliación-de-cantidades-al-combinar-listas-decisión-2026-08-16-alcance-corregido-2026-08-18); corregido en SCRUM-111). Botón de cabecera "+ Crear grupo" que abre un flujo corto: nombre del grupo, luego búsqueda de productos (mismo patrón de búsqueda del catálogo, 7.1) para ir agregándolos con su cantidad/variante por defecto — nunca un formulario largo de una sola vez. Cada producto agregado al grupo aparece como una fila compacta con opción de quitar. Estado vacío (primera vez): "Agrupá los productos que siempre comprás juntos" + botón CTA grande.
 
 ### 7.7 Onboarding — con o sin household
 
@@ -254,7 +254,7 @@ Cada prompt asume que Stitch ya tiene cargada la personalidad (sección 1), los 
 
 ### 7.13 Recetas + planificador semanal
 
-> Ajuste sobre las pantallas ya prototipadas en `mockup-web-v2.html` ("Desktop — Planificador semanal de comidas" y su versión mobile), ahora organizadas como dos sub-tabs ("Recetas" / "Planificador semanal") dentro del ítem de sidebar "Recetas". El botón "Agregar receta a lista" y "Agregar semana a la lista" deben disparar la reconciliación de cantidades (7.3) cuando corresponda, igual que grupos.
+> Ajuste sobre las pantallas ya prototipadas en `mockup-web-v2.html` ("Desktop — Planificador semanal de comidas" y su versión mobile), ahora organizadas como dos sub-tabs ("Recetas" / "Planificador semanal") dentro del ítem de sidebar "Recetas". El botón "Agregar receta a lista" y "Agregar semana a la lista" deben disparar la reconciliación de cantidades (7.3) cuando corresponda (los grupos no: ver 7.6).
 
 ### 7.14 Auth — login / signup
 

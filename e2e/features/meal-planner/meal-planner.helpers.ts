@@ -90,3 +90,13 @@ export const expectedWeekDates = (weeksAhead: number): string[] => {
 };
 
 export const expectedTodayDate = (): string => toKey(new Date());
+
+/** Crea una sublista por fecha desde su pantalla y espera a que aparezca. */
+export const createDateList = async (page: Page, name: string, eventDate: string): Promise<void> => {
+  await page.goto("/fechas");
+  await page.getByRole("button", { name: "+ Nueva sublista" }).click();
+  await page.getByRole("textbox", { name: /^Nombre/ }).fill(name);
+  await page.getByLabel(/^Fecha/).fill(eventDate);
+  await page.getByRole("button", { exact: true, name: "Crear sublista" }).click();
+  await page.getByRole("list", { name: "Sublistas del mes" }).getByRole("link", { name: new RegExp(name) }).waitFor();
+};

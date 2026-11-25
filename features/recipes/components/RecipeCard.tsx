@@ -1,24 +1,22 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Button, CategoryLabel, Chip } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
 import {
   RECIPE_ADD_TO_LIST_TEXT,
+  RECIPE_AUDIENCE_TEXT,
   RECIPE_COVERAGE_TEXT,
   RECIPE_DELETE_TEXT,
   RECIPE_TEXT,
 } from "../constants/recipes.constants";
 import { RecipeAddToListResult } from "./RecipeAddToListResult";
+import { RecipeCopyAction } from "./RecipeCopyAction";
 import { RecipeCoveragePanel } from "./RecipeCoveragePanel";
+import { RecipePhoto } from "./RecipePhoto";
 import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
 
 /**
  * Tarjeta de una receta. Solo presentación: los textos ("4 porciones",
  * "+1 más", la inicial) ya vienen armados desde utils/toRecipeSummary.ts.
- *
- * La foto usa next/image con `unoptimized`: sirve cualquier URL sin
- * configurar dominios en next.config.ts (el lugar de las fotos se decide en
- * SCRUM-95, cuando se puedan subir).
  *
  * "Eliminar" solo abre la confirmación (no borra), por eso va en secundario.
  * Lleva el nombre de la receta oculto (sr-only) para el lector de pantalla:
@@ -28,8 +26,10 @@ import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
  */
 export const RecipeCard = ({
   addToList,
+  copy,
   coverage,
   onAddToListRequest,
+  onCopyRequest,
   onCoverageRetry,
   onCoverageToggle,
   onDeleteRequest,
@@ -41,29 +41,17 @@ export const RecipeCard = ({
   return (
     <li>
       <article className="flex h-full flex-col overflow-hidden rounded-tacha-card border border-tacha-border bg-tacha-surface">
-        {recipe.imageUrl ? (
-          <div className="relative aspect-[4/3]">
-            <Image
-              src={recipe.imageUrl}
-              alt={recipe.name}
-              fill
-              unoptimized
-              className="object-cover"
-            />
-          </div>
-        ) : (
-          <div
-            aria-hidden="true"
-            className="flex aspect-[4/3] items-center justify-center bg-tacha-chipbg font-display text-5xl text-tacha-teal"
-          >
-            {recipe.placeholderInitial}
-          </div>
-        )}
+        <RecipePhoto alt={recipe.name} fallback={recipe.placeholderInitial} url={recipe.photoUrl} />
 
         <div className="flex flex-1 flex-col gap-3 p-4">
           <div>
             <h2 className="font-display text-xl font-semibold text-tacha-text">{recipe.name}</h2>
             <p className="font-body text-sm text-tacha-textsec">{recipe.servingsLabel}</p>
+            {recipe.isShared ? (
+              <p className="mt-1 w-fit rounded-tacha-badge bg-tacha-chipbg px-2 py-0.5 font-body text-xs font-semibold text-tacha-teal">
+                {RECIPE_AUDIENCE_TEXT.BADGE}
+              </p>
+            ) : null}
           </div>
 
           {recipe.hasIngredients ? (
@@ -104,6 +92,10 @@ export const RecipeCard = ({
                 </Button>
                 {isCoverageOpen ? <RecipeCoveragePanel coverage={coverage} onRetry={onCoverageRetry} /> : null}
               </div>
+            ) : null}
+
+            {recipe.isShared && recipe.hasIngredients ? (
+              <RecipeCopyAction copy={copy} onCopyRequest={() => onCopyRequest(recipe.id)} recipeName={recipe.name} />
             ) : null}
 
             <div className="flex items-center justify-between gap-3">

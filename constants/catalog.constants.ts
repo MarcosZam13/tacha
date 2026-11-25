@@ -54,6 +54,9 @@ export const CATALOG_DB = {
   RPC: {
     LIST_CATALOG_BY_CATEGORY: "list_catalog_by_category",
     SEARCH_CATALOG: "search_catalog",
+    // SCRUM-110 (migración 056): como search_catalog, pero también trae mis
+    // productos y los de mi familia. search_catalog no cambia (SCRUM-131).
+    SEARCH_CATALOG_INCLUDING_OWN: "search_catalog_including_own",
   },
   TABLE: {
     VARIANTS: "product_catalog_variants",
@@ -63,7 +66,7 @@ export const CATALOG_DB = {
   // SHOPPING_LIST_DB.ITEM_DETAIL_SELECT, con el slug de tienda agregado
   // (catalog-product-detail sí necesita elegir el ícono por tienda).
   VARIANT_DETAIL_SELECT:
-    "base_quantity, base_unit, image_url, product_catalog(name), product_brands(name, logo_url), latest_prices(price, stores(slug, display_name))",
+    "base_quantity, base_unit, image_url, reference_price, reference_store_name, stores(display_name), product_catalog(name), product_brands(name, logo_url), latest_prices(price, stores(slug, display_name))",
 } as const;
 
 // Espejo del check de product_catalog.source: "manual" son los productos que
@@ -96,6 +99,14 @@ export const CATALOG_PRODUCT_DETAIL_ROUTE = (variantId: string): string =>
 
 export const CATALOG_CARD_TEXT = {
   NO_PRICE: "Sin precio disponible",
+} as const;
+
+// HU-57 (SCRUM-88): precio de referencia que el usuario anota en su producto
+// personalizado. Lo usan la tarjeta de "Mis productos" y el detalle del
+// producto; nunca se mezcla con los precios del scraping (CA-03).
+export const REFERENCE_PRICE_TEXT = {
+  INFO: "Precio ingresado por ti: no está verificado ni se actualiza automáticamente.",
+  TITLE: "Precio de referencia",
 } as const;
 
 export const PRODUCT_SEARCH_TEXT = {

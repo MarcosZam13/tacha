@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RECIPES_TAB, RECIPES_TAB_LABEL } from "@/constants";
 import {
@@ -58,6 +58,15 @@ export const createMealPlannerPage = () => {
     inDialog().getByRole("radio", { name: new RegExp(`^${recipeName}`) });
   const findRecipeRadio = (recipeName: string): Promise<HTMLElement> =>
     within(screen.getByRole("dialog")).findByRole("radio", { name: new RegExp(`^${recipeName}`) });
+  const findPlanOption = (name: string): Promise<HTMLElement> => screen.findByRole("radio", { name });
+  const queryPlanScope = (): HTMLElement | null => screen.queryByRole("group", { name: "Qué plan ver" });
+  const getPlanStatus = (): HTMLElement => within(screen.getByRole("group", { name: "Qué plan ver" })).getByRole("status");
+  const querySlotButton = (name: string): HTMLElement | null => screen.queryByRole("button", { name });
+  const findNotice = (): Promise<HTMLElement> => screen.findByRole("alert");
+  const findDialogText = (text: string): Promise<HTMLElement> => inDialog().findByText(text);
+  const choosePlan = async (name: string): Promise<void> => {
+    await user.click(await findPlanOption(name));
+  };
   const getCookRadio = (cookName: string): HTMLElement => inDialog().getByRole("radio", { name: cookName });
   const getServingsSummary = (): HTMLElement => inDialog().getByText(/^×/);
   const getIncreaseServingsButton = (): HTMLElement =>
@@ -87,6 +96,10 @@ export const createMealPlannerPage = () => {
 
   const openSlot = async (name: string): Promise<void> => {
     await user.click(getSlotButton(name));
+  };
+  // Un clic que no mueve el foco, como en Safari: user-event sí lo mueve, fireEvent.click no.
+  const openSlotWithoutFocusing = (name: string): void => {
+    fireEvent.click(getSlotButton(name));
   };
   const chooseRecipe = async (recipeName: string): Promise<void> => {
     await user.click(await findRecipeRadio(recipeName));
@@ -127,6 +140,15 @@ export const createMealPlannerPage = () => {
     within(getAddWeekDialog()).getByRole("button", { name: /^(Agregar|Agregando)/ });
   const getAddWeekCancelButton = (): HTMLElement =>
     within(getAddWeekDialog()).getByRole("button", { name: WEEK_LIST_TEXT.CANCEL });
+  // El selector de lista (SCRUM-160).
+  const findDestinationRadio = (name: string): Promise<HTMLElement> =>
+    within(getAddWeekDialog()).findByRole("radio", { name });
+  const queryDestinationRadios = (): HTMLElement[] => within(getAddWeekDialog()).queryAllByRole("radio");
+  const getDestinationGroup = (): HTMLElement =>
+    within(getAddWeekDialog()).getByRole("group", { name: WEEK_LIST_TEXT.DESTINATION_LABEL });
+  const getOptionsRetryButton = (): HTMLElement =>
+    within(getAddWeekDialog()).getByRole("button", { name: WEEK_LIST_TEXT.RETRY });
+  const findAddWeekError = (): Promise<HTMLElement> => within(getAddWeekDialog()).findByRole("alert");
   const getAddWeekError = (): HTMLElement => within(getAddWeekDialog()).getByRole("alert");
   const getAddWeekResult = (line: string): HTMLElement => screen.getByText(line);
   const queryAddWeekResult = (line: string): HTMLElement | null => screen.queryByText(line);
@@ -138,6 +160,12 @@ export const createMealPlannerPage = () => {
   };
   const confirmAddWeek = async (): Promise<void> => {
     await user.click(getAddWeekConfirmButton());
+  };
+  const chooseDestination = async (name: string): Promise<void> => {
+    await user.click(await findDestinationRadio(name));
+  };
+  const retryOptions = async (): Promise<void> => {
+    await user.click(getOptionsRetryButton());
   };
   const cancelAddWeek = async (): Promise<void> => {
     await user.click(getAddWeekCancelButton());
@@ -154,7 +182,10 @@ export const createMealPlannerPage = () => {
   return {
     cancel,
     cancelAddWeek,
+    chooseDestination,
     confirmAddWeek,
+    findAddWeekError,
+    findDestinationRadio,
     getAddWeekButton,
     getAddWeekCancelButton,
     getAddWeekConfirmButton,
@@ -162,12 +193,22 @@ export const createMealPlannerPage = () => {
     getAddWeekError,
     getAddWeekMessage,
     getAddWeekResult,
+    getDestinationGroup,
     getViewListLink,
     openAddWeek,
     queryAddWeekDialog,
     queryAddWeekResult,
+    queryDestinationRadios,
     queryViewListLink,
+    retryOptions,
     chooseCook,
+    choosePlan,
+    findDialogText,
+    findNotice,
+    findPlanOption,
+    getPlanStatus,
+    queryPlanScope,
+    querySlotButton,
     chooseRecipe,
     decreaseServings,
     findRecipeRadio,
@@ -189,6 +230,7 @@ export const createMealPlannerPage = () => {
     getServingsSummary,
     increaseServings,
     openSlot,
+    openSlotWithoutFocusing,
     pressEscape,
     queryDialog,
     queryRemoveButton,

@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { AssigneeField } from "@/components/assignee-field/AssigneeField";
+import { ASSIGNEE_LIST_SOURCE } from "@/components/assignee-field/constants/assignee-field.constants";
+import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/useListAssigneesViewModel";
 import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Button, Modal, Spinner } from "@/components/ui";
 import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
@@ -16,6 +19,8 @@ interface DateListDetailScreenProps {
 /** Detalle de una sublista: el mismo buscador de la lista general (CA-03) y sus productos. */
 export const DateListDetailScreen = ({ listId }: DateListDetailScreenProps): React.JSX.Element => {
   const viewModel = useDateListDetailViewModel(listId);
+  // El campo "Encargado" (SCRUM-108): solo se dibuja si esta sublista lo tiene encendido en Configuración.
+  const assignees = useListAssigneesViewModel({ kind: ASSIGNEE_LIST_SOURCE.LIST, listId });
   const { detail } = viewModel;
 
   return (
@@ -75,6 +80,7 @@ export const DateListDetailScreen = ({ listId }: DateListDetailScreenProps): Rea
               {detail.items.map((item) => (
                 <DateListItemRow
                   key={item.id}
+                  assigneeSlot={<AssigneeField itemId={item.id} viewModel={assignees} />}
                   isDisabled={viewModel.isSaving || viewModel.isCancelled}
                   item={item}
                   onDecrease={() => viewModel.onDecreaseQuantity(item.id)}

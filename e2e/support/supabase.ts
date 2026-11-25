@@ -120,3 +120,51 @@ export const deleteOwnRecipes = async (page: Page, request: APIRequestContext): 
     throw new Error(`No se pudieron limpiar las recetas de prueba: ${response.status()} ${await response.text()}`);
   }
 };
+
+/**
+ * Borra los archivos de las fotos de las recetas del usuario con sesión en
+ * `page`. Va antes de deleteOwnRecipes: después ya no se saben las rutas. Usa su
+ * propio token: las políticas del bucket solo le dejan borrar lo que subió.
+ */
+export const deleteOwnRecipePhotos = async (page: Page, request: APIRequestContext): Promise<void> => {
+  const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const anonKey = getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+
+  const accessToken = await getOwnAccessToken(page, supabaseUrl);
+  if (!accessToken) return;
+  const headers = getApiHeaders(anonKey, accessToken);
+
+  const recipesResponse = await request.get(
+    `${supabaseUrl}/rest/v1/recipes?select=photo_path&photo_path=not.is.null`,
+    { headers },
+  );
+  const photoPaths = ((await recipesResponse.json()) as { photo_path: string }[]).map((recipe) => recipe.photo_path);
+  if (photoPaths.length === 0) return;
+
+  const response = await request.delete(`${supabaseUrl}/storage/v1/object/recipe-photos`, {
+    headers,
+    data: { prefixes: photoPaths },
+  });
+  if (!response.ok()) {
+    throw new Error(`No se pudieron limpiar las fotos de prueba: ${response.status()} ${await response.text()}`);
+  }
+};
+
+/** Cuántos archivos hay en la carpeta de una receta, vistos por el usuario con sesión en `page`. */
+export const countOwnRecipePhotoFiles = async (
+  page: Page,
+  request: APIRequestContext,
+  recipeId: string,
+): Promise<number> => {
+  const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const anonKey = getRequiredEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const accessToken = await getOwnAccessToken(page, supabaseUrl);
+  if (!accessToken) throw new Error("No hay sesión abierta para contar las fotos de prueba");
+
+  const response = await request.post(`${supabaseUrl}/storage/v1/object/list/recipe-photos`, {
+    headers: getApiHeaders(anonKey, accessToken),
+    data: { prefix: recipeId },
+  });
+  if (!response.ok()) throw new Error(`No se pudieron contar las fotos: ${response.status()} ${await response.text()}`);
+  return ((await response.json()) as unknown[]).length;
+};

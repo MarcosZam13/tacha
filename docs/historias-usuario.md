@@ -533,10 +533,10 @@ Como usuario, quiero identificar visualmente las sesiones a las que no les ingre
 - CA-02: Si una sesión queda sin total por un tiempo, el sistema recuerda al usuario (notificación o indicador visual persistente).
 - CA-03: El total puede completarse en cualquier momento desde el historial.
 
-**HU-62: Filtrar historial por supermercado y categoría**
-Como usuario, quiero filtrar mi historial por supermercado y por categoría de producto, además de por periodo, para analizar mis compras con más detalle.
-- CA-01: El historial incluye filtros de supermercado y categoría, combinables con el filtro de periodo.
-- CA-02: Los filtros aplicados se muestran de forma visible (chips activos) y se pueden limpiar individualmente.
+**HU-62: Consultar frecuencia e historial de compra por producto**
+Como usuario, quiero consultar cuántas veces he comprado un producto y ver el historial de las compras en las que aparece, para conocer la frecuencia con la que lo compro y cuánto fue el total de cada compra.
+- CA-01: El sistema muestra los productos comprados y cuántas veces aparece cada uno en el historial.
+- CA-02: Al seleccionar un producto, se muestra el historial de las compras que lo incluyen, con la fecha, el supermercado y el monto total de cada compra.
 
 ### Epic: Recetas
 

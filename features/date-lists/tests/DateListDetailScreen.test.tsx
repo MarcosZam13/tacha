@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DATE_LIST_STATUS, DATE_LIST_STATUS_LABEL, DATE_LIST_TEXT } from "../constants/date-lists.constants";
+import { DATE_LIST_STATUS } from "@/constants";
+import { DATE_LIST_STATUS_LABEL, DATE_LIST_TEXT } from "../constants/date-lists.constants";
 import { DateListDetailScreen } from "../DateListDetailScreen";
 import type { DateListDetail, DateListItem } from "../models/DateList.interface";
 import {

@@ -78,3 +78,8 @@ Deriva de [plan.md](plan.md). Cada ticket es una PR; se hacen en orden porque ca
 - [x] 2. Test del ViewModel con source about; E2E en /nosotros.
 - [x] 3. Probar; tsc, lint, test, build, e2e.
 
+## SCRUM-159: "Iniciar sesión" en la navbar
+- [x] 1. Texto `NAVBAR_TEXT.LOGIN` y variante secundaria en `ButtonLink`.
+- [x] 2. `usePublicNavbarViewModel` decide si se muestra; `PublicNavbarCta` dibuja los dos botones.
+- [x] 3. Page Object y tests de `PublicNavbarCta`; E2E-NAVBAR-01.
+- [ ] 4. Probar en 320px y desktop, claro y oscuro; tsc, lint, test, build, e2e.
