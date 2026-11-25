@@ -111,4 +111,4 @@ Bloqueado / fuera de esta historia:
 - [x] 6. Hooks (plan a la vista, cocineros, diálogo, semana a la lista) con tests.
 - [x] 7. Componentes con Page Object; aviso del diálogo de eliminar receta.
 - [x] 8. E2E (sin familia no hay selector) y `docs/documento-proyecto.md`.
-- [ ] 9. Verificación completa, revisores y `waiting qa`.
+- [x] 9. Verificación completa, revisores y `waiting qa`.

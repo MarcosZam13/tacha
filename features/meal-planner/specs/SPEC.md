@@ -611,22 +611,22 @@ Decidido con el responsable:
 
 ### 18.10 Casos de aceptación
 
-- [ ] CA-13: quien tiene familia alterna entre los dos planes; sin familia solo ve el suyo.
-- [ ] CA-14: todos los miembros ven, asignan, cambian y quitan espacios del plan de la familia.
-- [ ] CA-15: en ese plan solo se eligen recetas de la familia (interfaz y SQL).
-- [ ] CA-16: el cocinero puede ser cualquier miembro o nadie; otro usuario se rechaza (SQL).
-- [ ] CA-17: la grilla muestra la receta y el nombre del cocinero.
-- [ ] CA-18: agregar la semana usa el plan a la vista y solo ese.
-- [ ] CA-19: ni otra familia, ni un exmiembro, ni una sesión anónima ven o cambian el plan de la familia; los personales siguen privados (SQL).
-- [ ] CA-20: al salir o ser removido, sus espacios quedan sin cocinero y el plan se conserva, también lo que asignó (SQL).
-- [ ] CA-21: dos miembros en el mismo espacio dejan uno solo, el último.
-- [ ] CA-22: al unirse a una familia no se comparte el plan personal.
-- [ ] CA-23: al disolver, los espacios pasan al último admin y, si chocan, gana el personal (SQL).
-- [ ] Quitar o cambiar un espacio personal no toca el de la familia del mismo día y comida, y al revés.
-- [ ] Una respuesta tardía del plan anterior no pisa la del elegido.
-- [ ] El cocinero o la receta que dejan de estar se avisan sin perder lo demás.
-- [ ] Transferir el admin y salir conserva el plan.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, SQL y E2E pasan.
+- [x] CA-13: quien tiene familia alterna entre los dos planes; sin familia solo ve el suyo.
+- [x] CA-14: todos los miembros ven, asignan, cambian y quitan espacios del plan de la familia.
+- [x] CA-15: en ese plan solo se eligen recetas de la familia (interfaz y SQL).
+- [x] CA-16: el cocinero puede ser cualquier miembro o nadie; otro usuario se rechaza (SQL).
+- [x] CA-17: la grilla muestra la receta y el nombre del cocinero.
+- [x] CA-18: agregar la semana usa el plan a la vista y solo ese.
+- [x] CA-19: ni otra familia, ni un exmiembro, ni una sesión anónima ven o cambian el plan de la familia; los personales siguen privados (SQL).
+- [x] CA-20: al salir o ser removido, sus espacios quedan sin cocinero y el plan se conserva, también lo que asignó (SQL).
+- [x] CA-21: dos miembros en el mismo espacio dejan uno solo, el último.
+- [x] CA-22: al unirse a una familia no se comparte el plan personal.
+- [x] CA-23: al disolver, los espacios pasan al último admin y, si chocan, gana el personal (SQL).
+- [x] Quitar o cambiar un espacio personal no toca el de la familia del mismo día y comida, y al revés.
+- [x] Una respuesta tardía del plan anterior no pisa la del elegido.
+- [x] El cocinero o la receta que dejan de estar se avisan sin perder lo demás.
+- [x] Transferir el admin y salir conserva el plan.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, SQL y E2E pasan.
 
 ### 18.11 Casos fuera de alcance
 
