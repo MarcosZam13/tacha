@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { NullableRef } from "@/types/nullable.types";
 import {
   BUDGET_STATUS,
   FINANCE_ACCESS_STATUS,
@@ -10,9 +11,10 @@ import {
   SPENDING_STATUS,
 } from "../constants/finance.constants";
 import { useFinanceDashboardViewModel } from "../hooks/useFinanceDashboardViewModel";
+import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import {
   getPeriodFinance,
-  getPeriodSpending,
+  getPeriodPurchases,
   getPurchasesWithoutTotal,
   getSpendingBudgets,
   hasRegisteredSession,
@@ -21,14 +23,14 @@ import {
 
 vi.mock("../services/finance.service", () => ({
   getPeriodFinance: vi.fn(),
-  getPeriodSpending: vi.fn(),
+  getPeriodPurchases: vi.fn(),
   getPurchasesWithoutTotal: vi.fn(),
   getSpendingBudgets: vi.fn(),
   hasRegisteredSession: vi.fn(),
   setSpendingBudget: vi.fn(),
 }));
 const sessionMock = vi.mocked(hasRegisteredSession);
-const spendingMock = vi.mocked(getPeriodSpending);
+const purchasesMock = vi.mocked(getPeriodPurchases);
 const financeMock = vi.mocked(getPeriodFinance);
 const pendingMock = vi.mocked(getPurchasesWithoutTotal);
 const budgetsMock = vi.mocked(getSpendingBudgets);
@@ -39,6 +41,16 @@ const NOW = new Date(2026, 9, 18, 15, 0);
 
 // Intl separa los miles con un espacio especial: se normaliza para comparar.
 const toPlainSpaces = (text: string | null): string | null => text?.replace(/\s/gu, " ") ?? null;
+
+// Las compras del periodo, como las da getPeriodPurchases sin zona guardada
+// (SCRUM-72): el total sale de estas filas con summarizeSpending.
+const purchasesWith = (...totals: NullableRef<number>[]): PeriodPurchase[] =>
+  totals.map((totalAmount, index) => ({
+    closedAt: new Date(2026, 9, 18, 10, 0).toISOString(),
+    id: `purchase-${index}`,
+    storeName: "MaxiPali",
+    totalAmount,
+  }));
 
 // Con cuenta registrada y los dos bloques ya cargados.
 const renderLoaded = async () => {
@@ -57,7 +69,7 @@ beforeEach(() => {
   // Sin compras sin total: el recordatorio y la sección no se ven (SCRUM-92).
   pendingMock.mockResolvedValue([]);
   sessionMock.mockResolvedValue(true);
-  spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 0 });
+  purchasesMock.mockResolvedValue(purchasesWith(10000, 5000));
   budgetsMock.mockResolvedValue({ day: null, month: null, week: 50000 });
 });
 
@@ -71,7 +83,7 @@ describe("useFinanceDashboardViewModel: access (D6)", () => {
     const { result } = renderHook(() => useFinanceDashboardViewModel());
 
     expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.CHECKING);
-    expect(spendingMock).not.toHaveBeenCalled();
+    expect(purchasesMock).not.toHaveBeenCalled();
     expect(budgetsMock).not.toHaveBeenCalled();
   });
 
@@ -80,7 +92,7 @@ describe("useFinanceDashboardViewModel: access (D6)", () => {
     const { result } = renderHook(() => useFinanceDashboardViewModel());
 
     await waitFor(() => expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.NO_ACCOUNT));
-    expect(spendingMock).not.toHaveBeenCalled();
+    expect(purchasesMock).not.toHaveBeenCalled();
     expect(budgetsMock).not.toHaveBeenCalled();
     expect(saveMock).not.toHaveBeenCalled();
   });
@@ -90,19 +102,19 @@ describe("useFinanceDashboardViewModel: access (D6)", () => {
     const { result } = renderHook(() => useFinanceDashboardViewModel());
 
     await waitFor(() => expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.NO_ACCOUNT));
-    expect(spendingMock).not.toHaveBeenCalled();
+    expect(purchasesMock).not.toHaveBeenCalled();
   });
 
   it("loads spending and budgets with a registered account", async () => {
     const { result } = await renderLoaded();
 
     expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.REGISTERED);
-    expect(spendingMock).toHaveBeenCalledTimes(1);
+    expect(purchasesMock).toHaveBeenCalledTimes(1);
     expect(budgetsMock).toHaveBeenCalledTimes(1);
   });
 
   it("goes to no account instead of retrying when the session is no longer registered", async () => {
-    spendingMock.mockRejectedValueOnce(new Error("401"));
+    purchasesMock.mockRejectedValueOnce(new Error("401"));
     const { result } = renderHook(() => useFinanceDashboardViewModel());
     await waitFor(() => expect(result.current.spending.status).toBe(SPENDING_STATUS.FAILED));
     sessionMock.mockResolvedValue(false);
@@ -110,7 +122,7 @@ describe("useFinanceDashboardViewModel: access (D6)", () => {
     await act(async () => result.current.spending.onRetry());
 
     expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.NO_ACCOUNT);
-    expect(spendingMock).toHaveBeenCalledTimes(1);
+    expect(purchasesMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -133,7 +145,7 @@ describe("useFinanceDashboardViewModel: period (CA-01, CA-02)", () => {
 
   it("asks for the new period without asking for the budgets again", async () => {
     const { result } = await renderLoaded();
-    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 1, total: 10000, withoutTotalCount: 0 });
+    purchasesMock.mockResolvedValue(purchasesWith(10000));
 
     act(() => result.current.periodOptions[0].onSelect());
 
@@ -145,7 +157,7 @@ describe("useFinanceDashboardViewModel: period (CA-01, CA-02)", () => {
   });
 
   it("shows the load error of the spending", async () => {
-    spendingMock.mockRejectedValue(new Error("network"));
+    purchasesMock.mockRejectedValue(new Error("network"));
     const { result } = renderHook(() => useFinanceDashboardViewModel());
 
     await waitFor(() => expect(result.current.spending.errorMessage).toBe(FINANCE_TEXT.SPENDING_LOAD_ERROR));
@@ -181,7 +193,7 @@ describe("useFinanceDashboardViewModel: budget (CA-03)", () => {
   });
 
   it("warns that purchases without a total are not included", async () => {
-    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 2 });
+    purchasesMock.mockResolvedValue(purchasesWith(10000, 5000, null, null));
     const { result } = await renderLoaded();
 
     expect(result.current.budget.notIncludedText).toBe("No incluye 2 compras sin total");
@@ -189,7 +201,7 @@ describe("useFinanceDashboardViewModel: budget (CA-03)", () => {
   });
 
   it("never says the budget was exceeded by ₡0 because of cents", async () => {
-    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 1, total: 50000.4, withoutTotalCount: 0 });
+    purchasesMock.mockResolvedValue(purchasesWith(50000.4));
     const { result } = await renderLoaded();
 
     expect(toPlainSpaces(result.current.budget.differenceText)).toBe("Te quedan ₡0");
@@ -217,10 +229,16 @@ describe("useFinanceDashboardViewModel: budget (CA-03)", () => {
 });
 
 describe("useFinanceDashboardViewModel: manual adjustments (SCRUM-91)", () => {
+  // Las compras y los ajustes de get_period_finance, coherentes con su gasto.
   const zonedSpending = (adjustmentCount: number) => ({
-    adjustments: [],
+    adjustments: Array.from({ length: adjustmentCount }, (_, index) => ({
+      amount: 5000,
+      effectiveAt: NOW.toISOString(),
+      id: `adjustment-${index}`,
+      scope: SPENDING_PERIOD.WEEK,
+    })),
     bounds: { end: new Date(2026, 9, 19), start: new Date(2026, 9, 12) },
-    purchases: [],
+    purchases: purchasesWith(10000, 10000 - 5000 * adjustmentCount, null),
     spending: { adjustmentCount, closedCount: 2, total: 20000, withoutTotalCount: 1 },
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
@@ -259,7 +277,7 @@ describe("useFinanceDashboardViewModel: manual adjustments (SCRUM-91)", () => {
       "Tu zona horaria guardada ya no es válida. Confirma tu zona para continuar.",
     );
     expect(result.current.spending.totalText).toBeNull();
-    expect(spendingMock).not.toHaveBeenCalled();
+    expect(purchasesMock).not.toHaveBeenCalled();
   });
 });
 

@@ -156,10 +156,11 @@ test.describe("Finanzas: editar totales (SCRUM-91)", () => {
     await expect(getCounter(page, "Compras")).toContainText("2");
     await expect(getEditTotalButtons(page)).toHaveCount(0);
     await expect(page.getByText(ADJUSTMENT, { exact: true })).toHaveCount(0);
-    // Una sola lectura con la zona guardada: compras, ajustes y total juntos (D19).
+    // Una sola lectura con la zona guardada: compras, ajustes y total juntos (D19),
+    // sin leer la tabla de compras (SCRUM-72).
     expect(recorder.periodFinanceRequests.length).toBeGreaterThan(readsBefore);
     expect(recorder.periodFinanceRequests.at(-1)?.postDataJSON()).toEqual({ target_scope: "week" });
-    expect(recorder.spendingRequests).toHaveLength(0);
+    expect(recorder.historyRequests).toHaveLength(0);
   });
 
   test("E2E-FIN-12 — Validación y errores al guardar", async ({ page }) => {

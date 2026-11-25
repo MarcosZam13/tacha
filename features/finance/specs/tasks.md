@@ -484,15 +484,16 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 2 — Lectura del Dashboard
 
-- [ ] 2.1 `useFinanceDashboardViewModel` lee con `usePeriodPurchases` en vez de `usePeriodSpending`. El total, el presupuesto, el recordatorio y el anuncio de `role="status"` no cambian.
-- [ ] 2.2 `useFinanceDashboardViewModel.test.ts` y `FinanceDashboard.test.tsx` simulan `getPeriodFinance` y `getPeriodPurchases`; los casos de SCRUM-69, SCRUM-91 y SCRUM-92 siguen pasando sin cambiar lo que comprueban.
-- [ ] 2.3 Stubs E2E en el mismo commit (plan, "Pruebas", escenarios existentes), para que E2E-FIN-01 a 23 sigan en verde:
-  - `finance.helpers.ts`: el Dashboard sin zona usa la ruta del Historial; los montos esperados no cambian;
+- [x] 2.1 `useFinanceDashboardViewModel` lee con `usePeriodPurchases` en vez de `usePeriodSpending`. El total, el presupuesto, el recordatorio y el anuncio de `role="status"` no cambian.
+- [x] 2.2 `useFinanceDashboardViewModel.test.ts` y `FinanceDashboard.test.tsx` simulan `getPeriodFinance` y `getPeriodPurchases`; los casos de SCRUM-69, SCRUM-91 y SCRUM-92 siguen pasando sin cambiar lo que comprueban.
+- [x] 2.3 Stubs E2E en el mismo commit (plan, "Pruebas", escenarios existentes), para que E2E-FIN-01 a 23 sigan en verde:
+  - `finance.helpers.ts`: el Dashboard sin zona usa la ruta del Historial; los montos esperados no cambian. No hizo falta cambiar el helper: la consulta nueva lleva `stores(display_name)` y ya cae en esa ruta (2026-11-24);
   - E2E-FIN-01: la petición de la semana con el `select` del Historial, `count=exact`, sus límites y sin `owner_id`, leída de `historyRequests`;
   - E2E-FIN-03: `failHistoryTimes` en lugar de `failSpendingTimes`;
   - E2E-FIN-04, las dos pruebas: también `historyRequests` vacío (D6);
   - E2E-FIN-11: `historyRequests` vacío con zona guardada;
-  - correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+  - E2E-FIN-05 (no estaba en el plan): empieza en el Dashboard, que ahora también pide con la consulta del Historial, así que la petición que comprueba pasa a ser la última de `historyRequests` y no la primera;
+  - correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`: 60 pasaron (2026-11-24).
 
 ### Etapa 3 — Sección en el Dashboard
 

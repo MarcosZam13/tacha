@@ -1,16 +1,18 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { NullableRef } from "@/types/nullable.types";
 import { APP_NAV_ITEMS } from "@/components/app-shell/constants/app-shell.constants";
 import { APP_ROUTE } from "@/constants";
 import { FinanceDashboard } from "../FinanceDashboard";
 import { PurchaseHistory } from "../PurchaseHistory";
 import { FINANCE_TEXT, SPENDING_PERIOD } from "../constants/finance.constants";
 import type { PeriodBounds } from "../models/PeriodBounds.interface";
+import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import type { ZonedPeriodFinance } from "../models/PeriodFinance.type";
 import {
   getPeriodFinance,
-  getPeriodSpending,
+  getPeriodPurchases,
   getPurchasesWithoutTotal,
   getSpendingBudgets,
   hasRegisteredSession,
@@ -23,7 +25,6 @@ import { createPurchaseHistoryPage } from "./PurchaseHistory.page";
 vi.mock("../services/finance.service", () => ({
   getPeriodFinance: vi.fn(),
   getPeriodPurchases: vi.fn(),
-  getPeriodSpending: vi.fn(),
   getPurchasesWithoutTotal: vi.fn(),
   getSpendingBudgets: vi.fn(),
   hasRegisteredSession: vi.fn(),
@@ -33,7 +34,7 @@ vi.mock("../services/finance.service", () => ({
   setSpendingTimeZone: vi.fn(),
 }));
 const sessionMock = vi.mocked(hasRegisteredSession);
-const spendingMock = vi.mocked(getPeriodSpending);
+const purchasesMock = vi.mocked(getPeriodPurchases);
 const financeMock = vi.mocked(getPeriodFinance);
 const pendingMock = vi.mocked(getPurchasesWithoutTotal);
 const budgetsMock = vi.mocked(getSpendingBudgets);
@@ -47,11 +48,18 @@ const DAY_START = new Date(2026, 9, 18).getTime();
 // patrón que acepta cualquier espacio.
 const amount = (text: string): RegExp => new RegExp(`^${text.replace(/ /gu, "\\s")}$`, "u");
 
-// El día pide desde hoy; la semana, desde el lunes 12.
-const spendingByPeriod = async ({ start }: PeriodBounds) =>
-  start.getTime() === DAY_START
-    ? { adjustmentCount: 0, closedCount: 1, total: 10000, withoutTotalCount: 0 }
-    : { adjustmentCount: 0, closedCount: 2, total: 15000, withoutTotalCount: 1 };
+// Las compras del periodo, como las da getPeriodPurchases sin zona guardada (SCRUM-72).
+const purchasesWith = (...totals: NullableRef<number>[]): PeriodPurchase[] =>
+  totals.map((totalAmount, index) => ({
+    closedAt: new Date(2026, 9, 18, 10, 0).toISOString(),
+    id: `purchase-${index}`,
+    storeName: "MaxiPali",
+    totalAmount,
+  }));
+
+// El día pide desde hoy (₡10 000); la semana, desde el lunes 12 (₡15 000 y una sin total).
+const purchasesByPeriod = async ({ start }: PeriodBounds) =>
+  start.getTime() === DAY_START ? purchasesWith(10000) : purchasesWith(10000, 5000, null);
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -62,7 +70,7 @@ beforeEach(() => {
   // Sin compras sin total: el recordatorio y la sección no se ven (SCRUM-92).
   pendingMock.mockResolvedValue([]);
   sessionMock.mockResolvedValue(true);
-  spendingMock.mockImplementation(spendingByPeriod);
+  purchasesMock.mockImplementation(purchasesByPeriod);
   budgetsMock.mockResolvedValue({ day: null, month: null, week: null });
 });
 
@@ -104,7 +112,7 @@ describe("FinanceDashboard: access (D6)", () => {
     expect(await page.findNoAccountNotice()).toBeInTheDocument();
     expect(page.getTitle()).toBeInTheDocument();
     expect(page.queryPeriodGroup()).not.toBeInTheDocument();
-    expect(spendingMock).not.toHaveBeenCalled();
+    expect(purchasesMock).not.toHaveBeenCalled();
     expect(budgetsMock).not.toHaveBeenCalled();
   });
 
@@ -144,7 +152,7 @@ describe("FinanceDashboard: spending (CA-01, CA-02)", () => {
   });
 
   it("shows the error and loads the spending again on retry", async () => {
-    spendingMock.mockRejectedValueOnce(new Error("network"));
+    purchasesMock.mockRejectedValueOnce(new Error("network"));
     render(<FinanceDashboard />);
     const page = createFinanceDashboardPage();
 
@@ -223,7 +231,7 @@ describe("FinanceDashboard: budget (CA-03)", () => {
 
 describe("FinanceDashboard: separate errors (SPEC §7)", () => {
   it("keeps the budget visible when the spending fails", async () => {
-    spendingMock.mockRejectedValue(new Error("network"));
+    purchasesMock.mockRejectedValue(new Error("network"));
     budgetsMock.mockResolvedValue({ day: null, month: null, week: 50000 });
     render(<FinanceDashboard />);
     const page = createFinanceDashboardPage();
@@ -244,7 +252,7 @@ describe("FinanceDashboard: separate errors (SPEC §7)", () => {
   });
 
   it("shows ₡0 and the empty message when the period has no closed purchases", async () => {
-    spendingMock.mockResolvedValue({ adjustmentCount: 0, closedCount: 0, total: 0, withoutTotalCount: 0 });
+    purchasesMock.mockResolvedValue([]);
     render(<FinanceDashboard />);
     const page = createFinanceDashboardPage();
 
@@ -285,7 +293,7 @@ describe("FinanceDashboard and PurchaseHistory with manual adjustments (SCRUM-91
     render(<PurchaseHistory />);
     const historyPage = createPurchaseHistoryPage();
     expect(await historyPage.findText(amount("₡20 000"))).toBeInTheDocument();
-    expect(spendingMock).not.toHaveBeenCalled();
+    expect(purchasesMock).not.toHaveBeenCalled();
   });
 
   it("says the Dashboard total includes adjustments, keeps «Compras» and has no pencil (D11, SPEC §8)", async () => {
