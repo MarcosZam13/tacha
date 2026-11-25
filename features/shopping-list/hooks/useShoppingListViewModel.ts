@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
+import type { CatalogSearchResult } from "@/types/catalog.types";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
 import type { KeptPersonalListRow } from "../components/models/KeptPersonalListSectionProps.interface";
@@ -9,6 +10,7 @@ import type { ItemQuantityStepType } from "../constants/shopping-list.constants"
 import type { ClosePurchaseViewModel } from "../models/ClosePurchaseViewModel.interface";
 import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
+import type { ShelfLifeChipsViewModel } from "../models/ShelfLifeChipsViewModel.interface";
 import type { ShortfallPanelViewModel, UndoUncheckViewModel } from "../models/shortfall-resolution.types";
 import type { StorePickerViewModel } from "../models/StorePickerViewModel.interface";
 import { toCatalogSearchResults } from "@/utils/toCatalogSearchResults";
@@ -19,6 +21,7 @@ import { useItemDetail } from "./useItemDetail";
 import { useItemRemoval } from "./useItemRemoval";
 import { useKeptPersonalList } from "./useKeptPersonalList";
 import { usePurchaseSession } from "./usePurchaseSession";
+import { useShelfLifeChips } from "./useShelfLifeChips";
 import { useShoppingList } from "./useShoppingList";
 import { useShortfallFlowViewModel } from "./useShortfallFlowViewModel";
 import { useStorePicker } from "./useStorePicker";
@@ -49,6 +52,8 @@ interface UseShoppingListViewModelReturn {
   keptPersonalRows: KeptPersonalListRow[];
   loadErrorMessage: NullableRef<string>;
   onCloseDetail: () => void;
+  /** El ✓ de una sugerencia de inventario (SCRUM-104): la agrega como el buscador. true si se agregó. */
+  onConfirmSuggestion: (suggestion: CatalogSearchResult) => Promise<boolean>;
   onDecreaseQuantity: (itemId: string) => void;
   onExitShoppingMode: () => void;
   onIncreaseQuantity: (itemId: string) => void;
@@ -62,6 +67,8 @@ interface UseShoppingListViewModelReturn {
   onUndoRemove: () => void;
   /** Sección "Pendientes", en el orden en que se añadieron. */
   pendingRows: ShoppingListRowViewModel[];
+  /** Las presentaciones pendientes: las sugerencias de inventario no las ofrecen (SCRUM-104). */
+  pendingVariantIds: string[];
   quantityErrorMessage: NullableRef<string>;
   query: string;
   removeErrorMessage: NullableRef<string>;
@@ -69,6 +76,8 @@ interface UseShoppingListViewModelReturn {
   searchOptions: ProductSearchOption[];
   /** Aviso cuando la compra de la URL no está abierta. */
   sessionNoticeMessage: NullableRef<string>;
+  /** "¿Cuánto te va a durar?" debajo de la fila recién tachada en modo compra (SCRUM-103). */
+  shelfLifeChips: ShelfLifeChipsViewModel;
   /** Otro miembro ya había cambiado la fila que se quiso resolver o deshacer (SCRUM-115). */
   shortfallNoticeMessage: NullableRef<string>;
   /** "¿Qué hiciste?" al tachar una fila con aviso de faltante (SCRUM-115). */
@@ -92,6 +101,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const purchase = usePurchaseSession();
   const storePicker = useStorePicker({ onStarted: purchase.enterShoppingMode });
   const activeSessionId = purchase.activeSession?.id ?? null;
+  const shelfLife = useShelfLifeChips({ activeSessionId, items: state.items });
   // Se guarda solo el id de la fila abierta; la fila en sí se busca en la
   // lista, así el modal siempre muestra la cantidad y el nombre actuales.
   const [openItemId, setOpenItemId] = useState<NullableRef<string>>(null);
@@ -180,9 +190,18 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       shortfallFlow.requestUndo(itemId);
       return;
     }
-    // Tachar una fila con avisos abre "¿Qué hiciste?" cuando la base lo confirma (regla 35).
+    // Cuando la base confirma el tachado: "¿Qué hiciste?" si la fila tiene avisos (regla 35) y,
+    // en modo compra, los chips de duración (SCRUM-103). El panel es un modal: se ve primero y
+    // los chips quedan debajo de la fila para cuando se cierra.
+    const opensShortfallPanel = isChecking && item.recipeShortfalls.length > 0;
+    const opensShelfLifeChips = isChecking && activeSessionId !== null;
     const onChecked =
-      isChecking && item.recipeShortfalls.length > 0 ? () => shortfallFlow.openPanelFor(itemId) : undefined;
+      opensShortfallPanel || opensShelfLifeChips
+        ? () => {
+            if (opensShelfLifeChips) shelfLife.openFor(itemId);
+            if (opensShortfallPanel) shortfallFlow.openPanelFor(itemId);
+          }
+        : undefined;
     toggleChecked(itemId, isChecking, activeSessionId, onChecked);
   };
 
@@ -256,6 +275,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       })),
     loadErrorMessage: state.loadErrorMessage,
     onCloseDetail,
+    onConfirmSuggestion: addItem,
     onDecreaseQuantity,
     onExitShoppingMode: purchase.exitShoppingMode,
     onIncreaseQuantity,
@@ -268,6 +288,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     onToggleChecked,
     onUndoRemove: removal.cancelRemoval,
     pendingRows,
+    pendingVariantIds: state.items.filter((item) => item.checkedAt === null).map((item) => item.variantId),
     quantityErrorMessage: state.quantityErrorMessage,
     query: search.query,
     removeErrorMessage: state.removeErrorMessage,
@@ -278,6 +299,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       label: result.productName,
     })),
     sessionNoticeMessage: purchase.sessionNoticeMessage,
+    shelfLifeChips: shelfLife.chips,
     shortfallNoticeMessage: shortfallFlow.noticeMessage,
     shortfallPanel: shortfallFlow.shortfallPanel,
     storePicker: {

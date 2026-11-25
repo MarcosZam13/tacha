@@ -50,3 +50,28 @@ features/inventory-suggestions/
 - Unitarias: `toLastPurchaseText`, el servicio y el componente con su Page Object (carga, vacío, error).
 - E2E: [E2E.md](E2E.md).
 - SQL: la prueba de la 061.
+
+## SCRUM-104: confirmar o descartar
+
+### Datos: migración `064_dismiss_inventory_suggestions.sql`
+
+- `inventory_suggestion_dismissals` (`list_id`, `product_catalog_id`, `dismissed_until`, `dismissed_by`, `updated_at`; PK lista + producto). RLS: lectura de listas visibles; sin escritura directa.
+- `dismiss_inventory_suggestion(target_variant_id)`: `security definer`, `search_path = ''`; valida sesión, presentación y lista; `insert ... on conflict do update` con ahora + 7 días.
+- `get_inventory_suggestions()`: la de la `063` más `not exists` de lo pospuesto.
+- Prueba: `supabase/tests/064_dismiss_inventory_suggestions.test.sql`.
+
+### Front
+
+- `InventorySuggestions` recibe `onConfirm` (el `addItem` de la lista) y `pendingVariantIds` (`models/InventorySuggestionsProps.interface.ts`).
+- `useInventorySuggestionsViewModel`: saca la tarjeta al tocar; si el ✓ devuelve `false` o la ✕ falla, la devuelve con el mensaje.
+- `InventorySuggestionCard`: ✓ y ✕ con nombre accesible.
+- `useShoppingList.addItem` devuelve `true`/`false`; `useShoppingListViewModel` expone `onConfirmSuggestion` y `pendingVariantIds`.
+
+### Decisiones
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D8 | El ✓ usa el `addItem` de la lista | Aparece en "Pendientes" sin recargar y con el mismo manejo de errores que el buscador |
+| D9 | La ✕ por producto, 7 días, por lista | Decidido con el equipo: pospone para toda la familia; vence solo, así no es permanente |
+| D10 | Tabla sin escritura directa y función `security definer` | Nadie puede posponer para siempre ni en otra lista |
+| D11 | Ocultar lo pendiente también en el cliente | La base no lo sabe si se agregó después de cargar la fila; evita sumar otra unidad con el ✓ |

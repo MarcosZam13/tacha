@@ -3,7 +3,9 @@ import {
   createSuggestionRow,
   getEmptyListMessage,
   getListErrors,
+  getListSection,
   getSearchBox,
+  getSuggestionCard,
   getSuggestionsRegion,
   openListWithSuggestions,
 } from "./inventory-suggestions.helpers";
@@ -66,5 +68,54 @@ test.describe("Sugerencias de inventario", () => {
     await expect(getSearchBox(page)).toBeEnabled();
     await expect(getSuggestionsRegion(page)).toHaveCount(0);
     await expect(getListErrors(page)).toHaveCount(0);
+  });
+});
+
+// SCRUM-104 (HU-71): ✓ y ✕ en cada tarjeta.
+test.describe("Sugerencias de inventario: confirmar o descartar", () => {
+  test("E2E-INV-05 — El ✓ agrega el producto a la lista con cantidad 1", async ({ page }) => {
+    const actions = await openListWithSuggestions(page, [
+      createSuggestionRow("Leche", 9),
+      createSuggestionRow("Arroz", 35),
+    ]);
+
+    await page.getByRole("button", { name: "Agregar Leche a la lista" }).click();
+
+    await expect(getSuggestionCard(page, "Leche")).toHaveCount(0);
+    await expect(getSuggestionCard(page, "Arroz")).toBeVisible();
+    const pendingSection = getListSection(page, "Pendientes");
+    await expect(pendingSection.getByRole("button", { name: /Leche/u })).toBeVisible();
+    await expect(pendingSection.getByRole("listitem").filter({ hasText: "Leche" }).getByText("1", { exact: true })).toBeVisible();
+    expect(actions.addRequests).toEqual([{ target_variant_id: "e2e-variant-Leche" }]);
+    expect(actions.dismissRequests).toHaveLength(0);
+  });
+
+  test("E2E-INV-06 — La ✕ saca la sugerencia sin agregar nada", async ({ page }) => {
+    const actions = await openListWithSuggestions(page, [
+      createSuggestionRow("Leche", 9),
+      createSuggestionRow("Arroz", 35),
+    ]);
+
+    await page.getByRole("button", { name: "Descartar Arroz" }).click();
+
+    await expect(getSuggestionCard(page, "Arroz")).toHaveCount(0);
+    await expect(getSuggestionCard(page, "Leche")).toBeVisible();
+    await expect.poll(() => actions.dismissRequests).toEqual([{ target_variant_id: "e2e-variant-Arroz" }]);
+    expect(actions.addRequests).toHaveLength(0);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+  });
+
+  test("E2E-INV-07 — Se puede ignorar la fila: la lista funciona igual", async ({ page }) => {
+    const actions = await openListWithSuggestions(page, [createSuggestionRow("Leche", 9)]);
+
+    await expect(getSuggestionCard(page, "Leche")).toBeVisible();
+    await expect(getSearchBox(page)).toBeEnabled();
+    await getSearchBox(page).fill("arroz");
+
+    // La búsqueda corrió (la base simulada no devuelve productos): el buscador responde con la fila a la vista.
+    await expect(page.getByText("No encontramos productos con ese nombre.")).toBeVisible();
+    expect(actions.addRequests).toHaveLength(0);
+    expect(actions.dismissRequests).toHaveLength(0);
+    await expect(getSuggestionCard(page, "Leche")).toBeVisible();
   });
 });
