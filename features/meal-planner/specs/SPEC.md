@@ -522,3 +522,120 @@ En todos los casos ninguna lista cambió. Una receta borrada a mitad también da
 - **Carrera aceptada:** una cancelación entre la validación y el final de la transacción puede dejar productos en una sublista cancelada, igual que en `add_item_to_date_list`.
 - **Tachar a la vez:** el trigger de 043 bloquea la fila de la lista al insertar, y tachar bloquea primero el producto. Un cruce puede terminar en deadlock; Postgres aborta una de las dos transacciones. Si es la semana, no entra nada y sale el error para reintentar.
 - **Sin importar entre features:** el planificador necesita leer las sublistas y la regla de "pendiente". Se promueven las constantes de estado y tipo y `toDateListPath` (plan), con revisión de Marcos.
+
+## 18. SCRUM-162: plan semanal de la familia
+
+Amplía SCRUM-162 (decidido el 2026-11-25) y completa el CA-01 de HU-68 ("asignar cocinero, miembro del household"). Se apoya en las recetas de la familia (`features/recipes/specs/SPEC.md` §17). Reemplaza la regla 24 y lo que las secciones 14 y 15 dejan pendiente sobre el household.
+
+Decidido con el responsable:
+
+- conviven **"Mi plan"** y **"Plan de la familia"**, con un selector;
+- **cualquier miembro** cambia el de la familia;
+- ese plan solo lleva **recetas de la familia**;
+- si el cocinero sale de la familia, sus espacios quedan **sin cocinero**.
+
+### 18.1 Alcance
+
+- Selector "Mi plan" / "Plan de la familia" para quien tiene familia.
+- Ver, asignar, cambiar y quitar espacios del plan de la familia.
+- Elegir como cocinero a cualquier miembro en el plan de la familia.
+- "Agregar semana a la lista" usa el plan a la vista.
+
+### 18.2 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Plan a la vista | personal o familia | selector; arranca en personal |
+| Miembros de la familia | id, nombre, si soy yo | `get_household_members_page` |
+| Cocinero | "Yo", otro miembro o nadie | diálogo |
+| Recetas a elegir | las de la familia (plan de la familia); todas las visibles (personal) | base, por RLS |
+
+### 18.3 Salidas
+
+- Filas de `meal_plans` con `household_id`, una por día y comida de la familia.
+- La grilla del plan elegido, con receta, nombre del cocinero y multiplicador.
+
+### 18.4 Reglas de negocio
+
+47. **Sin familia no hay selector** y todo es como hoy. Si no se pudo saber si tiene familia, tampoco aparece.
+48. **Los planes no se mezclan.** Cambiar uno no toca el otro. Nada se comparte ni se copia solo: tampoco al unirse a una familia.
+49. **Un solo espacio por día y comida** en el plan de la familia. Dos miembros a la vez: queda el último guardado, sin duplicados.
+50. **Cualquier miembro** ve, asigna, cambia y quita. Quien no es miembro, un exmiembro o una sesión anónima no ve ni cambia nada.
+51. **Solo recetas de la familia** en ese plan; lo exige la base. En el personal siguen valiendo las propias y las de la familia.
+52. **Cocinero:** en el plan de la familia, cualquier miembro o nadie; por defecto, quien asigna. Lo valida la base. En el personal, "Yo" o nadie, como hoy.
+53. **Nombre del cocinero:** "Yo" si es quien mira; si no, su nombre, o "Integrante sin nombre" si no tiene.
+54. **Cambiar de plan** vuelve a pedir el plan y descarta respuestas del anterior que lleguen tarde. La semana a la vista se conserva.
+55. **Agregar la semana** suma las comidas del plan a la vista a la lista elegida (regla 42). El destino no cambia: la general de quien tiene familia es la de la familia.
+56. **Al salir o ser removido:** sus espacios como cocinero quedan sin cocinero y el plan de la familia se conserva completo, también lo que esa persona asignó. Su plan personal sigue la regla 69 de recetas.
+57. **Al disolver,** los espacios quedan en el plan personal del último admin; si choca con uno suyo, gana el personal (ya lo hace la `024`).
+58. **Eliminar una receta de la familia** libera sus espacios en todos los planes. El diálogo lo avisa; no cuenta los de otros.
+59. **Si deja de ser miembro** con la pantalla abierta: se avisa y vuelve a "Mi plan".
+
+### 18.5 Estados
+
+| Elemento | Estado | Notas |
+|---|---|---|
+| Selector | oculto · personal · familia | Deshabilitado mientras se guarda o se agrega la semana |
+| Plan | los de la sección 6, por plan | Cambiar de plan vuelve a "cargando" |
+| Cocineros | cargando · listos · error | Con error solo se ofrecen "Yo" y "Sin cocinero", con aviso y reintento |
+
+### 18.6 Errores
+
+| Caso | Qué se muestra |
+|---|---|
+| No carga el plan de la familia | El error de siempre con "Reintentar" |
+| Ya no es miembro | "Ya no formas parte de una familia. Te mostramos tu plan." |
+| La receta ya no es de la familia o se borró | "Esa receta ya no está disponible. Elige otra." y se quita de las opciones |
+| El cocinero ya no es miembro | "Esa persona ya no está en tu familia. Elige otro cocinero." y se vuelven a pedir |
+| No cargan los miembros | "No se pudieron cargar los integrantes." con "Reintentar" |
+
+### 18.7 UI esperada
+
+- El selector va entre los sub-tabs y la semana: dos opciones, con la elegida marcada.
+- El diálogo usa los mismos campos; "Quién cocina" lista "Yo", los demás miembros por nombre y "Sin cocinero".
+- Sin recetas de la familia: "Tu familia todavía no tiene recetas." con el enlace a crear una.
+- Desktop y 360 px; muchos miembros se desplazan dentro del campo.
+
+### 18.8 Accesibilidad
+
+- El selector es un grupo de radios con nombre, operable con teclado; la opción no depende solo del color.
+- Al cambiar de plan se anuncia cuál quedó y su carga.
+
+### 18.9 Contratos externos
+
+- **`meal_plans.household_id`** pasa a tener FK a `households` y un índice único por familia, día y comida. Sus políticas y permisos **no cambian**: por la API directa cada quien ve y cambia solo lo personal.
+- El plan de la familia va **solo por funciones**: leer, asignar y quitar. Ninguna recibe la familia: sale de la membresía. `42501` sin cuenta o sin familia; `P0002` receta o cocinero que no es de la familia.
+- **`assign_meal_slot` y `add_week_to_list` conservan firma y comportamiento** (plan personal). Una función nueva agrega la semana de cualquiera de los dos.
+- El trigger de salida de la `060` se reescribe: no debe mover ni borrar espacios del plan de la familia.
+- Migración: la `061` o la siguiente libre.
+
+### 18.10 Casos de aceptación
+
+- [ ] CA-13: quien tiene familia alterna entre los dos planes; sin familia solo ve el suyo.
+- [ ] CA-14: todos los miembros ven, asignan, cambian y quitan espacios del plan de la familia.
+- [ ] CA-15: en ese plan solo se eligen recetas de la familia (interfaz y SQL).
+- [ ] CA-16: el cocinero puede ser cualquier miembro o nadie; otro usuario se rechaza (SQL).
+- [ ] CA-17: la grilla muestra la receta y el nombre del cocinero.
+- [ ] CA-18: agregar la semana usa el plan a la vista y solo ese.
+- [ ] CA-19: ni otra familia, ni un exmiembro, ni una sesión anónima ven o cambian el plan de la familia; los personales siguen privados (SQL).
+- [ ] CA-20: al salir o ser removido, sus espacios quedan sin cocinero y el plan se conserva, también lo que asignó (SQL).
+- [ ] CA-21: dos miembros en el mismo espacio dejan uno solo, el último.
+- [ ] CA-22: al unirse a una familia no se comparte el plan personal.
+- [ ] CA-23: al disolver, los espacios pasan al último admin y, si chocan, gana el personal (SQL).
+- [ ] Quitar o cambiar un espacio personal no toca el de la familia del mismo día y comida, y al revés.
+- [ ] Una respuesta tardía del plan anterior no pisa la del elegido.
+- [ ] El cocinero o la receta que dejan de estar se avisan sin perder lo demás.
+- [ ] Transferir el admin y salir conserva el plan.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, SQL y E2E pasan.
+
+### 18.11 Casos fuera de alcance
+
+- Cambios en vivo de otro miembro, notificaciones al cocinero y copiar un plan en otro.
+- Recordar el último plan visto.
+- Más de 50 miembros en el selector de cocinero.
+- **Borrar una cuenta:** borra los espacios del plan de la familia que esa persona asignó (tarea aparte, igual que sus recetas).
+
+### 18.12 Notas de implementación
+
+- **Por qué funciones y no abrir las políticas:** el cliente actual borra un espacio por fecha y comida, y lee el plan sin filtrar. Con políticas de miembros borraría el espacio de la familia al quitar el personal, y los mezclaría al leer, mientras `main` no tenga esto.
+- **Por qué la FK es diferida:** al disolver, la `024` convierte los espacios a personales y resuelve los choques. `set null` chocaría antes con el índice personal, y una FK inmediata fallaría antes de que corra.

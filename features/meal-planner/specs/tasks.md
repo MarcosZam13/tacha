@@ -100,3 +100,15 @@ Bloqueado / fuera de esta historia:
 Bloqueado / fuera de esta historia:
 
 - [ ] Borrar `get_general_list_shortfalls()` y `get_recipe_coverage(uuid)`: cuando `main` tenga SCRUM-115.
+
+## SCRUM-162: plan semanal de la familia
+
+- [x] 1. SPEC (sección 18) y plan; decisiones del responsable del 2026-11-25.
+- [ ] 2. Migración `061_household_meal_plan.sql` y su prueba SQL con todos los roles, probadas en local con mutaciones. Volver a correr 019, 022, 023, 024, 026, 058 y 060.
+- [ ] 3. `security-reviewer` de la `061`, correcciones; aplicarla (Roberto) y sumar los tipos.
+- [ ] 4. Promover `hasHousehold` y `useHasHousehold`.
+- [ ] 5. Servicio, modelos y adapters del plan de la familia, con tests.
+- [ ] 6. Hooks (plan a la vista, cocineros, diálogo, semana a la lista) con tests.
+- [ ] 7. Componentes con Page Object; aviso del diálogo de eliminar receta.
+- [ ] 8. E2E (sin familia no hay selector) y `docs/documento-proyecto.md`.
+- [ ] 9. Verificación completa, revisores y `waiting qa`.

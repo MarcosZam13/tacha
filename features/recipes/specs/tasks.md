@@ -154,6 +154,6 @@ Bloqueado / fuera de esta historia:
 
 Bloqueado / fuera de esta historia:
 
-- [ ] Plan semanal compartido y cocinero miembro (D2).
+- [ ] Plan semanal compartido y cocinero miembro: se sumó a SCRUM-162 (`features/meal-planner/specs/` §18).
 - [ ] Error previo hallado al probar: la lista de la familia no carga si tiene un producto personal de otro miembro (módulo de listas; reportado aparte).
 - [ ] Que borrar una cuenta no borre lo compartido con su familia.
