@@ -155,6 +155,17 @@ test.describe("Lista general", () => {
       "No vence / no aplica",
     ]);
     await expect(chips.getByRole("button", { pressed: true })).toHaveCount(0);
+    // Los chips van en su propia línea, a todo el ancho de la fila (BUG-1 de QA de la PR #121:
+    // dentro de la columna del nombre quedaban de ~47 px en el celular).
+    const chipsBox = await chips.boundingBox();
+    const rowTextBox = await getCheckButton(checkedSection, productName).boundingBox();
+    expect(chipsBox!.width).toBeGreaterThanOrEqual(rowTextBox!.width);
+    // Los cuatro se ven enteros, sin deslizar: si no caben en un renglón pasan al siguiente.
+    // En el celular la fila puede quedar debajo del borde: se lleva a la vista antes de medir.
+    await chips.scrollIntoViewIfNeeded();
+    for (const chip of await chips.getByRole("button").all()) {
+      await expect(chip).toBeInViewport({ ratio: 1 });
+    }
 
     // 3. Un toque elige y guarda, sin confirmar; la fila sigue tachada (CA-03).
     await chips.getByRole("button", { name: "1-3 meses" }).click();

@@ -138,7 +138,7 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
   5. Destachar el producto.
 - **Resultado esperado:**
   - Paso 1: no aparece el grupo "¿Cuánto te va a durar <producto>?".
-  - Paso 2: aparecen los cuatro chips en orden ("Vence en pocos días", "2-4 semanas", "1-3 meses", "No vence / no aplica"), ninguno marcado.
+  - Paso 2: aparecen los cuatro chips en orden ("Vence en pocos días", "2-4 semanas", "1-3 meses", "No vence / no aplica"), ninguno marcado. El grupo es al menos tan ancho como el texto de la fila y los cuatro chips se ven enteros, sin deslizar (en su propia línea, también en el celular).
   - Paso 3: "1-3 meses" queda marcado, la fila sigue tachada y se guarda `{ shelf_life_choice: "one_to_three_months" }`.
   - Paso 4: ninguno marcado y se guarda `{ shelf_life_choice: null }`.
   - Paso 5: los chips desaparecen.

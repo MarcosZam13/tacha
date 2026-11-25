@@ -36,7 +36,8 @@ export const ShoppingListRow = ({
   const shortfallNotesId = `${SHOPPING_LIST_DOM_ID_PREFIX.SHORTFALL_NOTES}${row.item.id}`;
 
   return (
-    <li className="flex items-center gap-3 pr-3">
+    // flex-wrap: los chips de SCRUM-103 van en su propia línea, con todo el ancho de la fila.
+    <li className="flex flex-wrap items-center gap-x-3 pr-3">
       <div className="flex min-w-0 flex-1 flex-col self-stretch">
         <button
           type="button"
@@ -59,8 +60,6 @@ export const ShoppingListRow = ({
             notes={row.shortfallNotes}
           />
         ) : null}
-        {/* SCRUM-103: fuera del botón, como los avisos: tocar un chip no destacha. */}
-        {shelfLifeSlot}
         {assigneeSlot}
       </div>
       <QuantityStepper
@@ -80,6 +79,9 @@ export const ShoppingListRow = ({
         <span aria-hidden="true">{SHOPPING_LIST_TEXT.REMOVE_ITEM_ICON}</span>
         <span className="sr-only">{SHOPPING_LIST_TEXT.REMOVE_ITEM}</span>
       </Button>
+      {/* SCRUM-103: línea propia debajo de la fila, a todo el ancho y fuera del botón de tachar
+          (tocar un chip no destacha). Dentro de la columna del nombre quedaba de ~47 px en el celular. */}
+      {shelfLifeSlot ? <div className="min-w-0 basis-full">{shelfLifeSlot}</div> : null}
     </li>
   );
 };

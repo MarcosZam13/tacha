@@ -650,7 +650,7 @@ Si no se puede guardar, el chip vuelve a como estaba y aparece el mensaje debajo
 
 ### 19.8 UI esperada
 
-Debajo del nombre de la fila recién tachada, fuera del botón de tachar: "¿Cuánto te va a durar? (opcional)" y los cuatro chips en una fila con scroll horizontal si no caben.
+En una línea propia debajo de la fila recién tachada, a todo el ancho de la fila y fuera del botón de tachar: "¿Cuánto te va a durar? (opcional)" y los cuatro chips; si no caben en un renglón pasan al siguiente, así que se ven todos sin deslizar (con scroll horizontal, en el celular las opciones de la derecha quedaban escondidas). No van dentro de la columna del nombre: ahí compartían el ancho con los controles y en el celular quedaban de unos 47 px (BUG-1 de QA de la PR #121).
 
 ### 19.9 Accesibilidad
 
@@ -665,7 +665,7 @@ Debajo del nombre de la fila recién tachada, fuera del botón de tachar: "¿Cu�
 
 ### 19.11 Casos fuera de alcance
 
-- Elegir el chip fuera de modo compra o cambiarlo después: SCRUM-106 (ajustar el vencimiento desde "Mi inventario").
+- Elegir el chip fuera de modo compra o cambiarlo después: SCRUM-106 (ajustar el vencimiento desde "Mi inventario"). Por eso, al recargar la página, una fila que sigue tachada ya no muestra los chips: se eligen en el mismo gesto de tachar (CA-03). Lo elegido sigue guardado en la base.
 - Selector de fecha exacta: la historia lo descarta.
 - Tabla de inventario (`household_inventory_items`): llega con SCRUM-106 y 107, que necesitan "ya se acabó" y lo agregado a mano. SCRUM-103 solo necesita el chip de cada compra (corrige lo que decía la SPEC de SCRUM-102, §14).
 
