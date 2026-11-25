@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NullableRef } from "@/types/nullable.types";
 import { APP_NAV_ITEMS } from "@/components/app-shell/constants/app-shell.constants";
@@ -19,6 +19,7 @@ import {
   setSpendingBudget,
 } from "../services/finance.service";
 import { createFinanceDashboardPage } from "./FinanceDashboard.page";
+import { createSpendingByStorePage } from "./SpendingByStore.page";
 import { createPurchaseHistoryPage } from "./PurchaseHistory.page";
 
 // La pantalla con el servicio falso: sin Supabase ni sesión real.
@@ -48,18 +49,19 @@ const DAY_START = new Date(2026, 9, 18).getTime();
 // patrón que acepta cualquier espacio.
 const amount = (text: string): RegExp => new RegExp(`^${text.replace(/ /gu, "\\s")}$`, "u");
 
-// Las compras del periodo, como las da getPeriodPurchases sin zona guardada (SCRUM-72).
-const purchasesWith = (...totals: NullableRef<number>[]): PeriodPurchase[] =>
-  totals.map((totalAmount, index) => ({
-    closedAt: new Date(2026, 9, 18, 10, 0).toISOString(),
-    id: `purchase-${index}`,
-    storeName: "MaxiPali",
-    totalAmount,
-  }));
+// Una compra del periodo, como la da getPeriodPurchases sin zona guardada (SCRUM-72).
+const purchase = (id: string, storeName: NullableRef<string>, totalAmount: NullableRef<number>): PeriodPurchase => ({
+  closedAt: new Date(2026, 9, 18, 10, 0).toISOString(),
+  id,
+  storeName,
+  totalAmount,
+});
 
-// El día pide desde hoy (₡10 000); la semana, desde el lunes 12 (₡15 000 y una sin total).
-const purchasesByPeriod = async ({ start }: PeriodBounds) =>
-  start.getTime() === DAY_START ? purchasesWith(10000) : purchasesWith(10000, 5000, null);
+// Las compras de E2E-FIN-05. El día pide desde hoy (₡10 000); la semana, desde el
+// lunes 12 (₡15 000 y una sin total).
+const SUNDAY = purchase("sunday", "MaxiPali", 10000);
+const WEEK_PURCHASES = [SUNDAY, purchase("wednesday", "Walmart", null), purchase("monday", "MasXMenos", 5000)];
+const purchasesByPeriod = async ({ start }: PeriodBounds) => (start.getTime() === DAY_START ? [SUNDAY] : WEEK_PURCHASES);
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -132,7 +134,7 @@ describe("FinanceDashboard: spending (CA-01, CA-02)", () => {
 
     await page.findPeriodGroup();
     expect(page.getPeriodButton("Semana")).toHaveAttribute("aria-pressed", "true");
-    expect(await page.findText(amount("₡15 000"))).toBeInTheDocument();
+    expect(await page.findTotalText(amount("₡15 000"))).toBeInTheDocument();
     expect(page.queryText("Lunes 12 a domingo 18 de octubre")).toBeInTheDocument();
     expect(page.getStatusRegion()?.textContent).toMatch(/^Gastado esta semana: ₡15\s000$/u);
   });
@@ -140,11 +142,11 @@ describe("FinanceDashboard: spending (CA-01, CA-02)", () => {
   it("recalculates the total when the period changes, without asking for the budgets again", async () => {
     render(<FinanceDashboard />);
     const page = createFinanceDashboardPage();
-    await page.findText(amount("₡15 000"));
+    await page.findTotalText(amount("₡15 000"));
 
     await page.choosePeriod("Día");
 
-    expect(await page.findText(amount("₡10 000"))).toBeInTheDocument();
+    expect(await page.findTotalText(amount("₡10 000"))).toBeInTheDocument();
     expect(page.getPeriodButton("Día")).toHaveAttribute("aria-pressed", "true");
     expect(page.queryText("Gastado hoy")).toBeInTheDocument();
     expect(page.getStatusRegion()?.textContent).toMatch(/^Gastado hoy: ₡10\s000$/u);
@@ -159,7 +161,7 @@ describe("FinanceDashboard: spending (CA-01, CA-02)", () => {
     expect(await page.findText(FINANCE_TEXT.SPENDING_LOAD_ERROR)).toBeInTheDocument();
     await page.retry();
 
-    expect(await page.findText(amount("₡15 000"))).toBeInTheDocument();
+    expect(await page.findTotalText(amount("₡15 000"))).toBeInTheDocument();
     expect(page.queryAlert()).not.toBeInTheDocument();
   });
 });
@@ -170,7 +172,7 @@ describe("FinanceDashboard: budget (CA-03)", () => {
     render(<FinanceDashboard />);
     const page = createFinanceDashboardPage();
     expect(await page.findText("Sin presupuesto semanal")).toBeInTheDocument();
-    await page.findText(amount("₡15 000"));
+    await page.findTotalText(amount("₡15 000"));
 
     await page.openBudget(FINANCE_TEXT.DEFINE_BUDGET);
     expect(page.getBudgetInput("Presupuesto semanal (₡)")).toHaveFocus();
@@ -247,7 +249,7 @@ describe("FinanceDashboard: separate errors (SPEC §7)", () => {
     const page = createFinanceDashboardPage();
 
     expect(await page.findText(FINANCE_TEXT.BUDGET_LOAD_ERROR)).toBeInTheDocument();
-    expect(await page.findText(amount("₡15 000"))).toBeInTheDocument();
+    expect(await page.findTotalText(amount("₡15 000"))).toBeInTheDocument();
     expect(page.queryBudgetActionButton(FINANCE_TEXT.DEFINE_BUDGET)).not.toBeInTheDocument();
   });
 
@@ -302,10 +304,13 @@ describe("FinanceDashboard and PurchaseHistory with manual adjustments (SCRUM-91
     const page = createPurchaseHistoryPage();
 
     expect(await page.findText(FINANCE_TEXT.INCLUDES_ADJUSTMENTS)).toBeInTheDocument();
-    expect(page.queryText(FINANCE_TEXT.PURCHASES)?.nextSibling).toHaveTextContent("2");
-    expect(page.queryText(FINANCE_TEXT.WITHOUT_TOTAL)?.nextSibling).toHaveTextContent("1");
+    // Los contadores del total; "Sin total" también es el badge de Walmart en el desglose (SCRUM-72).
+    const totalCard = within(await createFinanceDashboardPage().findTotalCard());
+    expect(totalCard.getByText(FINANCE_TEXT.PURCHASES).nextSibling).toHaveTextContent("2");
+    expect(totalCard.getByText(FINANCE_TEXT.WITHOUT_TOTAL).nextSibling).toHaveTextContent("1");
     expect(page.queryEditButton(/^Editar total/u)).not.toBeInTheDocument();
-    expect(page.queryText(FINANCE_TEXT.ADJUSTMENT)).not.toBeInTheDocument();
+    // Desde SCRUM-72 el ajuste se ve una vez, en la línea del desglose (D45), no en el total.
+    expect(totalCard.queryByText(FINANCE_TEXT.ADJUSTMENT)).not.toBeInTheDocument();
   });
 
   it("shows the adjustment in the Historial as its own row, without a pencil (D16)", async () => {
@@ -336,5 +341,175 @@ describe("FinanceDashboard: pending purchases reminder (SCRUM-92)", () => {
     expect(screen.getByRole("link", { name: "Completarlas" })).toHaveAttribute("href", "/finanzas/historial#compras-sin-total");
     expect(page.getAllEditButtons()).toHaveLength(0);
     expect(screen.queryByRole("region", { name: FINANCE_TEXT.PENDING_SECTION_TITLE })).not.toBeInTheDocument();
+  });
+});
+
+describe("FinanceDashboard: spending by store (SCRUM-72)", () => {
+  // Normaliza el espacio de miles de Intl para comparar el texto de cada fila.
+  const toPlainSpaces = (texts: (string | null)[]) => texts.map((text) => text?.replace(/\s/gu, " "));
+
+  it("lists the week's stores from the highest to the lowest amount, with «Sin total» last (CA-01, CA-02, D46)", async () => {
+    render(<FinanceDashboard />);
+    const page = createSpendingByStorePage();
+
+    await page.findSection();
+
+    expect(toPlainSpaces(page.getRowTexts())).toEqual([
+      "MaxiPali₡10 000",
+      "MasXMenos₡5 000",
+      `Walmart1 sin total${FINANCE_TEXT.WITHOUT_TOTAL}`,
+    ]);
+    expect(page.querySectionText(FINANCE_TEXT.ADJUSTMENT)).not.toBeInTheDocument();
+  });
+
+  it("comes from the same purchases as the total (rule 107)", async () => {
+    render(<FinanceDashboard />);
+    const dashboard = createFinanceDashboardPage();
+
+    expect(await dashboard.findTotalText(amount("₡15 000"))).toBeInTheDocument();
+    expect(createSpendingByStorePage().getRows()).toHaveLength(3);
+    expect(purchasesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("recalculates the breakdown when the period changes (rule 116)", async () => {
+    render(<FinanceDashboard />);
+    const dashboard = createFinanceDashboardPage();
+    const page = createSpendingByStorePage();
+    await page.findSection();
+
+    await dashboard.choosePeriod("Día");
+
+    await waitFor(() => expect(toPlainSpaces(page.getRowTexts())).toEqual(["MaxiPali₡10 000"]));
+  });
+
+  it("is not shown while the spending loads (rule 115)", async () => {
+    purchasesMock.mockReturnValue(new Promise(() => {}));
+    render(<FinanceDashboard />);
+    await createFinanceDashboardPage().findPeriodGroup();
+
+    expect(createSpendingByStorePage().querySection()).not.toBeInTheDocument();
+  });
+
+  it("is not shown when the spending fails; the error is only in the total (rule 115)", async () => {
+    purchasesMock.mockRejectedValue(new Error("network"));
+    render(<FinanceDashboard />);
+    const dashboard = createFinanceDashboardPage();
+
+    expect(await dashboard.findText(FINANCE_TEXT.SPENDING_LOAD_ERROR)).toBeInTheDocument();
+    expect(createSpendingByStorePage().querySection()).not.toBeInTheDocument();
+  });
+
+  it("is not shown in a period without purchases (D48)", async () => {
+    purchasesMock.mockResolvedValue([]);
+    render(<FinanceDashboard />);
+    const dashboard = createFinanceDashboardPage();
+
+    expect(await dashboard.findText(FINANCE_TEXT.SPENDING_EMPTY)).toBeInTheDocument();
+    expect(createSpendingByStorePage().querySection()).not.toBeInTheDocument();
+  });
+
+  it("is not shown without a registered account, and nothing is requested (D6)", async () => {
+    sessionMock.mockResolvedValue(false);
+    render(<FinanceDashboard />);
+
+    expect(await createFinanceDashboardPage().findNoAccountNotice()).toBeInTheDocument();
+    expect(createSpendingByStorePage().querySection()).not.toBeInTheDocument();
+    expect(purchasesMock).not.toHaveBeenCalled();
+    expect(financeMock).not.toHaveBeenCalled();
+  });
+
+  describe("with a saved time zone (one read, get_period_finance)", () => {
+    const zonedWeek = (overrides: Partial<ZonedPeriodFinance>): ZonedPeriodFinance => ({
+      adjustments: [],
+      bounds: { end: new Date(2026, 9, 19), start: new Date(2026, 9, 12) },
+      purchases: [],
+      spending: { adjustmentCount: 0, closedCount: 0, total: 0, withoutTotalCount: 0 },
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ...overrides,
+    });
+    const adjustment = (id: string, amountValue: number, scope: ZonedPeriodFinance["adjustments"][number]["scope"]) => ({
+      amount: amountValue,
+      effectiveAt: NOW.toISOString(),
+      id,
+      scope,
+    });
+
+    it("orders «Supermercado no disponible» by its amount and after a named store in a tie (D49)", async () => {
+      financeMock.mockResolvedValue(
+        zonedWeek({
+          purchases: [
+            purchase("a", "MasXMenos", 3000),
+            purchase("b", null, 8000),
+            purchase("c", "MaxiPali", 8000),
+            purchase("d", "MaxiPali", null),
+            purchase("e", "Walmart", 12000),
+          ],
+          spending: { adjustmentCount: 0, closedCount: 4, total: 31000, withoutTotalCount: 1 },
+        }),
+      );
+      render(<FinanceDashboard />);
+      const page = createSpendingByStorePage();
+
+      await page.findSection();
+
+      expect(toPlainSpaces(page.getRowTexts())).toEqual([
+        "Walmart₡12 000",
+        "MaxiPali1 sin total₡8 000",
+        `${FINANCE_TEXT.STORE_UNAVAILABLE}₡8 000`,
+        "MasXMenos₡3 000",
+      ]);
+    });
+
+    it("shows one adjustment as «Ajuste manual» with its sign, outside the list (D45, D50)", async () => {
+      financeMock.mockResolvedValue(
+        zonedWeek({
+          adjustments: [adjustment("day", 500, SPENDING_PERIOD.DAY)],
+          purchases: [purchase("a", "MaxiPali", 10000)],
+          spending: { adjustmentCount: 1, closedCount: 1, total: 10500, withoutTotalCount: 0 },
+        }),
+      );
+      render(<FinanceDashboard />);
+      const page = createSpendingByStorePage();
+
+      await page.findSection();
+
+      expect(page.querySectionText(FINANCE_TEXT.ADJUSTMENT)).toBeInTheDocument();
+      expect(page.querySectionText(amount("\\+₡500"))).toBeInTheDocument();
+      expect(page.queryListText(FINANCE_TEXT.ADJUSTMENT)).not.toBeInTheDocument();
+      expect(page.getRows()).toHaveLength(1);
+    });
+
+    it("shows two or more adjustments as «Ajustes manuales» with their sum (D50)", async () => {
+      financeMock.mockResolvedValue(
+        zonedWeek({
+          adjustments: [adjustment("day", 500, SPENDING_PERIOD.DAY), adjustment("week", -2000, SPENDING_PERIOD.WEEK)],
+          purchases: [purchase("a", "MaxiPali", 10000)],
+          spending: { adjustmentCount: 2, closedCount: 1, total: 8500, withoutTotalCount: 0 },
+        }),
+      );
+      render(<FinanceDashboard />);
+      const page = createSpendingByStorePage();
+
+      await page.findSection();
+
+      expect(page.querySectionText(FINANCE_TEXT.ADJUSTMENTS)).toBeInTheDocument();
+      expect(page.querySectionText(amount("−₡1 500"))).toBeInTheDocument();
+      expect(page.querySectionText(FINANCE_TEXT.ADJUSTMENT)).not.toBeInTheDocument();
+    });
+
+    it("is not shown in a period with only adjustments, while the total shows them (D48)", async () => {
+      financeMock.mockResolvedValue(
+        zonedWeek({
+          adjustments: [adjustment("week", 8000, SPENDING_PERIOD.WEEK)],
+          spending: { adjustmentCount: 1, closedCount: 0, total: 8000, withoutTotalCount: 0 },
+        }),
+      );
+      render(<FinanceDashboard />);
+      const dashboard = createFinanceDashboardPage();
+
+      expect(await dashboard.findTotalText(amount("₡8 000"))).toBeInTheDocument();
+      expect(dashboard.queryText(FINANCE_TEXT.INCLUDES_ADJUSTMENTS)).toBeInTheDocument();
+      expect(createSpendingByStorePage().querySection()).not.toBeInTheDocument();
+    });
   });
 });

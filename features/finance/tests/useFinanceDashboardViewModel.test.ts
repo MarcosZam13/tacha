@@ -331,3 +331,141 @@ describe("useFinanceDashboardViewModel: pending purchases reminder (SCRUM-92)", 
     expect(pendingMock).not.toHaveBeenCalled();
   });
 });
+
+describe("useFinanceDashboardViewModel: spending by store (SCRUM-72)", () => {
+  const purchase = (id: string, storeName: NullableRef<string>, totalAmount: NullableRef<number>): PeriodPurchase => ({
+    closedAt: new Date(2026, 9, 14, 10, 0).toISOString(),
+    id,
+    storeName,
+    totalAmount,
+  });
+  const adjustment = (id: string, amount: number) => ({
+    amount,
+    effectiveAt: NOW.toISOString(),
+    id,
+    scope: SPENDING_PERIOD.WEEK,
+  });
+  // get_period_finance: las compras, los ajustes y el gasto que la base calcula con ellos.
+  const zonedWeek = (
+    purchases: PeriodPurchase[],
+    adjustments: ReturnType<typeof adjustment>[],
+    spending: { closedCount: number; total: number; withoutTotalCount: number },
+  ) => ({
+    adjustments,
+    bounds: { end: new Date(2026, 9, 19), start: new Date(2026, 9, 12) },
+    purchases,
+    spending: { adjustmentCount: adjustments.length, ...spending },
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+  const plainRows = (rows: { amountText: string }[] | undefined) =>
+    rows?.map((row) => ({ ...row, amountText: toPlainSpaces(row.amountText) }));
+
+  it("builds one row per store, in order, with its texts (CA-01, CA-02, D46, D47, D49)", async () => {
+    purchasesMock.mockResolvedValue([
+      purchase("a", "MasXMenos", 3000),
+      purchase("b", null, 8000),
+      purchase("c", "Walmart", null),
+      purchase("d", "MaxiPali", 8000),
+      purchase("e", "MaxiPali", null),
+      purchase("f", "Walmart", null),
+    ]);
+    const { result } = await renderLoaded();
+
+    expect(plainRows(result.current.spendingByStore?.rows)).toEqual([
+      { amountText: "₡8 000", hasNoTotal: false, id: "MaxiPali", storeText: "MaxiPali", withoutTotalText: "1 sin total" },
+      { amountText: "₡8 000", hasNoTotal: false, id: "", storeText: FINANCE_TEXT.STORE_UNAVAILABLE, withoutTotalText: null },
+      { amountText: "₡3 000", hasNoTotal: false, id: "MasXMenos", storeText: "MasXMenos", withoutTotalText: null },
+      { amountText: FINANCE_TEXT.WITHOUT_TOTAL, hasNoTotal: true, id: "Walmart", storeText: "Walmart", withoutTotalText: "2 sin total" },
+    ]);
+    expect(result.current.spendingByStore?.adjustment).toBeNull();
+  });
+
+  it("shows a real ₡0 as an amount, never as «Sin total» (D8)", async () => {
+    purchasesMock.mockResolvedValue([purchase("a", "Walmart", 0)]);
+    const { result } = await renderLoaded();
+
+    expect(result.current.spendingByStore?.rows[0]).toMatchObject({ amountText: "₡0", hasNoTotal: false });
+  });
+
+  it("gives one adjustment as «Ajuste manual» with its sign (D45, D50)", async () => {
+    // ₡10 000 de compras y −₡1 500 de ajuste: ₡8 500.
+    financeMock.mockResolvedValue(
+      zonedWeek([purchase("a", "MaxiPali", 10000)], [adjustment("one", -1500)], {
+        closedCount: 1,
+        total: 8500,
+        withoutTotalCount: 0,
+      }),
+    );
+    const { result } = await renderLoaded();
+
+    expect(result.current.spendingByStore?.adjustment?.labelText).toBe(FINANCE_TEXT.ADJUSTMENT);
+    expect(toPlainSpaces(result.current.spendingByStore?.adjustment?.amountText ?? null)).toBe("−₡1 500");
+    expect(result.current.spendingByStore?.rows).toHaveLength(1);
+  });
+
+  it("gives two or more adjustments as «Ajustes manuales» with their sum (D50)", async () => {
+    // ₡10 000 de compras y +₡1 500 de ajustes: ₡11 500.
+    financeMock.mockResolvedValue(
+      zonedWeek([purchase("a", "MaxiPali", 10000)], [adjustment("one", 500), adjustment("two", 1000)], {
+        closedCount: 1,
+        total: 11500,
+        withoutTotalCount: 0,
+      }),
+    );
+    const { result } = await renderLoaded();
+
+    expect(result.current.spendingByStore?.adjustment?.labelText).toBe(FINANCE_TEXT.ADJUSTMENTS);
+    expect(toPlainSpaces(result.current.spendingByStore?.adjustment?.amountText ?? null)).toBe("+₡1 500");
+  });
+
+  it("gives no breakdown while loading", () => {
+    purchasesMock.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useFinanceDashboardViewModel());
+
+    expect(result.current.spendingByStore).toBeNull();
+  });
+
+  it("gives no breakdown when the spending fails (rule 115)", async () => {
+    purchasesMock.mockRejectedValue(new Error("network"));
+    const { result } = renderHook(() => useFinanceDashboardViewModel());
+
+    await waitFor(() => expect(result.current.spending.status).toBe(SPENDING_STATUS.FAILED));
+    expect(result.current.spendingByStore).toBeNull();
+  });
+
+  it("gives no breakdown in a period without purchases (D48)", async () => {
+    purchasesMock.mockResolvedValue([]);
+    const { result } = renderHook(() => useFinanceDashboardViewModel());
+
+    await waitFor(() => expect(result.current.spending.status).toBe(SPENDING_STATUS.EMPTY));
+    expect(result.current.spendingByStore).toBeNull();
+  });
+
+  it("gives no breakdown in a period with only adjustments (D48)", async () => {
+    // Sin compras: el total es solo el ajuste.
+    financeMock.mockResolvedValue(zonedWeek([], [adjustment("one", 8000)], { closedCount: 0, total: 8000, withoutTotalCount: 0 }));
+    const { result } = await renderLoaded();
+
+    expect(result.current.spendingByStore).toBeNull();
+  });
+
+  it("recalculates the breakdown for the new period (rule 116)", async () => {
+    const { result } = await renderLoaded();
+    purchasesMock.mockResolvedValue([purchase("a", "Walmart", 2500)]);
+
+    act(() => result.current.periodOptions[0].onSelect());
+
+    expect(result.current.spendingByStore).toBeNull();
+    await waitFor(() => expect(result.current.spendingByStore?.rows.map((row) => row.storeText)).toEqual(["Walmart"]));
+  });
+
+  it("gives no breakdown and asks for nothing without a registered account (D6)", async () => {
+    sessionMock.mockResolvedValue(false);
+    const { result } = renderHook(() => useFinanceDashboardViewModel());
+
+    await waitFor(() => expect(result.current.accessStatus).toBe(FINANCE_ACCESS_STATUS.NO_ACCOUNT));
+    expect(result.current.spendingByStore).toBeNull();
+    expect(purchasesMock).not.toHaveBeenCalled();
+    expect(financeMock).not.toHaveBeenCalled();
+  });
+});

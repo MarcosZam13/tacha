@@ -18,12 +18,17 @@ import {
 } from "../constants/finance.constants";
 import type { PendingTotalReminderProps } from "../components/models/PendingTotalReminderProps.interface";
 import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
+import type { SpendingByStoreProps } from "../components/models/SpendingByStoreProps.interface";
 import type { SpendingPeriodOption } from "../components/models/SpendingPeriodSelectorProps.interface";
 import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
 import type { FinanceAccessStatusType, SpendingPeriodType } from "../constants/finance.constants";
+import type { PeriodAdjustment } from "../models/PeriodAdjustment.interface";
+import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
 import { formatColones } from "../utils/formatColones";
 import { formatPeriodRange } from "../utils/formatPeriodRange";
+import { formatSignedColones } from "../utils/formatSignedColones";
+import { groupSpendingByStore } from "../utils/groupSpendingByStore";
 import { toPendingTotalReminder } from "../utils/toPendingTotalReminder";
 import { useFinanceAccess } from "./useFinanceAccess";
 import { usePendingPurchases } from "./usePendingPurchases";
@@ -37,6 +42,8 @@ interface UseFinanceDashboardViewModelReturn {
   pendingReminder: PendingTotalReminderProps;
   periodOptions: SpendingPeriodOption[];
   spending: SpendingTotalProps;
+  /** El desglose por supermercado (SCRUM-72); null mientras carga, si falla o sin compras (D48, regla 115). */
+  spendingByStore: NullableRef<SpendingByStoreProps>;
   /** Lo que anuncia la zona role="status" (SPEC §9): el total nuevo o "Presupuesto guardado". */
   statusMessage: NullableRef<string>;
 }
@@ -55,6 +62,35 @@ const toDifferenceText = (budgetAmount: number, spending: PeriodSpending): strin
   return difference >= 0
     ? `${FINANCE_TEXT.REMAINING_PREFIX}${formatColones(difference)}`
     : `${FINANCE_TEXT.OVER_BUDGET_PREFIX}${formatColones(-difference)}`;
+};
+
+// SCRUM-72: las filas y la línea del ajuste, con los textos ya armados (SPEC §8).
+// El orden y las sumas vienen de groupSpendingByStore (reglas 107 a 113).
+const toSpendingByStore = (
+  purchases: readonly PeriodPurchase[],
+  adjustments: readonly PeriodAdjustment[],
+): SpendingByStoreProps => {
+  const { adjustmentCount, adjustmentTotal, stores } = groupSpendingByStore(purchases, adjustments);
+  return {
+    adjustment:
+      adjustmentTotal === null
+        ? null
+        : {
+            amountText: formatSignedColones(adjustmentTotal),
+            labelText: adjustmentCount === 1 ? FINANCE_TEXT.ADJUSTMENT : FINANCE_TEXT.ADJUSTMENTS,
+          },
+    rows: stores.map(({ amount, closedCount, storeName, withoutTotalCount }) => {
+      const hasNoTotal = closedCount === 0;
+      return {
+        amountText: hasNoTotal ? FINANCE_TEXT.WITHOUT_TOTAL : formatColones(amount),
+        hasNoTotal,
+        id: storeName ?? "",
+        storeText: storeName ?? FINANCE_TEXT.STORE_UNAVAILABLE,
+        withoutTotalText:
+          withoutTotalCount === 0 ? null : `${withoutTotalCount}${FINANCE_TEXT.WITHOUT_TOTAL_COUNT_SUFFIX}`,
+      };
+    }),
+  };
 };
 
 /**
@@ -77,7 +113,7 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
   // El mismo recordatorio que el Historial; acá no se edita ni se listan las compras (D11).
   const pendingPurchases = usePendingPurchases(isRegistered);
 
-  const { spending } = periodPurchases;
+  const { adjustments, purchases, spending } = periodPurchases;
   const hasSpending = spending !== null;
   const totalText = spending ? formatColones(spending.total) : null;
   const budgetAmount = spendingBudgets.amount;
@@ -140,6 +176,11 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
       totalText,
       withoutTotalCount: spending?.withoutTotalCount ?? 0,
     },
+    // Solo con el gasto listo y alguna compra: un periodo solo con ajustes no la muestra (D48, regla 115).
+    spendingByStore:
+      periodPurchases.status === SPENDING_STATUS.READY && purchases && purchases.length > 0
+        ? toSpendingByStore(purchases, adjustments ?? [])
+        : null,
     statusMessage: spendingBudgets.noticeMessage ?? (totalText ? `${SPENT_LABEL[period]}: ${totalText}` : null),
   };
 };

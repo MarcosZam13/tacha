@@ -497,10 +497,10 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 3 — Sección en el Dashboard
 
-- [ ] 3.1 Textos y el id del título en `finance.constants.ts`; las filas y la línea del ajuste, con "Ajuste manual" o el texto nuevo en plural (D50), las arma el ViewModel (reglas 103 a 106, 115, 117 y 119).
-- [ ] 3.2 `SpendingByStore` y `SpendingByStoreProps`, montado en `FinanceDashboard` debajo del recordatorio (SPEC §8 y §9).
-- [ ] 3.3 Page Object (`SpendingByStore.page.ts`) y tests de componente, del ViewModel y de la pantalla: orden con "Supermercado no disponible" por su monto (D49), "N sin total", "Sin total" al final, ajuste fuera de la lista en singular y en plural (D50), sin sección mientras carga, si falla y sin compras (D48), cambio de periodo y D6.
-- [ ] 3.4 Escenarios existentes en el mismo commit: E2E-FIN-11 espera una línea «Ajuste manual» en el desglose y ningún lápiz (D45, D11); los montos del total se buscan dentro de su tarjeta (₡10 000 en Día también es la fila de MaxiPali); E2E-FIN-03 comprueba que la sección no aparece con el error (regla 115). Los tests de pantalla existentes se acotan igual. E2E de Finanzas en verde.
+- [x] 3.1 Textos y el id del título en `finance.constants.ts`; las filas y la línea del ajuste, con "Ajuste manual" o el texto nuevo en plural (D50), las arma el ViewModel (reglas 103 a 106, 115, 117 y 119).
+- [x] 3.2 `SpendingByStore` y `SpendingByStoreProps`, montado en `FinanceDashboard` debajo del recordatorio (SPEC §8 y §9).
+- [x] 3.3 Page Object (`SpendingByStore.page.ts`) y tests de componente, del ViewModel y de la pantalla: orden con "Supermercado no disponible" por su monto (D49), "N sin total", "Sin total" al final, ajuste fuera de la lista en singular y en plural (D50), sin sección mientras carga, si falla y sin compras (D48), cambio de periodo y D6.
+- [x] 3.4 Escenarios existentes en el mismo commit: E2E-FIN-11 espera una línea «Ajuste manual» en el desglose y ningún lápiz (D45, D11); los montos del total se buscan dentro de su tarjeta (₡10 000 en Día también es la fila de MaxiPali); E2E-FIN-03 comprueba que la sección no aparece con el error (regla 115). Los tests de pantalla existentes se acotan igual. E2E de Finanzas en verde: 60 pasaron en `chromium` y `mobile-chrome` (2026-11-24). En `finance.helpers.ts` solo cambió `getExactText`, que ahora acepta una parte de la página para acotar la búsqueda.
 
 ### Etapa 4 — Quitar la lectura sin uso
 

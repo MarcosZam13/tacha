@@ -652,7 +652,8 @@ export const getStatusRegion = (page: Page): Locator => page.locator('[role="sta
 
 /**
  * Un texto con montos. Intl separa los miles con un espacio especial, así que
- * cada espacio del texto acepta cualquier espacio.
+ * cada espacio del texto acepta cualquier espacio. Se busca en la página o dentro
+ * de una parte (la tarjeta del total), porque un monto puede repetirse (SCRUM-72).
  */
-export const getExactText = (page: Page, text: string): Locator =>
-  page.getByText(new RegExp(`^${text.replace(/ /gu, "\\s")}$`, "u"));
+export const getExactText = (scope: Page | Locator, text: string): Locator =>
+  scope.getByText(new RegExp(`^${text.replace(/ /gu, "\\s")}$`, "u"));

@@ -155,7 +155,11 @@ test.describe("Finanzas: editar totales (SCRUM-91)", () => {
     await expect(getExactText(page, "Te quedan ₡10 000")).toBeVisible();
     await expect(getCounter(page, "Compras")).toContainText("2");
     await expect(getEditTotalButtons(page)).toHaveCount(0);
-    await expect(page.getByText(ADJUSTMENT, { exact: true })).toHaveCount(0);
+    // Desde SCRUM-72 el ajuste se ve en una línea del desglose, fuera de la lista y sin lápiz (D45, D11).
+    const storeSpending = page.getByRole("region", { name: "Gasto por supermercado" });
+    await expect(page.getByText(ADJUSTMENT, { exact: true })).toHaveCount(1);
+    await expect(storeSpending.getByText(ADJUSTMENT, { exact: true })).toBeVisible();
+    await expect(storeSpending.getByRole("listitem").filter({ hasText: ADJUSTMENT })).toHaveCount(0);
     // Una sola lectura con la zona guardada: compras, ajustes y total juntos (D19),
     // sin leer la tabla de compras (SCRUM-72).
     expect(recorder.periodFinanceRequests.length).toBeGreaterThan(readsBefore);
