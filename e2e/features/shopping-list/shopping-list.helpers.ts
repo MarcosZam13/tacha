@@ -67,3 +67,27 @@ export const getUndoDialog = (page: Page): Locator =>
 export const getShortfallNote = (row: Locator, recipeName: string): Locator =>
   row.getByText(new RegExp(`^\\+ .+ necesarios para ${recipeName}$`));
 
+/** Los chips de "cuánto le va a durar" de una fila (SCRUM-103): su nombre lleva el del producto. */
+export const getShelfLifeChips = (page: Page, productName: string): Locator =>
+  page.getByRole("group", { name: `¿Cuánto te va a durar ${productName}?` });
+
+/**
+ * Responde desde el test el guardado del chip (update de list_items.shelf_life_choice)
+ * y devuelve lo que la pantalla mandó. Así el escenario no depende de que la 063 esté
+ * aplicada; que la base guarde y valide el chip lo cubre la prueba SQL de la 063.
+ * Cualquier otra petición a list_items sigue a la base.
+ */
+export const recordShelfLifeSaves = async (page: Page): Promise<unknown[]> => {
+  const savedBodies: unknown[] = [];
+  await page.route("**/rest/v1/list_items?*", async (route) => {
+    const request = route.request();
+    const body = request.postDataJSON() as Record<string, unknown> | null;
+    if (request.method() !== "PATCH" || !body || !("shelf_life_choice" in body)) {
+      await route.fallback();
+      return;
+    }
+    savedBodies.push(body);
+    await route.fulfill({ json: { id: new URL(request.url()).searchParams.get("id")?.replace("eq.", "") } });
+  });
+  return savedBodies;
+};

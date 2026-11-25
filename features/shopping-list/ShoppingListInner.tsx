@@ -17,6 +17,7 @@ import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
 import { ShoppingListSection } from "./components/ShoppingListSection";
+import { ShelfLifeChips } from "./components/ShelfLifeChips";
 import { ShoppingModeBar } from "./components/ShoppingModeBar";
 import { ShortfallResolutionPanel } from "./components/ShortfallResolutionPanel";
 import { StorePicker } from "./components/StorePicker";
@@ -47,6 +48,12 @@ export const ShoppingListInner = (): React.JSX.Element => {
       onOpenDetail={() => viewModel.onOpenDetail(row.item.id)}
       onRemove={() => viewModel.onRemoveItem(row.item.id)}
       onToggleChecked={() => viewModel.onToggleChecked(row.item.id)}
+      shelfLifeSlot={
+        // SCRUM-103: solo la fila recién tachada en modo compra.
+        viewModel.shelfLifeChips.itemId === row.item.id ? (
+          <ShelfLifeChips chips={viewModel.shelfLifeChips} productName={row.item.productName} />
+        ) : null
+      }
     />
   );
 

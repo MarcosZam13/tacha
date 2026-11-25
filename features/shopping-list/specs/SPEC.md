@@ -549,7 +549,7 @@ Migración **`037_resolve_recipe_shortfalls.sql`** (la `034` es de la PR #84 y l
 
 ### 18.11 Casos fuera de alcance
 
-- **Chips de "cuánto le va a durar" al tachar** (HU-70b, Melany): otro panel de la misma acción; cuando exista, se decide cómo convive con este.
+- **Chips de "cuánto le va a durar" al tachar** (HU-70b, Melany): ya existen (§19, regla 53). El panel se abre primero y los chips quedan debajo de la fila.
 - **Tiempo real** (SCRUM-155): un aviso nuevo de otro miembro se ve al recargar.
 - **Revertir sin destachar** (un "deshacer" aparte): solo se revierte al destachar, con confirmación (regla 45).
 - **Guardar cada cambio por separado** para revertir solo lo del panel y conservar lo manual: se revierte a la foto de antes del panel, y el diálogo lo avisa.
@@ -589,3 +589,97 @@ Migración **`037_resolve_recipe_shortfalls.sql`** (la `034` es de la PR #84 y l
 - [x] La base rechaza: sin sesión (`42501`), fila ajena (`P0002`), fila pendiente o presentación de otro producto (`22023`); `anon` sin `execute`.
 - [x] Falla al resolver: mensaje en el panel, que sigue abierto; reintentar funciona.
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+
+## 19. SCRUM-103: cuánto le va a durar, al tachar (HU-70b)
+
+Historia: HU-70b en [docs/historias-usuario.md](../../../docs/historias-usuario.md). Completa las sugerencias de inventario de SCRUM-102 (HU-70), que viven en `features/inventory-suggestions/`; la migración `061` es de esa historia.
+
+### 19.1 Objetivo
+
+Al tachar en modo compra, poder decir, sin obligación y de un toque, cuánto le va a durar el producto, para que las sugerencias de inventario sean más precisas.
+
+### 19.2 Alcance
+
+- Cuatro chips debajo de la fila recién tachada en modo compra: "Vence en pocos días", "2-4 semanas", "1-3 meses" y "No vence / no aplica".
+- Guardar el chip en la fila (`list_items.shelf_life_choice`, migración `063`).
+- `get_inventory_suggestions` (061) usa el chip de la última compra.
+
+### 19.3 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Fila recién tachada | `ShoppingListItem` | el tachado confirmado por la base (`checkItemInSession`) |
+| Compra activa | id de `purchase_sessions` | `?compra=` (SCRUM-67) |
+| Chip | uno de los cuatro valores, o ninguno | un toque del usuario |
+
+### 19.4 Salidas
+
+- `list_items.shelf_life_choice` de esa fila: `few_days`, `two_to_four_weeks`, `one_to_three_months`, `no_expiry` o `null`.
+- Las sugerencias de inventario (`get_inventory_suggestions`) calculan con él.
+
+### 19.5 Reglas de negocio
+
+47. **Opcional (CA-02).** Sin chip la fila queda con `null` y las sugerencias calculan como en la 061 (historial o categoría).
+48. **Solo en modo compra (CA-01).** Fuera de modo compra, tachar no muestra chips.
+49. **Mismo gesto (CA-03).** Los chips aparecen cuando la base confirma el tachado, debajo de esa fila. No hay botón de confirmar: tocar un chip lo guarda. Tocar el chip elegido lo quita. La fila sigue tachada y se puede seguir tachando otras.
+50. **Una fila a la vez.** Tachar otra fila mueve los chips a esa; la anterior conserva su chip en la base. Destachar la fila o salir del modo compra los esconde.
+51. **Destachar borra el chip.** Una fila pendiente no tiene chip: la base lo borra al destachar y no deja guardarlo en una pendiente (trigger de la 063).
+52. **Duración (propuesta, a confirmar con el PO).** El chip de la **última** compra de un producto manda sobre el historial y la categoría:
+
+| Chip | Días |
+|---|---|
+| Vence en pocos días | 4 |
+| 2-4 semanas | 21 |
+| 1-3 meses | 60 |
+| No vence / no aplica | sin fecha por vencimiento: con 2 compras o más, el historial (061); con 1, no se sugiere |
+
+53. **Con "¿Qué hiciste?" (§18).** Si la fila tiene aviso de receta se abre el panel (es un modal) y los chips quedan debajo de la fila para cuando se cierra. Ninguno espera al otro.
+
+### 19.6 Estados
+
+| Estado | Qué se ve |
+|---|---|
+| Sin elegir | Los cuatro chips, ninguno marcado |
+| Elegido | Ese chip marcado (teal, `aria-pressed`) |
+| Guardando | Los chips deshabilitados un momento; lo elegido ya se ve marcado |
+| Error | Vuelve a lo de antes y "No se pudo guardar. Intenta de nuevo." |
+
+### 19.7 Errores
+
+Si no se puede guardar, el chip vuelve a como estaba y aparece el mensaje debajo, sin tapar la lista ni destachar la fila. Si la RLS no deja escribir la fila (otra lista), el servicio lo trata como error: pide la fila de vuelta y no la recibe.
+
+### 19.8 UI esperada
+
+En una línea propia debajo de la fila recién tachada, a todo el ancho de la fila y fuera del botón de tachar: "¿Cuánto te va a durar? (opcional)" y los cuatro chips; si no caben en un renglón pasan al siguiente, así que se ven todos sin deslizar (con scroll horizontal, en el celular las opciones de la derecha quedaban escondidas). No van dentro de la columna del nombre: ahí compartían el ancho con los controles y en el celular quedaban de unos 47 px (BUG-1 de QA de la PR #121).
+
+### 19.9 Accesibilidad
+
+- Los chips son `<button>` con `aria-pressed`, en un `role="group"` con nombre "¿Cuánto te va a durar <producto>?".
+- Están fuera del botón de la fila: tocar un chip no destacha.
+- El error usa `role="alert"`.
+
+### 19.10 Contratos externos
+
+- `update list_items set shelf_life_choice = ... where id = ...` (PostgREST, con `select("id").single()`). `authenticated` solo tiene `update` sobre esa columna (además de las de 005, 015 y 016) y la política de update de la 024 limita a listas visibles.
+- `get_inventory_suggestions()`: misma firma que en la 061.
+
+### 19.11 Casos fuera de alcance
+
+- Elegir el chip fuera de modo compra o cambiarlo después: SCRUM-106 (ajustar el vencimiento desde "Mi inventario"). Por eso, al recargar la página, una fila que sigue tachada ya no muestra los chips: se eligen en el mismo gesto de tachar (CA-03). Lo elegido sigue guardado en la base.
+- Selector de fecha exacta: la historia lo descarta.
+- Tabla de inventario (`household_inventory_items`): llega con SCRUM-106 y 107, que necesitan "ya se acabó" y lo agregado a mano. SCRUM-103 solo necesita el chip de cada compra (corrige lo que decía la SPEC de SCRUM-102, §14).
+
+### 19.12 Notas de implementación
+
+- **Por qué una columna y un update directo.** Es un dato de la compra, como `quantity_bought`, y se escribe igual que el tachado (015): permiso por columna y la política de la 024. Una función `security definer` no agregaría nada.
+- **Por qué el chip de la última compra.** Es lo más reciente que se sabe de ese producto en la casa.
+- **Depende de la 061** (SCRUM-102, PR #120): la `063` vuelve a definir `get_inventory_suggestions`. Se mergea después de la #120.
+
+### 19.13 Casos de aceptación (HU-70b, SCRUM-103)
+
+- [x] CA-01: en modo compra, tachar muestra los cuatro chips debajo de la fila; fuera de modo compra no. (E2E-LISTA-09, `useShelfLifeChips.test.ts`)
+- [x] CA-02: sin tocar ningún chip no se guarda nada y las sugerencias calculan como en la 061. (prueba SQL de la `063`, Arroz)
+- [x] CA-03: un toque guarda, sin confirmar; la fila sigue tachada; tocar el mismo lo quita. (E2E-LISTA-09)
+- [x] El chip de la última compra manda sobre la categoría y el historial; "No vence" con una compra no se sugiere y con dos usa el historial. (prueba SQL de la `063`)
+- [x] Destachar borra el chip; una fila pendiente no lo guarda; no se puede escribir el chip de una fila de otra lista. (prueba SQL de la `063`)
+- [x] Error al guardar: vuelve a lo de antes y muestra el mensaje. (`useShelfLifeChips.test.ts`)
