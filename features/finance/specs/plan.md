@@ -1409,6 +1409,8 @@ Conceptos nuevos:
 
 ## SCRUM-72: ver gastos por supermercado
 
+> **Estado (2026-11-24):** implementado en las etapas 1 a 5 y validado con pruebas automatizadas (tasks, etapa 6). Falta la QA manual (`TC-SCRUM-72-01` a `06`, "Pruebas"). El bloque "Verificado" de abajo describe el punto de partida: `usePeriodSpending` y `getPeriodSpending` ya no existen (etapa 4).
+
 > **Verificado el 2026-11-24** contra `develop` en `3543332`, desde la rama `ticket/SCRUM-72-gastos-por-supermercado` sin commits propios:
 >
 > - **Dashboard:** `useFinanceDashboardViewModel` lee con `usePeriodSpending`. Con zona guardada llama a `get_period_finance` y no usa sus `purchases`; sin zona, `getPeriodSpending` pide solo `total_amount`.
@@ -1552,18 +1554,38 @@ Los datos, los resultados esperados y las peticiones de cada uno están en [E2E.
 | E2E-FIN-11 | `spendingRequests` vacío pasa a `historyRequests` vacío: con zona guardada no hay lectura de la tabla | 2 |
 | E2E-FIN-11 | Ya no puede esperar cero «Ajuste manual» en el Dashboard: con D45 aparece **una** línea del desglose, fuera de la lista y sin lápiz; los lápices siguen en cero (D11) | 3 |
 | E2E-FIN-01 y los de Día | El total y la fila de MaxiPali valen ₡10 000 en Día: los montos del total se buscan dentro de la tarjeta del total, no en toda la página | 3 |
-| E2E-FIN-04 y 11 | Se quitan las comprobaciones de `spendingRequests`, que deja de existir | 4 |
+| E2E-FIN-05 | Empieza en el Dashboard, que también lee con la consulta del Historial: la petición que comprueba pasa a ser la última de `historyRequests`, no la primera (no estaba previsto; se encontró en la etapa 2) | 2 |
+| E2E-FIN-04 y 08 | Se quitan las comprobaciones de `spendingRequests`, que deja de existir. E2E-FIN-11 ya la había cambiado en la etapa 2 | 4 |
 
-**Manual** (`TC-SCRUM-72-nn`, contra la base, con capturas sin correos):
+**Manual** (`TC-SCRUM-72-nn`, contra la base compartida, con capturas sin correos ni datos personales). Detallados en la revisión de cierre (2026-11-24, `qa-checker`): cada caso tiene precondiciones, pasos y resultado esperado.
 
-| Caso | Qué comprueba | Tipo |
-|---|---|---|
-| 01 | Con compras cerradas en dos supermercados, el desglose de Semana coincide con las compras del Historial de Semana, en orden | Funcional |
-| 02 | Cambiar a Día y a Mes recalcula el desglose | Funcional |
-| 03 | Una compra cerrada sin total: su supermercado muestra "1 sin total", o "Sin total" al final si es la única (D46 y D47) | Funcional |
-| 04 | Con un ajuste manual del periodo, la línea "Ajuste manual" con su signo, fuera de la lista (D45); con dos (por ejemplo, el del día y el de la semana, mirando el mes), "Ajustes manuales" con la suma (D50) | Funcional |
-| 05 | Un periodo sin compras no muestra la sección (D48) | Negativo |
-| 06 | Teclado, lector de pantalla y mobile | Usabilidad |
+**Datos comunes (cuenta A):** una cuenta registrada (no anónima) que pueda crear compras.
+
+- **Compras de hoy:** cerrar en modo compra, el mismo día:
+  - **C1:** en MaxiPali, con total ₡10 000;
+  - **C2:** en MasXMenos, con total ₡5 000;
+  - **C3:** en Walmart, sin total;
+  - **C4:** en MaxiPali, sin total.
+- **Compras anteriores:** si la cuenta ya tiene compras de días anteriores de esta semana o de este mes, se dejan: sirven para que Día, Semana y Mes den listas distintas.
+- **Sin ajustes al empezar:** en el Historial, ningún periodo muestra "Ajuste manual".
+
+Con solo C1 a C4, la lista de Día es: MaxiPali ₡10 000 con "1 sin total"; MasXMenos ₡5 000; Walmart con "Sin total". Las compras de otros días suman a Semana y Mes según su supermercado.
+
+**"Supermercado no disponible" (regla 109)** no se puede preparar desde la app, porque toda compra tiene supermercado. Lo cubren `groupSpendingByStore.test.ts`, los tests de pantalla y E2E-FIN-25.
+
+| Caso | Tipo | Precondiciones | Pasos | Resultado esperado |
+|---|---|---|---|---|
+| 01 Desglose de la semana contra el Historial (CA-01, CA-02, regla 107) | Funcional | Cuenta A con C1 a C4 | 1. Abrir Finanzas → Dashboard (Semana). 2. Anotar el total y cada fila de "Gasto por supermercado". 3. Ir a Historial (Semana) y sumar a mano los montos de cada supermercado; contar sus "Sin total". | Una fila por supermercado del Historial. El monto de cada una es la suma del Historial; van de mayor a menor monto. La suma de las filas es el total del periodo (puede diferir en ₡1 por redondeo, regla 114). |
+| 02 Cambio de periodo (regla 116) | Funcional | Caso 01 hecho | 1. En el Dashboard, tocar "Día". 2. Tocar "Mes". 3. Para cada uno, comparar con el Historial del mismo periodo, como en el 01. | Cada periodo muestra solo sus compras, sin recargar la página. Día coincide con la lista de "Datos comunes" (más las compras anteriores de hoy, si las hay). Si no hay compras de otros días, Día, Semana y Mes muestran la misma lista: se anota así. |
+| 03a Supermercado con compras con y sin total (D47) | Funcional | Cuenta A con C1 y C4 | 1. Dashboard, "Día". 2. Mirar la fila de MaxiPali. | MaxiPali ₡10 000, con "1 sin total" debajo del nombre. C4 no suma al monto. |
+| 03b Supermercado solo con compras sin total (D46) | Funcional | Cuenta A con C3 y ninguna compra de Walmart con total en el día | 1. Dashboard, "Día". 2. Mirar la última fila. | Walmart es la última fila, con el badge "Sin total" y "1 sin total". **Nunca** aparece ₡0 en esa fila. |
+| 04a Un ajuste manual (D45, D50) | Funcional | Casos 01 a 03 hechos. Si es la primera edición, el Historial pide confirmar la zona horaria: confirmarla | 1. Historial, "Día": editar el total del periodo (lápiz junto al total) y escribir el total actual más ₡500. 2. Ir al Dashboard y tocar "Día". | Debajo de la lista, fuera de ella, la línea "Ajuste manual +₡500". El total es el de antes más ₡500 y dice "Incluye ajustes manuales". La lista de supermercados no cambia. El Dashboard no tiene lápices. |
+| 04b Dos ajustes en el mismo periodo (D50, regla 52) | Funcional | Caso 04a hecho | 1. Historial, "Semana": editar el total y escribir el total actual menos ₡2 000. 2. Ir al Dashboard, "Semana". 3. Tocar "Día". | En Semana, la línea dice "Ajustes manuales −₡1 500" (+₡500 del día y −₡2 000 de la semana). En Día sigue "Ajuste manual +₡500": el de la semana no cuenta en el día. La suma de las filas más el ajuste es el total de cada periodo. |
+| 05a Periodo sin compras (D48) | Negativo | Cuenta B: registrada, sin compras en el mes | 1. Abrir Finanzas → Dashboard con la cuenta B. 2. Tocar "Día", "Semana" y "Mes". | En ningún periodo aparece "Gasto por supermercado". El total muestra ₡0 y "Todavía no tienes compras cerradas en este periodo." |
+| 05b Periodo solo con un ajuste (D48) | Negativo | Cuenta B, con la zona horaria confirmada en el Historial | 1. Historial, "Día": editar el total del periodo y escribir ₡8 000. 2. Ir al Dashboard, "Día". | El total es ₡8 000, con "Incluye ajustes manuales". **No** aparece "Gasto por supermercado", porque no hay compras. |
+| 06 Accesibilidad y mobile (SPEC §9) | Usabilidad | Cuenta A con el desglose visible (Semana) | 1. Con el lector de pantalla (NVDA o VoiceOver), navegar por encabezados. 2. Entrar a la lista. 3. En las herramientas del navegador, ancho de 360 px. 4. Cambiar a modo oscuro. | 1. "Gasto por supermercado" se anuncia como encabezado de nivel 2. 2. Se anuncia una lista con tantos elementos como supermercados; cada uno se lee completo (nombre, monto o "Sin total", y "N sin total"). La línea del ajuste no se lee como un elemento de la lista. 3. Sin desplazamiento horizontal; los nombres largos se parten. 4. El badge "Sin total" se lee bien en los dos temas. La sección no tiene nada enfocable con Tab. |
+
+**Después de probar:** los ajustes de 04 y 05b quedan guardados en la base. Para quitar cada uno, en el Historial se escribe como total de su periodo el total sin ese ajuste: la diferencia da 0 y el ajuste se borra (regla 50). Primero el de la semana y después el del día.
 
 ### Documento del proyecto
 
@@ -1597,6 +1619,17 @@ Staging explícito, nunca `git add .`.
 - **Redondeo:** la suma visible puede diferir en ₡1 del total (SPEC regla 114). No se corrige; se documenta.
 - **El Dashboard pide un poco más sin zona:** el nombre del supermercado, además del total, en la misma lectura de las compras propias del periodo.
 - **Quitar `usePeriodSpending`:** si otra rama abierta lo empieza a usar antes del merge, el commit 5 la rompe. Se vuelve a buscar en `develop` antes de hacerlo.
+
+### Revisiones de cierre (2026-11-24, tasks 6.2)
+
+- **`code-reviewer`:** sin blockers ni should-fix. Dos nits aplicados: el comentario del `id` de `StoreSpendingRowProps` dice que es la clave del `<li>`, y las claves nuevas de `FINANCE_TEXT` van en orden alfabético. El tercero (agrupar por nombre) es el límite aceptado de la regla 108.
+- **`qa-checker`:** sin blockers. Aplicado:
+  - un test de `groupSpendingByStore` que solo pasa si se compara en centavos (0,10 + 0,20 frente a 0,30 empatan y van por nombre);
+  - en E2E-FIN-24, un control positivo antes de comprobar que ninguna lectura usa la consulta vieja;
+  - los casos manuales con precondiciones, pasos y resultados ("Pruebas", "Manual").
+- **No aplicados, por ser nits de estilo de pruebas que siguen el patrón existente de Finanzas:** comprobar clases del `Chip` (como `FinanceComponents.test.tsx`), los contadores con `.nextSibling`, el `toPlainSpaces` repetido en dos archivos y la petición de E2E-FIN-05 tomada como la última.
+- **`security-reviewer`:** no aplica (plan, "Seguridad"): sin auth, household, RLS, formularios ni variables de entorno nuevas.
+- **Pendiente de la dueña de la historia:** un supermercado que solo tiene compras sin total muestra "1 sin total" y el badge "Sin total" a la vez, como piden D46 y D47. Si se prefiere ocultar la cantidad en esas filas, cambia D47.
 
 ### Para la defensa
 

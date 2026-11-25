@@ -7,7 +7,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-91 / HU-60](https://tacha.atlassian.net/browse/SCRUM-91): editar el total de una sesión o periodo. En planificación.
 - [SCRUM-92 / HU-61](https://tacha.atlassian.net/browse/SCRUM-92): ver sesiones sin total ingresado. En planificación; decisiones D23 a D27 tomadas el 2026-11-13 (§5).
 - [SCRUM-93 / HU-62](https://tacha.atlassian.net/browse/SCRUM-93): consultar frecuencia e historial de compra por producto. Implementada, con migración `049` aplicada, pruebas automatizadas en verde y QA manual dada por completada por la dueña de la historia (§13). Decisiones D28 a D44 (D39 sustituye a D28). Faltan la confirmación del equipo de D38 y la aprobación de la documentación.
-- [SCRUM-72 / HU-40](https://tacha.atlassian.net/browse/SCRUM-72): ver gastos por supermercado. En planificación; decisiones D45 a D50 tomadas el 2026-11-24 (§5). Sin migración.
+- [SCRUM-72 / HU-40](https://tacha.atlassian.net/browse/SCRUM-72): ver gastos por supermercado. Implementada el 2026-11-24, con las decisiones D45 a D50 (§5) y sin migración; las pruebas automatizadas pasan y la QA manual (§13) está pendiente.
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md). Producto: [documento-proyecto.md §4.2.1 y §4.6](../../../docs/documento-proyecto.md#42-lista-general-y-dashboard-financiero); diseño: [DESIGN.md §7.9 y §7.11](../../../docs/DESIGN.md).
 
@@ -1360,7 +1360,7 @@ purchase_sessions  select id, closed_at, total_amount, stores(display_name)
                    order by closed_at desc, id                 con count: "exact" (regla 30)
 ```
 
-- **Lo que deja de pedir el Dashboard:** `purchase_sessions select total_amount` (`getPeriodSpending`). Con zona guardada la llamada es la misma de antes.
+- **Lo que dejó de pedir el Dashboard:** `purchase_sessions select total_amount`, la lectura de `getPeriodSpending`, que se quitó en esta historia (§10). Con zona guardada la llamada es la misma de antes.
 - **Sin `store_id`:** ninguna de las dos lecturas lo devuelve; por eso se agrupa por nombre (regla 108).
 
 ## 13. Casos de aceptación
@@ -1585,21 +1585,21 @@ Casos de cada flujo:
 
 ### HU-40 (SCRUM-72)
 
-Ninguno validado todavía.
+**Validado con pruebas automatizadas el 2026-11-24** (Vitest, E2E con Supabase simulado, `tsc`, lint y build). Falta la QA manual contra la base, `TC-SCRUM-72-01` a `06` (plan, "Pruebas"): por eso CA-01, CA-02 y el último punto "Manual" siguen sin marcar.
 
 - [ ] **CA-01, monto por supermercado:** el Dashboard muestra cada supermercado con lo que se gastó en él en el periodo elegido, y cambia al cambiar de periodo. La suma de los supermercados más el ajuste es el total del periodo (regla 114). Función pura, ViewModel, pantalla, E2E y manual contra el Historial.
 - [ ] **CA-02, orden:** de mayor a menor monto, "Supermercado no disponible" incluido (D49), con los empates y el final de la lista según la regla 113. Función pura, pantalla y E2E-FIN-24 y 25.
-- [ ] **D45 y D50, ajuste:** con un ajuste en el periodo se ve "Ajuste manual" con su signo, fuera de la lista; con dos o más, "Ajustes manuales" con la suma.
-- [ ] **D46 y D47, sin total:** un supermercado solo con compras sin total aparece al final con "Sin total" y nunca con ₡0; uno con compras con y sin total muestra su monto y "N sin total". Un ₡0 real se ve como ₡0.
-- [ ] **D48, sin compras:** sin compras en el periodo, la sección no se ve, aunque haya un ajuste.
-- [ ] **Regla 109:** las compras con nombre nulo o en blanco van a "Supermercado no disponible".
-- [ ] **Regla 115:** mientras carga o si falla, la sección no aparece y el error se ve una sola vez, en el total.
-- [ ] **D6:** sin cuenta registrada o con sesión anónima no se pide nada.
-- [ ] **Sin regresiones:** el total, el presupuesto y el recordatorio del Dashboard siguen igual; E2E-FIN-01 a 23 pasan, con E2E-FIN-01 a 04 y 11 adaptados a la lectura nueva sin cambiar lo que comprueban (D6 incluido).
-- [ ] **E2E (interfaz):** E2E-FIN-24 y 25 pasan en `chromium` y `mobile-chrome`. Validan la interfaz con Supabase simulado, no la base.
+- [x] **D45 y D50, ajuste:** con un ajuste en el periodo se ve "Ajuste manual" con su signo, fuera de la lista; con dos o más, "Ajustes manuales" con la suma.
+- [x] **D46 y D47, sin total:** un supermercado solo con compras sin total aparece al final con "Sin total" y nunca con ₡0; uno con compras con y sin total muestra su monto y "N sin total". Un ₡0 real se ve como ₡0.
+- [x] **D48, sin compras:** sin compras en el periodo, la sección no se ve, aunque haya un ajuste.
+- [x] **Regla 109:** las compras con nombre nulo o en blanco van a "Supermercado no disponible".
+- [x] **Regla 115:** mientras carga o si falla, la sección no aparece y el error se ve una sola vez, en el total.
+- [x] **D6:** sin cuenta registrada o con sesión anónima no se pide nada.
+- [x] **Sin regresiones:** el total, el presupuesto y el recordatorio del Dashboard siguen igual; E2E-FIN-01 a 23 pasan, con E2E-FIN-01 a 05, 08 y 11 adaptados a la lectura nueva sin cambiar lo que comprueban (D6 incluido).
+- [x] **E2E (interfaz):** E2E-FIN-24 y 25 pasan en `chromium` y `mobile-chrome`. Validan la interfaz con Supabase simulado, no la base.
 - [ ] **Manual:** contra la base compartida, el desglose de cada periodo coincide con las compras del Historial del mismo periodo; teclado y mobile, con capturas sin correos.
-- [ ] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
+- [x] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
 
 ## 14. Casos fuera de alcance
 

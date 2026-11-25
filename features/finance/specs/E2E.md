@@ -536,7 +536,7 @@ Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
 
 Deriva de SPEC §13 (HU-40) y de las decisiones D45 a D50 (SPEC §5). La agrupación, la suma en centavos y el orden se prueban en `groupSpendingByStore.test.ts`; acá va lo que la pantalla hace con esos datos.
 
-- **Archivo:** `e2e/features/finance/spending-by-store.spec.ts`. **Estado (2026-11-24):** planificado, sin escribir.
+- **Archivo:** `e2e/features/finance/spending-by-store.spec.ts`. **Estado (2026-11-24):** escrito y en verde. E2E-FIN-24 (dos pruebas) y E2E-FIN-25 pasan en `chromium` y `mobile-chrome`: 6 de 6. `e2e/features/finance` completo: 66 de 66.
 - **Qué validan:** igual que los anteriores, usan una **sesión registrada simulada** y **respuestas de Supabase simuladas**, y validan **solo la interfaz**: ni la autenticación real, ni la RLS, ni `get_period_finance`.
 - **Qué cubre lo real:** el QA manual de SPEC §13, contra el Historial del mismo periodo.
 - **IDs:** siguen a E2E-FIN-19 a 23, de SCRUM-93.
@@ -555,7 +555,7 @@ Mismos reloj, zona horaria y límites de E2E-FIN-05. No hay peticiones nuevas: e
 - **Sin efecto en los escenarios anteriores:** ninguno pasa la opción, así que empiezan sin ajustes, como hoy. Sin zona guardada la respuesta no trae ajustes, así que la opción solo se usa con `savedTimeZone`.
 - **Datos de E2E-FIN-25:** uno de `day` (+500) y uno de `week` (−2 000), con ids distintos de los que crea `set_period_total`. En Semana cuentan los dos (−1 500, "Ajustes manuales"); en Día, solo el primero (+500, "Ajuste manual").
 
-**Escenarios anteriores:** cambian cómo se comprueban, no qué (plan, "Pruebas", escenarios existentes). Las notas están en E2E-FIN-01, 03, 04 y 11 y en las coberturas de SCRUM-69 y SCRUM-91.
+**Escenarios anteriores:** cambian cómo se comprueban, no qué (plan, "Pruebas", escenarios existentes). Las notas están en E2E-FIN-01, 03, 04 y 11 y en las coberturas de SCRUM-69 y SCRUM-91. Además, E2E-FIN-05 toma la última petición del Historial (el Dashboard también la hace) y E2E-FIN-08 ya no comprueba `spendingRequests`, que se quitó en la etapa 4.
 
 ### E2E-FIN-24: desglose sin zona guardada (SCRUM-72)
 
