@@ -57,6 +57,11 @@ export const PRODUCT_GROUP_ADD_TO_LIST_TEXT = {
   BUTTON_LABEL_SUFFIX: " a la lista",
   ERROR: "No pudimos agregar el grupo. Intenta de nuevo.",
   NONE_ADDED: "No se agregó ningún producto: los del grupo ya no están disponibles.",
+  // SCRUM-163: cuando lo que no entró incluye productos personales.
+  NOTHING_ADDED: "No se agregó ningún producto del grupo.",
+  // "No se agregaron porque son solo tuyos y tu lista es la de tu familia: X, Y."
+  PERSONAL_PREFIX: "No se agregaron porque son solo tuyos y tu lista es la de tu familia: ",
+  PERSONAL_SUFFIX: ".",
   NOT_FOUND: "Este grupo ya no existe.",
   // "No se agregaron: X, Y (ya no están disponibles)."
   SKIPPED_PREFIX: "No se agregaron: ",

@@ -113,12 +113,23 @@ describe("createProductGroup", () => {
 // SCRUM-111: agregar un grupo a la lista (add_group_to_general_list, 057).
 describe("addGroupToList", () => {
   it("calls add_group_to_general_list and returns what was added and skipped", async () => {
-    rpcMock.mockResolvedValue({ data: { added: ["Leche", "Café"], skipped: ["Natilla"] }, error: null });
+    rpcMock.mockResolvedValue({ data: { added: ["Leche", "Café"], personal: ["Tortillas"], skipped: ["Natilla"] }, error: null });
 
-    await expect(addGroupToList("group-1")).resolves.toEqual({ added: ["Leche", "Café"], skipped: ["Natilla"] });
+    await expect(addGroupToList("group-1")).resolves.toEqual({
+      added: ["Leche", "Café"],
+      personal: ["Tortillas"],
+      skipped: ["Natilla"],
+    });
 
     expect(ensureSessionMock).toHaveBeenCalledTimes(1);
     expect(rpcMock).toHaveBeenCalledWith(PRODUCT_GROUPS_DB.RPC.ADD_GROUP_TO_GENERAL_LIST, { target_group_id: "group-1" });
+  });
+
+  // La función de la 057 todavía no devuelve "personal" (llega con SCRUM-163).
+  it("treats a response without personal products as none", async () => {
+    rpcMock.mockResolvedValue({ data: { added: ["Leche"], skipped: [] }, error: null });
+
+    await expect(addGroupToList("group-1")).resolves.toEqual({ added: ["Leche"], personal: [], skipped: [] });
   });
 
   // Otro miembro lo borró, o no es visible: la base responde P0002.
