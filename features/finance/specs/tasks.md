@@ -510,8 +510,8 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 La adaptación de los escenarios existentes ya está en las etapas 2, 3 y 4.
 
-- [ ] 5.1 `finance.helpers.ts`: opción `adjustments` para empezar con ajustes guardados (los de E2E-FIN-25), según [E2E.md](E2E.md), "Opción nueva del helper": exportar `SimulatedAdjustment` y empezar la lista con una copia de `options.adjustments ?? []`. Por defecto no hay ajustes, así que E2E-FIN-01 a 23 no cambian; confirmarlo corriendo `e2e/features/finance` completo.
-- [ ] 5.2 `e2e/features/finance/spending-by-store.spec.ts`, según [E2E.md](E2E.md), sección SCRUM-72:
+- [x] 5.1 `finance.helpers.ts`: opción `adjustments` para empezar con ajustes guardados (los de E2E-FIN-25), según [E2E.md](E2E.md), "Opción nueva del helper": exportar `SimulatedAdjustment` y empezar la lista con una copia de `options.adjustments ?? []`. Por defecto no hay ajustes, así que E2E-FIN-01 a 23 no cambian; confirmarlo corriendo `e2e/features/finance` completo. Confirmado el 2026-11-24: los 60 anteriores siguen pasando.
+- [x] 5.2 `e2e/features/finance/spending-by-store.spec.ts`, según [E2E.md](E2E.md), sección SCRUM-72:
   - **E2E-FIN-24, sin zona, con los datos de E2E-FIN-05:**
     - Semana: MaxiPali ₡10 000, MasXMenos ₡5 000 y Walmart con "Sin total" al final;
     - Día: solo MaxiPali ₡10 000;
@@ -524,7 +524,7 @@ La adaptación de los escenarios existentes ya está en las etapas 2, 3 y 4.
     - Semana: «Ajustes manuales −₡1 500» (un ajuste del día de +₡500 y uno de la semana de −₡2 000, D50) y total ₡29 500;
     - Día: «Ajuste manual +₡500»;
     - una lectura de `rpc/get_period_finance` por periodo, con su `target_scope`, y ninguna de `purchase_sessions` con el `select` del Historial.
-  - Correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+  - Correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`: 66 pasaron (2026-11-24), 6 de ellos de `spending-by-store.spec.ts` (E2E-FIN-24 en dos pruebas y E2E-FIN-25, en los dos navegadores).
 
 ### Etapa 6 — QA y cierre
 

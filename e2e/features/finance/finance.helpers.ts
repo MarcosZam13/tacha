@@ -175,7 +175,8 @@ const PERIOD_BOUNDS: Record<Scope, { end: string; start: string }> = {
   week: { end: "2026-10-19T06:00:00.000Z", start: "2026-10-12T06:00:00.000Z" },
 };
 
-interface SimulatedAdjustment {
+/** Un ajuste manual guardado, como lo devuelve get_period_finance (sin dueño). */
+export interface SimulatedAdjustment {
   amount: number;
   effective_at: string;
   id: string;
@@ -279,6 +280,11 @@ const MILK_PURCHASES: ProductPurchaseRow[] = [
 const toSearchKey = (text: string): string => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 
 export interface FinanceStubOptions {
+  /**
+   * Los ajustes manuales ya guardados al empezar (SCRUM-72, E2E-FIN-25). Solo
+   * cuentan con `savedTimeZone`: sin zona la respuesta no trae ajustes (regla 59).
+   */
+  adjustments?: SimulatedAdjustment[];
   /** Los presupuestos guardados al empezar, por periodo. */
   budgets?: Partial<Record<Scope, number>>;
   /** Si la lectura de presupuestos falla siempre. */
@@ -348,7 +354,7 @@ export const stubFinanceSupabase = async (
   };
   const savedBudgets = new Map<string, number>(Object.entries(options.budgets ?? {}));
   const savedPurchaseTotals = new Map<string, number>();
-  let adjustments: SimulatedAdjustment[] = [];
+  let adjustments: SimulatedAdjustment[] = [...(options.adjustments ?? [])];
   let savedTimeZone: string | null = options.savedTimeZone ?? null;
   let historyFailuresLeft = options.failHistoryTimes ?? 0;
   let pendingFailuresLeft = options.failPendingTimes ?? 0;
