@@ -160,7 +160,6 @@ begin
   from public.household_members m
   where m.household_id = member_household_id
     and m.user_id in (current_user_id, cook_user_id)
-  order by m.user_id
   for key share;
 
   if not exists (
