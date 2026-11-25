@@ -159,8 +159,8 @@ begin
     'políticas de list_items';
   assert (select array_agg(p.policyname::text order by p.policyname) from pg_policies p
           where p.schemaname = 'public' and p.tablename = 'list_item_recipe_requirements')
-         = array['adds requirements of own recipes to visible items', 'reads requirements of visible items',
-                 'updates requirements of own recipes on visible items'],
+         = array['adds requirements of visible recipes to visible items', 'reads requirements of visible items',
+                 'updates requirements of visible recipes on visible items'],
     'políticas de list_item_recipe_requirements';
 end $$;
 

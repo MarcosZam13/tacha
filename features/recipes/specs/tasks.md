@@ -136,8 +136,8 @@ Bloqueado / fuera de esta historia:
 
 - [x] 1. SPEC (sección 17; decisiones del responsable del 2026-11-24).
 - [x] 2. Plan y tareas.
-- [ ] 3. Migración `060_share_recipes.sql` (plan, puntos 1 a 11). Revisar el número libre antes de crearla y antes del merge.
-- [ ] 4. Prueba SQL `supabase/tests/060_share_recipes.test.sql` con rollback: los casos SQL de SPEC 17.10 con todos los roles. Probarla en un Postgres local y con mutaciones (quitar cada regla la hace fallar). Volver a correr 013/019/022/023/024/026/033/037/058/059 y adaptar las que den por hecho "solo el dueño".
+- [x] 3. Migración `060_share_recipes.sql` (plan, puntos 1 a 11). Revisar el número libre antes de crearla y antes del merge.
+- [x] 4. Prueba SQL `supabase/tests/060_share_recipes.test.sql` con rollback: los casos SQL de SPEC 17.10 con todos los roles. Probarla en un Postgres local y con mutaciones (quitar cada regla la hace fallar). Volver a correr 013/019/022/023/024/026/033/037/058/059 y adaptar las que den por hecho "solo el dueño".
 - [ ] 5. Avisar a Laura (trigger sobre `household_members`) y al responsable de productos (deuda). Aplicar la `060` (Roberto, SQL Editor: ensayo con rollback, después con su fila) y sumar lo nuevo a `types/database.types.ts`.
 - [ ] 6. Constantes y modelos: destino, resultados del guardado, textos, RPC, estados de copia.
 - [ ] 7. `removePhotoMetadata` y su test (tipo, tamaño, límite, imagen que no se puede leer).
