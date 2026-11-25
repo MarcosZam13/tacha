@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { REFERENCE_PRICE_TEXT } from "@/constants";
 import { getCatalogVariantDetail } from "@/services/catalog.service";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
+import { hasHousehold } from "@/services/personal-product.service";
 import type { CatalogVariantDetail } from "@/types/catalog.types";
 import { ProductDetail } from "../ProductDetail";
 import { formatPriceRange } from "@/utils/formatPriceRange";
@@ -17,6 +18,8 @@ vi.mock("@/services/list-items.service", () => ({
   changeListItemQuantity: vi.fn(),
 }));
 
+vi.mock("@/services/personal-product.service", () => ({ hasHousehold: vi.fn() }));
+const hasHouseholdMock = vi.mocked(hasHousehold);
 const getCatalogVariantDetailMock = vi.mocked(getCatalogVariantDetail);
 const addVariantToGeneralListMock = vi.mocked(addVariantToGeneralList);
 const changeListItemQuantityMock = vi.mocked(changeListItemQuantity);
@@ -28,6 +31,7 @@ const VARIANT_ID = "variant-leche";
 const createDetail = (overrides: Partial<CatalogVariantDetail> = {}): CatalogVariantDetail => ({
   brands: [{ logoUrl: null, name: "Dos Pinos" }],
   imageUrl: null,
+  isPersonal: false,
   productName: "Leche",
   referencePrice: null,
   referenceStoreName: null,
@@ -175,5 +179,17 @@ describe("ProductDetail", () => {
 
     await waitFor(() => expect(page.getAddErrorMessage()).toBeInTheDocument());
     expect(page.getQuantityValue()).toBe("2");
+  });
+
+  // SCRUM-163: en vez de "Agregar a mi lista", el aviso de por qué no se puede.
+  it("explains why a personal product cannot go to the household list", async () => {
+    hasHouseholdMock.mockResolvedValue(true);
+    getCatalogVariantDetailMock.mockResolvedValue(createDetail({ isPersonal: true }));
+
+    render(<ProductDetail variantId={VARIANT_ID} />);
+    const page = createProductDetailPage();
+
+    expect(await page.findAddToListBlockedNote()).toHaveTextContent("Compartir con mi familia");
+    expect(page.queryAddToListButton()).not.toBeInTheDocument();
   });
 });

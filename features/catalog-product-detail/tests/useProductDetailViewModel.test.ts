@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getCatalogVariantDetail } from "@/services/catalog.service";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
+import { hasHousehold } from "@/services/personal-product.service";
 import type { CatalogVariantDetail } from "@/types/catalog.types";
 import { PRODUCT_DETAIL_STATUS } from "../constants/catalog-product-detail.constants";
 import { useProductDetailViewModel } from "../hooks/useProductDetailViewModel";
@@ -14,6 +15,14 @@ vi.mock("@/services/list-items.service", () => ({
   addVariantToGeneralList: vi.fn(),
   changeListItemQuantity: vi.fn(),
 }));
+vi.mock("@/services/personal-product.service", () => ({ hasHousehold: vi.fn() }));
+const hasHouseholdMock = vi.mocked(hasHousehold);
+
+// Sin esto, los hooks de un test siguen montados en el siguiente.
+afterEach(() => {
+  cleanup();
+  hasHouseholdMock.mockReset();
+});
 
 const getCatalogVariantDetailMock = vi.mocked(getCatalogVariantDetail);
 const addVariantToGeneralListMock = vi.mocked(addVariantToGeneralList);
@@ -24,6 +33,7 @@ const VARIANT_ID = "variant-leche";
 const DETAIL: CatalogVariantDetail = {
   brands: [{ logoUrl: null, name: "Dos Pinos" }],
   imageUrl: "https://example.com/leche.jpg",
+  isPersonal: false,
   productName: "Leche",
   referencePrice: null,
   referenceStoreName: null,
@@ -144,5 +154,40 @@ describe("useProductDetailViewModel", () => {
 
     expect(result.current.wasJustAdded).toBe(false);
     expect(result.current.addErrorMessage).toContain("1");
+  });
+
+  // SCRUM-163: un producto personal sin compartir no entra a la lista de la familia.
+  describe("personal product and household list", () => {
+    it("blocks adding and explains why when the user is in a household", async () => {
+      // Los tests de arriba ya agregaron: se cuenta solo lo de este.
+      addVariantToGeneralListMock.mockClear();
+      hasHouseholdMock.mockResolvedValue(true);
+      getCatalogVariantDetailMock.mockResolvedValue({ ...DETAIL, isPersonal: true });
+      const { result } = renderHook(() => useProductDetailViewModel(VARIANT_ID));
+
+      await waitFor(() => expect(result.current.addToListBlockedMessage).not.toBeNull());
+      expect(result.current.addToListBlockedMessage).toContain("Compartir con mi familia");
+
+      act(() => {
+        result.current.onAddToList();
+      });
+      expect(addVariantToGeneralListMock).not.toHaveBeenCalled();
+    });
+
+    it("lets the user add a personal product when there is no household", async () => {
+      hasHouseholdMock.mockResolvedValue(false);
+      getCatalogVariantDetailMock.mockResolvedValue({ ...DETAIL, isPersonal: true });
+      const { result } = renderHook(() => useProductDetailViewModel(VARIANT_ID));
+
+      await waitFor(() => expect(hasHouseholdMock).toHaveBeenCalled());
+      expect(result.current.addToListBlockedMessage).toBeNull();
+    });
+
+    it("does not ask about the household for a catalog product", async () => {
+      const { result } = await renderReadyViewModel();
+
+      expect(hasHouseholdMock).not.toHaveBeenCalled();
+      expect(result.current.addToListBlockedMessage).toBeNull();
+    });
   });
 });

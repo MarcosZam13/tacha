@@ -154,6 +154,7 @@ export const getCatalogVariantDetail = async (
   return {
     brands: variant.product_brands.map((brand) => ({ logoUrl: brand.logo_url, name: brand.name })),
     imageUrl: variant.image_url,
+    isPersonal: variant.product_catalog.owner_id !== null,
     productName: variant.product_catalog.name,
     // HU-57: aparte de storePriceRanges a propósito, nunca mezclado (CA-03).
     // La tienda es una u otra, nunca las dos (check de la migración 051).

@@ -59,10 +59,14 @@ export const createProductDetailPage = () => {
   };
 
   const getAddErrorMessage = () => screen.queryByRole("alert");
+  // SCRUM-163: aviso de que un producto personal no entra a la lista de la familia.
+  const findAddToListBlockedNote = () => screen.findByRole("note");
+  const queryAddToListButton = () => screen.queryByRole("button", { name: PRODUCT_DETAIL_TEXT.ADD_TO_LIST_BUTTON });
   const queryAddedConfirmation = () => screen.queryByText(PRODUCT_DETAIL_TEXT.ADDED_CONFIRMATION);
 
   return {
     clickAddToList,
+    findAddToListBlockedNote,
     clickDecreaseQuantity,
     clickIncreaseQuantity,
     clickRetry,
@@ -74,6 +78,7 @@ export const createProductDetailPage = () => {
     getHeading,
     getQuantityValue,
     getStoreRows,
+    queryAddToListButton,
     queryAddedConfirmation,
     queryNoBrandsMessage,
     queryNoPricesMessage,

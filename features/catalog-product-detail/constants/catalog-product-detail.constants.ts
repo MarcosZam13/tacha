@@ -32,6 +32,10 @@ export const PRODUCT_DETAIL_TEXT = {
   NO_BRANDS: "No tenemos marcas registradas para este producto.",
   NO_PRICES: "No tenemos precios disponibles para este producto todavía.",
   NOT_FOUND: "No encontramos ese producto.",
+  // SCRUM-163: el producto es personal sin compartir y la lista general es la
+  // de la familia: los demás miembros no lo podrían ver.
+  PERSONAL_IN_HOUSEHOLD_LIST:
+    "Este producto es solo tuyo y tu lista es la de tu familia: el resto no podría verlo. Para usarlo en la lista, créalo de nuevo marcando «Compartir con mi familia».",
   PRICES_TITLE: "Precio aproximado por supermercado",
   QUANTITY_LABEL: "Cantidad",
   RETRY: "Reintentar",
