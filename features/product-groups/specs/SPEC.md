@@ -230,6 +230,7 @@ No incluye: agregar a sublistas por fecha o listas privadas, elegir a qué lista
 1. Por cada producto del grupo, en el orden del grupo: si la lista ya tiene una fila **pendiente** de exactamente esa presentación, se suma la cantidad del grupo (CA-02); si no, se crea una fila con esa cantidad. Otra presentación del mismo producto → fila aparte (CA-03). Una fila ya tachada no se reabre: se crea una pendiente nueva (regla actual de 035).
 2. Sin reconciliación ni avisos de faltante (no es receta: doc §4.9.1).
 3. Productos archivados o que el usuario ya no puede ver: se saltan y se nombran en el mensaje.
+3b. **(SCRUM-163)** Si la lista es la de una familia, los productos personales sin compartir del grupo se saltan y se nombran aparte («No se agregaron porque son solo tuyos y tu lista es la de tu familia: X.»): el resto de la familia no los podría ver. Detalle y alternativas en `features/shopping-list/specs/SPEC.md` §19.
 4. Todo o nada: si falla a mitad, no queda nada agregado (una transacción).
 5. Dos agregados simultáneos a la misma lista se hacen uno detrás del otro (mismo bloqueo que recetas).
 6. La lista no guarda ninguna referencia al grupo.

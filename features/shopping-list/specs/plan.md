@@ -534,3 +534,16 @@ docs/documento-proyecto.md                      §4.9.1 y §6
 | Sin diálogo de deshacer en una compra cerrada (041) | Diálogo con otro texto, o revertir aunque esté cerrada | Decidido con el responsable tras el BUG-1 de QA: la base no reescribe una compra cerrada, así que no hay nada que confirmar; un texto distinto pedía otro dato en la pantalla, y revertir alteraría el historial y las finanzas |
 | Presentaciones solo en la unidad de los avisos | Todas las del producto | QA: una presentación en otra unidad nunca cubre la receta (regla 33) y el aviso subía en vez de bajar |
 | Foto en una tabla aparte | Columnas en `list_items` | `list_items` es de Marcos y su grant de columnas es estricto; la tabla aparte se borra en cascada con la fila |
+
+## SCRUM-163: un producto personal sin compartir en la lista de la familia
+
+| Archivo | Cambio |
+|---|---|
+| `features/shopping-list/constants/shopping-list.constants.ts` | `GENERAL_LIST_SELECT` con `product_catalog_variant_id`; `SHOPPING_LIST_TEXT.UNAVAILABLE_PRODUCT` |
+| `features/shopping-list/services/shopping-list.service.ts` | `toShoppingListItems` tolera `product_catalog_variants: null` |
+| `constants/catalog.constants.ts`, `types/catalog.types.ts`, `services/catalog.service.ts` | `VARIANT_DETAIL_SELECT` con `owner_id`; `CatalogVariantDetail.isPersonal` |
+| `features/catalog-product-detail/` | ViewModel: `hasHousehold()` solo para un producto personal → `addToListBlockedMessage`; la vista muestra el aviso en vez de `AddToListControl` |
+| `features/product-groups/` | `AddGroupToListResponse.personal`; el servicio normaliza su ausencia; `toAddGroupSummaryText` agrega la línea de personales |
+| `supabase/migrations/063_skip_personal_products_in_household_list.sql` + `supabase/tests/063_…test.sql` | `create or replace` de `add_group_to_general_list`; número provisional, se fija al aplicarla |
+
+Decisiones: ver SPEC §19 (alternativas descartadas). Si la consulta de familia falla, el detalle no bloquea: la regla 1 ya evita que la lista se caiga.

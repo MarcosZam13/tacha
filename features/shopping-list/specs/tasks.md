@@ -117,3 +117,12 @@ Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base
   - [x] Tests: reducer (las filas de la compra cerrada pierden la foto, las demás no), `useShoppingListViewModel.test.ts` (cerrar marca la compra y sale del modo compra) y E2E-LISTA-08 (falla sin la corrección, pasa con ella).
   - [ ] Volver a `waiting qa`.
 
+## SCRUM-163: un producto personal sin compartir en la lista de la familia
+
+- [X] 1. La lista tolera una fila sin presentación ("Producto no disponible") + test del servicio.
+- [X] 2. Detalle: `isPersonal` + `hasHousehold()` → aviso en vez de agregar + tests del ViewModel y la vista.
+- [X] 3. Grupos: `personal` en la respuesta, normalizado en el servicio, línea en el resumen + tests.
+- [X] 4. Migración nueva de `add_group_to_general_list` + prueba SQL; prueba en seco (migración + prueba en una transacción con `rollback`): pasó, sin restos.
+- [X] 5. E2E-LISTA-09 (respuesta simulada con la forma real de la base).
+- [X] 6. Specs, `docs/documento-proyecto.md` §4.5.1.
+- [ ] 7. Visto bueno del equipo → aplicar la migración con el primer número libre (+ fila del historial) → `waiting qa`.
