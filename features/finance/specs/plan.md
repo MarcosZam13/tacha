@@ -1406,3 +1406,209 @@ Conceptos nuevos:
 | Total de la compra con aclaración | Repartir el total entre productos | Un reparto inventa un precio que nunca se guardó |
 | Detalle sin lápiz (D34) | Reutilizar `useTotalEdit` | Obligaría a mantener dos listas iguales al guardar y acopla la historia a SCRUM-92 |
 | Vista "Productos" en su ruta, con selector (D31) | Sección dentro de `PurchaseHistory` | `PurchaseHistory` solo recibe el selector; la vista nueva se prueba por separado |
+
+## SCRUM-72: ver gastos por supermercado
+
+> **Verificado el 2026-11-24** contra `develop` en `3543332`, desde la rama `ticket/SCRUM-72-gastos-por-supermercado` sin commits propios:
+>
+> - **Dashboard:** `useFinanceDashboardViewModel` lee con `usePeriodSpending`. Con zona guardada llama a `get_period_finance` y no usa sus `purchases`; sin zona, `getPeriodSpending` pide solo `total_amount`.
+> - **Historial:** `usePeriodPurchases` ya devuelve las compras con `storeName` y `totalAmount`, los ajustes y el gasto, de una sola lectura en los dos caminos (con y sin zona). Sus estados son los mismos que los de `usePeriodSpending`: `empty` cuando no hay compras ni ajustes.
+> - **Base:** `purchase_sessions.store_id` es obligatorio (`016`), pero `get_period_finance` devuelve `store_name`, no `store_id` (`040`). `spending_adjustments` no tiene supermercado.
+> - **Supermercados:** tres, con nombres distintos. `stores.display_name` no tiene restricción de único (`supabase/schema.sql`).
+> - **Consumidores:** `usePeriodSpending` y `getPeriodSpending` solo los usa `useFinanceDashboardViewModel`; `usePeriodPurchases` los nombra en un comentario. `FINANCE_DB.SELECT.SPENDING` solo lo usa `getPeriodSpending`.
+> - **E2E:** `e2e/features/finance/finance.helpers.ts` distingue la lectura del Dashboard de la del Historial por el select (`stores(display_name)`), con datos, registros y fallos propios para cada una.
+
+**Decisiones tomadas el 2026-11-24** (SPEC §5): ajustes en una línea aparte (D45), "Sin total" al final y nunca ₡0 (D46), cantidad de compras sin total por supermercado (D47), sin sección si el periodo no tiene compras (D48), "Supermercado no disponible" ordenado por su monto (D49) y "Ajuste manual" o "Ajustes manuales" según cuántos cuenten (D50). D49 y D50 salieron de la revisión de la etapa 0.
+
+**Indicaciones de la dueña de la historia** (2026-11-24):
+
+- quitar `usePeriodSpending` y `getPeriodSpending` en un commit aparte, solo después de confirmar que no tienen otros consumidores;
+- documentar el límite de agrupar por nombre (SPEC regla 108);
+- conservar el redondeo: no alterar totales para que cuadren a la vista (SPEC regla 114);
+- sin cambios en Supabase ni migraciones.
+
+### Qué se reutiliza
+
+| Pieza | Uso en SCRUM-72 |
+|---|---|
+| `usePeriodPurchases` (SCRUM-90 y SCRUM-91) | La lectura del Dashboard: compras, ajustes, gasto, límites, zona, estados y reintento |
+| `getPeriodFinance` y `getPeriodPurchases` | Sin cambios: son las lecturas que ya usa el Historial |
+| `summarizeSpending` (patrón) | Sumar en centavos enteros (SPEC regla 110) |
+| `formatColones` y `formatSignedColones` | Montos de supermercado y del ajuste |
+| `Chip` con `CHIP_TONE.TERRACOTTA_STRONG` (SCRUM-92) | "Sin total" de un supermercado solo con compras sin total (D46) |
+| `FINANCE_TEXT.STORE_UNAVAILABLE`, `WITHOUT_TOTAL` y `ADJUSTMENT` | Textos que ya existen |
+| `useFinanceAccess` y `retryIfRegistered` | Acceso (D6) y reintento |
+
+### Alternativas para la lectura
+
+| Opción | Qué cambia | Decisión |
+|---|---|---|
+| **A.** El Dashboard lee con `usePeriodPurchases` | El ViewModel del Dashboard, sus tests y los stubs E2E del Dashboard | **Elegida:** una sola lectura, la misma que el Historial; el total y el desglose no pueden contradecirse |
+| **B.** Ampliar `usePeriodSpending` para que devuelva las compras | El hook y el servicio | No: duplica `readPeriodPurchases` |
+| **C.** Sumar `usePeriodPurchases` solo para el desglose, junto con `usePeriodSpending` | Dos lecturas por periodo | No: dos pedidos que pueden no coincidir si una compra se edita entre uno y otro |
+| **D.** Una RPC que sume por supermercado en la base | Migración, tipos y prueba SQL | No: el cliente ya tiene las filas, y la historia no pide cambios en Supabase |
+
+### Archivos
+
+```
+features/finance/
+  specs/SPEC.md, plan.md, tasks.md                      Sección SCRUM-72 y notas históricas (etapa 0)
+  specs/E2E.md                                          Sección SCRUM-72 y notas en E2E-FIN-01, 03, 04 y 11 (etapa 0)
+  FinanceDashboard.tsx                                  Monta la sección debajo del recordatorio
+  components/
+    SpendingByStore.tsx                                 Nuevo: la lista y la línea del ajuste
+    models/SpendingByStoreProps.interface.ts            Nuevo
+  constants/finance.constants.ts                        Textos de la sección y el id del título
+  hooks/
+    useFinanceDashboardViewModel.ts                     Lee con usePeriodPurchases y arma la sección
+    usePeriodSpending.ts                                Se quita en un commit aparte (sin consumidores)
+  models/StoreSpending.interface.ts                     Nuevo: un supermercado agrupado
+  services/finance.service.ts                           Se quita getPeriodSpending en el mismo commit aparte
+  utils/groupSpendingByStore.ts                         Nuevo: agrupar, sumar en centavos y ordenar
+  tests/
+    groupSpendingByStore.test.ts                        Nuevo
+    SpendingByStore.page.ts                             Nuevo: Page Object de la sección
+    SpendingByStore.test.tsx                            Nuevo: tests del componente
+    useFinanceDashboardViewModel.test.ts                Simula getPeriodFinance y getPeriodPurchases
+    FinanceDashboard.test.tsx                           Lo mismo, con la pantalla
+    usePeriodSpending.test.ts                           Se quita con el hook
+    finance.service.test.ts                             Se quitan los casos de getPeriodSpending
+e2e/features/finance/
+  finance.helpers.ts                                    Etapa 2: el Dashboard usa la ruta del Historial. Etapa 4: se quita la rama
+                                                        del stub de gasto. Etapa 5: ajustes iniciales para E2E-FIN-25
+  finance.spec.ts                                       Etapa 2: E2E-FIN-01, 03 y 04 con la lectura nueva. Etapa 3: localizadores
+                                                        de montos dentro del total
+  edit-totals.spec.ts                                   Etapa 2: E2E-FIN-11 sin spendingRequests. Etapa 3: la línea del ajuste (D45)
+  spending-by-store.spec.ts                             Nuevo (etapa 5): E2E-FIN-24 y 25
+docs/documento-proyecto.md                              §4.2: nota "Implementado (SCRUM-72 / HU-40)" (etapa 6)
+```
+
+`FINANCE_DB.SELECT.SPENDING` se quita con `getPeriodSpending`. El comentario de `usePeriodPurchases` que nombra a `usePeriodSpending` se actualiza en el mismo commit.
+
+### Datos
+
+- **Lectura:** `usePeriodPurchases(period, isRegistered)`. Con zona guardada, `get_period_finance`; sin zona, `getPeriodPurchases` y `summarizeSpending` sobre las mismas filas (SPEC §12).
+- **Agrupación:** `groupSpendingByStore(purchases, adjustments)`, una función pura que devuelve:
+  - `stores`: un `StoreSpending` por nombre de supermercado (`storeName`, nulo para "Supermercado no disponible"), con el monto de las compras con total, `closedCount` y `withoutTotalCount`, ya en el orden de la regla 113;
+  - `adjustmentTotal`: la suma con signo de los ajustes, o nulo si no hay (D45);
+  - `adjustmentCount`: cuántos ajustes suma, para elegir "Ajuste manual" o "Ajustes manuales" (D50).
+- **Centavos:** cada monto se suma en centavos enteros y se convierte al final, como `summarizeSpending` (regla 110). El total del periodo sigue saliendo de `spending.total`, sin recalcularlo.
+- **Orden:** por monto en centavos, con "Supermercado no disponible" ordenado por su monto como los demás (D49). En los empates, por nombre con `Intl.Collator` en español, creado una sola vez como `colonesFormatter`, y el grupo sin nombre después de los que tienen nombre (regla 113).
+- **Textos:** el ViewModel arma cada fila (nombre o `STORE_UNAVAILABLE`, monto o "Sin total", "N sin total") y la línea del ajuste, con `FINANCE_TEXT.ADJUSTMENT` para uno y un texto nuevo en plural para dos o más (D50). El componente no decide textos.
+
+### Flujo
+
+1. **Abrir el Dashboard:** con cuenta registrada, `usePeriodPurchases` lee el periodo elegido (Semana al empezar, D2), junto con el presupuesto y las pendientes, como antes.
+2. **El total:** `SpendingTotal` recibe lo mismo que hoy, ahora desde `usePeriodPurchases` (`spending`, `bounds`, `timeZone`, `status`, `needsTimeZoneConfirmation`).
+3. **El desglose:** solo si el estado es `ready` y hay al menos una compra (reglas 106 y 115), el ViewModel llama a `groupSpendingByStore` y arma las props de `SpendingByStore`.
+4. **Cambio de periodo o reintento:** cambia la clave de `usePeriodPurchases`; la respuesta vieja se descarta (regla 116) y "Reintentar" pasa por `retryIfRegistered`.
+5. **Lo que no se usa:** `applySavedPurchase` y `applySavedPeriodTotal` de `usePeriodPurchases` no se usan en el Dashboard, que no edita (D11).
+
+### Seguridad
+
+- **Sin lecturas nuevas:** son las del Historial, con la RLS de `016` (solo las compras propias) y sin `owner_id` desde el cliente.
+- **Sin escrituras, sin cambios de RLS, sin migraciones ni variables de entorno.**
+- **Sin cuenta registrada no se pide nada** (D6), como hoy.
+- **`security-reviewer`:** no aplica, porque el cambio no toca auth, household, RLS, formularios ni variables de entorno (AGENTS.md).
+
+### Concurrencia
+
+| Caso | Control |
+|---|---|
+| Cambiar de periodo antes de que llegue la respuesta | Clave por carga de `usePeriodPurchases`; la vieja se descarta (regla 116) |
+| Una compra se edita en otra pestaña | No se actualiza sola (D20); al recargar, el total y el desglose salen otra vez de la misma lectura |
+| Pantalla cerrada mientras carga | Cancelación del efecto de `usePeriodPurchases` |
+
+### Pruebas
+
+**Vitest:**
+
+| Unidad | Casos |
+|---|---|
+| `groupSpendingByStore` | Un supermercado y varios; montos con centavos (0,10 + 0,20); un ₡0 real; compras sin total que no suman y se cuentan; un supermercado solo con compras sin total, al final; nombre nulo en su propio grupo, ordenado por su monto (D49) y después de los que tienen nombre en un empate; los empates por nombre; ajustes con signo y su cantidad, sin ajustes da nulo y 0; la suma de los supermercados más el ajuste es el total, en centavos; no cambia lo que recibe |
+| `useFinanceDashboardViewModel` | Con zona y sin zona; el total, el presupuesto y el recordatorio como antes; las filas en orden y con sus textos; la línea del ajuste en singular y en plural (D50); sin sección mientras carga, si falla, en un periodo vacío o solo con ajustes (D48); cambiar de periodo recalcula; sin cuenta no se pide nada (D6) |
+| `SpendingByStore` (Page Object) | Sección con nombre; lista con un elemento por supermercado; "N sin total" en singular y plural; el `Chip` "Sin total"; el ajuste fuera de la lista |
+
+**Integración:** `FinanceDashboard.test.tsx`, con el servicio simulado y la pantalla, el ViewModel y los hooks reales: el desglose y el total del mismo periodo, y el cambio de periodo.
+
+**E2E** (`e2e/features/finance/spending-by-store.spec.ts`, sesión y Supabase simulados, desktop y Pixel 7; el detalle va en [E2E.md](E2E.md), sección SCRUM-72):
+
+| Escenario | Cubre |
+|---|---|
+| E2E-FIN-24: desglose sin zona guardada | CA-01 y CA-02 con los datos de E2E-FIN-05: orden, "Sin total" al final (D46), cambio de periodo, sin sección en un periodo vacío (D48) y la petición del Historial |
+| E2E-FIN-25: desglose con zona guardada y ajustes | D45, D47, D49, D50 y regla 109: "1 sin total", "Supermercado no disponible" ordenado por su monto, la línea del ajuste en singular y en plural, y una sola lectura (`get_period_finance`) |
+
+Los datos, los resultados esperados y las peticiones de cada uno están en [E2E.md](E2E.md), sección SCRUM-72.
+
+**Escenarios existentes:** la lectura nueva y la sección cambian cómo se comprueban, no qué. Cada cambio va en la etapa que lo provoca, para que cada commit deje E2E-FIN-01 a 23 en verde:
+
+| Escenario | Qué cambia | Etapa |
+|---|---|---|
+| Todos los del Dashboard sin zona | El helper responde al Dashboard por la ruta del Historial. Los datos de `HISTORY_ROWS_BY_PERIOD_START` dan los mismos totales que `PURCHASES_BY_PERIOD_START` (Día ₡10 000; Semana ₡15 000, 2 compras y 1 sin total; Mes ₡35 000, 3 y 1), así que **los montos esperados no cambian** | 2 |
+| E2E-FIN-01 | La petición del Semana lleva el `select` del Historial (`stores(display_name)`), `count=exact`, los límites de la semana y ningún `owner_id`; se lee de `historyRequests` | 2 |
+| E2E-FIN-02 | Sin cambios en lo que comprueba; corre con la ruta nueva | 2 |
+| E2E-FIN-03, errores de carga | `failSpendingTimes` pasa a `failHistoryTimes`: el primer pedido del Historial falla, "Reintentar" lo recupera. Además, la sección no aparece mientras dura el error (regla 115) | 2 y 3 |
+| E2E-FIN-04 (las dos pruebas) | **D6:** además de lo que ya comprueba, `historyRequests` vacío. Sin eso la prueba pasaría aunque el Dashboard pidiera las compras | 2 |
+| E2E-FIN-11 | `spendingRequests` vacío pasa a `historyRequests` vacío: con zona guardada no hay lectura de la tabla | 2 |
+| E2E-FIN-11 | Ya no puede esperar cero «Ajuste manual» en el Dashboard: con D45 aparece **una** línea del desglose, fuera de la lista y sin lápiz; los lápices siguen en cero (D11) | 3 |
+| E2E-FIN-01 y los de Día | El total y la fila de MaxiPali valen ₡10 000 en Día: los montos del total se buscan dentro de la tarjeta del total, no en toda la página | 3 |
+| E2E-FIN-04 y 11 | Se quitan las comprobaciones de `spendingRequests`, que deja de existir | 4 |
+
+**Manual** (`TC-SCRUM-72-nn`, contra la base, con capturas sin correos):
+
+| Caso | Qué comprueba | Tipo |
+|---|---|---|
+| 01 | Con compras cerradas en dos supermercados, el desglose de Semana coincide con las compras del Historial de Semana, en orden | Funcional |
+| 02 | Cambiar a Día y a Mes recalcula el desglose | Funcional |
+| 03 | Una compra cerrada sin total: su supermercado muestra "1 sin total", o "Sin total" al final si es la única (D46 y D47) | Funcional |
+| 04 | Con un ajuste manual del periodo, la línea "Ajuste manual" con su signo, fuera de la lista (D45); con dos (por ejemplo, el del día y el de la semana, mirando el mes), "Ajustes manuales" con la suma (D50) | Funcional |
+| 05 | Un periodo sin compras no muestra la sección (D48) | Negativo |
+| 06 | Teclado, lector de pantalla y mobile | Usabilidad |
+
+### Documento del proyecto
+
+Al cerrar: `docs/documento-proyecto.md` §4.2, una nota "Implementado (SCRUM-72 / HU-40)" con el desglose y sus límites (ajustes aparte, compras sin total, agrupación por nombre). §6 no cambia, porque no hay tablas nuevas.
+
+### Dependencias y Gitflow
+
+- **Rama:** `ticket/SCRUM-72-gastos-por-supermercado`, desde `develop` en `3543332`, ya publicada.
+- **PR:** hacia `develop`, abierta desde el primer commit, con un solo label de estado (gitflow §2). Antes, comprobar que no haya otra PR propia en `in progress`.
+- Commits, título y descripción del PR en inglés, con la plantilla completa.
+
+### Commits y PR
+
+| # | Commit | Archivos |
+|---|---|---|
+| 1 | `docs(SCRUM-72): add spending by store planning` | `features/finance/specs/SPEC.md`, `plan.md`, `tasks.md` y `E2E.md` |
+| 2 | `feat(SCRUM-72): group period spending by store` | modelo, `groupSpendingByStore` y sus tests |
+| 3 | `refactor(SCRUM-72): read the dashboard period with usePeriodPurchases` | `useFinanceDashboardViewModel`, sus tests, `FinanceDashboard.test.tsx`, y `finance.helpers.ts`, `finance.spec.ts` y `edit-totals.spec.ts` (E2E-FIN-01 a 04 y 11, etapa 2) |
+| 4 | `feat(SCRUM-72): show spending by store in the dashboard` | `SpendingByStore`, props, constantes, `FinanceDashboard`, tests, y E2E-FIN-01, 03 y 11 ajustados a la sección (etapa 3) |
+| 5 | `refactor(SCRUM-72): remove the unused period spending read` | `usePeriodSpending`, `getPeriodSpending`, `FINANCE_DB.SELECT.SPENDING`, sus tests y la rama del stub de gasto en `finance.helpers.ts`, después de confirmar los consumidores |
+| 6 | `test(SCRUM-72): add spending by store E2E` | `finance.helpers.ts` (ajustes iniciales) y `spending-by-store.spec.ts` |
+| 7 | `docs(SCRUM-72): record validation` | `tasks.md`, SPEC §13, `E2E.md`, `documento-proyecto.md` §4.2 |
+
+Staging explícito, nunca `git add .`.
+
+### Riesgos
+
+- **Stubs E2E del Dashboard:** es el cambio más grande. Si se adaptan mal, E2E-FIN-01 a 04 y 11 pueden pasar comprobando otros datos, y E2E-FIN-04 dejaría de proteger D6. Se revisan los montos y las peticiones uno por uno (plan, "Pruebas").
+- **Montos repetidos en pantalla:** con la sección, un mismo monto puede verse en el total y en una fila (₡10 000 en Día). Los localizadores de los tests se acotan a su tarjeta en la etapa 3.
+- **Supermercados con el mismo nombre:** se verían juntos (SPEC regla 108). Hoy no pasa; si se agrega un supermercado con un nombre repetido, hace falta devolver `store_id` en la lectura, con una migración.
+- **Redondeo:** la suma visible puede diferir en ₡1 del total (SPEC regla 114). No se corrige; se documenta.
+- **El Dashboard pide un poco más sin zona:** el nombre del supermercado, además del total, en la misma lectura de las compras propias del periodo.
+- **Quitar `usePeriodSpending`:** si otra rama abierta lo empieza a usar antes del merge, el commit 5 la rompe. Se vuelve a buscar en `develop` antes de hacerlo.
+
+### Para la defensa
+
+| Decisión | Alternativa | Por qué esta |
+|---|---|---|
+| Leer con `usePeriodPurchases` | Una lectura nueva o dos lecturas | El total y el desglose salen de las mismas filas (regla 107), sin pedidos extra |
+| Agrupar en el cliente | Una RPC con `group by` | Las filas ya están en el cliente; sin migración |
+| Agrupar por nombre | Por `store_id` | La lectura no trae `store_id`, y hoy los nombres son distintos (regla 108) |
+| Ajuste en una línea aparte (D45) | Repartirlo entre supermercados | Un ajuste no tiene supermercado; repartirlo inventaría montos |
+| "Sin total" al final (D46) | Mostrar ₡0 | ₡0 es un total real (D8); "Sin total" no lo es |
+| "Supermercado no disponible" por su monto (D49) | Siempre al final | CA-02 pide de mayor a menor; el nombre faltante no cambia cuánto se gastó |
+| "Ajustes manuales" con dos o más (D50) | Siempre "Ajuste manual" | La línea es una suma; el singular haría creer que hay un solo ajuste |
+| Sin sección si no hay compras (D48) | Una sección vacía | El total ya muestra el vacío |
+| No forzar el redondeo | Ajustar una fila para que cuadre | Cambiaría un monto real (regla 114) |
+| Quitar lo que queda sin uso | Dejarlo | Código muerto con tests que nadie usa (clean-code-practices) |

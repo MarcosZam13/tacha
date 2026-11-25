@@ -452,3 +452,90 @@ Hechas el 2026-11-16, con D38 todavía sin confirmar por el equipo: no hay filtr
 - [ ] Productos más comprados y más costosos del Dashboard (HU-42).
 - [ ] Precio o gasto por producto.
 - [ ] Paginar el detalle de un producto y juntar los "Producto no disponible" bajo su producto madre.
+
+## SCRUM-72: ver gastos por supermercado
+
+Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba antes de seguir.
+
+### Etapa 0 — Decisiones y specs
+
+- [x] 0.1 Análisis de viabilidad y propuesta técnica (2026-11-24): sin migración, RPC ni cambios de RLS; el Dashboard pasa a leer con `usePeriodPurchases` (plan, "Alternativas para la lectura").
+- [x] 0.2 Decisiones de la dueña de la historia (2026-11-24, SPEC §5, reglas 103 a 106, 118 y 119), aplicadas en SPEC y plan:
+  - [x] D45: los ajustes manuales en una línea aparte, fuera del desglose.
+  - [x] D46: un supermercado solo con compras sin total, al final con "Sin total", nunca ₡0.
+  - [x] D47: la cantidad de compras sin total en cada supermercado.
+  - [x] D48: sin sección si el periodo no tiene compras.
+  - [x] D49: "Supermercado no disponible" se ordena por su monto; solo en un empate va después de los que tienen nombre (revisión de la etapa 0).
+  - [x] D50: "Ajuste manual" con un ajuste y "Ajustes manuales" con dos o más (revisión de la etapa 0).
+- [x] 0.3 Indicaciones de la dueña de la historia (2026-11-24), aplicadas en SPEC y plan:
+  - [x] quitar `usePeriodSpending` y `getPeriodSpending` en un commit aparte, después de confirmar que no tienen otros consumidores (SPEC §10; etapa 4);
+  - [x] documentar el límite de agrupar por nombre (SPEC regla 108);
+  - [x] conservar el redondeo, sin alterar totales (SPEC regla 114);
+  - [x] sin cambios en Supabase ni migraciones.
+- [x] 0.4 `SPEC.md`, `plan.md` y `tasks.md`, sección SCRUM-72 (2026-11-24), con las reglas 103 a 119. Revisión de la etapa 0 aplicada: los stubs E2E pasan a la etapa 2, la cobertura de E2E-FIN-01 a 04 y 11, D49 y D50.
+- [x] 0.5 `features/finance/specs/E2E.md`, sección SCRUM-72 (E2E-FIN-24 y 25, con datos, resultados y peticiones), y notas en E2E-FIN-01, 03, 04 y 11 y en las coberturas de SCRUM-69 y SCRUM-91 (2026-11-24, skill `playwright-e2e`).
+- [ ] 0.6 Revisión y aprobación de la documentación por el equipo, en el PR.
+- [ ] 0.7 Antes de abrir el PR, comprobar que no haya otra PR propia en `in progress`. Commit `docs(SCRUM-72): add spending by store planning`, push y PR hacia `develop` con un solo label de estado (gitflow); SCRUM-72 a In Progress en Jira.
+
+### Etapa 1 — Agrupación (CA-01 y CA-02)
+
+- [ ] 1.1 Modelo `StoreSpending` y `groupSpendingByStore(purchases, adjustments)`: grupos por nombre, nombre nulo aparte, montos en centavos, compras sin total contadas aparte, el orden de la regla 113, con "Supermercado no disponible" ordenado por su monto (D49), y la suma y la cantidad de los ajustes (D50) (reglas 107 a 113, 118 y 119).
+- [ ] 1.2 Tests de `groupSpendingByStore`: los casos de plan, "Pruebas", incluida la suma de los supermercados más el ajuste igual al total en centavos (regla 114).
+
+### Etapa 2 — Lectura del Dashboard
+
+- [ ] 2.1 `useFinanceDashboardViewModel` lee con `usePeriodPurchases` en vez de `usePeriodSpending`. El total, el presupuesto, el recordatorio y el anuncio de `role="status"` no cambian.
+- [ ] 2.2 `useFinanceDashboardViewModel.test.ts` y `FinanceDashboard.test.tsx` simulan `getPeriodFinance` y `getPeriodPurchases`; los casos de SCRUM-69, SCRUM-91 y SCRUM-92 siguen pasando sin cambiar lo que comprueban.
+- [ ] 2.3 Stubs E2E en el mismo commit (plan, "Pruebas", escenarios existentes), para que E2E-FIN-01 a 23 sigan en verde:
+  - `finance.helpers.ts`: el Dashboard sin zona usa la ruta del Historial; los montos esperados no cambian;
+  - E2E-FIN-01: la petición de la semana con el `select` del Historial, `count=exact`, sus límites y sin `owner_id`, leída de `historyRequests`;
+  - E2E-FIN-03: `failHistoryTimes` en lugar de `failSpendingTimes`;
+  - E2E-FIN-04, las dos pruebas: también `historyRequests` vacío (D6);
+  - E2E-FIN-11: `historyRequests` vacío con zona guardada;
+  - correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+
+### Etapa 3 — Sección en el Dashboard
+
+- [ ] 3.1 Textos y el id del título en `finance.constants.ts`; las filas y la línea del ajuste, con "Ajuste manual" o el texto nuevo en plural (D50), las arma el ViewModel (reglas 103 a 106, 115, 117 y 119).
+- [ ] 3.2 `SpendingByStore` y `SpendingByStoreProps`, montado en `FinanceDashboard` debajo del recordatorio (SPEC §8 y §9).
+- [ ] 3.3 Page Object (`SpendingByStore.page.ts`) y tests de componente, del ViewModel y de la pantalla: orden con "Supermercado no disponible" por su monto (D49), "N sin total", "Sin total" al final, ajuste fuera de la lista en singular y en plural (D50), sin sección mientras carga, si falla y sin compras (D48), cambio de periodo y D6.
+- [ ] 3.4 Escenarios existentes en el mismo commit: E2E-FIN-11 espera una línea «Ajuste manual» en el desglose y ningún lápiz (D45, D11); los montos del total se buscan dentro de su tarjeta (₡10 000 en Día también es la fila de MaxiPali); E2E-FIN-03 comprueba que la sección no aparece con el error (regla 115). Los tests de pantalla existentes se acotan igual. E2E de Finanzas en verde.
+
+### Etapa 4 — Quitar la lectura sin uso
+
+- [ ] 4.1 Volver a buscar en `develop` y en la rama que `usePeriodSpending`, `getPeriodSpending` y `FINANCE_DB.SELECT.SPENDING` no tengan otros consumidores. Si aparece alguno, se detiene la etapa y se consulta.
+- [ ] 4.2 Quitar `usePeriodSpending.ts`, `getPeriodSpending`, `FINANCE_DB.SELECT.SPENDING`, `usePeriodSpending.test.ts` y los casos de `getPeriodSpending` en `finance.service.test.ts`; actualizar el comentario de `usePeriodPurchases`. En `finance.helpers.ts`, quitar la rama del stub de gasto, `PURCHASES_BY_PERIOD_START`, `failSpendingTimes` y `spendingRequests`, y sus comprobaciones en E2E-FIN-04 y 11. Commit aparte, con E2E de Finanzas en verde.
+
+### Etapa 5 — E2E
+
+La adaptación de los escenarios existentes ya está en las etapas 2, 3 y 4.
+
+- [ ] 5.1 `finance.helpers.ts`: opción `adjustments` para empezar con ajustes guardados (los de E2E-FIN-25), según [E2E.md](E2E.md), "Opción nueva del helper": exportar `SimulatedAdjustment` y empezar la lista con una copia de `options.adjustments ?? []`. Por defecto no hay ajustes, así que E2E-FIN-01 a 23 no cambian; confirmarlo corriendo `e2e/features/finance` completo.
+- [ ] 5.2 `e2e/features/finance/spending-by-store.spec.ts`, según [E2E.md](E2E.md), sección SCRUM-72:
+  - **E2E-FIN-24, sin zona, con los datos de E2E-FIN-05:**
+    - Semana: MaxiPali ₡10 000, MasXMenos ₡5 000 y Walmart con "Sin total" al final;
+    - Día: solo MaxiPali ₡10 000;
+    - Mes: MaxiPali ₡30 000, MasXMenos ₡5 000 y Walmart con "Sin total";
+    - sin línea de ajuste;
+    - con `historyRows: []`, sin sección (D48);
+    - cada periodo hace una sola petición, con el `select` del Historial, `count=exact` y sin `owner_id`.
+  - **E2E-FIN-25, con zona guardada y ajustes:**
+    - Semana: Walmart ₡12 000, MaxiPali ₡8 000 con "1 sin total", "Supermercado no disponible" ₡8 000 (empata con MaxiPali y va después, D49) y MasXMenos ₡3 000;
+    - Semana: «Ajustes manuales −₡1 500» (un ajuste del día de +₡500 y uno de la semana de −₡2 000, D50) y total ₡29 500;
+    - Día: «Ajuste manual +₡500»;
+    - una lectura de `rpc/get_period_finance` por periodo, con su `target_scope`, y ninguna de `purchase_sessions` con el `select` del Historial.
+  - Correr `npx playwright test e2e/features/finance` en `chromium` y `mobile-chrome`.
+
+### Etapa 6 — QA y cierre
+
+- [ ] 6.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`.
+- [ ] 6.2 `code-reviewer` y `qa-checker`. `security-reviewer` no aplica (plan, "Seguridad").
+- [ ] 6.3 Pruebas manuales de SPEC §13 y `TC-SCRUM-72-01` a `06` (plan), con capturas sin correos.
+- [ ] 6.4 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.2 con la nota "Implementado (SCRUM-72 / HU-40)".
+- [ ] 6.5 Descripción del PR con la evidencia, `waiting qa` y Jira.
+
+### Fuera de esta historia
+
+- [ ] Devolver `store_id` en la lectura para distinguir supermercados con el mismo nombre (pide una migración).
+- [ ] Desgloses por categoría, persona o lista (HU-39, HU-41 y HU-38).
+- [ ] Ver las compras de un supermercado o filtrar el Historial por supermercado (D38).
