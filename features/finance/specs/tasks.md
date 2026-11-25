@@ -479,8 +479,8 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 1 — Agrupación (CA-01 y CA-02)
 
-- [ ] 1.1 Modelo `StoreSpending` y `groupSpendingByStore(purchases, adjustments)`: grupos por nombre, nombre nulo aparte, montos en centavos, compras sin total contadas aparte, el orden de la regla 113, con "Supermercado no disponible" ordenado por su monto (D49), y la suma y la cantidad de los ajustes (D50) (reglas 107 a 113, 118 y 119).
-- [ ] 1.2 Tests de `groupSpendingByStore`: los casos de plan, "Pruebas", incluida la suma de los supermercados más el ajuste igual al total en centavos (regla 114).
+- [x] 1.1 Modelo `StoreSpending` y `groupSpendingByStore(purchases, adjustments)`: grupos por nombre, nombre nulo aparte, montos en centavos, compras sin total contadas aparte, el orden de la regla 113, con "Supermercado no disponible" ordenado por su monto (D49), y la suma y la cantidad de los ajustes (D50) (reglas 107 a 113, 118 y 119).
+- [x] 1.2 Tests de `groupSpendingByStore`: los casos de plan, "Pruebas", incluida la suma de los supermercados más el ajuste igual al total en centavos (regla 114).
 
 ### Etapa 2 — Lectura del Dashboard
 
