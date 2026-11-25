@@ -35,6 +35,29 @@ export type Database = {
         }
         Relationships: []
       }
+      category_shelf_life: {
+        Row: {
+          category_id: string
+          shelf_life_days: number
+        }
+        Insert: {
+          category_id: string
+          shelf_life_days: number
+        }
+        Update: {
+          category_id?: string
+          shelf_life_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_shelf_life_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: true
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -1359,6 +1382,17 @@ export type Database = {
           is_current_user: boolean
           role: string
           user_id: string
+        }[]
+      }
+      get_inventory_suggestions: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string
+          last_purchased_at: string
+          product_catalog_variant_id: string
+          product_name: string
         }[]
       }
       get_list_assignee_candidates: {
