@@ -26,6 +26,11 @@ export const ProductGroups = (): React.JSX.Element => {
         <h1 className="font-display text-3xl font-bold text-tacha-text">{PRODUCT_GROUPS_TEXT.TITLE}</h1>
         <CreateProductGroupLink label={PRODUCT_GROUPS_TEXT.CREATE_GROUP} />
       </div>
+      {viewModel.missingGroupNotice !== null ? (
+        <p role="alert" className="font-body text-sm text-red-600">
+          {viewModel.missingGroupNotice}
+        </p>
+      ) : null}
 
       {viewModel.status === PRODUCT_GROUPS_STATUS.LOADING ? <Spinner label={PRODUCT_GROUPS_TEXT.LOADING} /> : null}
       {viewModel.status === PRODUCT_GROUPS_STATUS.ERROR ? (
@@ -42,7 +47,12 @@ export const ProductGroups = (): React.JSX.Element => {
       {viewModel.status === PRODUCT_GROUPS_STATUS.READY ? (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {viewModel.groups.map((group) => (
-            <ProductGroupCard key={group.id} group={group} />
+            <ProductGroupCard
+              key={group.id}
+              addToList={viewModel.getGroupAddToList(group.id)}
+              group={group}
+              onAddToList={viewModel.onAddToList}
+            />
           ))}
         </ul>
       ) : null}

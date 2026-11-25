@@ -1117,6 +1117,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      add_group_to_general_list: {
+        Args: { target_group_id: string }
+        Returns: Json
+      }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {

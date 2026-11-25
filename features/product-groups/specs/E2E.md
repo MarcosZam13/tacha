@@ -57,3 +57,14 @@ Nivel más bajo que alcanza: los estados de la pantalla (cargando, error, reinte
 - **Pasos:**
   1. Abrir `/lista/grupos/nuevo` y tocar "Guardar grupo" sin completar nada.
 - **Resultado esperado:** se ven el error del nombre y "Agrega al menos un producto.", y la URL no cambia.
+
+### E2E-GRUPOS-06: agregar un grupo a la lista y agregarlo otra vez
+
+- **Cubre:** HU-74 CA-01 y CA-02 (casos 18, 19 y 21). La fila aparte para otra presentación (CA-03, caso 22) y el resto de las reglas se prueban con datos reales en `supabase/tests/057_add_group_to_general_list.test.sql`.
+- **Precondición:** usuario anónimo nuevo. El grupo se crea con la pantalla de HU-73: el cliente no puede escribir grupos directo.
+- **Pasos:**
+  1. Crear un grupo con dos veces la misma presentación de "Leche" (queda ×2) y un "Chocolate".
+  2. En "Mis grupos", tocar "Agregar a lista" en su tarjeta.
+  3. Tocar "Ver lista".
+- **Resultado esperado:** la tarjeta dice "Agregamos 2 productos de «…» a tu lista." y la lista general tiene la Leche ×2 y el Chocolate ×1. Agregar el grupo otra vez deja la Leche ×4 y el Chocolate ×2, sin filas nuevas.
+- **Limpieza:** se borran las filas de la lista general del usuario anónimo al terminar (`deleteOwnListItems`).

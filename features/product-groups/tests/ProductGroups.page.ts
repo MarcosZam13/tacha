@@ -35,11 +35,24 @@ export const createProductGroupsPage = () => {
   const queryCardNames = (): string[] =>
     screen.queryAllByRole("heading", { level: 2 }).map((heading) => heading.textContent ?? "");
 
+  // SCRUM-111: el botón lleva el nombre del grupo en su nombre accesible.
+  const getAddToListButton = (groupName: string): HTMLElement =>
+    screen.getByRole("button", { name: `Agregar ${groupName} a la lista` });
+  const addToList = async (groupName: string): Promise<void> => {
+    await user.click(getAddToListButton(groupName));
+  };
+  const queryCardStatus = (groupName: string): HTMLElement | null => within(getCard(groupName)).queryByRole("status");
+  const queryCardAlert = (groupName: string): HTMLElement | null => within(getCard(groupName)).queryByRole("alert");
+  const queryViewListLink = (groupName: string): HTMLElement | null =>
+    within(getCard(groupName)).queryByRole("link", { name: "Ver lista" });
+
   const retry = async (): Promise<void> => {
     await user.click(screen.getByRole("button", { name: PRODUCT_GROUPS_TEXT.RETRY }));
   };
 
   return {
+    addToList,
+    getAddToListButton,
     getBackLink,
     getCountLabel,
     getCreateGroupLink,
@@ -47,11 +60,14 @@ export const createProductGroupsPage = () => {
     getError,
     getSpinner,
     getTitle,
+    queryCardAlert,
     queryCardNames,
+    queryCardStatus,
     queryCreateFirstGroupLink,
     queryEmptyState,
     queryError,
     querySharedBadge,
+    queryViewListLink,
     retry,
   };
 };
