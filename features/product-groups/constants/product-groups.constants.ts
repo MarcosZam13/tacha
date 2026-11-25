@@ -56,16 +56,17 @@ export const PRODUCT_GROUP_ADD_TO_LIST_TEXT = {
   BUTTON_LABEL_PREFIX: "Agregar ",
   BUTTON_LABEL_SUFFIX: " a la lista",
   ERROR: "No pudimos agregar el grupo. Intenta de nuevo.",
+  // Entre los nombres de las listas de saltados y de personales: "X, Y".
+  NAMES_SEPARATOR: ", ",
   NONE_ADDED: "No se agregó ningún producto: los del grupo ya no están disponibles.",
+  NOT_FOUND: "Este grupo ya no existe.",
   // SCRUM-163: cuando lo que no entró incluye productos personales.
   NOTHING_ADDED: "No se agregó ningún producto del grupo.",
-  // "No se agregaron porque son solo tuyos y tu lista es la de tu familia: X, Y."
+  // SCRUM-163: "No se agregaron porque son solo tuyos y tu lista es la de tu familia: X, Y."
   PERSONAL_PREFIX: "No se agregaron porque son solo tuyos y tu lista es la de tu familia: ",
   PERSONAL_SUFFIX: ".",
-  NOT_FOUND: "Este grupo ya no existe.",
   // "No se agregaron: X, Y (ya no están disponibles)."
   SKIPPED_PREFIX: "No se agregaron: ",
-  SKIPPED_SEPARATOR: ", ",
   SKIPPED_SUFFIX: " (ya no están disponibles).",
   VIEW_LIST: "Ver lista",
 } as const;

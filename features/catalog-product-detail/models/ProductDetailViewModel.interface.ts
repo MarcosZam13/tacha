@@ -19,6 +19,11 @@ export interface ProductDetailViewModel {
    */
   addToListBlockedMessage: NullableRef<string>;
   brands: CatalogBrand[];
+  /**
+   * SCRUM-163: false mientras se consulta si un producto personal puede ir a
+   * la lista (o si no puede): no se muestra "Agregar a mi lista".
+   */
+  canAddToList: boolean;
   canDecreaseQuantity: boolean;
   /** Error de carga o "producto no encontrado"; solo relevante en status ERROR. */
   errorMessage: NullableRef<string>;

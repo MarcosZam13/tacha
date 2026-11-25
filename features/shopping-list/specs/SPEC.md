@@ -602,7 +602,7 @@ Caminos por los que entra: "Agregar a mi lista" en el detalle de un producto per
 
 ### Reglas
 1. **La lista no se cae por una fila que no puede leer.** Esa fila se muestra como **"Producto no disponible"**, sin tamaño, y el resto carga normal (mismo criterio que Finanzas, D37). Cantidad, tachar y eliminar siguen funcionando (usan el id de la fila); el detalle de esa fila muestra su propio error.
-2. **Detalle del producto:** si el producto es personal sin compartir y el usuario está en una familia, en vez de "Agregar a mi lista" se muestra un aviso (`role="note"`): «Este producto es solo tuyo y tu lista es la de tu familia: el resto no podría verlo. Para usarlo en la lista, créalo de nuevo marcando «Compartir con mi familia».». Sin familia, se agrega como siempre.
+2. **Detalle del producto:** si el producto es personal sin compartir y el usuario está en una familia, en vez de "Agregar a mi lista" se muestra un aviso (`role="note"`): «Este producto es solo tuyo y tu lista es la de tu familia: el resto no podría verlo. Para usarlo en la lista, créalo de nuevo marcando «Compartir con mi familia».». Sin familia, se agrega como siempre. Mientras se consulta si hay familia, no se ofrece agregar (un toque en ese lapso lo metería en la lista de la familia). Si la consulta falla, no se bloquea: la regla 1 ya evita que la lista se caiga.
 3. **Grupos:** si la lista general es la de una familia, `add_group_to_general_list` salta los productos personales sin compartir y los devuelve en `personal`; el resumen dice «No se agregaron porque son solo tuyos y tu lista es la de tu familia: X.». Lo demás del grupo se agrega. Sin familia, nada cambia.
 
 ### Fuera de alcance
@@ -631,6 +631,6 @@ Criterios: privacidad (un producto personal solo lo ve su dueño mientras no lo 
 ### Casos de aceptación
 - Caso 163-1: un miembro abre la lista de la familia con una fila de un producto personal ajeno → la lista carga y esa fila dice "Producto no disponible" (E2E-LISTA-09; `tests/shopping-list.service.test.ts`).
 - Caso 163-2: en una familia, el detalle de mi producto personal muestra el aviso y no el botón de agregar (`features/catalog-product-detail/tests/`).
-- Caso 163-3: sin familia, el detalle de mi producto personal deja agregarlo (idem).
+- Caso 163-3: sin familia, el detalle de mi producto personal deja agregarlo; mientras se consulta la familia no se ofrece agregar; si la consulta falla, se ofrece (idem).
 - Caso 163-4: en una familia, agregar mi grupo personal con un producto personal agrega el resto y nombra el personal; ningún miembro ve una fila sin producto (`supabase/tests/063_skip_personal_products_in_household_list.test.sql`; `features/product-groups/tests/`).
 - Caso 163-5: sin familia, el grupo con mi producto personal se agrega completo (prueba SQL).

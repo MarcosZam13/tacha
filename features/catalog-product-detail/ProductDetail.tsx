@@ -68,7 +68,7 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
         <p role="note" className="rounded-tacha-card border border-tacha-border bg-tacha-surface p-4 font-body text-sm text-tacha-textsec">
           {viewModel.addToListBlockedMessage}
         </p>
-      ) : (
+      ) : viewModel.canAddToList ? (
         <AddToListControl
           addErrorMessage={viewModel.addErrorMessage}
           canDecreaseQuantity={viewModel.canDecreaseQuantity}
@@ -79,7 +79,7 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
           quantity={viewModel.quantity}
           wasJustAdded={viewModel.wasJustAdded}
         />
-      )}
+      ) : null}
     </div>
   );
 };

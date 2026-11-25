@@ -66,10 +66,10 @@ export const createProductDetailPage = () => {
 
   return {
     clickAddToList,
-    findAddToListBlockedNote,
     clickDecreaseQuantity,
     clickIncreaseQuantity,
     clickRetry,
+    findAddToListBlockedNote,
     findHeading,
     findReferencePriceHeading,
     getAddErrorMessage,

@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { ITEM_QUANTITY } from "@/constants";
 import { getCatalogVariantDetail } from "@/services/catalog.service";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
-import { hasHousehold } from "@/services/personal-product.service";
 import type { CatalogVariantDetail } from "@/types/catalog.types";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatPriceRange } from "@/utils/formatPriceRange";
-import { PRODUCT_DETAIL_STATUS, PRODUCT_DETAIL_TEXT } from "../constants/catalog-product-detail.constants";
+import { HOUSEHOLD_LIST_BLOCK, PRODUCT_DETAIL_STATUS, PRODUCT_DETAIL_TEXT } from "../constants/catalog-product-detail.constants";
 import type { ProductDetailViewModel } from "../models/ProductDetailViewModel.interface";
 import { toAddErrorMessage } from "../utils/toAddErrorMessage";
+import { useHouseholdListBlock } from "./useHouseholdListBlock";
 
 /** La respuesta se guarda junto al variantId que la pidió, para no mostrar
  * la respuesta de un producto viejo si variantId cambia antes de que llegue
@@ -34,9 +34,6 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
   const [isAdding, setIsAdding] = useState(false);
   const [addErrorMessage, setAddErrorMessage] = useState<NullableRef<string>>(null);
   const [wasJustAdded, setWasJustAdded] = useState(false);
-  // SCRUM-163: variantId para el que se comprobó que el producto es personal
-  // y el usuario está en una familia (su lista general es la de la familia).
-  const [householdBlockedVariantId, setHouseholdBlockedVariantId] = useState<NullableRef<string>>(null);
 
   useEffect(() => {
     // Si variantId cambia o se desmonta antes de que responda la base, esta
@@ -68,28 +65,8 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
   // Una respuesta de otro variantId no cuenta: mientras llega la de este, se está cargando.
   const currentResponse = response?.variantId === variantId ? response : null;
   const detail = currentResponse?.detail ?? null;
-  const isPersonalProduct = detail?.isPersonal ?? false;
-
-  // SCRUM-163: solo para un producto personal se pregunta si hay familia (los
-  // demás nunca se bloquean). Si la consulta falla no se bloquea: la lista ya
-  // tolera una fila que otro miembro no puede leer.
-  useEffect(() => {
-    let isCancelled = false;
-
-    if (isPersonalProduct) {
-      hasHousehold()
-        .then((isInHousehold) => {
-          if (!isCancelled && isInHousehold) setHouseholdBlockedVariantId(variantId);
-        })
-        .catch(() => undefined);
-    }
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [isPersonalProduct, variantId]);
-
-  const isAddBlockedByHousehold = isPersonalProduct && householdBlockedVariantId === variantId;
+  // SCRUM-163: un producto personal sin compartir no entra a la lista de la familia.
+  const householdListBlock = useHouseholdListBlock(detail?.isPersonal ?? false, variantId);
 
   const onRetry = (): void => {
     setResponse(null);
@@ -105,7 +82,7 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
   };
 
   const onAddToList = (): void => {
-    if (isAddBlockedByHousehold) return;
+    if (householdListBlock !== HOUSEHOLD_LIST_BLOCK.ALLOWED) return;
     setIsAdding(true);
     setAddErrorMessage(null);
     setWasJustAdded(false);
@@ -141,8 +118,10 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
 
   return {
     addErrorMessage,
-    addToListBlockedMessage: isAddBlockedByHousehold ? PRODUCT_DETAIL_TEXT.PERSONAL_IN_HOUSEHOLD_LIST : null,
+    addToListBlockedMessage:
+      householdListBlock === HOUSEHOLD_LIST_BLOCK.BLOCKED ? PRODUCT_DETAIL_TEXT.PERSONAL_IN_HOUSEHOLD_LIST : null,
     brands: detail?.brands ?? [],
+    canAddToList: householdListBlock === HOUSEHOLD_LIST_BLOCK.ALLOWED,
     canDecreaseQuantity: quantity > ITEM_QUANTITY.MIN,
     errorMessage: currentResponse?.errorMessage ?? null,
     hasReferencePrice: detail !== null && (detail.referencePrice !== null || detail.referenceStoreName !== null),

@@ -22,14 +22,14 @@ export const toAddGroupSummaryText = (groupName: string, response: AddGroupToLis
   if (response.skipped.length > 0) {
     lines.push(
       `${PRODUCT_GROUP_ADD_TO_LIST_TEXT.SKIPPED_PREFIX}${response.skipped.join(
-        PRODUCT_GROUP_ADD_TO_LIST_TEXT.SKIPPED_SEPARATOR,
+        PRODUCT_GROUP_ADD_TO_LIST_TEXT.NAMES_SEPARATOR,
       )}${PRODUCT_GROUP_ADD_TO_LIST_TEXT.SKIPPED_SUFFIX}`,
     );
   }
   if (response.personal.length > 0) {
     lines.push(
       `${PRODUCT_GROUP_ADD_TO_LIST_TEXT.PERSONAL_PREFIX}${response.personal.join(
-        PRODUCT_GROUP_ADD_TO_LIST_TEXT.SKIPPED_SEPARATOR,
+        PRODUCT_GROUP_ADD_TO_LIST_TEXT.NAMES_SEPARATOR,
       )}${PRODUCT_GROUP_ADD_TO_LIST_TEXT.PERSONAL_SUFFIX}`,
     );
   }

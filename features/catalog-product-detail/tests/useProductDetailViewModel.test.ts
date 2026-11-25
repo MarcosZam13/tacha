@@ -179,7 +179,7 @@ describe("useProductDetailViewModel", () => {
       getCatalogVariantDetailMock.mockResolvedValue({ ...DETAIL, isPersonal: true });
       const { result } = renderHook(() => useProductDetailViewModel(VARIANT_ID));
 
-      await waitFor(() => expect(hasHouseholdMock).toHaveBeenCalled());
+      await waitFor(() => expect(result.current.canAddToList).toBe(true));
       expect(result.current.addToListBlockedMessage).toBeNull();
     });
 

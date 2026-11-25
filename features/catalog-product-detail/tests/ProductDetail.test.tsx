@@ -2,6 +2,7 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { REFERENCE_PRICE_TEXT } from "@/constants";
+import { PRODUCT_DETAIL_TEXT } from "../constants/catalog-product-detail.constants";
 import { getCatalogVariantDetail } from "@/services/catalog.service";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
 import { hasHousehold } from "@/services/personal-product.service";
@@ -189,7 +190,50 @@ describe("ProductDetail", () => {
     render(<ProductDetail variantId={VARIANT_ID} />);
     const page = createProductDetailPage();
 
-    expect(await page.findAddToListBlockedNote()).toHaveTextContent("Compartir con mi familia");
+    expect(await page.findAddToListBlockedNote()).toHaveTextContent(PRODUCT_DETAIL_TEXT.PERSONAL_IN_HOUSEHOLD_LIST);
     expect(page.queryAddToListButton()).not.toBeInTheDocument();
+  });
+
+  // Un toque mientras se consulta la familia metería el producto en su lista.
+  it("does not offer adding a personal product until the household check answers", async () => {
+    hasHouseholdMock.mockReturnValue(new Promise(() => {}));
+    getCatalogVariantDetailMock.mockResolvedValue(createDetail({ isPersonal: true }));
+
+    render(<ProductDetail variantId={VARIANT_ID} />);
+    const page = createProductDetailPage();
+    await page.findHeading("Leche");
+
+    expect(page.queryAddToListButton()).not.toBeInTheDocument();
+  });
+
+  it("lets a user without a household add a personal product", async () => {
+    hasHouseholdMock.mockResolvedValue(false);
+    getCatalogVariantDetailMock.mockResolvedValue(createDetail({ isPersonal: true }));
+    addVariantToGeneralListMock.mockResolvedValue({
+      checkedAt: null,
+      id: "item-1",
+      purchaseSessionId: null,
+      quantity: 1,
+      quantityBought: null,
+      variantId: VARIANT_ID,
+    });
+
+    render(<ProductDetail variantId={VARIANT_ID} />);
+    const page = createProductDetailPage();
+    await waitFor(() => expect(page.queryAddToListButton()).toBeInTheDocument());
+    await page.clickAddToList();
+
+    await waitFor(() => expect(addVariantToGeneralListMock).toHaveBeenCalledWith(VARIANT_ID));
+  });
+
+  // Decisión: si no se puede saber, no se bloquea (la lista ya tolera la fila).
+  it("still offers adding when the household check fails", async () => {
+    hasHouseholdMock.mockRejectedValue(new Error("down"));
+    getCatalogVariantDetailMock.mockResolvedValue(createDetail({ isPersonal: true }));
+
+    render(<ProductDetail variantId={VARIANT_ID} />);
+    const page = createProductDetailPage();
+
+    await waitFor(() => expect(page.queryAddToListButton()).toBeInTheDocument());
   });
 });

@@ -37,6 +37,13 @@ describe("toAddGroupSummaryText", () => {
     ]);
   });
 
+  it("says nothing was added when the group only had personal products", () => {
+    expect(toAddGroupSummaryText("Desayuno", { added: [], personal: ["Tortillas"], skipped: [] })).toEqual([
+      "No se agregó ningún producto del grupo.",
+      "No se agregaron porque son solo tuyos y tu lista es la de tu familia: Tortillas.",
+    ]);
+  });
+
   it("does not blame availability when personal products were left out too", () => {
     expect(toAddGroupSummaryText("Desayuno", { added: [], personal: ["Tortillas"], skipped: ["Natilla"] })).toEqual([
       "No se agregó ningún producto del grupo.",

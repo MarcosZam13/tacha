@@ -88,9 +88,6 @@ export const SHOPPING_LIST_ACTION = {
 
 export const SHOPPING_LIST_TEXT = {
   ADD_ERROR: "No se pudo añadir el producto. Intenta de nuevo.",
-  // SCRUM-163: la fila de un producto que quien mira no puede leer (un producto
-  // personal de otro miembro, RLS de la 032). Mismo texto que Finanzas (D37).
-  UNAVAILABLE_PRODUCT: "Producto no disponible",
   ALL_CHECKED: "Todo tachado. No queda nada pendiente.",
   CHECKED_SECTION: "Tachados hoy",
   CHECK_ERROR: "No se pudo tachar el producto. Intenta de nuevo.",
@@ -122,6 +119,9 @@ export const SHOPPING_LIST_TEXT = {
   // Aviso de faltante (SCRUM-114): "+ 600 ml necesarios para Tres leches".
   SHORTFALL_NOTE_FOR: "necesarios para",
   SHORTFALL_NOTE_PREFIX: "+",
+  // SCRUM-163: la fila de un producto que quien mira no puede leer (un producto
+  // personal de otro miembro, RLS de la 032). Mismo texto que Finanzas (D37).
+  UNAVAILABLE_PRODUCT: "Producto no disponible",
   UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",

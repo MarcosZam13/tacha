@@ -14,6 +14,16 @@ export const PRODUCT_DETAIL_STATUS = {
   READY: "ready",
 } as const;
 
+// SCRUM-163: si un producto personal puede ir a la lista general del usuario.
+export const HOUSEHOLD_LIST_BLOCK = {
+  ALLOWED: "allowed",
+  BLOCKED: "blocked",
+  // Todavía no se sabe si el usuario está en una familia: no se ofrece agregar.
+  CHECKING: "checking",
+} as const;
+
+export type HouseholdListBlockType = (typeof HOUSEHOLD_LIST_BLOCK)[keyof typeof HOUSEHOLD_LIST_BLOCK];
+
 export type ProductDetailStatusType =
   (typeof PRODUCT_DETAIL_STATUS)[keyof typeof PRODUCT_DETAIL_STATUS];
 

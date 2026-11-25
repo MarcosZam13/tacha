@@ -83,7 +83,7 @@ export const addGroupToList = async (groupId: string): Promise<NullableRef<AddGr
   if (error) throw error;
 
   // La RPC devuelve jsonb: la base no le da tipo, lo fija el contrato de la función (057).
-  const groupResponse = response as unknown as Omit<AddGroupToListResponse, "personal"> & Partial<AddGroupToListResponse>;
   // "personal" llega desde la migración de SCRUM-163; sin ella, no hay ninguno.
+  const groupResponse = response as unknown as Omit<AddGroupToListResponse, "personal"> & { personal?: string[] };
   return { ...groupResponse, personal: groupResponse.personal ?? [] };
 };

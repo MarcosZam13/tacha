@@ -70,6 +70,7 @@ const toShoppingListItems = (
       recipeShortfalls: shortfallsByItemId.get(listItem.id) ?? [],
       shortfallSnapshot: snapshotsByItemId.get(listItem.id) ?? null,
       // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
+      // Sin presentación legible no hay tamaño que mostrar: la fila queda solo con el nombre.
       sizeLabel: variant ? formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType) : "",
       variantId: listItem.product_catalog_variant_id,
     };
