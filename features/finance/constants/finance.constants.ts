@@ -56,7 +56,6 @@ export const FINANCE_DB = {
   SELECT: {
     BUDGETS: "period, amount",
     PURCHASES: "id, closed_at, total_amount, stores(display_name)",
-    SPENDING: "total_amount",
     TIME_ZONE: "time_zone",
   },
   TABLE: {

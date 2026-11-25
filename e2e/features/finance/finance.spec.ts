@@ -194,7 +194,6 @@ test.describe("Finanzas", () => {
     await expect(page.getByText(NO_ACCOUNT_MESSAGE, { exact: true })).toBeVisible();
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(page.getByText(/presupuesto/iu)).toHaveCount(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
     // D6: tampoco la lectura de las compras, que desde SCRUM-72 es la del Historial.
     expect(recorder.historyRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
@@ -214,7 +213,6 @@ test.describe("Finanzas", () => {
     await expect(page.getByText(NO_ACCOUNT_MESSAGE, { exact: true })).toBeVisible();
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(page.getByText(/presupuesto/iu)).toHaveCount(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
     // D6: tampoco la lectura de las compras, que desde SCRUM-72 es la del Historial.
     expect(recorder.historyRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);

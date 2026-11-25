@@ -213,7 +213,6 @@ test.describe("Finanzas: Historial", () => {
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(getPurchaseList(page)).toHaveCount(0);
     expect(recorder.historyRequests).toHaveLength(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
     expect(recorder.pendingRequests).toHaveLength(0);
 
@@ -231,7 +230,6 @@ test.describe("Finanzas: Historial", () => {
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(getPurchaseList(page)).toHaveCount(0);
     expect(recorder.historyRequests).toHaveLength(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
     expect(recorder.pendingRequests).toHaveLength(0);
   });

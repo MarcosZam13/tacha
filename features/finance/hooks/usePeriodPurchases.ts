@@ -88,11 +88,14 @@ const byEffectiveAt = (first: PeriodAdjustment, second: PeriodAdjustment): numbe
 
 /**
  * Las compras y los ajustes del periodo en curso para el Historial (SCRUM-90 y
- * SCRUM-91). Pide los datos solo si `isEnabled` (cuenta registrada, D6).
+ * SCRUM-91) y, desde SCRUM-72, para el Dashboard: el total y el desglose por
+ * supermercado salen de la misma lectura (regla 107). Pide los datos solo si
+ * `isEnabled` (cuenta registrada, D6).
  *
- * Mismo patrón que usePeriodSpending: solo se guarda la última respuesta, con la
- * clave de quien la pidió (periodo + reintentos), y una que llegue tarde se
- * descarta.
+ * Solo se guarda la última respuesta, con la clave de quien la pidió (periodo +
+ * reintentos). Al cambiar de periodo la clave cambia, así que la respuesta
+ * anterior deja de mostrarse (vuelve a `loading`) y una que llegue tarde se
+ * descarta (regla 13).
  *
  * Un total guardado se aplica sin pasar por `loading`. Se vuelve a leer, en
  * cambio, si la lectura era sin zona (guardar exige una, así que se acaba de
