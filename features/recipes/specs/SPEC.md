@@ -669,7 +669,7 @@ El cliente nunca manda un `household_id`: la base lo toma de la membresía de qu
 
 **Fotos**
 
-71. **Metadatos:** toda foto nueva se vuelve a codificar en el navegador antes de subirla, conservando la orientación, sin ubicación ni otros datos. Si no se puede, no se sube: es el caso de foto fallida (regla 40).
+71. **Metadatos:** toda foto nueva se vuelve a codificar en el navegador antes de subirla, conservando la orientación y con el lado mayor de hasta 2048 px, sin ubicación ni otros datos. Si no se puede, no se sube: es el caso de foto fallida (regla 40).
 72. **Fotos anteriores a esta historia:** al compartir, se descarga, limpia y sube de nuevo la foto que se conserva. Si falla, no se comparte (regla 55).
 73. El resultado respeta los tipos y 5 MB de la regla 37. Reemplaza la nota de metadatos de 16.12.
 74. **Limpieza de archivos:** mejor esfuerzo (regla 47). Solo quien subió un archivo puede borrarlo; si otro miembro cambia o elimina la receta, puede quedar un archivo suelto que solo puede ver quien lo subió.
