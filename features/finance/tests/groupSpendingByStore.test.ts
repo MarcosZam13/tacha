@@ -66,7 +66,7 @@ describe("groupSpendingByStore", () => {
         [],
       );
 
-      expect(stores).toEqual([{ amount: 8000, closedCount: 1,storeName: "MaxiPali", withoutTotalCount: 2 }]);
+      expect(stores).toEqual([{ amount: 8000, closedCount: 1, storeName: "MaxiPali", withoutTotalCount: 2 }]);
     });
 
     it("keeps a store with only purchases without a total apart from a ₡0 store (D46)", () => {
@@ -110,6 +110,15 @@ describe("groupSpendingByStore", () => {
 
     it("compares amounts in cents, so ₡0.01 more comes first", () => {
       expect(storeNames([purchase("MasXMenos", 1000), purchase("MaxiPali", 1000.01)])).toEqual(["MaxiPali", "MasXMenos"]);
+    });
+
+    it("ties amounts that only differ by floating point drift, and orders them by name (rule 110)", () => {
+      // En punto flotante 0.1 + 0.2 = 0.30000000000000004 y Walmart quedaría arriba;
+      // en centavos los dos suman 30 y el empate va por nombre.
+      expect(storeNames([purchase("Walmart", 0.1), purchase("Walmart", 0.2), purchase("MaxiPali", 0.3)])).toEqual([
+        "MaxiPali",
+        "Walmart",
+      ]);
     });
 
     it("orders amount ties by name in Spanish", () => {

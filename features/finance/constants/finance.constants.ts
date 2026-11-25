@@ -338,9 +338,9 @@ export const FINANCE_TEXT = {
   SAVING: "Guardando…",
   SPENDING_EMPTY: "Todavía no tienes compras cerradas en este periodo.",
   SPENDING_LOAD_ERROR: "No se pudo cargar tu gasto. Intenta de nuevo.",
-  STORE_UNAVAILABLE: "Supermercado no disponible",
   // El título de la sección del Dashboard (SCRUM-72, SPEC §8).
   STORE_SPENDING_TITLE: "Gasto por supermercado",
+  STORE_UNAVAILABLE: "Supermercado no disponible",
   TABS_NAV_LABEL: "Secciones de finanzas",
   // "Zona horaria: America/Costa_Rica", junto a "Confirmar" (SPEC §8).
   TIME_ZONE_PREFIX: "Zona horaria: ",
@@ -350,10 +350,10 @@ export const FINANCE_TEXT = {
   TOTAL_INVALID: AMOUNT_INVALID_TEXT,
   TOTAL_SAVED: "Total guardado",
   WITHOUT_TOTAL: "Sin total",
-  WITHOUT_TOTAL_PLURAL: "compras sin total",
-  WITHOUT_TOTAL_SINGULAR: "compra sin total",
   // "1 sin total" / "3 sin total" en una fila del desglose por supermercado (SCRUM-72, D47).
   WITHOUT_TOTAL_COUNT_SUFFIX: " sin total",
+  WITHOUT_TOTAL_PLURAL: "compras sin total",
+  WITHOUT_TOTAL_SINGULAR: "compra sin total",
 } as const;
 
 // Textos de la vista "Productos" (SCRUM-93, SPEC §7 a §9; propuestos, se ajustan en la revisión).

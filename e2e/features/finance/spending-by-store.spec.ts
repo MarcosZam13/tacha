@@ -144,7 +144,8 @@ test.describe("Finanzas: gasto por supermercado (SCRUM-72)", () => {
       expect((await request.allHeaders()).prefer).toContain("count=exact");
       expect(request.url()).not.toContain("owner_id");
     }
-    // Ninguna con la consulta vieja del gasto.
+    // Ninguna con la consulta vieja del gasto (con control: sí se registraron lecturas).
+    expect(purchaseReads.length).toBeGreaterThan(0);
     expect(purchaseReads.map(getSelect)).not.toContain("total_amount");
   });
 

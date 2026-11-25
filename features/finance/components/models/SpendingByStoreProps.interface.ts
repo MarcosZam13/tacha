@@ -6,7 +6,7 @@ export interface StoreSpendingRowProps {
   amountText: string;
   /** true si solo tiene compras sin total: "Sin total" va como badge (D46, D27). Un ₡0 es false (D8). */
   hasNoTotal: boolean;
-  /** El nombre del supermercado; "" para "Supermercado no disponible" (un nombre nunca llega en blanco, regla 29). */
+  /** La clave del `<li>`: el nombre del supermercado, o "" para "Supermercado no disponible", que es un solo grupo (un nombre nunca llega en blanco, regla 29). */
   id: string;
   /** El nombre del supermercado, o "Supermercado no disponible" (regla 109). */
   storeText: string;

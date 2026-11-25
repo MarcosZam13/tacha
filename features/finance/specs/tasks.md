@@ -167,7 +167,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [ ] Periodos anteriores.
 - [ ] Productos de cada compra.
 - [ ] Editar totales (HU-60), badge y recordatorio (HU-61) y filtros (HU-62).
-- [ ] Deuda de SCRUM-69: `getPeriodSpending` puede sumar un resultado cortado por el servidor, sin avisar (plan, "Deuda de SCRUM-69").
+- [x] Deuda de SCRUM-69: `getPeriodSpending` puede sumar un resultado cortado por el servidor, sin avisar (plan, "Deuda de SCRUM-69"). Resuelta en SCRUM-91 (D19), y la función ya no existe desde SCRUM-72 (2026-11-24): el Dashboard lee con `getPeriodPurchases`.
 
 ## SCRUM-91: editar el total de una sesión o periodo
 
@@ -476,6 +476,8 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 - [x] 0.5 `features/finance/specs/E2E.md`, sección SCRUM-72 (E2E-FIN-24 y 25, con datos, resultados y peticiones), y notas en E2E-FIN-01, 03, 04 y 11 y en las coberturas de SCRUM-69 y SCRUM-91 (2026-11-24, skill `playwright-e2e`).
 - [ ] 0.6 Revisión y aprobación de la documentación por el equipo, en el PR.
 - [ ] 0.7 Antes de abrir el PR, comprobar que no haya otra PR propia en `in progress`. Commit `docs(SCRUM-72): add spending by store planning`, push y PR hacia `develop` con un solo label de estado (gitflow); SCRUM-72 a In Progress en Jira.
+  - [x] commit de la planificación (`899ac97`);
+  - [ ] PR con `in progress` y Jira: los hace la dueña de la historia; no hay constancia en esta rama.
 
 ### Etapa 1 — Agrupación (CA-01 y CA-02)
 
@@ -528,11 +530,15 @@ La adaptación de los escenarios existentes ya está en las etapas 2, 3 y 4.
 
 ### Etapa 6 — QA y cierre
 
-- [ ] 6.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check`.
-- [ ] 6.2 `code-reviewer` y `qa-checker`. `security-reviewer` no aplica (plan, "Seguridad").
-- [ ] 6.3 Pruebas manuales de SPEC §13 y `TC-SCRUM-72-01` a `06` (plan), con capturas sin correos.
+- [x] 6.1 `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan (2026-11-24). `npm test`: 228 archivos, 2398 tests. `npx playwright test e2e/features/finance`: 66 de 66 en `chromium` y `mobile-chrome`. Se volvieron a correr después de aplicar las revisiones de la 6.2. `npm run build` falló dos veces por el entorno (`EPERM`: OneDrive bloqueaba un archivo de `.next`); con `.next` borrada, pasó.
+- [x] 6.2 `code-reviewer` y `qa-checker` (2026-11-24): sin blockers; resultado y correcciones en plan, "Revisiones de cierre (2026-11-24)". `security-reviewer` no aplica (plan, "Seguridad").
+- [ ] 6.3 **Pendiente (dueña de la historia):** pruebas manuales de SPEC §13 y `TC-SCRUM-72-01` a `06` (plan, "Pruebas", "Manual"), con capturas sin correos.
 - [ ] 6.4 Marcar SPEC §13 solo con lo validado; `documento-proyecto.md` §4.2 con la nota "Implementado (SCRUM-72 / HU-40)".
-- [ ] 6.5 Descripción del PR con la evidencia, `waiting qa` y Jira.
+  - [x] SPEC §13: marcado lo que validan las pruebas automatizadas; CA-01, CA-02 y "Manual" esperan la 6.3;
+  - [x] `documento-proyecto.md` §4.2: nota "Implementado (SCRUM-72 / HU-40)";
+  - [ ] marcar CA-01, CA-02 y "Manual" después de la 6.3.
+- [ ] 6.5 **Pendiente (dueña de la historia):** descripción del PR con la evidencia manual, `waiting qa` y Jira, después de la 6.3.
+- [ ] 6.6 **Pendiente (dueña de la historia):** decidir si un supermercado solo con compras sin total muestra también "1 sin total" (hoy sí, D47) o solo el badge (cambia D47).
 
 ### Fuera de esta historia
 
