@@ -19,7 +19,8 @@ import {
 import { INITIAL_SHOPPING_LIST_STATE, shoppingListReducer } from "../utils/shopping-list.reducer";
 
 interface UseShoppingListReturn {
-  addItem: (searchResult: CatalogSearchResult) => Promise<void>;
+  /** true si la base lo agregó; si falla, el error queda en el estado (SCRUM-104 lo usa para el ✓). */
+  addItem: (searchResult: CatalogSearchResult) => Promise<boolean>;
   /** Modo compra (SCRUM-67): ±1 a lo comprado de una fila tachada en la compra. */
   changeBoughtQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
   changeQuantity: (itemId: string, quantityStep: ItemQuantityStepType) => Promise<void>;
@@ -124,13 +125,15 @@ export const useShoppingList = (): UseShoppingListReturn => {
     }
   };
 
-  const addItem = async (searchResult: CatalogSearchResult): Promise<void> => {
+  const addItem = async (searchResult: CatalogSearchResult): Promise<boolean> => {
     try {
       const item = await addItemToGeneralList(searchResult);
       dispatch({ item, type: SHOPPING_LIST_ACTION.ITEM_UPSERTED });
       void refreshShortfalls();
+      return true;
     } catch {
       dispatch({ errorMessage: SHOPPING_LIST_TEXT.ADD_ERROR, type: SHOPPING_LIST_ACTION.ADD_FAILED });
+      return false;
     }
   };
 

@@ -72,7 +72,11 @@ export const ShoppingListInner = (): React.JSX.Element => {
       ) : null}
 
       {/* SCRUM-102 (HU-70 CA-01): debajo del encabezado (y de la barra del modo compra, que sigue primero) y antes de la lista. Si falla, no se dibuja (CA-03). */}
-      <InventorySuggestions />
+      {/* SCRUM-104: el ✓ agrega con el mismo addItem de la lista, así aparece en "Pendientes" sin recargar. */}
+      <InventorySuggestions
+        onConfirm={viewModel.onConfirmSuggestion}
+        pendingVariantIds={viewModel.pendingVariantIds}
+      />
 
       {viewModel.canStartPurchase ? (
         <div>

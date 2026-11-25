@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { INVENTORY_SUGGESTIONS_DB } from "../constants/inventory-suggestions.constants";
-import { getInventorySuggestions } from "../services/inventory-suggestions.service";
+import { dismissInventorySuggestion, getInventorySuggestions } from "../services/inventory-suggestions.service";
 
 // Sin Supabase real: un cliente falso con solo rpc().
 const rpcMock = vi.fn();
@@ -59,5 +59,25 @@ describe("getInventorySuggestions", () => {
     rpcMock.mockResolvedValue({ data: null, error: databaseError });
 
     await expect(getInventorySuggestions()).rejects.toBe(databaseError);
+  });
+});
+
+describe("dismissInventorySuggestion (SCRUM-104)", () => {
+  it("pospone el producto de la presentación", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await dismissInventorySuggestion("variant-1");
+
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(INVENTORY_SUGGESTIONS_DB.RPC.DISMISS_INVENTORY_SUGGESTION, {
+      target_variant_id: "variant-1",
+    });
+  });
+
+  it("propaga el error de la base", async () => {
+    const databaseError = { code: "P0002", message: "No hay lista general" };
+    rpcMock.mockResolvedValue({ data: null, error: databaseError });
+
+    await expect(dismissInventorySuggestion("variant-1")).rejects.toBe(databaseError);
   });
 });

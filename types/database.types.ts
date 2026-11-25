@@ -274,6 +274,45 @@ export type Database = {
           },
         ]
       }
+      inventory_suggestion_dismissals: {
+        Row: {
+          dismissed_by: string | null
+          dismissed_until: string
+          list_id: string
+          product_catalog_id: string
+          updated_at: string
+        }
+        Insert: {
+          dismissed_by?: string | null
+          dismissed_until: string
+          list_id: string
+          product_catalog_id: string
+          updated_at?: string
+        }
+        Update: {
+          dismissed_by?: string | null
+          dismissed_until?: string
+          list_id?: string
+          product_catalog_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_suggestion_dismissals_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_suggestion_dismissals_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           assigned_to: string | null
@@ -1384,6 +1423,10 @@ export type Database = {
       }
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
       delete_personal_product: { Args: { target_product_id: string }; Returns: string }
+      dismiss_inventory_suggestion: {
+        Args: { target_variant_id: string }
+        Returns: undefined
+      }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
       get_general_list_recipe_shortfalls: {
