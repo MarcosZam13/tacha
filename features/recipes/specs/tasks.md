@@ -149,10 +149,11 @@ Bloqueado / fuera de esta historia:
 - [x] 13. Presentación: `RecipeAudienceField`, `RecipeCopyAction`, tarjeta, diálogo y editor; tests con Page Object. Verificar que un ingrediente sin producto visible no rompe las pantallas.
 - [x] 14. `docs/documento-proyecto.md` §6; marcar como resueltos los pendientes de household en esta carpeta y en `features/meal-planner/specs/`.
 - [x] 15. `E2E.md` y E2E: sin familia no hay selector; una foto subida queda sin metadatos. Lo de varios usuarios, en SQL y a mano.
-- [ ] 16. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E de recetas y planificador; validar SPEC 17.10 en el navegador (desktop y 360 px).
-- [ ] 17. `code-reviewer` y `security-reviewer` en paralelo, correcciones, pasos de prueba manual con dos cuentas y `waiting qa`.
+- [x] 16. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E de recetas y planificador; validar SPEC 17.10 en el navegador (desktop y 360 px).
+- [x] 17. `code-reviewer` y `security-reviewer` en paralelo, correcciones, pasos de prueba manual con dos cuentas y `waiting qa`.
 
 Bloqueado / fuera de esta historia:
 
 - [ ] Plan semanal compartido y cocinero miembro (D2).
+- [ ] Error previo hallado al probar: la lista de la familia no carga si tiene un producto personal de otro miembro (módulo de listas; reportado aparte).
 - [ ] Que borrar una cuenta no borre lo compartido con su familia.

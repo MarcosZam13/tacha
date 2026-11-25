@@ -640,7 +640,7 @@ El cliente nunca manda un `household_id`: la base lo toma de la membresía de qu
 51. **Personal por defecto**, al crear y también al entrar a una familia. Nada se comparte solo.
 52. **Solo el dueño comparte** su receta personal, y solo con la familia de la que es miembro. Quien no tiene familia no ve el selector. Una sesión anónima no puede compartir ni ver recetas de la familia.
 53. **Compartir no se deshace.** Una receta de la familia muestra su destino sin selector. Para tenerla personal se guarda una copia.
-54. **Productos personales.** Una receta de la familia solo lleva productos del catálogo común o de esa familia. Compartir con un producto personal se rechaza, con los nombres; también guardar cambios que lo agreguen. La base lo hace cumplir.
+54. **Productos personales.** Una receta de la familia solo lleva productos del catálogo común o de esa familia. Compartir con un producto personal se rechaza, con los nombres; también guardar cambios que lo agreguen. La base lo hace cumplir. El buscador de ingredientes no ofrece productos personales (SCRUM-87), así que por la interfaz no se llega a este caso.
 55. **Orden al guardar:** primero la receta, después la foto y por último compartir. Si la receta o la foto fallan no se comparte. Si falla solo compartir, la receta queda personal, se avisa y el editor sigue abierto; reintentar no la duplica (regla 41).
 
 55b. **Hasta 300 recetas por familia.** Al llegar, compartir otra se rechaza. Acota lo que se copia cuando alguien sale; dos personas a la vez pueden pasarlo por poco.
@@ -724,27 +724,27 @@ La regla 44 queda reemplazada: en una receta de la familia la foto la cambia cua
 
 ### 17.10 Casos de aceptación (SCRUM-162)
 
-- [ ] CA-01: al crear o editar se elige personal o familia; sin familia no aparece la opción.
-- [ ] CA-02: el catálogo distingue las recetas de la familia.
-- [ ] CA-03: un miembro ve la receta completa, con ingredientes y foto.
-- [ ] CA-04: un miembro edita, cambia la foto y elimina, sin cambiar el dueño.
-- [ ] CA-05: un miembro la agrega a la lista y usa "Ver qué falta".
-- [ ] CA-06: otra familia, un exmiembro, una sesión anónima y `anon` no la leen, editan, eliminan ni firman su foto (SQL).
-- [ ] CA-07: las personales no las ve la familia; entrar a una familia no comparte nada.
-- [ ] CA-08: una foto con ubicación queda sin ella, también si se subió antes de esta historia; la orientación se conserva.
-- [ ] CA-09: "Guardar copia personal" crea una copia completa y la familia conserva la suya.
-- [ ] CA-10: cambiar o eliminar el original o la copia, o sus fotos, no afecta a la otra.
-- [ ] CA-11: salir o ser removido deja copia personal de las propias, y la familia conserva el original con el admin como dueño.
-- [ ] CA-12: disolver no pierde recetas ni crea duplicados, tampoco si el creador ya había salido.
-- [ ] Compartir con un producto personal se rechaza con sus nombres; agregarlo a una ya compartida, también (interfaz y SQL).
-- [ ] Un miembro asigna una receta de la familia a su plan; el de los demás no se ve.
-- [ ] Al salir, los espacios del plan pasan a la copia o quedan libres; ninguno queda con una receta invisible.
-- [ ] La copia al salir omite productos de la familia.
-- [ ] Nadie puede escribir `household_id`, `owner_id` ni `photo_path` directo, ni compartir la receta de otro, ni apuntar a un archivo ajeno (SQL).
-- [ ] Si falla compartir, la receta queda personal y reintentar no la duplica.
-- [ ] Un doble clic en copiar crea una sola copia.
-- [ ] Transferir el admin y salir: el original queda con el admin nuevo.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, las pruebas SQL y el E2E pasan.
+- [x] CA-01: al crear o editar se elige personal o familia; sin familia no aparece la opción.
+- [x] CA-02: el catálogo distingue las recetas de la familia.
+- [x] CA-03: un miembro ve la receta completa, con ingredientes y foto.
+- [x] CA-04: un miembro edita, cambia la foto y elimina, sin cambiar el dueño.
+- [x] CA-05: un miembro la agrega a la lista y usa "Ver qué falta".
+- [x] CA-06: otra familia, un exmiembro, una sesión anónima y `anon` no la leen, editan, eliminan ni firman su foto (SQL).
+- [x] CA-07: las personales no las ve la familia; entrar a una familia no comparte nada.
+- [x] CA-08: una foto con ubicación queda sin ella, también si se subió antes de esta historia; la orientación se conserva.
+- [x] CA-09: "Guardar copia personal" crea una copia completa y la familia conserva la suya.
+- [x] CA-10: cambiar o eliminar el original o la copia, o sus fotos, no afecta a la otra.
+- [x] CA-11: salir o ser removido deja copia personal de las propias, y la familia conserva el original con el admin como dueño.
+- [x] CA-12: disolver no pierde recetas ni crea duplicados, tampoco si el creador ya había salido.
+- [x] Compartir con un producto personal se rechaza con sus nombres; agregarlo a una ya compartida, también (interfaz y SQL).
+- [x] Un miembro asigna una receta de la familia a su plan; el de los demás no se ve.
+- [x] Al salir, los espacios del plan pasan a la copia o quedan libres; ninguno queda con una receta invisible.
+- [x] La copia al salir omite productos de la familia.
+- [x] Nadie puede escribir `household_id`, `owner_id` ni `photo_path` directo, ni compartir la receta de otro, ni apuntar a un archivo ajeno (SQL).
+- [x] Si falla compartir, la receta queda personal y reintentar no la duplica.
+- [x] Un doble clic en copiar crea una sola copia.
+- [x] Transferir el admin y salir: el original queda con el admin nuevo.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, las pruebas SQL y el E2E pasan.
 
 ### 17.11 Casos fuera de alcance
 
