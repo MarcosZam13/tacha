@@ -539,11 +539,13 @@ docs/documento-proyecto.md                      §4.9.1 y §6
 
 | Archivo | Cambio |
 |---|---|
-| `features/shopping-list/constants/shopping-list.constants.ts` | `GENERAL_LIST_SELECT` con `product_catalog_variant_id`; `SHOPPING_LIST_TEXT.UNAVAILABLE_PRODUCT` |
+| `features/shopping-list/constants/shopping-list.constants.ts` | `GENERAL_LIST_SELECT` con `product_catalog_variant_id` |
+| `constants/list-items.constants.ts` | `LIST_ITEM_TEXT.UNAVAILABLE_PRODUCT`, compartido por la lista general y las sublistas |
+| `features/date-lists/` | Misma guarda en `getDateListDetail` (`DETAIL_SELECT` con `product_catalog_variant_id`) + `tests/date-lists.service.test.ts` |
 | `features/shopping-list/services/shopping-list.service.ts` | `toShoppingListItems` tolera `product_catalog_variants: null` |
 | `constants/catalog.constants.ts`, `types/catalog.types.ts`, `services/catalog.service.ts` | `VARIANT_DETAIL_SELECT` con `owner_id`; `CatalogVariantDetail.isPersonal` |
 | `features/catalog-product-detail/` | ViewModel: `hasHousehold()` solo para un producto personal → `addToListBlockedMessage`; la vista muestra el aviso en vez de `AddToListControl` |
 | `features/product-groups/` | `AddGroupToListResponse.personal`; el servicio normaliza su ausencia; `toAddGroupSummaryText` agrega la línea de personales |
-| `supabase/migrations/063_skip_personal_products_in_household_list.sql` + `supabase/tests/063_…test.sql` | `create or replace` de `add_group_to_general_list`; número provisional, se fija al aplicarla |
+| `supabase/migrations/066_skip_personal_products_in_household_list.sql` + `supabase/tests/066_…test.sql` | `create or replace` de `add_group_to_general_list`; número provisional, se fija al aplicarla |
 
 Decisiones: ver SPEC §19 (alternativas descartadas). Si la consulta de familia falla, el detalle no bloquea: la regla 1 ya evita que la lista se caiga.

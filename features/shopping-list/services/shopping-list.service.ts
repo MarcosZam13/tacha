@@ -1,11 +1,12 @@
 import type { QueryData } from "@supabase/supabase-js";
+import { LIST_ITEM_TEXT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { startOfLocalDay } from "@/utils/startOfLocalDay";
-import { LIST_TYPE, SHOPPING_LIST_DB, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
+import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
 import type { CatalogSearchResult } from "@/types/catalog.types";
 import type { ItemCheck } from "../models/ItemCheck.interface";
@@ -65,7 +66,7 @@ const toShoppingListItems = (
     return {
       ...toItemCheck(listItem),
       id: listItem.id,
-      productName: variant ? variant.product_catalog.name : SHOPPING_LIST_TEXT.UNAVAILABLE_PRODUCT,
+      productName: variant ? variant.product_catalog.name : LIST_ITEM_TEXT.UNAVAILABLE_PRODUCT,
       quantity: listItem.quantity_requested,
       recipeShortfalls: shortfallsByItemId.get(listItem.id) ?? [],
       shortfallSnapshot: snapshotsByItemId.get(listItem.id) ?? null,

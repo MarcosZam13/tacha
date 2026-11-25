@@ -125,4 +125,5 @@ Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base
 - [X] 4. Migración nueva de `add_group_to_general_list` + prueba SQL; prueba en seco (migración + prueba en una transacción con `rollback`): pasó, sin restos.
 - [X] 5. E2E-LISTA-09 (respuesta simulada con la forma real de la base).
 - [X] 6. Specs, `docs/documento-proyecto.md` §4.5.1.
+- [X] 6b. (Revisión de Marcos) Misma guarda en las sublistas por fecha + test; texto compartido en `constants/list-items.constants.ts`.
 - [ ] 7. Visto bueno del equipo → aplicar la migración con el primer número libre (+ fila del historial) → `waiting qa`.

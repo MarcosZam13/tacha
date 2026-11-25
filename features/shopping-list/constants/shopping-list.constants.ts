@@ -119,9 +119,6 @@ export const SHOPPING_LIST_TEXT = {
   // Aviso de faltante (SCRUM-114): "+ 600 ml necesarios para Tres leches".
   SHORTFALL_NOTE_FOR: "necesarios para",
   SHORTFALL_NOTE_PREFIX: "+",
-  // SCRUM-163: la fila de un producto que quien mira no puede leer (un producto
-  // personal de otro miembro, RLS de la 032). Mismo texto que Finanzas (D37).
-  UNAVAILABLE_PRODUCT: "Producto no disponible",
   UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",

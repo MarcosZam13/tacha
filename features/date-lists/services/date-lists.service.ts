@@ -1,4 +1,4 @@
-import { DATE_LIST_TYPE } from "@/constants";
+import { DATE_LIST_TYPE, LIST_ITEM_TEXT } from "@/constants";
 import type { CatalogBaseUnitType, DateListStatusType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
@@ -71,15 +71,20 @@ export const getDateListDetail = async (listId: string): Promise<NullableRef<Dat
   return {
     ...toDateList(data),
     items: sortPendingFirst(data.list_items.map((listItem) => {
-      const variant = listItem.product_catalog_variants;
+      // SCRUM-163: la RLS de la 032 devuelve la presentación en null si quien
+      // mira no puede ver el producto (personal de otro miembro). Hoy la app no
+      // deja llegar a ese caso en una sublista, pero si pasa, la fila sale "no
+      // disponible" en vez de tumbar la sublista (misma guarda que la lista general).
+      const variant: NullableRef<typeof listItem.product_catalog_variants> = listItem.product_catalog_variants;
       return {
         id: listItem.id,
         isChecked: listItem.checked_at !== null,
-        productName: variant.product_catalog.name,
+        productName: variant ? variant.product_catalog.name : LIST_ITEM_TEXT.UNAVAILABLE_PRODUCT,
         quantity: listItem.quantity_requested,
         // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
-        sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
-        variantId: variant.id,
+        // Sin presentación legible no hay tamaño que mostrar.
+        sizeLabel: variant ? formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType) : "",
+        variantId: listItem.product_catalog_variant_id,
       };
     })),
   };

@@ -91,3 +91,6 @@ Reglas:
 Fuera de alcance: modo compra en sublistas y total de gasto (SCRUM-79).
 
 Datos: migración 043. Sin columnas nuevas: `lists.status` ya admitía los tres valores desde 004.
+
+## SCRUM-163 (fix): fila con un producto que no se puede leer
+Si una fila llega sin presentación (producto personal de otro miembro, RLS de la 032), la sublista la muestra como "Producto no disponible" en vez de no cargar. Hoy la app no deja llegar a ese caso en una sublista. Detalle en `features/shopping-list/specs/SPEC.md` §19.
