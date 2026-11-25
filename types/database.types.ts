@@ -909,7 +909,15 @@ export type Database = {
           owner_id?: string
           photo_path?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recipes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       search_cache: {
         Row: {
@@ -1266,6 +1274,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      copy_recipe: { Args: { target_recipe_id: string }; Returns: string }
       create_date_list: {
         Args: { list_event_date: string; list_name: string }
         Returns: {
@@ -1315,6 +1324,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_household_id: { Args: never; Returns: string }
       date_list_status_from_items: {
         Args: { target_list_id: string }
         Returns: string
@@ -1436,6 +1446,10 @@ export type Database = {
           period_end: string
           period_start: string
         }[]
+      }
+      is_recipe_photo_in_use: {
+        Args: { target_photo_path: string }
+        Returns: boolean
       }
       leave_household: { Args: { new_admin_user_id?: string }; Returns: string }
       list_catalog_by_category: {
@@ -1699,6 +1713,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      share_recipe: { Args: { target_recipe_id: string }; Returns: string[] }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_purchase_session: {

@@ -271,7 +271,7 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
   - **cocinero "Yo" / "Sin cocinero"**; los miembros se suman al mismo selector cuando exista HU-35. `assigned_cook` apunta a `auth.users` y no a `household_members` como decía documento-proyecto §6, porque un usuario sin household no está en `household_members` y no podría asignarse a sí mismo;
   - **multiplicador ×0,5 a ×4 en pasos de 0,5** y se guarda el multiplicador (como pide la tabla), no las porciones;
   - **receta borrada: el espacio queda libre** (`on delete cascade`) y el diálogo de eliminar avisa cuántos espacios usa. Cierra el CA-02 de HU-64b (SCRUM-96), que la SPEC de recetas §15 dejó para esta historia.
-- **Fusionar recetas y plan semanal al household: evaluado, no incluido (pedido del responsable, 2026-10-09).** Se examinó si se podía hacer en esta historia. Es posible, pero no entra por tamaño y por lo que arrastra:
+- **Fusionar recetas y plan semanal al household: evaluado, no incluido (pedido del responsable, 2026-10-09).** La parte de **recetas** la resuelve SCRUM-162 (`features/recipes/specs/SPEC.md` §17); sigue pendiente el plan compartido y elegir de cocinero a otro miembro. Se examinó si se podía hacer en esta historia. Es posible, pero no entra por tamaño y por lo que arrastra:
   - *Qué habría que hacer* (los pasos 1 a 6 de "Integración con households" del plan de recetas, más lo del plan):
     1. FK de `recipes.household_id` y `meal_plans.household_id` → `households(id)`;
     2. una función de membresía `security definer` con `search_path` vacío (por ejemplo `current_household_id()`) para que las políticas no se llamen a sí mismas;

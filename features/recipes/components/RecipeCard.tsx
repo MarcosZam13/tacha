@@ -3,11 +3,13 @@ import { Button, CategoryLabel, Chip } from "@/components/ui";
 import { BUTTON_VARIANT } from "@/constants";
 import {
   RECIPE_ADD_TO_LIST_TEXT,
+  RECIPE_AUDIENCE_TEXT,
   RECIPE_COVERAGE_TEXT,
   RECIPE_DELETE_TEXT,
   RECIPE_TEXT,
 } from "../constants/recipes.constants";
 import { RecipeAddToListResult } from "./RecipeAddToListResult";
+import { RecipeCopyAction } from "./RecipeCopyAction";
 import { RecipeCoveragePanel } from "./RecipeCoveragePanel";
 import { RecipePhoto } from "./RecipePhoto";
 import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
@@ -24,8 +26,10 @@ import type { RecipeCardProps } from "./models/RecipeCardProps.interface";
  */
 export const RecipeCard = ({
   addToList,
+  copy,
   coverage,
   onAddToListRequest,
+  onCopyRequest,
   onCoverageRetry,
   onCoverageToggle,
   onDeleteRequest,
@@ -43,6 +47,11 @@ export const RecipeCard = ({
           <div>
             <h2 className="font-display text-xl font-semibold text-tacha-text">{recipe.name}</h2>
             <p className="font-body text-sm text-tacha-textsec">{recipe.servingsLabel}</p>
+            {recipe.isShared ? (
+              <p className="mt-1 w-fit rounded-tacha-badge bg-tacha-chipbg px-2 py-0.5 font-body text-xs font-semibold text-tacha-teal">
+                {RECIPE_AUDIENCE_TEXT.BADGE}
+              </p>
+            ) : null}
           </div>
 
           {recipe.hasIngredients ? (
@@ -83,6 +92,10 @@ export const RecipeCard = ({
                 </Button>
                 {isCoverageOpen ? <RecipeCoveragePanel coverage={coverage} onRetry={onCoverageRetry} /> : null}
               </div>
+            ) : null}
+
+            {recipe.isShared && recipe.hasIngredients ? (
+              <RecipeCopyAction copy={copy} onCopyRequest={() => onCopyRequest(recipe.id)} recipeName={recipe.name} />
             ) : null}
 
             <div className="flex items-center justify-between gap-3">

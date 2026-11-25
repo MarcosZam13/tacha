@@ -2,10 +2,11 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { hasUnsavedChanges } from "@/services/unsaved-changes.service";
-import { RECIPE_PHOTO_CHANGE, SAVE_RECIPE_PHOTO_RESULT } from "../constants/recipes.constants";
+import { RECIPE_PHOTO_CHANGE, SAVE_RECIPE_PHOTO_RESULT, SHARE_RECIPE_RESULT } from "../constants/recipes.constants";
 import type { SavedRecipePhoto } from "../models/recipe-photo.interfaces";
 import { RecipeEditor } from "../RecipeEditor";
-import { saveRecipePhoto } from "../services/recipe-photos.service";
+import { cleanSavedRecipePhoto, saveRecipePhoto } from "../services/recipe-photos.service";
+import { hasHousehold, shareRecipe } from "../services/recipe-sharing.service";
 import { getRecipeForEditing, saveRecipe } from "../services/recipes.service";
 import { createRecipeEditorPage } from "./RecipeEditor.page";
 import { createPhotoFile, createValues } from "./recipe.fixtures";
@@ -24,13 +25,20 @@ vi.mock("@/hooks/useProductSearch", () => ({
   }),
 }));
 vi.mock("../services/recipes.service", () => ({ getRecipeForEditing: vi.fn(), saveRecipe: vi.fn() }));
-vi.mock("../services/recipe-photos.service", () => ({ saveRecipePhoto: vi.fn() }));
+vi.mock("../services/recipe-photos.service", () => ({
+  cleanSavedRecipePhoto: vi.fn(),
+  saveRecipePhoto: vi.fn(),
+}));
+vi.mock("../services/recipe-sharing.service", () => ({ hasHousehold: vi.fn(), shareRecipe: vi.fn() }));
+const cleanPhotoMock = vi.mocked(cleanSavedRecipePhoto);
+const hasHouseholdMock = vi.mocked(hasHousehold);
+const shareMock = vi.mocked(shareRecipe);
 const getRecipeMock = vi.mocked(getRecipeForEditing);
 const saveRecipeMock = vi.mocked(saveRecipe);
 const savePhotoMock = vi.mocked(saveRecipePhoto);
 
-const renderEditor = async (photo: SavedRecipePhoto | null = null) => {
-  getRecipeMock.mockResolvedValue({ photo, values: createValues() });
+const renderEditor = async (photo: SavedRecipePhoto | null = null, isShared = false) => {
+  getRecipeMock.mockResolvedValue({ isShared, photo, values: createValues() });
   render(<RecipeEditor recipeId="flan" />);
   const page = createRecipeEditorPage();
   await page.findPhotoInput();
@@ -43,6 +51,9 @@ beforeEach(() => {
   vi.resetAllMocks();
   URL.createObjectURL = vi.fn(() => "blob:preview");
   URL.revokeObjectURL = vi.fn();
+  cleanPhotoMock.mockResolvedValue(true);
+  hasHouseholdMock.mockResolvedValue(false);
+  shareMock.mockResolvedValue({ kind: SHARE_RECIPE_RESULT.SHARED });
   saveRecipeMock.mockResolvedValue({ recipeId: "flan" });
   savePhotoMock.mockResolvedValue(SAVE_RECIPE_PHOTO_RESULT.SAVED);
 });
@@ -176,5 +187,69 @@ describe("RecipeEditor: photo", () => {
 
     finish({ recipeId: "flan" });
     await waitFor(() => expect(savePhotoMock).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("RecipeEditor: who it is for", () => {
+  it("does not offer it without a family", async () => {
+    const page = await renderEditor();
+
+    await waitFor(() => expect(hasHouseholdMock).toHaveBeenCalled());
+    expect(page.queryAudience()).not.toBeInTheDocument();
+  });
+
+  it("does not offer it when the family could not be asked, and still saves as personal", async () => {
+    hasHouseholdMock.mockRejectedValue(new Error("network"));
+    const page = await renderEditor();
+
+    await page.save();
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/recetas"));
+    expect(page.queryAudience()).not.toBeInTheDocument();
+    expect(shareMock).not.toHaveBeenCalled();
+  });
+
+  it("is personal by default", async () => {
+    hasHouseholdMock.mockResolvedValue(true);
+    const page = await renderEditor();
+
+    expect(await page.findAudienceOption("Solo para mí")).toBeChecked();
+    await page.save();
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/recetas"));
+    expect(shareMock).not.toHaveBeenCalled();
+  });
+
+  it("explains what sharing means and shares after saving the recipe and cleaning its photo", async () => {
+    hasHouseholdMock.mockResolvedValue(true);
+    const page = await renderEditor({ url: "https://fotos/flan" });
+
+    await page.chooseAudience("Para mi familia");
+    expect(page.getText("Tu familia podrá verla, editarla y eliminarla. No se puede deshacer.")).toBeInTheDocument();
+    await page.save();
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/recetas"));
+    expect(shareMock).toHaveBeenCalledExactlyOnceWith("flan");
+    expect(cleanPhotoMock.mock.invocationCallOrder[0]).toBeLessThan(shareMock.mock.invocationCallOrder[0]);
+  });
+
+  it("names the personal products and stays open", async () => {
+    hasHouseholdMock.mockResolvedValue(true);
+    shareMock.mockResolvedValue({ kind: SHARE_RECIPE_RESULT.PERSONAL_PRODUCTS, productNames: ["Pan", "Miel"] });
+    const page = await renderEditor();
+    await page.chooseAudience("Para mi familia");
+
+    await page.save();
+
+    expect(await page.findAlert()).toHaveTextContent("cambia estos ingredientes personales: Pan, Miel.");
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("only says it belongs to the family when it already does", async () => {
+    hasHouseholdMock.mockResolvedValue(true);
+    const page = await renderEditor(null, true);
+
+    expect(page.getText("Esta receta es de tu familia.")).toBeInTheDocument();
+    expect(page.queryAudience()).not.toBeInTheDocument();
   });
 });

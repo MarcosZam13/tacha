@@ -21,7 +21,7 @@ export const RECIPES_DB = {
   // Las columnas dentro del select no llevan constante propia: el genérico
   // Database de types/database.types.ts las valida al compilar.
   CATALOG_SELECT:
-    "id, name, base_servings, photo_path, recipe_ingredients(id, position, product_catalog(name))",
+    "id, household_id, name, base_servings, photo_path, recipe_ingredients(id, position, product_catalog(name))",
   // .order() y .eq() aceptan cualquier string (no los valida el genérico), así
   // que esas columnas van como constante: un typo compilaría y fallaría en runtime.
   COLUMN: {
@@ -31,14 +31,17 @@ export const RECIPES_DB = {
     RECIPE_ID: "recipe_id",
   },
   EDITOR_SELECT:
-    "id, name, base_servings, photo_path, recipe_ingredients(position, quantity_value, quantity_unit, product_catalog(id, name))",
+    "id, household_id, name, base_servings, photo_path, recipe_ingredients(position, product_catalog_id, quantity_value, quantity_unit, product_catalog(name))",
   RPC: {
     ADD_RECIPE_TO_GENERAL_LIST: "add_recipe_to_general_list",
+    COPY_RECIPE: "copy_recipe",
+    CURRENT_HOUSEHOLD_ID: "current_household_id",
     // "Ver qué falta" con el faltante en vivo de la lista (037, SCRUM-115). La
     // get_recipe_coverage de la 017 queda en la base solo hasta el merge.
     GET_RECIPE_COVERAGE_TODAY: "get_recipe_coverage_today",
     SAVE_RECIPE: "save_recipe",
     SET_RECIPE_PHOTO: "set_recipe_photo",
+    SHARE_RECIPE: "share_recipe",
   },
   TABLE: {
     // meal_plans lo crea SCRUM-100: acá solo se cuenta cuántos espacios del plan usan una receta.
@@ -65,6 +68,13 @@ export const RECIPE_FORM_LIMIT = {
 const RECIPE_PHOTO_MAX_MEGABYTES = 5;
 
 export const RECIPE_PHOTO_MAX_FILE_SIZE_BYTES = RECIPE_PHOTO_MAX_MEGABYTES * 1024 * 1024;
+
+// Al subirla, la foto se vuelve a dibujar sin sus metadatos (SCRUM-162). El lado
+// mayor se acota porque los navegadores de celular no dibujan fotos enormes.
+export const RECIPE_PHOTO_REENCODE = {
+  MAX_SIDE_PIXELS: 2048,
+  QUALITY: 0.9,
+} as const;
 
 export const RECIPE_PHOTO_STORAGE = {
   BUCKET: "recipe-photos",
@@ -137,6 +147,7 @@ export type RecipeEditorStatusType = (typeof RECIPE_EDITOR_STATUS)[keyof typeof 
 
 // Acciones del reducer del editor (utils/recipe-editor.reducer.ts).
 export const RECIPE_EDITOR_ACTION = {
+  AUDIENCE_CHANGED: "audienceChanged",
   BASE_SERVINGS_CHANGED: "baseServingsChanged",
   INGREDIENT_ADDED: "ingredientAdded",
   INGREDIENT_QUANTITY_CHANGED: "ingredientQuantityChanged",
@@ -146,7 +157,7 @@ export const RECIPE_EDITOR_ACTION = {
   LOAD_FAILED: "loadFailed",
   NAME_CHANGED: "nameChanged",
   NOT_FOUND: "notFound",
-  PHOTO_FAILED: "photoFailed",
+  SAVED_PARTIALLY: "savedPartially",
   SAVE_FAILED: "saveFailed",
   SAVE_STARTED: "saveStarted",
   VALIDATION_FAILED: "validationFailed",
@@ -229,8 +240,83 @@ export const RECIPE_DELETE_TEXT = {
   MEAL_PLAN_NOTICE_PLURAL_PREFIX: "Está en",
   MEAL_PLAN_NOTICE_PLURAL_SUFFIX: "espacios de tu plan; quedarán vacíos.",
   MEAL_PLAN_NOTICE_SINGULAR: "Está en 1 espacio de tu plan; quedará vacío.",
+  SHARED_NOTICE: "Se eliminará para toda tu familia.",
   TRIGGER: "Eliminar",
 } as const;
+
+// Para quién es la receta (SCRUM-162).
+export const RECIPE_AUDIENCE = {
+  FAMILY: "family",
+  PERSONAL: "personal",
+} as const;
+
+export type RecipeAudienceType = (typeof RECIPE_AUDIENCE)[keyof typeof RECIPE_AUDIENCE];
+
+// Resultado de compartir (services/recipe-sharing.service.ts).
+export const SHARE_RECIPE_RESULT = {
+  FAILED: "failed",
+  HOUSEHOLD_LIMIT: "householdLimit",
+  NOT_FOUND: "notFound",
+  NO_HOUSEHOLD: "noHousehold",
+  PERSONAL_PRODUCTS: "personalProducts",
+  SHARED: "shared",
+} as const;
+
+// Resultado del guardado completo: receta, foto y compartir (services/recipe-save.service.ts).
+export const SAVE_RECIPE_OUTCOME = {
+  HOUSEHOLD_LIMIT: "householdLimit",
+  NOT_FOUND: "notFound",
+  NO_HOUSEHOLD: "noHousehold",
+  PERSONAL_PRODUCTS: "personalProducts",
+  PHOTO_FAILED: "photoFailed",
+  SAVED: "saved",
+  SAVE_FAILED: "saveFailed",
+  SHARE_FAILED: "shareFailed",
+} as const;
+
+// Hints de los errores de la 060: distinguen casos con el mismo código.
+export const RECIPE_SHARING_HINT = {
+  HOUSEHOLD_LIMIT: "recipe_household_limit",
+  NO_HOUSEHOLD: "recipe_no_household",
+  PERSONAL_PRODUCTS: "recipe_personal_products",
+} as const;
+
+export const RECIPE_AUDIENCE_TEXT = {
+  BADGE: "Familia",
+  FAMILY: "Para mi familia",
+  FIXED: "Esta receta es de tu familia.",
+  HELP: "Tu familia podrá verla, editarla y eliminarla. No se puede deshacer.",
+  HOUSEHOLD_LIMIT: "Tu familia ya tiene 300 recetas. Elimina alguna para compartir otra.",
+  LEGEND: "¿Para quién es?",
+  NO_HOUSEHOLD: "Ya no formas parte de una familia. La receta quedó solo para ti.",
+  PERSONAL: "Solo para mí",
+  PERSONAL_PRODUCTS_PREFIX: "Para compartirla, cambia estos ingredientes personales:",
+  SHARE_FAILED: "La receta se guardó, pero no se pudo compartir. Intenta de nuevo.",
+} as const;
+
+export const RECIPE_AUDIENCE_FIELD_NAME = "recipe-audience";
+
+// Estados de "Guardar copia personal", por tarjeta.
+export const RECIPE_COPY_STATUS = {
+  COPIED: "copied",
+  COPYING: "copying",
+  FAILED: "failed",
+  IDLE: "idle",
+  NOT_FOUND: "notFound",
+} as const;
+
+export type RecipeCopyStatusType = (typeof RECIPE_COPY_STATUS)[keyof typeof RECIPE_COPY_STATUS];
+
+export const RECIPE_COPY_TEXT = {
+  COPIED: "Guardamos una copia personal.",
+  COPYING: "Copiando…",
+  FAILED: "No se pudo guardar la copia. Intenta de nuevo.",
+  NOT_FOUND: "No encontramos esa receta.",
+  TRIGGER: "Guardar copia personal",
+} as const;
+
+// Un ingrediente cuyo producto ya no se puede ver (de una familia anterior).
+export const RECIPE_UNAVAILABLE_PRODUCT = "Producto no disponible";
 
 // Estados de agregar una receta a la lista (RecipeListAdditionState en
 // models/recipe-list-addition.types.ts).

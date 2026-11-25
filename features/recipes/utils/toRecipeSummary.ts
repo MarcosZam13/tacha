@@ -1,5 +1,5 @@
 import type { NullableRef } from "@/types/nullable.types";
-import { RECIPE_CATALOG, RECIPE_TEXT } from "../constants/recipes.constants";
+import { RECIPE_CATALOG, RECIPE_TEXT, RECIPE_UNAVAILABLE_PRODUCT } from "../constants/recipes.constants";
 import type { RecipeRow, RecipeSummary } from "../models/recipe-catalog.interfaces";
 import { formatServings } from "./formatServings";
 import { getRecipeEditPath } from "./getRecipeEditPath";
@@ -16,7 +16,7 @@ import { getRecipeEditPath } from "./getRecipeEditPath";
 export const toRecipeSummary = (recipeRow: RecipeRow, photoUrl: NullableRef<string>): RecipeSummary => {
   const ingredients = [...recipeRow.recipe_ingredients]
     .sort((first, second) => first.position - second.position)
-    .map((ingredient) => ({ id: ingredient.id, name: ingredient.product_catalog.name }));
+    .map((ingredient) => ({ id: ingredient.id, name: ingredient.product_catalog?.name ?? RECIPE_UNAVAILABLE_PRODUCT }));
 
   const hiddenIngredientCount = ingredients.length - RECIPE_CATALOG.MAIN_INGREDIENTS_LIMIT;
 
@@ -24,6 +24,7 @@ export const toRecipeSummary = (recipeRow: RecipeRow, photoUrl: NullableRef<stri
     editPath: getRecipeEditPath(recipeRow.id),
     hasIngredients: ingredients.length > 0,
     id: recipeRow.id,
+    isShared: recipeRow.household_id !== null,
     mainIngredients: ingredients.slice(0, RECIPE_CATALOG.MAIN_INGREDIENTS_LIMIT),
     moreIngredientsLabel:
       hiddenIngredientCount > 0 ? `+${hiddenIngredientCount} ${RECIPE_TEXT.MORE_INGREDIENTS}` : null,

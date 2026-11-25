@@ -9,7 +9,8 @@ export const createRecipeDeleteDialogPage = () => {
   const getRecipeName = (name: string) => screen.getByText(name);
   const getMealPlanNotice = () => screen.getByRole("status");
   const queryMealPlanNotice = () => screen.queryByRole("status");
+  const querySharedNotice = () => screen.queryByText(/para toda tu familia/);
   const getDeleteButton = () => screen.getByRole("button", { name: "Eliminar" });
 
-  return { getDeleteButton, getDialog, getMealPlanNotice, getRecipeName, queryMealPlanNotice };
+  return { getDeleteButton, getDialog, getMealPlanNotice, getRecipeName, queryMealPlanNotice, querySharedNotice };
 };

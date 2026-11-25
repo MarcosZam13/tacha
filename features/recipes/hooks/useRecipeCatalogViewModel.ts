@@ -3,6 +3,7 @@ import { RECIPE_CATALOG_STATUS, RECIPE_TEXT } from "../constants/recipes.constan
 import type { RecipeCatalogViewModel } from "../models/recipe-catalog.interfaces";
 import type { RecipeCatalogState } from "../models/recipe-catalog.types";
 import { getRecipeSummaries } from "../services/recipes.service";
+import { useRecipeCopy } from "./useRecipeCopy";
 import { useRecipeCoverage } from "./useRecipeCoverage";
 import { useRecipeDeletion } from "./useRecipeDeletion";
 import { useRecipeListAddition } from "./useRecipeListAddition";
@@ -11,8 +12,8 @@ import { useRecipeListAddition } from "./useRecipeListAddition";
  * Catálogo de recetas: carga al montar y le entrega a RecipeCatalog.tsx lo
  * que dibuja. En estado solo se guarda lo que no se puede calcular (en qué
  * estado está la carga y, si terminó, las recetas); el resto se deriva.
- * La eliminación, agregar a la lista y "Ver qué falta" viven en sus propios
- * hooks (useRecipeDeletion, useRecipeListAddition, useRecipeCoverage); este
+ * La eliminación, agregar a la lista, copiar y "Ver qué falta" viven en sus propios
+ * hooks (useRecipeDeletion, useRecipeListAddition, useRecipeCopy, useRecipeCoverage); este
  * solo quita de la lista la receta que el primero avisa que se borró.
  */
 export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
@@ -42,6 +43,15 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   });
   const listAddition = useRecipeListAddition();
 
+  // Se pide de nuevo para que la copia traiga su foto y su lugar. Si falla, la
+  // copia existe igual y aparece en la próxima carga.
+  const reloadRecipes = (): void => {
+    getRecipeSummaries()
+      .then((recipes) => setState({ recipes, status: RECIPE_CATALOG_STATUS.READY }))
+      .catch(() => undefined);
+  };
+  const copy = useRecipeCopy({ onCopied: reloadRecipes });
+
   useEffect(() => {
     // Si la pantalla se cierra antes de que responda la base, la respuesta
     // se ignora en vez de actualizar un estado que ya no existe.
@@ -63,6 +73,7 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   const recipes = state.status === RECIPE_CATALOG_STATUS.READY ? state.recipes : [];
 
   return {
+    copy,
     coverage,
     deletion,
     errorMessage: state.status === RECIPE_CATALOG_STATUS.ERROR ? RECIPE_TEXT.LOAD_ERROR : null,

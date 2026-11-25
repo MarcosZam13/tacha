@@ -347,7 +347,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - [x] CA-01: un botón "+ Nueva receta" abre un formulario con nombre, porciones base e ingredientes (búsqueda estilo catálogo).
 - [x] CA-02: por cada ingrediente, el usuario primero elige el producto (ej. "Leche") y después le asigna cantidad con su unidad (ej. "500 ml"); el ingrediente queda ligado al producto desde ese paso.
 - [x] CA-03: cada ingrediente se elige de entre los productos del catálogo, no se escribe como texto libre.
-- [ ] CA-04 (**parcial**): quien creó la receta la puede **editar** (SCRUM-95) y **eliminar** (SCRUM-96). Falta que lo haga **cualquier miembro del household** si es compartida (integración con households).
+- [ ] CA-04 (**lo completa SCRUM-162, sección 17**): quien creó la receta la puede **editar** (SCRUM-95) y **eliminar** (SCRUM-96); si es compartida, también cualquier miembro del household.
 - [x] Cada error de validación de la [sección 7](#7-errores) se muestra y no llama a la base.
 - [x] Doble clic en "Guardar receta": se crea una sola receta.
 - [x] Receta ajena o id inválido por URL: "No encontramos esa receta."

@@ -2,9 +2,10 @@ import type { FormEvent } from "react";
 import type { ProductSearchProps } from "@/components/product-search/models/ProductSearchProps.interface";
 import type { CatalogBaseUnitType } from "@/constants";
 import type { NullableRef, NullableUndefined } from "@/types/nullable.types";
-import type { RecipeEditorStatusType } from "../constants/recipes.constants";
+import type { RecipeAudienceType, RecipeEditorStatusType } from "../constants/recipes.constants";
 import type { RecipePhotoFieldViewModel, SavedRecipePhoto } from "./recipe-photo.interfaces";
 import type { RecipePhotoChange } from "./recipe-photo.types";
+import type { RecipeAudienceFieldViewModel } from "./recipe-sharing.interfaces";
 
 // Interfaces del editor de recetas (SCRUM-95), en el orden en que se usan:
 // la entrada, la fila de la base, el formulario, el estado del reducer, lo que
@@ -22,12 +23,15 @@ export interface RecipeEditorProps {
  */
 export interface RecipeEditorRow {
   base_servings: number;
+  household_id: NullableRef<string>;
   id: string;
   name: string;
   photo_path: NullableRef<string>;
   recipe_ingredients: {
     position: number;
-    product_catalog: { id: string; name: string };
+    /** null si quien consulta ya no puede ver el producto (de una familia anterior). */
+    product_catalog: NullableRef<{ name: string }>;
+    product_catalog_id: string;
     quantity_unit: string;
     quantity_value: number;
   }[];
@@ -52,8 +56,9 @@ export interface RecipeEditorValues {
   name: string;
 }
 
-/** Una receta guardada, lista para editar: los valores del formulario y su foto (null si no tiene). */
+/** Una receta guardada, lista para editar: los valores del formulario, su foto (null si no tiene) y si es de la familia. */
 export interface RecipeForEditing {
+  isShared: boolean;
   photo: NullableRef<SavedRecipePhoto>;
   values: RecipeEditorValues;
 }
@@ -70,14 +75,17 @@ export interface RecipeEditorErrors {
 }
 
 export interface RecipeEditorState {
+  /** Para quién se guardará. Una receta de la familia ya no cambia (isShared). */
+  audience: RecipeAudienceType;
   errors: RecipeEditorErrors;
   /** La persona ya tocó el formulario (SCRUM-55: cerrar sesión pide confirmación). Se apaga al cargar la receta. */
   hasChanges: boolean;
   /** Aviso no bloqueante del buscador, ej. "ese producto ya está". */
   ingredientNotice: NullableRef<string>;
+  isShared: boolean;
   saveErrorMessage: NullableRef<string>;
   savedPhoto: NullableRef<SavedRecipePhoto>;
-  /** Id de la receta que se guardó sin su foto: reintentar edita esa en vez de crear otra. */
+  /** Id de la receta que se guardó a medias (sin su foto o sin compartir): reintentar edita esa en vez de crear otra. */
   savedRecipeId: NullableRef<string>;
   status: RecipeEditorStatusType;
   values: RecipeEditorValues;
@@ -86,12 +94,13 @@ export interface RecipeEditorState {
 /** Lo que useRecipeEditor le entrega al ViewModel: el estado y una función por cada cambio. */
 export interface UseRecipeEditorReturn {
   addIngredient: (ingredient: RecipeEditorIngredient) => void;
+  changeAudience: (audience: RecipeAudienceType) => void;
   changeBaseServings: (baseServings: string) => void;
   changeIngredientQuantity: (productId: string, quantity: string) => void;
   changeIngredientUnit: (productId: string, unit: CatalogBaseUnitType) => void;
   changeName: (name: string) => void;
   removeIngredient: (productId: string) => void;
-  /** Valida y guarda la receta y su foto. Devuelve true si se guardó todo, para que quien llama navegue. */
+  /** Valida, guarda la receta y su foto, y la comparte si se pidió. Devuelve true si se guardó todo, para que quien llama navegue. */
   save: (photoChange: RecipePhotoChange) => Promise<boolean>;
   state: RecipeEditorState;
 }
@@ -107,6 +116,7 @@ export interface RecipeIngredientRowViewModel extends RecipeEditorIngredient {
 
 /** Lo que useRecipeEditorViewModel le entrega a RecipeEditor.tsx, ya calculado. */
 export interface RecipeEditorViewModel {
+  audience: RecipeAudienceFieldViewModel;
   baseServings: string;
   baseServingsError: NullableUndefined<string>;
   ingredientNotice: NullableRef<string>;
@@ -147,6 +157,13 @@ export interface SaveRecipePayload {
   name: string;
   /** Sin valor = receta nueva; con valor = editar esa receta. */
   recipeId: NullableUndefined<string>;
+}
+
+/** Todo lo que hace falta para el guardado completo (services/recipe-save.service.ts). */
+export interface SaveRecipeWithExtrasPayload {
+  photoChange: RecipePhotoChange;
+  recipe: SaveRecipePayload;
+  shouldShare: boolean;
 }
 
 /** Lo que devuelve save_recipe: el id de la receta creada o editada. */

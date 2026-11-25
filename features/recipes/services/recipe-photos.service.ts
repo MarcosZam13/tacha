@@ -9,6 +9,7 @@ import {
 } from "../constants/recipes.constants";
 import type { SaveRecipePhotoResultType } from "../constants/recipes.constants";
 import type { SaveRecipePhotoPayload } from "../models/recipe-photo.interfaces";
+import { removePhotoMetadata } from "../utils/removePhotoMetadata";
 
 // La base rechazó la ruta, así que seguro no quedó guardada. Con cualquier otro error (red cortada, un 5xx)
 // no se sabe.
@@ -54,13 +55,15 @@ export const removeRecipePhotoFile = async (photoPath: NullableRef<string>): Pro
   }
 };
 
-// Cada subida es un archivo nuevo en la carpeta de la receta. null si no se pudo subir.
+// Cada subida es un archivo nuevo en la carpeta de la receta, sin metadatos. null
+// si no se pudo subir; lanza si no se pudo limpiar (saveRecipePhoto lo atrapa).
 const uploadRecipePhoto = async (recipeId: string, file: File): Promise<NullableRef<string>> => {
-  const extension = IMAGE_FILE_EXTENSION_BY_MIME_TYPE[file.type];
+  const cleanFile = await removePhotoMetadata(file);
+  const extension = IMAGE_FILE_EXTENSION_BY_MIME_TYPE[cleanFile.type];
   if (!extension) return null;
 
   const photoPath = `${recipeId}/${crypto.randomUUID()}.${extension}`;
-  const { error } = await getPhotoBucket().upload(photoPath, file, { contentType: file.type, upsert: false });
+  const { error } = await getPhotoBucket().upload(photoPath, cleanFile, { contentType: cleanFile.type, upsert: false });
 
   return error ? null : photoPath;
 };
@@ -101,5 +104,31 @@ export const saveRecipePhoto = async ({
     return SAVE_RECIPE_PHOTO_RESULT.SAVED;
   } catch {
     return SAVE_RECIPE_PHOTO_RESULT.FAILED;
+  }
+};
+
+/**
+ * Limpia la foto que la receta ya tiene, antes de compartirla: puede ser anterior a
+ * que se quitaran los metadatos (SPEC regla 72). La ruta se lee en el momento, así
+ * reintentar no usa una que ya se reemplazó. Devuelve si quedó lista; no lanza.
+ */
+export const cleanSavedRecipePhoto = async (recipeId: string): Promise<boolean> => {
+  try {
+    const { data: recipeRow, error } = await getSupabaseClient()
+      .from(RECIPES_DB.TABLE.RECIPES)
+      .select(RECIPES_DB.COLUMN.PHOTO_PATH)
+      .eq(RECIPES_DB.COLUMN.ID, recipeId)
+      .maybeSingle();
+    if (error || !recipeRow) return false;
+    if (!recipeRow.photo_path) return true;
+
+    const { data: savedPhoto, error: downloadError } = await getPhotoBucket().download(recipeRow.photo_path);
+    if (downloadError) return false;
+
+    const file = new File([savedPhoto], recipeRow.photo_path, { type: savedPhoto.type });
+    const result = await saveRecipePhoto({ change: { file, kind: RECIPE_PHOTO_CHANGE.REPLACE }, recipeId });
+    return result === SAVE_RECIPE_PHOTO_RESULT.SAVED;
+  } catch {
+    return false;
   }
 };
