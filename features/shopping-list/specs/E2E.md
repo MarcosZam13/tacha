@@ -124,3 +124,13 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
 - **Sincronización:** tachar antes de que la barra muestre el súper deja la fila fuera de la compra y el escenario deja de probar una compra cerrada.
 - **Oráculo:** lo que distingue el bug es el diálogo: sin la corrección aparece en el paso 4.
 - **Limpieza:** `deleteOwnListItems` y `deleteOwnRecipes`. La compra cerrada queda en la base, como en E2E-LISTA-05.
+
+### E2E-LISTA-09: la lista de la familia carga aunque un producto no se pueda ver (SCRUM-163)
+
+- **Cubre:** SCRUM-163, parte 1 (ver SPEC, sección SCRUM-163).
+- **Precondición:** usuario anónimo nuevo. Las familias exigen cuentas registradas, así que la respuesta de la base se **simula** con `page.route`, con la forma exacta que devuelve la RLS de la 032 a un miembro que no puede leer un producto personal ajeno (verificada contra la base el 2026-11-25): una fila normal ("Arroz") y una fila con `product_catalog_variants: null`.
+- **Pasos:**
+  1. Abrir `/lista`.
+- **Resultado esperado:** en "Pendientes" se ven "Arroz" y "Producto no disponible"; no aparece "No se pudo cargar tu lista. Intenta de nuevo.".
+- **Oráculo:** sin la corrección, la pantalla muestra el error de carga y ninguna fila.
+- **Limpieza:** no escribe en la base.

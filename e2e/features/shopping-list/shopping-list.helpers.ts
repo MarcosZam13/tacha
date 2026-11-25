@@ -67,3 +67,41 @@ export const getUndoDialog = (page: Page): Locator =>
 export const getShortfallNote = (row: Locator, recipeName: string): Locator =>
   row.getByText(new RegExp(`^\\+ .+ necesarios para ${recipeName}$`));
 
+/**
+ * SCRUM-163: la lista de la familia tal como la ve un miembro que no puede
+ * leer un producto personal ajeno (RLS de la 032): la fila llega sin
+ * presentación. Las familias exigen cuentas registradas, así que se simula la
+ * respuesta de la base con la forma exacta que devuelve en ese caso.
+ */
+export const stubHouseholdListWithHiddenRow = async (page: Page, visibleProductName: string): Promise<void> => {
+  const listId = "00000000-0000-4000-8000-000000000163";
+  const baseRow = { checked_at: null, purchase_session_id: null, quantity_bought: null, quantity_requested: 1 };
+  const rows = [
+    {
+      ...baseRow,
+      created_at: "2026-11-25T10:00:00Z",
+      id: "00000000-0000-4000-8000-000000000001",
+      product_catalog_variant_id: "00000000-0000-4000-8000-000000000011",
+      product_catalog_variants: {
+        base_quantity: 1000,
+        base_unit: "g",
+        id: "00000000-0000-4000-8000-000000000011",
+        product_catalog: { name: visibleProductName },
+      },
+    },
+    {
+      ...baseRow,
+      created_at: "2026-11-25T11:00:00Z",
+      id: "00000000-0000-4000-8000-000000000002",
+      product_catalog_variant_id: "00000000-0000-4000-8000-000000000022",
+      product_catalog_variants: null,
+    },
+  ];
+  await page.route(/\/rest\/v1\/rpc\/find_general_list_id/, (route) => route.fulfill({ json: listId }));
+  await page.route(/\/rest\/v1\/rpc\/get_general_list_(recipe_shortfalls|shortfall_snapshots)/, (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.route(/\/rest\/v1\/lists\?select=id%2Clist_items|\/rest\/v1\/lists\?select=id,list_items/, (route) =>
+    route.fulfill({ json: { id: listId, list_items: rows } }),
+  );
+};
