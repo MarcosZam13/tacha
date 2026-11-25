@@ -239,20 +239,52 @@ export const WEEK_LIST_STATUS = {
 export const WEEK_LIST_ACTION = {
   CLOSED: "closed",
   CONFIRMED: "confirmed",
+  DESTINATION_CHANGED: "destinationChanged",
+  DESTINATION_LOST: "destinationLost",
   FAILED: "failed",
   OPENED: "opened",
   SUCCEEDED: "succeeded",
 } as const;
 
+// A qué lista se agrega la semana (SCRUM-160).
+export const WEEK_LIST_DESTINATION = {
+  DATE_LIST: "dateList",
+  GENERAL: "general",
+} as const;
+
+// Carga de las sublistas del selector: independiente de la confirmación (SPEC 17.5).
+export const DATE_LIST_OPTIONS_STATUS = {
+  FAILED: "failed",
+  IDLE: "idle",
+  LOADING: "loading",
+  READY: "ready",
+} as const;
+
 export const WEEK_LIST_DB = {
-  RPC: {
-    ADD_WEEK_TO_GENERAL_LIST: "add_week_to_general_list",
+  COLUMN: {
+    CREATED_AT: "created_at",
+    EVENT_DATE: "event_date",
+    STATUS: "status",
+    TYPE: "type",
   },
+  // El hint con el que add_week_to_list (058) distingue una sublista que ya no
+  // sirve del P0002 de una receta.
+  HINT_DATE_LIST_UNAVAILABLE: "date_list_unavailable",
+  OPTION_SELECT: "id, name, event_date",
+  RPC: {
+    ADD_WEEK_TO_LIST: "add_week_to_list",
+  },
+  TABLE_LISTS: "lists",
+} as const;
+
+export const WEEK_LIST_FORM = {
+  DESTINATION_FIELD_NAME: "week-list-destination",
 } as const;
 
 // Dónde se reemplazan los datos en las frases con huecos de WEEK_LIST_TEXT.
 export const WEEK_LIST_TOKEN = {
   INGREDIENTS: "{ingredients}",
+  LIST: "{list}",
   MEALS: "{meals}",
   RANGE: "{range}",
 } as const;
@@ -260,10 +292,16 @@ export const WEEK_LIST_TOKEN = {
 export const WEEK_LIST_TEXT = {
   ADDING: "Agregando…",
   ALREADY_COVERED: "Tu lista ya tenía lo necesario para esta semana.",
+  ALREADY_COVERED_DATE_LIST: "{list} ya tenía lo necesario para esta semana.",
   BUTTON: "Agregar semana a la lista",
   CANCEL: MEAL_SLOT_TEXT.CANCEL,
   CONFIRM: "Agregar",
   CONFIRM_MESSAGE: "Vas a agregar a tu lista general los ingredientes de {meals} ({range}).",
+  // Con selector la frase no nombra la lista: la nombra la opción elegida.
+  CONFIRM_MESSAGE_WITH_OPTIONS: "Vas a agregar los ingredientes de {meals} ({range}).",
+  DESTINATION_GENERAL: "Lista general",
+  DESTINATION_LABEL: "¿A qué lista?",
+  DESTINATION_LOST: "Esa sublista ya no está disponible. Elige otra lista.",
   DIALOG_TITLE: "Agregar semana a la lista",
   ERROR: "No se pudo agregar la semana a tu lista. Intenta de nuevo.",
   INGREDIENT_PLURAL: "ingredientes",
@@ -272,8 +310,14 @@ export const WEEK_LIST_TEXT = {
   MEAL_SINGULAR: "comida",
   MISSING_PREFIX: "Te falta comprar:",
   NO_MEALS: "No había comidas planeadas esta semana.",
+  // "Paseo a la playa · 28 nov".
+  OPTION_SEPARATOR: " · ",
+  OPTIONS_ERROR: "No se pudieron cargar tus sublistas. Puedes agregar a la lista general.",
+  OPTIONS_LOADING: "Cargando tus sublistas…",
+  RETRY: MEAL_SLOT_TEXT.RETRY,
   SKIPPED_PREFIX: "No se pudieron agregar:",
   SUCCESS: "Agregaste {ingredients} de {meals} a tu lista.",
+  SUCCESS_DATE_LIST: "Agregaste {ingredients} de {meals} a {list}.",
   // Separa los productos dentro de "Te falta comprar: …" y "No se pudieron agregar: …".
   SUMMARY_SEPARATOR: ", ",
   VIEW_LIST: "Ver lista",

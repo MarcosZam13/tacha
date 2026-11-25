@@ -88,3 +88,38 @@
 - [X] 13.3 Subagentes `code-reviewer`, `security-reviewer` (RPC `security definer`) y `qa-checker`
 - [X] 13.4 `docs/documento-proyecto.md` §4.11 y §6
 - [X] 13.5 Descripción de la PR y paso a `waiting qa`
+
+## SCRUM-111 — HU-74 Agregar un grupo a la lista
+
+> El código se armó sin la 110; con la 110 en `develop` se mergeó develop en la rama y se agregó el E2E.
+
+### 14. Arranque
+- [X] 14.1 Re-verificar: PR propia `in progress` = ninguna; próximo número de migración (057); `add_units_to_list_item` y `ensure_general_list_id` sin cambios (base, 2026-11-24).
+- [X] 14.2 Rama `ticket/SCRUM-111-add-group-to-list` desde `develop`; PR con `in progress`.
+- [X] 14.3 Acordar con el grupo el número de migración (057) ANTES de crear el archivo (anunciado). La 057 solo crea una función nueva y reusa `add_units_to_list_item` sin cambiarla: no escribe `list_item_recipe_requirements`, así que lista y faltantes no cambian.
+- [X] 14.4 Sección HU-74 en SPEC/plan/tasks/E2E del equipo.
+
+### 15. Base
+- [X] 15.1 `057_add_group_to_general_list.sql`.
+- [X] 15.2 Prueba SQL: sin sesión 42501; grupo ajeno P0002; lista vacía → N filas con sus cantidades; misma variante pendiente → suma; dos veces → doble; fila previa + grupo (casos 20 y 22); tachada → fila nueva; archivado → `skipped` y lo demás suma; miembro con grupo compartido → lista de la familia y no la personal; 0 filas en `list_item_recipe_requirements`; `list_items` sin referencia al grupo.
+- [X] 15.3 Daniel autoriza → aplicar (SQL del archivo + fila en `supabase_migrations.schema_migrations`, en una transacción); correr prueba; regenerar tipos.
+
+### 16. Código
+- [X] 16.1 Constantes y `addGroupToList` en el servicio.
+- [X] 16.2 `useProductGroupListAddition.ts`.
+- [X] 16.3 Botón en `ProductGroupCard` + `ProductGroupAddToListResult`.
+- [X] 16.4 Cablear en `useProductGroupsViewModel` y `ProductGroups.tsx`.
+
+### 17. Tests
+- [X] 17.1 Servicio y hook (adding/added/error, mensaje con saltados).
+- [X] 17.2 Vista con Page Object (botón deshabilitado mientras agrega, "Agregando…" solo en la tarjeta pulsada, link "Ver lista", aviso "Este grupo ya no existe." después de recargar).
+- [X] 17.4 Hook con `renderHook`: dos pedidos en el mismo render mandan uno solo (ref, no estado); el aviso de grupo inexistente se limpia al volver a agregar.
+- [X] 17.3 E2E-GRUPOS-06 (con la 110 en `develop`): crear grupo → agregar → filas en `/lista` → agregar otra vez suma sin filas nuevas. La otra presentación en fila aparte (CA-03) queda en la prueba SQL de la 057.
+
+### 18. Cierre
+- [X] 18.1 Validar SPEC §13 casos 18-25 (18 vista y E2E; 19-25 prueba SQL; 19 y 21 también E2E).
+- [X] 18.2 `docs/DESIGN.md` §7.6: corregir lo de "reconciliación".
+- [X] 18.3 tsc, lint, test, build (Daniel autoriza).
+- [X] 18.4 `code-reviewer`, `security-reviewer` (RPC sobre listas compartidas), `qa-checker` (antes y después del merge con la 110; hallazgos aplicados).
+- [X] 18.5 Body de la PR → `waiting qa`; Jira (Daniel).
+- [X] 18.6 Actualizar should-know y progress.

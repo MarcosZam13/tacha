@@ -1,7 +1,9 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import type { NullableUndefined } from "@/types/nullable.types";
-import { RECIPE_EDITOR_ACTION, RECIPE_EDITOR_STATUS } from "../constants/recipes.constants";
+import { RECIPE_EDITOR_ACTION, SAVE_RECIPE_PHOTO_RESULT } from "../constants/recipes.constants";
 import type { UseRecipeEditorReturn } from "../models/recipe-editor.interfaces";
+import type { RecipePhotoChange } from "../models/recipe-photo.types";
+import { saveRecipePhoto } from "../services/recipe-photos.service";
 import { getRecipeForEditing, saveRecipe } from "../services/recipes.service";
 import { createInitialRecipeEditorState, recipeEditorReducer } from "../utils/recipe-editor.reducer";
 import { toSaveRecipePayload } from "../utils/toSaveRecipePayload";
@@ -11,9 +13,14 @@ import { hasRecipeFormErrors, validateRecipeForm } from "../utils/validateRecipe
  * Estado del formulario de receta: carga la receta si se está editando,
  * expone una función por cada cambio (cada una es una acción del reducer) y
  * guarda. Sin recipeId es una receta nueva.
+ *
+ * La receta se guarda antes que su foto (SPEC regla 39). Si la foto falla, la
+ * receta queda guardada y el próximo intento la edita, aunque fuera nueva.
  */
 export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeEditorReturn => {
   const [state, dispatch] = useReducer(recipeEditorReducer, Boolean(recipeId), createInitialRecipeEditorState);
+  // Doble clic: dos envíos seguidos llegan antes de que React vuelva a dibujar.
+  const isSaveInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!recipeId) return undefined;
@@ -23,11 +30,11 @@ export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeE
     let isCancelled = false;
 
     getRecipeForEditing(recipeId)
-      .then((values) => {
+      .then((recipe) => {
         if (isCancelled) return;
         dispatch(
-          values
-            ? { type: RECIPE_EDITOR_ACTION.LOADED, values }
+          recipe
+            ? { ...recipe, type: RECIPE_EDITOR_ACTION.LOADED }
             : { type: RECIPE_EDITOR_ACTION.NOT_FOUND },
         );
       })
@@ -40,9 +47,8 @@ export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeE
     };
   }, [recipeId]);
 
-  const save = async (): Promise<boolean> => {
-    // Doble clic: mientras guarda no se manda otra vez.
-    if (state.status === RECIPE_EDITOR_STATUS.SAVING) return false;
+  const save = async (photoChange: RecipePhotoChange): Promise<boolean> => {
+    if (isSaveInFlightRef.current) return false;
 
     const errors = validateRecipeForm(state.values);
     if (hasRecipeFormErrors(errors)) {
@@ -50,19 +56,33 @@ export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeE
       return false;
     }
 
+    isSaveInFlightRef.current = true;
     dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_STARTED });
     try {
-      const savedRecipe = await saveRecipe(toSaveRecipePayload(state.values, recipeId));
+      const savedRecipe = await saveRecipe(
+        toSaveRecipePayload(state.values, recipeId ?? state.savedRecipeId ?? undefined),
+      );
       // La receta se borró mientras se editaba (otra pestaña): reintentar no
       // sirve, así que se muestra "no encontrada" en vez de un error de guardado.
       if (!savedRecipe) {
         dispatch({ type: RECIPE_EDITOR_ACTION.NOT_FOUND });
         return false;
       }
-      return true;
+
+      const photoResult = await saveRecipePhoto({ change: photoChange, recipeId: savedRecipe.recipeId });
+      if (photoResult === SAVE_RECIPE_PHOTO_RESULT.SAVED) return true;
+
+      dispatch(
+        photoResult === SAVE_RECIPE_PHOTO_RESULT.NOT_FOUND
+          ? { type: RECIPE_EDITOR_ACTION.NOT_FOUND }
+          : { recipeId: savedRecipe.recipeId, type: RECIPE_EDITOR_ACTION.PHOTO_FAILED },
+      );
+      return false;
     } catch {
       dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_FAILED });
       return false;
+    } finally {
+      isSaveInFlightRef.current = false;
     }
   };
 

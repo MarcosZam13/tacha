@@ -13,8 +13,8 @@ import type { RecipeListAdditionViewModel } from "./recipe-list-addition.interfa
 export interface RecipeRow {
   base_servings: number;
   id: string;
-  image_url: NullableRef<string>;
   name: string;
+  photo_path: NullableRef<string>;
   recipe_ingredients: {
     id: string;
     position: number;
@@ -28,12 +28,13 @@ export interface RecipeSummary {
   editPath: string;
   hasIngredients: boolean;
   id: string;
-  imageUrl: NullableRef<string>;
   /** El id es el del ingrediente de la receta: dos productos pueden llamarse igual. */
   mainIngredients: { id: string; name: string }[];
   /** "+2 más" si hay más ingredientes que el límite; null si se ven todos. */
   moreIngredientsLabel: NullableRef<string>;
   name: string;
+  /** Enlace temporal de la foto; null si no tiene o no se pudo pedir. */
+  photoUrl: NullableRef<string>;
   /** Letra que se muestra cuando la receta no tiene foto. */
   placeholderInitial: string;
   servingsLabel: string;

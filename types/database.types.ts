@@ -887,6 +887,7 @@ export type Database = {
           image_url: string | null
           name: string
           owner_id: string
+          photo_path: string | null
         }
         Insert: {
           base_servings: number
@@ -896,6 +897,7 @@ export type Database = {
           image_url?: string | null
           name: string
           owner_id?: string
+          photo_path?: string | null
         }
         Update: {
           base_servings?: number
@@ -905,6 +907,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           owner_id?: string
+          photo_path?: string | null
         }
         Relationships: []
       }
@@ -1114,6 +1117,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      add_group_to_general_list: {
+        Args: { target_group_id: string }
+        Returns: Json
+      }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
@@ -1157,6 +1164,10 @@ export type Database = {
       }
       add_week_to_general_list: {
         Args: { week_from: string; week_to: string }
+        Returns: Json
+      }
+      add_week_to_list: {
+        Args: { target_list_id?: string; week_from: string; week_to: string }
         Returns: Json
       }
       assert_local_day_start: {
@@ -1656,6 +1667,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_recipe_photo: {
+        Args: { new_photo_path?: string; target_recipe_id: string }
+        Returns: string
       }
       set_spending_budget: {
         Args: { budget_amount: number; budget_period: string }
