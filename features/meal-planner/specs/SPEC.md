@@ -557,19 +557,19 @@ Decidido con el responsable:
 
 ### 18.4 Reglas de negocio
 
-47. **Sin familia no hay selector** y todo es como hoy. Si no se pudo saber si tiene familia, tampoco aparece.
-48. **Los planes no se mezclan.** Cambiar uno no toca el otro. Nada se comparte ni se copia solo: tampoco al unirse a una familia.
-49. **Un solo espacio por día y comida** en el plan de la familia. Dos miembros a la vez: queda el último guardado, sin duplicados.
-50. **Cualquier miembro** ve, asigna, cambia y quita. Quien no es miembro, un exmiembro o una sesión anónima no ve ni cambia nada.
-51. **Solo recetas de la familia** en ese plan; lo exige la base. En el personal siguen valiendo las propias y las de la familia.
-52. **Cocinero:** en el plan de la familia, cualquier miembro o nadie; por defecto, quien asigna. Lo valida la base. En el personal, "Yo" o nadie, como hoy.
-53. **Nombre del cocinero:** "Yo" si es quien mira; si no, su nombre, o "Integrante sin nombre" si no tiene.
-54. **Cambiar de plan** vuelve a pedir el plan y descarta respuestas del anterior que lleguen tarde. La semana a la vista se conserva.
-55. **Agregar la semana** suma las comidas del plan a la vista a la lista elegida (regla 42). El destino no cambia: la general de quien tiene familia es la de la familia.
-56. **Al salir o ser removido:** sus espacios como cocinero quedan sin cocinero y el plan de la familia se conserva completo, también lo que esa persona asignó. Su plan personal sigue la regla 69 de recetas.
-57. **Al disolver,** los espacios quedan en el plan personal del último admin; si choca con uno suyo, gana el personal (ya lo hace la `024`).
-58. **Eliminar una receta de la familia** libera sus espacios en todos los planes. El diálogo lo avisa; no cuenta los de otros.
-59. **Si deja de ser miembro** con la pantalla abierta: se avisa y vuelve a "Mi plan".
+49. **Sin familia no hay selector** y todo es como hoy. Si no se pudo saber si tiene familia, tampoco aparece.
+50. **Los planes no se mezclan.** Cambiar uno no toca el otro. Nada se comparte ni se copia solo: tampoco al unirse a una familia.
+51. **Un solo espacio por día y comida** en el plan de la familia. Dos miembros a la vez: queda el último guardado, sin duplicados.
+52. **Cualquier miembro** ve, asigna, cambia y quita. Quien no es miembro, un exmiembro o una sesión anónima no ve ni cambia nada.
+53. **Solo recetas de la familia** en ese plan; lo exige la base. En el personal siguen valiendo las propias y las de la familia.
+54. **Cocinero:** en el plan de la familia, cualquier miembro o nadie; por defecto, quien asigna. Lo valida la base. En el personal, "Yo" o nadie, como hoy.
+55. **Nombre del cocinero:** "Yo" si es quien mira; si no, su nombre, o "Integrante sin nombre" si no tiene.
+56. **Cambiar de plan** vuelve a pedir el plan y descarta respuestas del anterior que lleguen tarde. La semana a la vista se conserva.
+57. **Agregar la semana** suma las comidas del plan a la vista a la lista elegida (regla 42). El destino no cambia: la general de quien tiene familia es la de la familia.
+58. **Al salir o ser removido:** sus espacios como cocinero quedan sin cocinero y el plan de la familia se conserva completo, también lo que esa persona asignó. Su plan personal sigue la regla 69 de recetas.
+59. **Al disolver,** los espacios quedan en el plan personal del último admin; si choca con uno suyo, gana el personal (ya lo hace la `024`).
+60. **Eliminar una receta de la familia** libera sus espacios en todos los planes. El diálogo lo avisa; no cuenta los de otros.
+61. **Si deja de ser miembro** con la pantalla abierta: se avisa y vuelve a "Mi plan".
 
 ### 18.5 Estados
 
