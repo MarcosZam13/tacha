@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MEAL_TYPE, WEEK_LIST_DESTINATION } from "../constants/meal-planner.constants";
+import { MEAL_TYPE, PLAN_SCOPE, WEEK_LIST_DESTINATION } from "../constants/meal-planner.constants";
 import { useWeekListAddition } from "../hooks/useWeekListAddition";
 import type { MealPlanEntry } from "../models/meal-plan.interfaces";
 import type { AddWeekToListResponse, DateListOption, UseWeekListAdditionParams } from "../models/week-list-addition.interfaces";
@@ -42,7 +42,9 @@ const createParams = (overrides: Partial<UseWeekListAdditionParams> = {}): UseWe
   getEntry: getEntryOf([MONDAY_LUNCH, TUESDAY_DINNER]),
   isBlocked: false,
   isPlanReady: true,
+  onHouseholdLost: vi.fn(),
   rangeLabel: "12 – 18 oct",
+  scope: PLAN_SCOPE.PERSONAL,
   todayKey: "2026-10-14",
   ...overrides,
 });
@@ -156,6 +158,7 @@ describe("useWeekListAddition", () => {
       expect(addWeekToListMock).toHaveBeenCalledWith({
         destination: GENERAL_DESTINATION,
         fromDateKey: "2026-10-12",
+        scope: PLAN_SCOPE.PERSONAL,
         toDateKey: "2026-10-14",
       });
       expect(result.current.isOpen).toBe(false);
@@ -226,6 +229,7 @@ describe("useWeekListAddition", () => {
       expect(addWeekToListMock).toHaveBeenCalledWith({
         destination: GENERAL_DESTINATION,
         fromDateKey: "2026-10-12",
+        scope: PLAN_SCOPE.PERSONAL,
         toDateKey: "2026-10-14",
       });
     });

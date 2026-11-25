@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { copyRecipe, hasHousehold, shareRecipe } from "../services/recipe-sharing.service";
+import { copyRecipe, shareRecipe } from "../services/recipe-sharing.service";
 
 const rpcMock = vi.fn();
 vi.mock("@/services/supabase.client", () => ({
@@ -9,24 +9,6 @@ vi.mock("@/services/supabase.client", () => ({
 
 beforeEach(() => {
   rpcMock.mockReset();
-});
-
-describe("hasHousehold", () => {
-  it.each([
-    ["family", true],
-    [null, false],
-  ])("with %j is %j", async (data, expected) => {
-    rpcMock.mockResolvedValue({ data, error: null });
-
-    await expect(hasHousehold()).resolves.toBe(expected);
-    expect(rpcMock).toHaveBeenCalledWith("current_household_id");
-  });
-
-  it("fails when it could not be asked", async () => {
-    rpcMock.mockResolvedValue({ data: null, error: { code: "x" } });
-
-    await expect(hasHousehold()).rejects.toEqual({ code: "x" });
-  });
 });
 
 describe("shareRecipe", () => {

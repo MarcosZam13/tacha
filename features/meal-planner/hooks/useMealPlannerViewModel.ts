@@ -8,6 +8,7 @@ import { getPlanRange } from "../utils/getPlanRange";
 import { getWeekStartForOffset } from "../utils/getWeekStartForOffset";
 import { toLocalDateKey } from "../utils/toLocalDateKey";
 import { useMealSlotDialog } from "./useMealSlotDialog";
+import { usePlanScope } from "./usePlanScope";
 import { useToday } from "./useToday";
 import { useWeekListAddition } from "./useWeekListAddition";
 import { useWeekMealPlan } from "./useWeekMealPlan";
@@ -27,6 +28,8 @@ import { useWeekMealPlan } from "./useWeekMealPlan";
  */
 export const useMealPlannerViewModel = (): MealPlannerViewModel => {
   const today = useToday();
+  const { onHouseholdLost, ...planScope } = usePlanScope();
+  const { scope } = planScope;
   const [weekOffset, setWeekOffset] = useState<WeekOffsetType>(WEEK_OFFSET.CURRENT);
 
   const weekStart = today ? getWeekStartForOffset(today, weekOffset) : null;
@@ -34,13 +37,15 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
   const days = today && weekStart ? buildWeek(weekStart, today) : [];
 
   // El plan de las dos semanas se pide una vez; el diálogo cambia lo que guarda.
-  const plan = useWeekMealPlan({ range: today ? getPlanRange(today) : null });
+  const plan = useWeekMealPlan({ onHouseholdLost, range: today ? getPlanRange(today) : null, scope });
   const dialog = useMealSlotDialog({
     getDayLongLabel: (dateKey) => days.find((day) => day.dateKey === dateKey)?.longLabel ?? null,
     getEntry: plan.getEntry,
+    onHouseholdLost,
     onRecipeGone: plan.removeRecipeSlots,
     onRemoved: plan.removeEntry,
     onSaved: plan.saveEntry,
+    scope,
   });
 
   const rangeLabel = weekStart ? formatWeekRange(weekStart) : null;
@@ -50,7 +55,9 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
     getEntry: plan.getEntry,
     isBlocked: dialog.isOpen,
     isPlanReady: plan.isPlanReady,
+    onHouseholdLost,
     rangeLabel,
+    scope,
     todayKey: today ? toLocalDateKey(today) : null,
   });
 
@@ -64,6 +71,8 @@ export const useMealPlannerViewModel = (): MealPlannerViewModel => {
     onNextWeek: (): void => setWeekOffset(WEEK_OFFSET.NEXT),
     onPreviousWeek: (): void => setWeekOffset(WEEK_OFFSET.CURRENT),
     plan,
+    // Con un diálogo abierto no se cambia de plan: guardaría en otro del que se ve.
+    planScope: { ...planScope, isDisabled: dialog.isOpen || weekAddition.isOpen },
     rangeLabel,
     weekAddition,
     weekLabel: isNextWeek ? MEAL_PLANNER_TEXT.NEXT_WEEK : MEAL_PLANNER_TEXT.THIS_WEEK,

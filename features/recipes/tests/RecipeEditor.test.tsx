@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isHouseholdMember } from "@/services/household-membership.service";
 import { hasUnsavedChanges } from "@/services/unsaved-changes.service";
 import { RECIPE_PHOTO_CHANGE, SAVE_RECIPE_PHOTO_RESULT, SHARE_RECIPE_RESULT } from "../constants/recipes.constants";
 import type { SavedRecipePhoto } from "../models/recipe-photo.interfaces";
 import { RecipeEditor } from "../RecipeEditor";
 import { cleanSavedRecipePhoto, saveRecipePhoto } from "../services/recipe-photos.service";
-import { hasHousehold, shareRecipe } from "../services/recipe-sharing.service";
+import { shareRecipe } from "../services/recipe-sharing.service";
 import { getRecipeForEditing, saveRecipe } from "../services/recipes.service";
 import { createRecipeEditorPage } from "./RecipeEditor.page";
 import { createPhotoFile, createValues } from "./recipe.fixtures";
@@ -29,9 +30,10 @@ vi.mock("../services/recipe-photos.service", () => ({
   cleanSavedRecipePhoto: vi.fn(),
   saveRecipePhoto: vi.fn(),
 }));
-vi.mock("../services/recipe-sharing.service", () => ({ hasHousehold: vi.fn(), shareRecipe: vi.fn() }));
+vi.mock("@/services/household-membership.service", () => ({ isHouseholdMember: vi.fn() }));
+vi.mock("../services/recipe-sharing.service", () => ({ shareRecipe: vi.fn() }));
 const cleanPhotoMock = vi.mocked(cleanSavedRecipePhoto);
-const hasHouseholdMock = vi.mocked(hasHousehold);
+const hasHouseholdMock = vi.mocked(isHouseholdMember);
 const shareMock = vi.mocked(shareRecipe);
 const getRecipeMock = vi.mocked(getRecipeForEditing);
 const saveRecipeMock = vi.mocked(saveRecipe);

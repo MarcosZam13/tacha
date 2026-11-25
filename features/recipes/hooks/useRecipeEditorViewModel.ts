@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { UNSAVED_CHANGES_SOURCE } from "@/constants";
+import { useHasHousehold } from "@/hooks/useHasHousehold";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useReportUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import type { NullableUndefined } from "@/types/nullable.types";
@@ -12,7 +13,6 @@ import {
 } from "../constants/recipes.constants";
 import type { RecipeEditorViewModel } from "../models/recipe-editor.interfaces";
 import { getDefaultUnit } from "../utils/getDefaultUnit";
-import { useHasHousehold } from "./useHasHousehold";
 import { useRecipeEditor } from "./useRecipeEditor";
 import { useRecipePhoto } from "./useRecipePhoto";
 

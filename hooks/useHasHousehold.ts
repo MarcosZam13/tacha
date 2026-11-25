@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { hasHousehold } from "../services/recipe-sharing.service";
+import { isHouseholdMember } from "@/services/household-membership.service";
 
 /**
- * Si se puede ofrecer compartir con la familia. Mientras se pregunta, o si no se
- * pudo saber, false: la receta se guarda como personal (SPEC 17.5).
+ * Si se puede ofrecer lo de la familia. Mientras se pregunta, o si no se
+ * pudo saber, false: se usa solo lo personal.
  */
 export const useHasHousehold = (): boolean => {
   const [isMember, setIsMember] = useState(false);
@@ -11,12 +11,12 @@ export const useHasHousehold = (): boolean => {
   useEffect(() => {
     let isCancelled = false;
 
-    hasHousehold()
+    isHouseholdMember()
       .then((hasOne) => {
         if (!isCancelled) setIsMember(hasOne);
       })
       .catch(() => {
-        // Sin la opción de compartir; guardar sigue funcionando.
+        // Sin las opciones de la familia; lo personal sigue funcionando.
       });
 
     return () => {

@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { APP_ROUTE } from "@/constants";
 import type { NullableRef } from "@/types/nullable.types";
 import { toDateListPath } from "@/utils/toDateListPath";
@@ -14,6 +14,7 @@ import type { UseWeekListAdditionParams, WeekListAdditionViewModel } from "../mo
 import { addWeekToList } from "../services/week-list.service";
 import { countWeekMeals } from "../utils/countWeekMeals";
 import { getWeekRange } from "../utils/getWeekRange";
+import { isNoHouseholdError } from "../utils/isNoHouseholdError";
 import { toCountLabel } from "../utils/toCountLabel";
 import { toWeekAdditionSummary } from "../utils/toWeekAdditionSummary";
 import { CLOSED_WEEK_LIST_STATE, GENERAL_DESTINATION, weekListReducer } from "../utils/week-list-addition.reducer";
@@ -34,12 +35,16 @@ export const useWeekListAddition = ({
   getEntry,
   isBlocked,
   isPlanReady,
+  onHouseholdLost,
   rangeLabel,
+  scope,
   todayKey,
 }: UseWeekListAdditionParams): WeekListAdditionViewModel => {
   const [state, dispatch] = useReducer(weekListReducer, CLOSED_WEEK_LIST_STATE);
   const options = useDateListOptions({ todayKey });
   const isRequestInFlightRef = useRef(false);
+  // De qué plan es lo que se confirmó: el aviso no se muestra sobre el otro.
+  const [confirmedScope, setConfirmedScope] = useState(scope);
   // El botón que abrió la confirmación: al cerrarla el foco vuelve ahí (SPEC §16.8).
   const openerRef = useRef<NullableRef<HTMLElement>>(null);
   const wasOpenRef = useRef(false);
@@ -82,9 +87,10 @@ export const useWeekListAddition = ({
     // La semana y la lista que se confirmaron, no lo que se vea al responder la base.
     const { destination, range: confirmedRange } = state;
     isRequestInFlightRef.current = true;
+    setConfirmedScope(scope);
     dispatch({ type: WEEK_LIST_ACTION.CONFIRMED });
 
-    void addWeekToList({ ...confirmedRange, destination })
+    void addWeekToList({ ...confirmedRange, destination, scope })
       .then((response) => {
         if (!response) {
           // Se canceló o se completó en otra parte: se vuelve a la general y se piden las que sí sirven.
@@ -95,9 +101,14 @@ export const useWeekListAddition = ({
         dispatch({ type: WEEK_LIST_ACTION.SUCCEEDED, summaryLines: toWeekAdditionSummary(response, destination) });
         options.clear();
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         // La RPC es todo o nada: si falló, la lista quedó como estaba.
         dispatch({ type: WEEK_LIST_ACTION.FAILED, errorMessage: WEEK_LIST_TEXT.ERROR });
+        if (!isNoHouseholdError(error)) return;
+        // Ya no tiene familia: no hay qué reintentar, la pantalla avisa.
+        dispatch({ type: WEEK_LIST_ACTION.CLOSED });
+        options.clear();
+        onHouseholdLost();
       })
       .finally(() => {
         isRequestInFlightRef.current = false;
@@ -106,7 +117,7 @@ export const useWeekListAddition = ({
 
   // El aviso solo se ve en la semana que se agregó: al cambiar de semana desaparece, sin efecto ni estado extra.
   const resultLines =
-    state.status === WEEK_LIST_STATUS.DONE && state.range.fromDateKey === range?.fromDateKey
+    state.status === WEEK_LIST_STATUS.DONE && confirmedScope === scope && state.range.fromDateKey === range?.fromDateKey
       ? state.summaryLines
       : null;
 

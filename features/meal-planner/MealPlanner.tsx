@@ -8,6 +8,7 @@ import { AddWeekToListDialog } from "./components/AddWeekToListDialog";
 import { AddWeekToListResult } from "./components/AddWeekToListResult";
 import { MealPlanLoadError } from "./components/MealPlanLoadError";
 import { MealSlotDialog } from "./components/MealSlotDialog";
+import { PlanScopeSelector } from "./components/PlanScopeSelector";
 import { WeekGrid } from "./components/WeekGrid";
 import { WeekSelector } from "./components/WeekSelector";
 import { useMealPlannerViewModel } from "./hooks/useMealPlannerViewModel";
@@ -28,6 +29,7 @@ export const MealPlanner = (): React.JSX.Element => {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{MEAL_PLANNER_TEXT.TITLE}</h1>
       <RecipesTabs activeTab={RECIPES_TAB.PLANNER} />
+      <PlanScopeSelector {...viewModel.planScope} />
       <WeekSelector
         canGoToNextWeek={viewModel.canGoToNextWeek}
         canGoToPreviousWeek={viewModel.canGoToPreviousWeek}

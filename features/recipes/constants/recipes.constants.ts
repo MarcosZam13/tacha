@@ -35,7 +35,6 @@ export const RECIPES_DB = {
   RPC: {
     ADD_RECIPE_TO_GENERAL_LIST: "add_recipe_to_general_list",
     COPY_RECIPE: "copy_recipe",
-    CURRENT_HOUSEHOLD_ID: "current_household_id",
     // "Ver qué falta" con el faltante en vivo de la lista (037, SCRUM-115). La
     // get_recipe_coverage de la 017 queda en la base solo hasta el merge.
     GET_RECIPE_COVERAGE_TODAY: "get_recipe_coverage_today",
@@ -247,7 +246,7 @@ export const RECIPE_DELETE_TEXT = {
   MEAL_PLAN_NOTICE_PLURAL_PREFIX: "Está en",
   MEAL_PLAN_NOTICE_PLURAL_SUFFIX: "espacios de tu plan; quedarán vacíos.",
   MEAL_PLAN_NOTICE_SINGULAR: "Está en 1 espacio de tu plan; quedará vacío.",
-  SHARED_NOTICE: "Se eliminará para toda tu familia.",
+  SHARED_NOTICE: "Se eliminará para toda tu familia y de sus planes.",
   TRIGGER: "Eliminar",
 } as const;
 

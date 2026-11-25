@@ -284,6 +284,15 @@ test.describe("Asignar comidas al plan", () => {
     await expect(page.getByText("Tu lista está vacía. Busca un producto para empezar.")).toBeVisible();
   });
 
+  test("E2E-PLANNER-12 — Sin familia no se ofrece el plan de la familia", async ({ page }) => {
+    const householdResponse = page.waitForResponse(/rpc.current_household_id/);
+    await page.goto(PLANNER_PATH);
+    expect((await householdResponse).ok()).toBe(true);
+
+    await expect(getEmptySlots(page, "Cena").first()).toBeEnabled();
+    await expect(page.getByRole("group", { name: "Qué plan ver" })).toHaveCount(0);
+  });
+
   test("E2E-PLANNER-10 — El botón de agregar la semana sigue a las comidas de la semana a la vista", async ({
     page,
   }) => {

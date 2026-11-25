@@ -3,16 +3,6 @@ import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import { RECIPE_SHARING_HINT, RECIPES_DB, SHARE_RECIPE_RESULT } from "../constants/recipes.constants";
 import type { ShareRecipeResult } from "../models/recipe-sharing.types";
 
-/** Si quien usa la app pertenece a una familia. Una sesión anónima nunca. */
-export const hasHousehold = async (): Promise<boolean> => {
-  await ensureSession();
-
-  const { data: householdId, error } = await getSupabaseClient().rpc(RECIPES_DB.RPC.CURRENT_HOUSEHOLD_ID);
-  if (error) throw error;
-
-  return Boolean(householdId);
-};
-
 /**
  * Comparte una receta personal con la familia de quien llama: la familia la pone la
  * base. No lanza: devuelve qué pasó. Repetirlo con una ya compartida no hace nada.
