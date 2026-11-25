@@ -28,6 +28,7 @@ export const ShoppingListRow = ({
   onRemove,
   onToggleChecked,
   row,
+  shelfLifeSlot,
 }: ShoppingListRowProps): React.JSX.Element => {
   // El único indicador de tachado va sobre el texto (HU-36e CA-03).
   const checkedTextClass = row.isChecked ? "text-tacha-textsec line-through" : "text-tacha-text";
@@ -58,6 +59,8 @@ export const ShoppingListRow = ({
             notes={row.shortfallNotes}
           />
         ) : null}
+        {/* SCRUM-103: fuera del botón, como los avisos: tocar un chip no destacha. */}
+        {shelfLifeSlot}
         {assigneeSlot}
       </div>
       <QuantityStepper

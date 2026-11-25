@@ -263,6 +263,7 @@ export type Database = {
           purchase_session_id: string | null
           quantity_bought: number | null
           quantity_requested: number
+          shelf_life_choice: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -275,6 +276,7 @@ export type Database = {
           purchase_session_id?: string | null
           quantity_bought?: number | null
           quantity_requested?: number
+          shelf_life_choice?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -287,6 +289,7 @@ export type Database = {
           purchase_session_id?: string | null
           quantity_bought?: number | null
           quantity_requested?: number
+          shelf_life_choice?: string | null
         }
         Relationships: [
           {

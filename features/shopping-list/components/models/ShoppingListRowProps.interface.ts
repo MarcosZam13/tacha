@@ -9,4 +9,6 @@ export interface ShoppingListRowProps {
   onRemove: () => void;
   onToggleChecked: () => void;
   row: ShoppingListRowViewModel;
+  /** Los chips de "cuánto le va a durar" (SCRUM-103), solo en la fila recién tachada en modo compra. */
+  shelfLifeSlot?: React.ReactNode;
 }

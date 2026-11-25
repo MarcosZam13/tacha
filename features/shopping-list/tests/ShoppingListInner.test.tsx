@@ -5,6 +5,7 @@ import { ASSIGNEE_LIST_SOURCE } from "@/components/assignee-field/constants/assi
 import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/useListAssigneesViewModel";
 import type { ListAssigneeViewModel } from "@/components/assignee-field/models/ListAssigneeViewModel.interface";
 import { ShoppingListInner } from "../ShoppingListInner";
+import { createShelfLifeChipsPage } from "./ShelfLifeChips.page";
 import { useShoppingListViewModel } from "../hooks/useShoppingListViewModel";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
 
@@ -94,6 +95,13 @@ const createViewModel = (
   searchErrorMessage: null,
   searchOptions: [],
   sessionNoticeMessage: null,
+  shelfLifeChips: {
+    errorMessage: null,
+    isSaving: false,
+    itemId: null,
+    onChoose: vi.fn(),
+    selectedChoice: null,
+  },
   shortfallNoticeMessage: null,
   shortfallPanel: {
     errorMessage: null,
@@ -197,5 +205,41 @@ describe("ShoppingListInner: assignee field (SCRUM-108)", () => {
 
     expect(screen.getByText("Pan")).toBeInTheDocument();
     expect(getFieldButtons()).toHaveLength(1);
+  });
+});
+
+// SCRUM-103 (HU-70b CA-01): los chips de duración, solo debajo de la fila recién tachada.
+describe("ShoppingListInner: shelf life chips (SCRUM-103)", () => {
+  const getChipGroups = (): HTMLElement[] => screen.queryAllByRole("group", { name: /^¿Cuánto te va a durar / });
+
+  it("shows no chips when no row was just checked", () => {
+    render(<ShoppingListInner />);
+
+    expect(getChipGroups()).toHaveLength(0);
+  });
+
+  it("shows the chips only under the row that was just checked", () => {
+    const viewModel = createViewModel();
+    useShoppingListViewModelMock.mockReturnValue(
+      createViewModel({ shelfLifeChips: { ...viewModel.shelfLifeChips, itemId: CHECKED_ROW.item.id } }),
+    );
+    render(<ShoppingListInner />);
+    const chipsPage = createShelfLifeChipsPage(CHECKED_ROW.item.productName);
+
+    expect(getChipGroups()).toHaveLength(1);
+    expect(chipsPage.getGroup()).toBeInTheDocument();
+  });
+
+  it("tapping a chip does not toggle the row", async () => {
+    const viewModel = createViewModel();
+    const chips = { ...viewModel.shelfLifeChips, itemId: CHECKED_ROW.item.id };
+    useShoppingListViewModelMock.mockReturnValue(createViewModel({ shelfLifeChips: chips }));
+    render(<ShoppingListInner />);
+    const chipsPage = createShelfLifeChipsPage(CHECKED_ROW.item.productName);
+
+    await chipsPage.clickChip("1-3 meses");
+
+    expect(chips.onChoose).toHaveBeenCalledTimes(1);
+    expect(useShoppingListViewModelMock.mock.results[0].value.onToggleChecked).not.toHaveBeenCalled();
   });
 });
