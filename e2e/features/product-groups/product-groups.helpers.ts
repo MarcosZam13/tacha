@@ -57,3 +57,16 @@ export const addFirstOptionOf = async (page: Page, searchTerm: string, productNa
   await option.click();
   return `${productName} — ${sizeLabel}`;
 };
+
+// --- Agregar un grupo a la lista (HU-74, SCRUM-111) ---
+
+export const getAddGroupToListButton = (page: Page, groupName: string): Locator =>
+  page.getByRole("button", { name: `Agregar ${groupName} a la lista` });
+
+/** El resumen de agregar, dentro de la tarjeta del grupo. */
+export const getAddGroupToListSummary = (page: Page, groupName: string): Locator =>
+  getGroupCard(page, groupName).getByRole("status");
+
+/** Las filas de la sección "Pendientes" de /lista. */
+export const getPendingListRows = (page: Page): Locator =>
+  page.getByRole("region", { name: "Pendientes" }).getByRole("listitem");

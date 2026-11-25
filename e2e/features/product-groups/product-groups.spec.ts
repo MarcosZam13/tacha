@@ -1,9 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { deleteOwnListItems } from "../../support/supabase";
 import {
   GROUPS_PATH,
   LIST_PATH,
   NEW_GROUP_PATH,
   addFirstOptionOf,
+  getAddGroupToListButton,
+  getAddGroupToListSummary,
   getBackToListLink,
   getCreateFirstGroupLink,
   getGeneralNavLink,
@@ -13,6 +16,7 @@ import {
   getGroupsEmptyState,
   getGroupsTitle,
   getManageGroupsLink,
+  getPendingListRows,
   getSaveGroupButton,
 } from "./product-groups.helpers";
 
@@ -20,7 +24,8 @@ import {
 // navegador nuevo, o sea un usuario anónimo nuevo sin grupos. Los textos y
 // rutas se escriben acá a propósito (oráculo independiente del código).
 // Los de HU-72 no crean datos. Los de HU-73 crean grupos de un usuario
-// anónimo, que nadie más ve: no hay limpieza.
+// anónimo, que nadie más ve: no hay limpieza. Los de HU-74 escriben en la
+// lista general: se limpia al terminar, como en E2E-MISPROD.
 
 test.describe("Mis grupos", () => {
   test("E2E-GRUPOS-01 — Entrar a Mis grupos desde General", async ({ page }) => {
@@ -87,5 +92,42 @@ test.describe("Crear un grupo", () => {
     await expect(page.getByText("Escribe un nombre para el grupo.")).toBeVisible();
     await expect(page.getByText("Agrega al menos un producto.")).toBeVisible();
     await expect(page).toHaveURL(NEW_GROUP_PATH);
+  });
+});
+
+test.describe("Agregar un grupo a la lista", () => {
+  test.afterEach(async ({ page, request }) => {
+    await deleteOwnListItems(page, request);
+  });
+
+  test("E2E-GRUPOS-06 — Agregar un grupo a la lista y agregarlo otra vez", async ({ page }) => {
+    const groupName = `Merienda ${Date.now()}`;
+    await page.goto(NEW_GROUP_PATH);
+    await getGroupNameInput(page).fill(groupName);
+    const lecheLabel = await addFirstOptionOf(page, "leche", "Leche");
+    await page.getByRole("button", { name: `Sumar uno a ${lecheLabel}` }).click();
+    await addFirstOptionOf(page, "chocolate", "Chocolate");
+    await getSaveGroupButton(page).click();
+    await expect(page).toHaveURL(GROUPS_PATH);
+
+    await getAddGroupToListButton(page, groupName).click();
+
+    const summary = getAddGroupToListSummary(page, groupName);
+    await expect(summary).toContainText(`Agregamos 2 productos de «${groupName}» a tu lista.`);
+    await summary.getByRole("link", { name: "Ver lista" }).click();
+    await expect(page).toHaveURL(LIST_PATH);
+    const rows = getPendingListRows(page);
+    await expect(rows).toHaveCount(2);
+    await expect(rows.filter({ hasText: "Leche" }).getByText("2", { exact: true })).toBeVisible();
+    await expect(rows.filter({ hasText: "Chocolate" }).getByText("1", { exact: true })).toBeVisible();
+
+    // Otra vez: la misma presentación suma en su fila, sin filas nuevas (CA-02).
+    await page.goto(GROUPS_PATH);
+    await getAddGroupToListButton(page, groupName).click();
+    await expect(getAddGroupToListSummary(page, groupName)).toContainText("Agregamos 2 productos");
+    await page.goto(LIST_PATH);
+    await expect(rows).toHaveCount(2);
+    await expect(rows.filter({ hasText: "Leche" }).getByText("4", { exact: true })).toBeVisible();
+    await expect(rows.filter({ hasText: "Chocolate" }).getByText("2", { exact: true })).toBeVisible();
   });
 });

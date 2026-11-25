@@ -1,6 +1,6 @@
 # Feature: ProductGroups
 
-Grupos de productos: combos nombrados de presentaciones del catálogo, cada una con su cantidad por defecto, para agregarlas juntas a la lista (`docs/documento-proyecto.md` §4.11). La feature crece por historia: esta versión cubre **HU-72 (SCRUM-109)** y **HU-73 (SCRUM-110)**; HU-74, HU-75 y HU-75b se agregan como secciones nuevas en sus PRs.
+Grupos de productos: combos nombrados de presentaciones del catálogo, cada una con su cantidad por defecto, para agregarlas juntas a la lista (`docs/documento-proyecto.md` §4.11). La feature crece por historia: esta versión cubre **HU-72 (SCRUM-109)**, **HU-73 (SCRUM-110)** y **HU-74 (SCRUM-111)**; HU-75 y HU-75b se agregan como secciones nuevas en sus PRs.
 
 ## HU-72 — Ver "Mis grupos" (SCRUM-109)
 
@@ -204,3 +204,76 @@ Dónde se prueba cada uno:
 - `search_catalog` no se modifica porque es un contrato fijado por SCRUM-131. Por eso la búsqueda con productos propios es una función aparte, igual que `list_catalog_by_category`. El costo es duplicar el SQL de agregación de marcas y precios.
 - Si la PR #101 (SCRUM-158) ya está en `develop`, `searchCatalogIncludingOwn` aplica el mismo `sortBySearchRelevance` que `searchCatalog`, para que los dos buscadores ordenen igual.
 - Los casos se numeran desde el 7 para no chocar con los de HU-72 (1 a 6).
+
+## HU-74 — Agregar un grupo a la lista (SCRUM-111)
+
+## 1. Objetivo
+Agregar todos los productos de un grupo a la lista con un solo botón, sin buscarlos uno por uno.
+
+## 2. Alcance
+Incluye:
+- Botón "Agregar a lista" en cada tarjeta de "Mis grupos".
+- Suma directa a la lista general activa (la de la familia si el usuario pertenece a una, si no la personal), sin pantallas intermedias.
+- Mensaje de resultado en "Mis grupos" con un link "Ver lista".
+- Corrección de `docs/DESIGN.md` §7.6 (:221): quitar "dispara la reconciliación de cantidades (7.3)".
+
+No incluye: agregar a sublistas por fecha o listas privadas, elegir a qué lista, deshacer.
+
+## 3. Entradas
+- `groupId: string` (de la tarjeta).
+
+## 4. Salidas
+- Filas nuevas o cantidades sumadas en `list_items` de la lista general.
+- Resultado `{ added: string[], skipped: string[] }` → mensaje.
+
+## 5. Reglas de negocio
+1. Por cada producto del grupo, en el orden del grupo: si la lista ya tiene una fila **pendiente** de exactamente esa presentación, se suma la cantidad del grupo (CA-02); si no, se crea una fila con esa cantidad. Otra presentación del mismo producto → fila aparte (CA-03). Una fila ya tachada no se reabre: se crea una pendiente nueva (regla actual de 035).
+2. Sin reconciliación ni avisos de faltante (no es receta: doc §4.9.1).
+3. Productos archivados o que el usuario ya no puede ver: se saltan y se nombran en el mensaje.
+4. Todo o nada: si falla a mitad, no queda nada agregado (una transacción).
+5. Dos agregados simultáneos a la misma lista se hacen uno detrás del otro (mismo bloqueo que recetas).
+6. La lista no guarda ninguna referencia al grupo.
+7. Mientras se agrega, el botón de esa tarjeta se deshabilita ("Agregando…").
+
+## 6. Estados
+Por tarjeta: `idle` · `adding` · `added` · `error`.
+
+## 7. Errores
+- Falla: "No pudimos agregar el grupo. Intenta de nuevo." (`role="alert"`).
+- El grupo ya no existe (lo borró otro miembro): "Este grupo ya no existe." (`role="alert"`, arriba de las tarjetas: la del grupo desaparece al recargar) y se recarga la pantalla.
+
+## 8. UI esperada
+- Botón "Agregar a lista" en la tarjeta.
+- Después: `role="status"` con "Agregamos N productos de «Nombre» a tu lista." + link "Ver lista". Si hubo saltados: "No se agregaron: X, Y (ya no están disponibles)."
+
+## 9. Accesibilidad
+- El nombre accesible del botón incluye el grupo ("Agregar Mercado quincenal a la lista").
+- El resultado se anuncia con `role="status"`.
+
+## 10. Restricciones técnicas
+- Una RPC (`add_group_to_general_list`); nada de bucles de llamadas desde el cliente.
+- Reutilizar `ensure_general_list_id` y `add_units_to_list_item`.
+
+## 11. Dependencias
+- HU-72 (SCRUM-109): pantalla, tarjeta y tablas. El código no depende de HU-73.
+- HU-73 (SCRUM-110): sin ella un usuario no tiene grupos, así que el E2E y la QA esperan a que esté en `develop`.
+
+## 12. Contratos externos
+- `add_group_to_general_list(target_group_id uuid) → jsonb { added: text[], skipped: text[] }` (invoker, migración `057`). Errores: `42501` sin sesión; `P0002` grupo no visible o inexistente.
+
+## 13. Casos de aceptación
+- Caso 18 (CA-01): cada tarjeta tiene "Agregar a lista".
+- Caso 19 (CA-01): con la lista vacía, agregar un grupo de 3 productos → la lista tiene esas 3 filas con las cantidades del grupo.
+- Caso 20 (CA-02): si la lista ya tiene "Leche 1 L" ×1 y el grupo trae "Leche 1 L" ×2 → queda una sola fila ×3, sin preguntar nada.
+- Caso 21 (CA-02): agregar el mismo grupo dos veces duplica las cantidades, sin filas nuevas.
+- Caso 22 (CA-03): si la lista tiene "Leche 1 L" y el grupo trae "Leche 2 L" → dos filas.
+- Caso 23: con "Leche 1 L" tachada en la lista, agregar el grupo crea una fila pendiente nueva.
+- Caso 24: un producto archivado del grupo no se agrega y aparece en el mensaje.
+- Caso 25: un miembro de la familia agrega un grupo compartido → va a la lista de la familia.
+
+## 14. Casos fuera de alcance
+- Botón "Agregar desde grupo" junto al buscador de General (DESIGN §7.8).
+- Elegir cantidades al momento de agregar (para eso se edita el grupo, HU-75).
+- Etiqueta de origen "grupo" en las filas de la lista (doc :128): requiere guardar el origen, y la regla 6 dice que no se guarda.
+
+Dónde se prueba cada uno: casos 19-25 en `supabase/tests/057_add_group_to_general_list.test.sql` (reglas de la lista con datos reales); 18 y el mensaje en `tests/ProductGroups.test.tsx`; el recorrido completo (crear un grupo → agregarlo → verlo en la lista → agregarlo otra vez) en `E2E-GRUPOS-06` (casos 18, 19 y 21).
