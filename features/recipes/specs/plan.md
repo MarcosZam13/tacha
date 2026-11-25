@@ -731,14 +731,14 @@ docs/documento-proyecto.md                         §6: recetas personales y de 
 5. **`photo_path`:** se quita el permiso de update; el `check` pasa a `{uuid}/{uuid}.{ext}` porque una copia apunta a otra carpeta.
 6. **`set_recipe_photo`** pasa a `security definer` (ya no hay permiso de columna): repite la regla de visible, exige la carpeta de la receta (`23514`) y conserva firma y errores.
 7. **`save_recipe`**: misma firma, sigue `invoker`. Tras el update, si la receta es de la familia y hay productos personales, lanza `22023` con hint `recipe_personal_products` y los nombres en `detail`. La política del punto 3 lo cubre por la API directa.
-8. **`share_recipe(target_recipe_id uuid) returns text[]`**, `security definer`: cuenta registrada (`42501`); bloquea la propia fila de `household_members` (`for key share`) y sin familia responde `42501` con hint `recipe_no_household`; bloquea la receta propia y personal (`for update`; si no, `P0002`, salvo que ya sea de esa familia, que cuenta como hecho). Devuelve los nombres de los productos personales y, si no hay, comparte y devuelve vacío.
+8. **`share_recipe(target_recipe_id uuid) returns text[]`**, `security definer`: cuenta registrada (`42501`); bloquea la familia y después la propia fila de `household_members` (`for key share`, el orden de 023 y 026) y sin familia responde `42501` con hint `recipe_no_household`; bloquea la receta propia y personal (`for update`; si no, `P0002`, salvo que ya sea de esa familia, que cuenta como hecho). Devuelve los nombres de los productos personales y, si no hay, comparte y devuelve vacío.
 9. **`copy_recipe(target_recipe_id uuid) returns uuid`**, `security definer`: receta de la familia de quien llama, o `P0002`.
 10. **`clone_recipe(source_id, new_owner_id, excluded_household_id)`**, sin permiso de ejecución para nadie: la usan la 9 y el trigger. Con `excluded_household_id` omite los productos de esa familia, y devuelve nulo si no queda ninguno.
 11. **Trigger** `after delete on household_members`, `security definer`. Sale sin hacer nada si la familia ya no existe (disolución) o el usuario ya no existe (cuenta borrada). Si no:
     1. por cada receta de la familia de la que era dueño: clona, mueve sus espacios de plan a la copia y pasa el original al admin;
     2. borra sus espacios de plan que sigan en recetas de esa familia.
 
-**Concurrencia:** compartir y salir a la vez se ordenan por el bloqueo de la membresía (regla 66); compartir y agregar un ingrediente, por el de la receta, que la FK del ingrediente también toma.
+**Concurrencia:** compartir y salir a la vez se ordenan por el bloqueo de la membresía (regla 66); compartir y guardar, por el de la receta. Un insert directo de ingrediente en el mismo instante se puede colar (aceptado: lo hace el propio dueño por la API y solo deja un ingrediente vacío).
 
 ### Flujo del editor
 

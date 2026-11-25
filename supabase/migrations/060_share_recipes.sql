@@ -420,6 +420,9 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
+  -- Acota lo que copia el trigger al salir alguien: sin tope, miles de recetas lo
+  -- harían pasar el tiempo límite y no se podría remover a quien las compartió.
+  max_household_recipes constant integer := 300;
   member_household_id uuid;
   recipe_household_id uuid;
   blocked_names text[];
@@ -430,8 +433,14 @@ begin
       using errcode = '42501';
   end if;
 
-  -- Bloquear la membresía ordena esto con una salida a la vez: si sale después,
-  -- su trigger ya ve esta receta.
+  -- Primero la familia y después la membresía, como 023 y 026 (al revés habría
+  -- deadlock con una salida). Se relee porque pudo salir mientras esperaba. Con la
+  -- membresía bloqueada, si sale después su trigger ya ve esta receta.
+  perform 1
+  from public.households h
+  where h.id = public.current_household_id()
+  for key share;
+
   select m.household_id into member_household_id
   from public.household_members m
   where m.user_id = current_user_id
@@ -442,8 +451,9 @@ begin
       using errcode = '42501', hint = 'recipe_no_household';
   end if;
 
-  -- El bloqueo de la receta espera a quien le esté agregando un ingrediente (la
-  -- FK también la toma).
+  -- Espera a un save_recipe en curso, que también toma la fila. Un insert directo
+  -- de ingrediente en el mismo instante se puede colar: es el propio dueño, y lo
+  -- único que pasa es que la familia ve ese ingrediente vacío.
   select r.household_id into recipe_household_id
   from public.recipes r
   where r.id = target_recipe_id
@@ -462,7 +472,19 @@ begin
     return '{}';
   end if;
 
-  select array_agg(pc.name order by pc.name) into blocked_names
+  if (
+    select count(*) from public.recipes r where r.household_id = member_household_id
+  ) >= max_household_recipes then
+    raise exception 'La familia puede tener hasta % recetas', max_household_recipes
+      using errcode = '22023', hint = 'recipe_household_limit';
+  end if;
+
+  -- Acá no corre la RLS del catálogo: sin el case, alguien pondría el id de un
+  -- producto que no ve para leer su nombre.
+  select array_agg(distinct case
+    when pc.owner_id = current_user_id then pc.name
+    else 'Un producto que no puedes ver'
+  end) into blocked_names
   from public.recipe_ingredients ri
   join public.product_catalog pc on pc.id = ri.product_catalog_id
   where ri.recipe_id = target_recipe_id
@@ -521,7 +543,10 @@ begin
   from public.recipe_ingredients ri
   join public.product_catalog pc on pc.id = ri.product_catalog_id
   where ri.recipe_id = source_recipe_id
-    and (excluded_household_id is null or pc.household_id is distinct from excluded_household_id);
+    and (excluded_household_id is null or pc.household_id is distinct from excluded_household_id)
+  order by ri.position
+  -- El tope del editor: por la API directa una receta podría llevar más.
+  limit 50;
 
   return cloned_recipe_id;
 end;
@@ -545,12 +570,12 @@ begin
       using errcode = '42501';
   end if;
 
-  -- for update: la copia no mezcla un guardado a medias de otro miembro.
+  -- for share: la copia no mezcla un guardado a medias de otro miembro.
   perform 1
   from public.recipes r
   where r.id = target_recipe_id
     and r.household_id = public.current_household_id()
-  for update;
+  for share;
 
   if not found then
     raise exception 'Receta no encontrada'
@@ -598,8 +623,9 @@ begin
 
   select m.user_id into admin_user_id
   from public.household_members m
-  where m.household_id = old.household_id and m.role = 'admin'
-  order by m.created_at, m.user_id
+  where m.household_id = old.household_id
+  -- Si no queda admin (se borró su cuenta), el miembro más antiguo.
+  order by (m.role = 'admin') desc, m.created_at, m.user_id
   limit 1;
 
   for shared_recipe_id in

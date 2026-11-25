@@ -643,6 +643,8 @@ El cliente nunca manda un `household_id`: la base lo toma de la membresía de qu
 54. **Productos personales.** Una receta de la familia solo lleva productos del catálogo común o de esa familia. Compartir con un producto personal se rechaza, con los nombres; también guardar cambios que lo agreguen. La base lo hace cumplir.
 55. **Orden al guardar:** primero la receta, después la foto y por último compartir. Si la receta o la foto fallan no se comparte. Si falla solo compartir, la receta queda personal, se avisa y el editor sigue abierto; reintentar no la duplica (regla 41).
 
+55b. **Hasta 300 recetas por familia.** Al llegar, compartir otra se rechaza. Acota lo que se copia cuando alguien sale.
+
 **Usar una receta de la familia**
 
 56. **Todos los miembros la ven completa** (ingredientes y foto), pueden editarla, cambiar su foto y eliminarla. Editar no cambia el dueño.
@@ -689,6 +691,7 @@ La regla 44 queda reemplazada: en una receta de la familia la foto la cambia cua
 | Caso | Qué se muestra |
 |---|---|
 | Productos personales | "Para compartirla, cambia estos ingredientes personales: {nombres}." |
+| La familia llegó a 300 recetas | "Tu familia ya tiene 300 recetas. Elimina alguna para compartir otra." La receta queda personal |
 | No se pudo compartir | "La receta se guardó, pero no se pudo compartir. Intenta de nuevo." |
 | Ya no es miembro al compartir | "Ya no formas parte de una familia. La receta quedó solo para ti." |
 | Dejó de ver la receta al guardar o copiar | "No encontramos esa receta." |

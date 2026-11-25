@@ -23,7 +23,7 @@ begin;
 
 create temporary table t (key text primary key, id uuid not null default gen_random_uuid()) on commit drop;
 insert into t (key) select unnest(array[
-  'A','B','C','D','E','N','h1','h2','common','common2','family','personal',
+  'A','B','C','D','E','N','h1','h2','common','common2','family','personal','hidden',
   'shared','only_family','mine','blocked','foreign']);
 grant select, insert on t to authenticated, anon;
 
@@ -85,7 +85,8 @@ values
   (pg_temp.id('common'), 'Común SCRUM-162', 'manual', null, null),
   (pg_temp.id('common2'), 'Común 2 SCRUM-162', 'manual', null, null),
   (pg_temp.id('family'), 'Familiar SCRUM-162', 'manual', null, pg_temp.id('h1')),
-  (pg_temp.id('personal'), 'Personal SCRUM-162', 'manual', pg_temp.id('B'), null);
+  (pg_temp.id('personal'), 'Personal SCRUM-162', 'manual', pg_temp.id('B'), null),
+  (pg_temp.id('hidden'), 'Oculto SCRUM-162', 'manual', pg_temp.id('D'), null);
 insert into public.product_catalog_variants (product_catalog_id, name, base_unit, base_quantity)
 select id, key || ' v', 'ml', 100 from t where key in ('common', 'common2', 'family');
 
@@ -180,6 +181,12 @@ begin
   perform pg_temp.act_as('B');
   assert public.share_recipe(pg_temp.id('blocked')) = array['Personal SCRUM-162'], '2: devuelve los personales';
   assert (select household_id is null from public.recipes where id = pg_temp.id('blocked')), '2: no se compartió';
+  -- El id de un producto que B no ve no sirve para leer su nombre.
+  insert into public.recipe_ingredients (recipe_id, product_catalog_id, quantity_value, quantity_unit, position)
+  values (pg_temp.id('blocked'), pg_temp.id('hidden'), 1, 'ml', 2);
+  assert public.share_recipe(pg_temp.id('blocked')) @> array['Personal SCRUM-162', 'Un producto que no puedes ver']
+    and not 'Oculto SCRUM-162' = any(public.share_recipe(pg_temp.id('blocked'))), '2: no revela un producto ajeno';
+  delete from public.recipe_ingredients where product_catalog_id = pg_temp.id('hidden');
   assert public.share_recipe(pg_temp.id('shared')) = '{}', '2: se comparte';
   assert public.share_recipe(pg_temp.id('shared')) = '{}', '2: repetir no falla';
   assert public.share_recipe(pg_temp.id('only_family')) = '{}', '2: producto de la familia vale';
@@ -445,8 +452,39 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
--- 10. Borrar una cuenta no falla por el trigger (D, con una receta de su familia).
+-- 10. Tope de la familia 2 (D admin, E y A miembros). Sin admin, el original pasa a
+--     un miembro que queda. Borrar una cuenta no falla por el trigger.
 -- ----------------------------------------------------------------------------
+reset role;
+insert into public.household_members (user_id, household_id, role)
+values (pg_temp.id('E'), pg_temp.id('h2'), 'member'), (pg_temp.id('A'), pg_temp.id('h2'), 'member');
+insert into public.recipes (owner_id, household_id, name, base_servings)
+select pg_temp.id('E'), pg_temp.id('h2'), 'Relleno ' || n, 1 from generate_series(1, 300) n;
+insert into public.recipe_ingredients (recipe_id, product_catalog_id, quantity_value, quantity_unit)
+select id, pg_temp.id('common'), 1, 'ml' from public.recipes where name like 'Relleno %';
+set local role authenticated;
+
+do $$
+begin
+  perform pg_temp.act_as('D');
+  perform pg_temp.fails('select public.share_recipe(pg_temp.id(''foreign''))', '22023', '10: tope de la familia');
+end $$;
+
+reset role;
+update public.household_members set role = 'member' where user_id = pg_temp.id('D');
+delete from public.household_members where user_id = pg_temp.id('E');
+
+do $$
+begin
+  assert (select count(*) = 300 from public.recipes
+          where name like 'Relleno %' and owner_id = pg_temp.id('E') and household_id is null), '10: E recibe sus copias';
+  assert (select count(*) = 300 from public.recipes
+          where household_id = pg_temp.id('h2') and owner_id in (pg_temp.id('A'), pg_temp.id('D'))), '10: pasan a quien queda';
+  delete from public.recipes where household_id = pg_temp.id('h2');
+end $$;
+
+set local role authenticated;
+
 do $$
 begin
   perform pg_temp.act_as('D');
