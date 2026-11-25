@@ -35,10 +35,15 @@ export const createProductGroupEditorPage = () => {
   const typeName = async (name: string): Promise<void> => {
     await user.type(getNameInput(), name);
   };
-  // Un resultado del buscador es un botón con el nombre y el tamaño: se elige
-  // el que tiene ese nombre exacto ("Leche", no "Leche condensada").
+  // Desde SCRUM-149 los resultados van en un desplegable (combobox): se abre al
+  // enfocar el campo y cada resultado es un role="option" con el nombre y el
+  // tamaño. Se elige el de nombre exacto ("Leche", no "Leche condensada").
   const pickOption = async (productName: string): Promise<void> => {
-    const option = screen.getByText(productName, { exact: true }).closest("button");
+    // Tras elegir, el campo sigue enfocado pero el panel se cierra: se sale y se
+    // vuelve a entrar para abrirlo, como al tocar el buscador otra vez.
+    await user.click(document.body);
+    await user.click(getSearchInput());
+    const option = screen.getByText(productName, { exact: true }).closest('[role="option"]');
     if (!option) throw new Error(`No hay una opción "${productName}" en el buscador`);
     await user.click(option);
   };
