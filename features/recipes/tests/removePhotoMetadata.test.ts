@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RECIPE_PHOTO_MAX_FILE_SIZE_BYTES } from "../constants/recipes.constants";
 import { removePhotoMetadata } from "../utils/removePhotoMetadata";
 import { createPhotoFile } from "./recipe.fixtures";
 
@@ -50,10 +51,19 @@ describe("removePhotoMetadata", () => {
     expect(await removePhotoMetadata(createPhotoFile("image/webp"))).toMatchObject({ name: "foto.png", type: "image/png" });
   });
 
+  it("becomes a JPEG when the browser's format is too heavy", async () => {
+    const heavyPng = new Blob([new Uint8Array(RECIPE_PHOTO_MAX_FILE_SIZE_BYTES + 1)], { type: "image/png" });
+    vi.mocked(HTMLCanvasElement.prototype.toBlob).mockImplementation((callback, type) =>
+      callback(type === "image/jpeg" ? producedBlob : heavyPng),
+    );
+
+    expect((await removePhotoMetadata(createPhotoFile("image/webp"))).type).toBe("image/jpeg");
+  });
+
   it.each([
     ["the browser gives nothing", () => { producedBlob = null; }],
     ["the result is empty", () => { producedBlob = new Blob([], { type: "image/jpeg" }); }],
-    ["the result is too heavy", () => { producedBlob = new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: "image/jpeg" }); }],
+    ["the result is too heavy", () => { producedBlob = new Blob([new Uint8Array(RECIPE_PHOTO_MAX_FILE_SIZE_BYTES + 1)], { type: "image/jpeg" }); }],
     ["there is no canvas", () => { vi.mocked(HTMLCanvasElement.prototype.getContext).mockReturnValue(null); }],
   ])("fails, and frees the memory, when %s", async (_case, arrange) => {
     arrange();

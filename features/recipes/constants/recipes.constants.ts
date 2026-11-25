@@ -72,9 +72,16 @@ export const RECIPE_PHOTO_MAX_FILE_SIZE_BYTES = RECIPE_PHOTO_MAX_MEGABYTES * 102
 // Al subirla, la foto se vuelve a dibujar sin sus metadatos (SCRUM-162). El lado
 // mayor se acota porque los navegadores de celular no dibujan fotos enormes.
 export const RECIPE_PHOTO_REENCODE = {
+  // Si el formato original queda demasiado pesado (Safari devuelve PNG por WebP).
+  FALLBACK_TYPE: "image/jpeg",
+  FILE_NAME: "foto",
   MAX_SIDE_PIXELS: 2048,
   QUALITY: 0.9,
 } as const;
+
+// Nombres con los que un JPG, PNG o WebP guarda metadatos (EXIF, XMP, Photoshop). Sin
+// distinguir mayúsculas: de más solo hace limpiar una foto que ya estaba limpia.
+export const PHOTO_METADATA_PATTERN = /exif|xmp|xap\/1\.0|photoshop/i;
 
 export const RECIPE_PHOTO_STORAGE = {
   BUCKET: "recipe-photos",
@@ -285,7 +292,7 @@ export const RECIPE_AUDIENCE_TEXT = {
   BADGE: "Familia",
   FAMILY: "Para mi familia",
   FIXED: "Esta receta es de tu familia.",
-  HELP: "Tu familia podrá verla, editarla y eliminarla. No se puede deshacer.",
+  HELP: "Si es para tu familia, podrán verla, editarla y eliminarla. No se puede deshacer.",
   HOUSEHOLD_LIMIT: "Tu familia ya tiene 300 recetas. Elimina alguna para compartir otra.",
   LEGEND: "¿Para quién es?",
   NO_HOUSEHOLD: "Ya no formas parte de una familia. La receta quedó solo para ti.",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RECIPE_CATALOG_STATUS, RECIPE_TEXT } from "../constants/recipes.constants";
 import type { RecipeCatalogViewModel } from "../models/recipe-catalog.interfaces";
 import type { RecipeCatalogState } from "../models/recipe-catalog.types";
@@ -21,9 +21,13 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   // síncrono para empezar (nextjs-enterprise-patterns §3).
   const [state, setState] = useState<RecipeCatalogState>({ status: RECIPE_CATALOG_STATUS.LOADING });
 
+  // Borradas en esta pantalla: una recarga que ya venía en camino no las trae de vuelta.
+  const removedIdsRef = useRef(new Set<string>());
+
   // Forma con función: la respuesta del borrado llega después, y así filtra
   // sobre la lista de ese momento y no sobre la que había al hacer clic.
   const removeRecipe = (recipeId: string): void => {
+    removedIdsRef.current.add(recipeId);
     setState((currentState) =>
       currentState.status === RECIPE_CATALOG_STATUS.READY
         ? { ...currentState, recipes: currentState.recipes.filter((recipe) => recipe.id !== recipeId) }
@@ -47,7 +51,12 @@ export const useRecipeCatalogViewModel = (): RecipeCatalogViewModel => {
   // copia existe igual y aparece en la próxima carga.
   const reloadRecipes = (): void => {
     getRecipeSummaries()
-      .then((recipes) => setState({ recipes, status: RECIPE_CATALOG_STATUS.READY }))
+      .then((recipes) =>
+        setState({
+          recipes: recipes.filter((recipe) => !removedIdsRef.current.has(recipe.id)),
+          status: RECIPE_CATALOG_STATUS.READY,
+        }),
+      )
       .catch(() => undefined);
   };
   const copy = useRecipeCopy({ onCopied: reloadRecipes });

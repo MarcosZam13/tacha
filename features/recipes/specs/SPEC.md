@@ -643,7 +643,7 @@ El cliente nunca manda un `household_id`: la base lo toma de la membresía de qu
 54. **Productos personales.** Una receta de la familia solo lleva productos del catálogo común o de esa familia. Compartir con un producto personal se rechaza, con los nombres; también guardar cambios que lo agreguen. La base lo hace cumplir.
 55. **Orden al guardar:** primero la receta, después la foto y por último compartir. Si la receta o la foto fallan no se comparte. Si falla solo compartir, la receta queda personal, se avisa y el editor sigue abierto; reintentar no la duplica (regla 41).
 
-55b. **Hasta 300 recetas por familia.** Al llegar, compartir otra se rechaza. Acota lo que se copia cuando alguien sale.
+55b. **Hasta 300 recetas por familia.** Al llegar, compartir otra se rechaza. Acota lo que se copia cuando alguien sale; dos personas a la vez pueden pasarlo por poco.
 
 **Usar una receta de la familia**
 
@@ -672,7 +672,7 @@ El cliente nunca manda un `household_id`: la base lo toma de la membresía de qu
 **Fotos**
 
 71. **Metadatos:** toda foto nueva se vuelve a codificar en el navegador antes de subirla, conservando la orientación y con el lado mayor de hasta 2048 px, sin ubicación ni otros datos. Si no se puede, no se sube: es el caso de foto fallida (regla 40).
-72. **Fotos anteriores a esta historia:** al compartir, se descarga, limpia y sube de nuevo la foto que se conserva. Si falla, no se comparte (regla 55).
+72. **Fotos anteriores a esta historia:** al compartir, se descarga la foto que se conserva y, si lleva metadatos, se limpia y se sube de nuevo. Si falla, no se comparte (regla 55).
 73. El resultado respeta los tipos y 5 MB de la regla 37. Reemplaza la nota de metadatos de 16.12.
 74. **Limpieza de archivos:** mejor esfuerzo (regla 47). Solo quien subió un archivo puede borrarlo; si otro miembro cambia o elimina la receta, puede quedar un archivo suelto que solo puede ver quien lo subió.
 
@@ -700,7 +700,7 @@ La regla 44 queda reemplazada: en una receta de la familia la foto la cambia cua
 
 ### 17.7 UI esperada
 
-- El destino son dos opciones de radio después de la foto y el nombre. Ayuda: "Tu familia podrá verla, editarla y eliminarla. No se puede deshacer."
+- El destino son dos opciones de radio después de la foto y el nombre. Ayuda: "Si es para tu familia, podrán verla, editarla y eliminarla. No se puede deshacer."
 - La tarjeta de la familia lleva la etiqueta "Familia"; las personales no llevan nada.
 - Los botones ya existentes no cambian; "Guardar copia personal" se suma a las de la familia.
 - El diálogo de eliminar una de la familia: "Se eliminará para toda tu familia."

@@ -9,6 +9,7 @@ import {
 } from "../constants/recipes.constants";
 import type { SaveRecipePhotoResultType } from "../constants/recipes.constants";
 import type { SaveRecipePhotoPayload } from "../models/recipe-photo.interfaces";
+import { hasPhotoMetadata } from "../utils/hasPhotoMetadata";
 import { removePhotoMetadata } from "../utils/removePhotoMetadata";
 
 // La base rechazó la ruta, así que seguro no quedó guardada. Con cualquier otro error (red cortada, un 5xx)
@@ -124,6 +125,8 @@ export const cleanSavedRecipePhoto = async (recipeId: string): Promise<boolean> 
 
     const { data: savedPhoto, error: downloadError } = await getPhotoBucket().download(recipeRow.photo_path);
     if (downloadError) return false;
+    // Comprimirla otra vez le quitaría calidad en cada intento.
+    if (!(await hasPhotoMetadata(savedPhoto))) return true;
 
     const file = new File([savedPhoto], recipeRow.photo_path, { type: savedPhoto.type });
     const result = await saveRecipePhoto({ change: { file, kind: RECIPE_PHOTO_CHANGE.REPLACE }, recipeId });

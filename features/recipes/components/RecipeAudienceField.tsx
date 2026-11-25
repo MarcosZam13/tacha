@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { RECIPE_AUDIENCE, RECIPE_AUDIENCE_FIELD_NAME, RECIPE_AUDIENCE_TEXT } from "../constants/recipes.constants";
 import type { RecipeAudienceFieldProps } from "./models/RecipeAudienceFieldProps.interface";
 
@@ -17,13 +18,19 @@ export const RecipeAudienceField = ({
   isShared,
   onAudienceChange,
 }: RecipeAudienceFieldProps): React.JSX.Element | null => {
+  const helpId = useId();
+
   if (isShared) {
     return <p className="font-body text-sm text-tacha-textsec">{RECIPE_AUDIENCE_TEXT.FIXED}</p>;
   }
   if (!canChoose) return null;
 
   return (
-    <fieldset disabled={isSaving} className="flex min-w-0 flex-col gap-2 font-body text-sm text-tacha-text">
+    <fieldset
+      aria-describedby={helpId}
+      disabled={isSaving}
+      className="flex min-w-0 flex-col gap-2 font-body text-sm text-tacha-text"
+    >
       <legend className="mb-1 font-medium">{RECIPE_AUDIENCE_TEXT.LEGEND}</legend>
       {AUDIENCE_OPTIONS.map(({ label, value }) => (
         <label key={value} className="flex cursor-pointer items-center gap-2">
@@ -37,9 +44,9 @@ export const RecipeAudienceField = ({
           {label}
         </label>
       ))}
-      {audience === RECIPE_AUDIENCE.FAMILY ? (
-        <p className="text-tacha-textsec">{RECIPE_AUDIENCE_TEXT.HELP}</p>
-      ) : null}
+      <p id={helpId} className="text-tacha-textsec">
+        {RECIPE_AUDIENCE_TEXT.HELP}
+      </p>
     </fieldset>
   );
 };

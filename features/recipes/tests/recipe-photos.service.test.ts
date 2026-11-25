@@ -186,7 +186,7 @@ describe("removeRecipePhotoFile", () => {
 });
 
 describe("cleanSavedRecipePhoto", () => {
-  const savedPhoto = new Blob(["con ubicación"], { type: "image/jpeg" });
+  const savedPhoto = new Blob(["Exif con ubicación"], { type: "image/jpeg" });
 
   beforeEach(() => {
     maybeSingleMock.mockResolvedValue({ data: { photo_path: PREVIOUS_PATH }, error: null });
@@ -200,6 +200,13 @@ describe("cleanSavedRecipePhoto", () => {
     expect(downloadMock).toHaveBeenCalledWith(PREVIOUS_PATH);
     expect(uploadMock).toHaveBeenCalledWith(NEW_PATH, CLEAN_FILE, expect.anything());
     expect(removeMock).toHaveBeenCalledWith([PREVIOUS_PATH]);
+  });
+
+  it("does not compress again a photo that is already clean", async () => {
+    downloadMock.mockResolvedValue({ data: new Blob(["JFIF"], { type: "image/jpeg" }), error: null });
+
+    await expect(cleanSavedRecipePhoto("flan")).resolves.toBe(true);
+    expect(uploadMock).not.toHaveBeenCalled();
   });
 
   it("has nothing to clean without a photo", async () => {

@@ -85,14 +85,17 @@ export const useRecipeEditor = (recipeId: NullableUndefined<string>): UseRecipeE
 
     isSaveInFlightRef.current = true;
     dispatch({ type: RECIPE_EDITOR_ACTION.SAVE_STARTED });
-    const outcome = await saveRecipeWithExtras({
-      photoChange,
-      recipe: toSaveRecipePayload(state.values, recipeId ?? state.savedRecipeId ?? undefined),
-      shouldShare: !state.isShared && state.audience === RECIPE_AUDIENCE.FAMILY,
-    });
-    isSaveInFlightRef.current = false;
+    try {
+      const outcome = await saveRecipeWithExtras({
+        photoChange,
+        recipe: toSaveRecipePayload(state.values, recipeId ?? state.savedRecipeId ?? undefined),
+        shouldShare: !state.isShared && state.audience === RECIPE_AUDIENCE.FAMILY,
+      });
 
-    return finishSave(outcome);
+      return finishSave(outcome);
+    } finally {
+      isSaveInFlightRef.current = false;
+    }
   };
 
   return {

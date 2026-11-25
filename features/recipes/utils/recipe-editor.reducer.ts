@@ -18,6 +18,7 @@ export const createInitialRecipeEditorState = (isEditingExistingRecipe: boolean)
   audience: RECIPE_AUDIENCE.PERSONAL,
   errors: NO_ERRORS,
   hasChanges: false,
+  hasLostHousehold: false,
   ingredientNotice: null,
   isShared: false,
   saveErrorMessage: null,
@@ -150,6 +151,7 @@ export const recipeEditorReducer = (state: RecipeEditorState, action: RecipeEdit
       return {
         ...state,
         audience: action.hasLostHousehold ? RECIPE_AUDIENCE.PERSONAL : state.audience,
+        hasLostHousehold: action.hasLostHousehold,
         saveErrorMessage: action.message,
         savedRecipeId: action.recipeId,
         status: RECIPE_EDITOR_STATUS.EDITING,

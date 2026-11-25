@@ -225,7 +225,7 @@ describe("RecipeEditor: who it is for", () => {
     const page = await renderEditor({ url: "https://fotos/flan" });
 
     await page.chooseAudience("Para mi familia");
-    expect(page.getText("Tu familia podrá verla, editarla y eliminarla. No se puede deshacer.")).toBeInTheDocument();
+    expect(page.getText("Si es para tu familia, podrán verla, editarla y eliminarla. No se puede deshacer.")).toBeInTheDocument();
     await page.save();
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/recetas"));
@@ -243,6 +243,18 @@ describe("RecipeEditor: who it is for", () => {
 
     expect(await page.findAlert()).toHaveTextContent("cambia estos ingredientes personales: Pan, Miel.");
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("stops offering it when the user is no longer in a family", async () => {
+    hasHouseholdMock.mockResolvedValue(true);
+    shareMock.mockResolvedValue({ kind: SHARE_RECIPE_RESULT.NO_HOUSEHOLD });
+    const page = await renderEditor();
+    await page.chooseAudience("Para mi familia");
+
+    await page.save();
+
+    expect(await page.findAlert()).toHaveTextContent("Ya no formas parte de una familia.");
+    expect(page.queryAudience()).not.toBeInTheDocument();
   });
 
   it("only says it belongs to the family when it already does", async () => {

@@ -29,6 +29,7 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
     audience,
     errors,
     hasChanges,
+    hasLostHousehold,
     ingredientNotice,
     isShared,
     savedPhoto,
@@ -68,7 +69,7 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
   return {
     audience: {
       audience,
-      canChoose: hasHousehold && !isShared,
+      canChoose: hasHousehold && !hasLostHousehold && !isShared,
       isShared,
       onAudienceChange: editor.changeAudience,
     },

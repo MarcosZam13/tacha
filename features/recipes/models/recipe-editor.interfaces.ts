@@ -80,6 +80,8 @@ export interface RecipeEditorState {
   errors: RecipeEditorErrors;
   /** La persona ya tocó el formulario (SCRUM-55: cerrar sesión pide confirmación). Se apaga al cargar la receta. */
   hasChanges: boolean;
+  /** Al compartir, la base dijo que ya no tiene familia: se deja de ofrecer. */
+  hasLostHousehold: boolean;
   /** Aviso no bloqueante del buscador, ej. "ese producto ya está". */
   ingredientNotice: NullableRef<string>;
   isShared: boolean;
