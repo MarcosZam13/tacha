@@ -89,7 +89,8 @@ export const searchCatalogIncludingOwn = async (searchTerm: string): Promise<Cat
   });
   if (error) throw error;
 
-  return toCatalogProducts(products);
+  // Mismo orden que searchCatalog: el editor de grupos mostraba "Crema de leche" antes que "Leche".
+  return sortBySearchRelevance(toCatalogProducts(products), searchTerm, (product) => product.productName);
 };
 
 /**

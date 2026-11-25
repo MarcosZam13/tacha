@@ -99,6 +99,24 @@ describe("searchCatalogIncludingOwn", () => {
     expect(rpcMock).toHaveBeenCalledWith(CATALOG_DB.RPC.SEARCH_CATALOG_INCLUDING_OWN, { search_term: "leche" });
   });
 
+  it("returns the closest names first, like searchCatalog", async () => {
+    ensureSessionMock.mockResolvedValue({});
+    rpcMock.mockResolvedValue({
+      data: ["Crema de leche", "Leche"].map((name) => ({
+        category: "Lácteos",
+        is_personal: false,
+        name,
+        product_catalog_id: name,
+        variants: [],
+      })),
+      error: null,
+    });
+
+    const products = await searchCatalogIncludingOwn("leche");
+
+    expect(products.map((product) => product.productName)).toEqual(["Leche", "Crema de leche"]);
+  });
+
   it("marks a personal product that is not shared", async () => {
     rpcMock.mockResolvedValue({
       data: [
