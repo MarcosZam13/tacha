@@ -30,6 +30,7 @@ const LIST_ITEM_ROW = {
   checked_at: null,
   created_at: "2026-10-11T10:00:00Z",
   id: "item-1",
+  product_catalog_variant_id: "variant-1",
   product_catalog_variants: {
     base_quantity: 1000,
     base_unit: "ml",
@@ -97,6 +98,22 @@ describe("getGeneralList", () => {
         variantId: "variant-1",
       }),
     ]);
+  });
+
+  // SCRUM-163: un producto personal de otro miembro llega sin presentación (RLS
+  // de la 032). La lista no se cae: esa fila sale "no disponible".
+  it("keeps loading when a row arrives without its product (SCRUM-163)", async () => {
+    const hiddenRow = { ...LIST_ITEM_ROW, id: "item-2", product_catalog_variant_id: "variant-hidden", product_catalog_variants: null };
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW, hiddenRow] }, error: null });
+
+    const items = await getGeneralList();
+
+    expect(items).toHaveLength(2);
+    expect(items[0]).toEqual(expect.objectContaining({ productName: "Leche", sizeLabel: "1000 ml" }));
+    expect(items[1]).toEqual(
+      expect.objectContaining({ id: "item-2", productName: "Producto no disponible", sizeLabel: "", variantId: "variant-hidden" }),
+    );
   });
 
   it("attaches the recipe shortfalls to their rows (SCRUM-114)", async () => {

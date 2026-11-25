@@ -28,7 +28,7 @@ export const SHOPPING_LIST_DB = {
   // valida al compilar, que es lo mismo que buscaría la constante.
   // id: para distinguir la lista personal de la de la familia (SCRUM-59).
   GENERAL_LIST_SELECT:
-    "id, list_items(id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+    "id, list_items(id, product_catalog_variant_id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   // Detalle de una variante: sus marcas y el último precio de cada marca en
   // cada tienda (la vista latest_prices ya se queda con el más reciente).
   ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
@@ -88,6 +88,9 @@ export const SHOPPING_LIST_ACTION = {
 
 export const SHOPPING_LIST_TEXT = {
   ADD_ERROR: "No se pudo añadir el producto. Intenta de nuevo.",
+  // SCRUM-163: la fila de un producto que quien mira no puede leer (un producto
+  // personal de otro miembro, RLS de la 032). Mismo texto que Finanzas (D37).
+  UNAVAILABLE_PRODUCT: "Producto no disponible",
   ALL_CHECKED: "Todo tachado. No queda nada pendiente.",
   CHECKED_SECTION: "Tachados hoy",
   CHECK_ERROR: "No se pudo tachar el producto. Intenta de nuevo.",
