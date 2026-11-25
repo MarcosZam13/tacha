@@ -89,3 +89,16 @@ describe("InventorySuggestions", () => {
     expect(container.innerHTML).toBe("");
   });
 });
+
+// SCRUM-105 (HU-71b CA-01): desde la fila se entra a la pantalla completa.
+describe("InventorySuggestions: enlace a Mi inventario (SCRUM-105)", () => {
+  it("la fila tiene el enlace Ver mi inventario", async () => {
+    getInventorySuggestionsMock.mockResolvedValue([MILK]);
+    const page = createInventorySuggestionsPage();
+    render(<InventorySuggestions />);
+
+    const region = await page.findRegion();
+
+    expect(within(region).getByRole("link", { name: "Ver mi inventario" })).toHaveAttribute("href", "/lista/inventario");
+  });
+});

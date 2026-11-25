@@ -106,3 +106,7 @@ Si la consulta falla, no se muestra la fila ni un mensaje de error: las sugerenc
 
 - **Duraciones por categoría propuestas** (a confirmar con el PO): Lácteos 7, Repostería 60, Dulces y Chocolates 30, Cereales 30, Higiene y Belleza 45, Abarrotes 30, Congelados 30. Se cambian en `category_shelf_life` sin tocar el código.
 - Las categorías se cargan por nombre en la 061: una categoría que no existe en la base no inserta nada y usa los 14 días.
+
+## SCRUM-105: enlace a "Mi inventario"
+
+La fila tiene el enlace "Ver mi inventario" a `/lista/inventario` (HU-71b CA-01). Desde la migración `065` las sugerencias salen de `inventory_estimates`, el mismo cálculo que "Mi inventario" (`features/my-inventory/specs/SPEC.md`): un producto está en uno solo de los dos lugares.

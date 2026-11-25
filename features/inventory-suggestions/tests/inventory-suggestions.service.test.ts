@@ -55,7 +55,7 @@ describe("getInventorySuggestions", () => {
   });
 
   it("propaga el error de la base", async () => {
-    const databaseError = { code: "42501", message: "Se requiere una sesión para ver las sugerencias" };
+    const databaseError = { code: "42501", message: "Se requiere una sesión" };
     rpcMock.mockResolvedValue({ data: null, error: databaseError });
 
     await expect(getInventorySuggestions()).rejects.toBe(databaseError);

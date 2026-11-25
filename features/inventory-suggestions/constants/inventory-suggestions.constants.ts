@@ -15,6 +15,6 @@ export const INVENTORY_SUGGESTIONS_TEXT = {
   LAST_PURCHASE_TODAY: "Lo compraste hoy",
   // Nombre de la región y título visible de la fila.
   TITLE: "¿Se te acabó?",
+  // Entrada a "Mi inventario" desde la fila (SCRUM-105, HU-71b CA-01).
+  VIEW_INVENTORY: "Ver mi inventario",
 } as const;
-
-export const MS_PER_DAY = 24 * 60 * 60 * 1000;

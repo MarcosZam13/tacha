@@ -270,6 +270,8 @@ Esto convierte un problema de cálculo que "no siempre puede salir bien" en una 
 
 **Implementado (SCRUM-102, 2026-11-24): sugerencias en la vista General.** Se calculan al momento en la base (`get_inventory_suggestions`, migración `061`) a partir de lo tachado en la lista general, por producto madre: con 2 compras o más, el promedio de días entre compras; con 1, la vida útil de su categoría (`category_shelf_life`) o 14 días. No se sugiere lo pendiente en la lista ni lo comprado hace más de 180 días. Todavía no existe `household_inventory_items`: llega con la captura de vencimiento al tachar (SCRUM-103). Detalle en `features/inventory-suggestions/specs/SPEC.md`.
 
+**Implementado (SCRUM-105, 2026-11-25): "Mi inventario".** Pantalla `/lista/inventario` con lo que la app cree que hay en casa (lo que no se acabó o no tiene fecha), agrupado en "Vence pronto" (hasta 7 días), "Este mes" (8 a 30), "Más adelante" (más de 30, decidido con el equipo) y "Sin fecha estimada". Mientras no exista el menú "Más", se entra desde General (encabezado y fila de sugerencias). El cálculo pasa a una sola función, `inventory_estimates` (migración `065`), que usan el inventario y las sugerencias. Detalle en `features/my-inventory/specs/SPEC.md`.
+
 ### 4.11 Grupos de productos (aceptado 2026-08-18, confirmado por el equipo 2026-08-19)
 
 > Propuesta de Marcos, surgida después de la reunión de equipo del 2026-08-16 — aceptada el 2026-08-18 para poder generar la interfaz en [DESIGN.md](DESIGN.md) sin dejar huecos, y **confirmada por el equipo completo el 2026-08-19**.

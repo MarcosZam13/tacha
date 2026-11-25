@@ -201,3 +201,12 @@ describe("ShoppingListInner: assignee field (SCRUM-108)", () => {
     expect(getFieldButtons()).toHaveLength(1);
   });
 });
+
+// SCRUM-105 (HU-71b CA-01): la entrada a "Mi inventario" mientras no exista el menú "Más".
+describe("ShoppingListInner: link to my inventory (SCRUM-105)", () => {
+  it("links to my inventory from the header", () => {
+    render(<ShoppingListInner />);
+
+    expect(screen.getByRole("link", { name: "Mi inventario" })).toHaveAttribute("href", "/lista/inventario");
+  });
+});
