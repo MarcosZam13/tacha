@@ -21,11 +21,13 @@ export const RecipeDeleteDialog = ({
   onDeleteCancel,
   onDeleteConfirm,
   recipeName,
+  sharedNotice,
 }: RecipeDeleteDialogProps): React.JSX.Element => (
   <Modal isOpen={isDialogOpen} onClose={onDeleteCancel} title={RECIPE_DELETE_TEXT.DIALOG_TITLE}>
     <div className="flex flex-col gap-4">
       <p className="font-body text-base font-semibold text-tacha-text">{recipeName}</p>
       <p className="font-body text-sm text-tacha-textsec">{RECIPE_DELETE_TEXT.IRREVERSIBLE_NOTICE}</p>
+      {sharedNotice ? <p className="font-body text-sm font-semibold text-tacha-terracotta">{sharedNotice}</p> : null}
       {mealPlanNotice ? (
         <p role="status" className="font-body text-sm font-semibold text-tacha-terracotta">
           {mealPlanNotice}

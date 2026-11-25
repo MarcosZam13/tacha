@@ -7,7 +7,7 @@ import { formatSizeLabel } from "@/utils/formatSizeLabel";
 import { startOfLocalDay } from "@/utils/startOfLocalDay";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
-import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
+import type { CatalogSearchResult } from "@/types/catalog.types";
 import type { ItemCheck } from "../models/ItemCheck.interface";
 import type { ItemCheckResult } from "../models/ItemCheckResult.interface";
 import type { ItemDetail } from "../models/ItemDetail.interface";

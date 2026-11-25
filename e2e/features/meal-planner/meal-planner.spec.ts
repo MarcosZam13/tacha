@@ -8,6 +8,7 @@ import {
   expectedWeekDates,
   getAppNavItem,
   assignRecipeToToday,
+  createDateList,
   getAddWeekButton,
   getAddWeekDialog,
   getAssignDialog,
@@ -144,10 +145,16 @@ test.describe("Planificador semanal", () => {
 const FLAN = "E2E Flan";
 const ARROZ = "E2E Arroz";
 const FLAN_BASE_SERVINGS = 6;
+// Lejana, para que siempre sea futura; por ser de otro año la opción lleva el año.
+const DATE_LIST_NAME = "E2E Paseo";
+const DATE_LIST_DATE = "2099-12-20";
+const DATE_LIST_OPTION = "E2E Paseo · 20 dic 2099";
 const ARROZ_BASE_SERVINGS = 4;
 // Abrir la pantalla crea una sesión anónima y lee el plan de la base compartida: con varias pruebas
 // a la vez puede pasar de los 5 s por defecto (ver "Fallo intermitente observado" en E2E.md).
 const SESSION_AND_PLAN_TIMEOUT_MS = 15_000;
+// En `npm run dev` la primera visita a una ruta espera a que se compile.
+const ROUTE_COMPILE_TIMEOUT_MS = 15_000;
 
 test.describe("Asignar comidas al plan", () => {
   test.beforeEach(async ({ page, request }) => {
@@ -159,7 +166,7 @@ test.describe("Asignar comidas al plan", () => {
   });
 
   test.afterEach(async ({ page, request }) => {
-    // E2E-PLANNER-09 escribe en la lista general: se limpia junto con las recetas.
+    // E2E-PLANNER-09 y 11 escriben en la lista general y en una sublista: se limpian junto con las recetas.
     await deleteOwnListItems(page, request);
     await deleteOwnRecipes(page, request);
   });
@@ -250,6 +257,40 @@ test.describe("Asignar comidas al plan", () => {
     // La semana dejó al menos un producto en "Pendientes" y la lista ya no está vacía.
     await expect(getPendingListRows(page)).not.toHaveCount(0);
     await expect(page.getByText("Tu lista está vacía. Busca un producto para empezar.")).toBeHidden();
+  });
+
+  test("E2E-PLANNER-11 — Agregar la semana a una sublista por fecha", async ({ page }) => {
+    await assignRecipeToToday(page, "Almuerzo", FLAN);
+    await createDateList(page, DATE_LIST_NAME, DATE_LIST_DATE);
+    await page.goto(PLANNER_PATH);
+    await expect(getAddWeekButton(page)).toBeEnabled({ timeout: SESSION_AND_PLAN_TIMEOUT_MS });
+
+    await getAddWeekButton(page).click();
+    const dialog = getAddWeekDialog(page);
+    await expect(dialog.getByRole("radio", { name: "Lista general" })).toBeChecked();
+    await dialog.getByRole("radio", { name: DATE_LIST_OPTION }).check();
+    await dialog.getByRole("button", { name: "Agregar", exact: true }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(
+      page.getByText(new RegExp(`^Agregaste \\d+ ingredientes? de 1 comida a ${DATE_LIST_NAME}\\.$`)),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "Ver lista" }).click();
+    await expect(page).toHaveURL(/\/fechas\/[0-9a-f-]+$/, { timeout: ROUTE_COMPILE_TIMEOUT_MS });
+    await expect(page.getByRole("checkbox", { name: /^Tachar / })).not.toHaveCount(0);
+
+    // La general no cambió.
+    await page.goto("/lista");
+    await expect(page.getByText("Tu lista está vacía. Busca un producto para empezar.")).toBeVisible();
+  });
+
+  test("E2E-PLANNER-12 — Sin familia no se ofrece el plan de la familia", async ({ page }) => {
+    const householdResponse = page.waitForResponse(/rpc.current_household_id/);
+    await page.goto(PLANNER_PATH);
+    expect((await householdResponse).ok()).toBe(true);
+
+    await expect(getEmptySlots(page, "Cena").first()).toBeEnabled();
+    await expect(page.getByRole("group", { name: "Qué plan ver" })).toHaveCount(0);
   });
 
   test("E2E-PLANNER-10 — El botón de agregar la semana sigue a las comidas de la semana a la vista", async ({

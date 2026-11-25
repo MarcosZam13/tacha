@@ -1,5 +1,5 @@
+import type { DateListStatusType } from "@/constants";
 import type { NullableRef } from "@/types/nullable.types";
-import type { DateListStatusType } from "../constants/date-lists.constants";
 
 /** Una sublista por fecha. eventDate es YYYY-MM-DD, sin hora (SPEC §5, regla 4). */
 export interface DateList {

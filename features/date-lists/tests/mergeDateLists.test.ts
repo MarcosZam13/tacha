@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DATE_LIST_STATUS } from "../constants/date-lists.constants";
+import { DATE_LIST_STATUS } from "@/constants";
 import type { DateList } from "../models/DateList.interface";
 import { insertByDate, mergeLoadedLists } from "../utils/mergeDateLists";
 

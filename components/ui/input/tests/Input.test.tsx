@@ -76,4 +76,17 @@ describe("Input (SCRUM-137)", () => {
 
     expect(onBlur).toHaveBeenCalledTimes(1);
   });
+
+  // HU-57: el teclado del celular, sin cambiar el tipo del campo.
+  it("passes the mobile keyboard hint when given", () => {
+    render(<Input label={LABEL} value="" onChange={vi.fn()} inputMode="decimal" />);
+
+    expect(createInputPage().getInputMode()).toBe("decimal");
+  });
+
+  it("does not add a keyboard hint by default", () => {
+    render(<Input label={LABEL} value="" onChange={vi.fn()} />);
+
+    expect(createInputPage().getInputMode()).toBeNull();
+  });
 });

@@ -1,8 +1,13 @@
 "use client";
 
+import Link from "next/link";
+import { AssigneeField } from "@/components/assignee-field/AssigneeField";
+import { ASSIGNEE_LIST_SOURCE } from "@/components/assignee-field/constants/assignee-field.constants";
+import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/useListAssigneesViewModel";
 import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Button, Modal, Spinner } from "@/components/ui";
-import { BUTTON_VARIANT } from "@/constants";
+import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
+import { InventorySuggestions } from "@/features/inventory-suggestions/InventorySuggestions";
 import { PURCHASE_SESSION_TEXT } from "./constants/purchase-session.constants";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ClosePurchasePanel } from "./components/ClosePurchasePanel";
@@ -28,11 +33,14 @@ import type { ShoppingListRowViewModel } from "./models/ShoppingListRowViewModel
  */
 export const ShoppingListInner = (): React.JSX.Element => {
   const viewModel = useShoppingListViewModel();
+  // El campo "Encargado" (SCRUM-108): solo se dibuja si la lista general lo tiene encendido en Configuración.
+  const assignees = useListAssigneesViewModel({ kind: ASSIGNEE_LIST_SOURCE.GENERAL });
 
   // Misma fila en las dos secciones; solo cambia en cuál se dibuja.
   const renderRow = (row: ShoppingListRowViewModel): React.JSX.Element => (
     <ShoppingListRow
       key={row.item.id}
+      assigneeSlot={<AssigneeField className="px-3 pb-2" itemId={row.item.id} viewModel={assignees} />}
       row={row}
       onDecrease={() => viewModel.onDecreaseQuantity(row.item.id)}
       onIncrease={() => viewModel.onIncreaseQuantity(row.item.id)}
@@ -44,7 +52,16 @@ export const ShoppingListInner = (): React.JSX.Element => {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
-      <h1 className="font-display text-3xl font-bold text-tacha-text">{SHOPPING_LIST_TEXT.TITLE}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold text-tacha-text">{SHOPPING_LIST_TEXT.TITLE}</h1>
+        {/* SCRUM-109 (HU-72 CA-01). Link y no Button: es navegación. */}
+        <Link
+          href={APP_ROUTE.LIST_GROUPS}
+          className="rounded-tacha-badge border border-tacha-teal px-4 py-2 font-body text-sm font-semibold text-tacha-teal hover:bg-tacha-teal/10"
+        >
+          {SHOPPING_LIST_TEXT.MANAGE_GROUPS}
+        </Link>
+      </div>
 
       {viewModel.activeStoreName ? (
         <ShoppingModeBar
@@ -53,6 +70,10 @@ export const ShoppingListInner = (): React.JSX.Element => {
           onFinish={viewModel.onRequestClosePurchase}
         />
       ) : null}
+
+      {/* SCRUM-102 (HU-70 CA-01): debajo del encabezado (y de la barra del modo compra, que sigue primero) y antes de la lista. Si falla, no se dibuja (CA-03). */}
+      <InventorySuggestions />
+
       {viewModel.canStartPurchase ? (
         <div>
           <Button variant={BUTTON_VARIANT.PRIMARY} onClick={viewModel.onStartPurchase}>

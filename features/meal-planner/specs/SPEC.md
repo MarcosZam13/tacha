@@ -4,9 +4,10 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 
 - [SCRUM-99 / HU-67](https://tacha.atlassian.net/browse/SCRUM-99): ver el calendario semanal de comidas. Sprint 3.
 - [SCRUM-100 / HU-68](https://tacha.atlassian.net/browse/SCRUM-100): asignar receta, cocinero y porciones a un espacio. Sprint 3, en curso.
-- [SCRUM-101 / HU-69](https://tacha.atlassian.net/browse/SCRUM-101): agregar la semana completa a la lista. Sprint 3, en curso.
+- [SCRUM-101 / HU-69](https://tacha.atlassian.net/browse/SCRUM-101): agregar la semana completa a la lista. Sprint 3, mergeada.
+- [SCRUM-160 / HU-69 CA-03](https://tacha.atlassian.net/browse/SCRUM-160): elegir a qué lista se agrega la semana. En curso.
 
-Esta spec cubre **SCRUM-99** (el calendario, mergeada), **SCRUM-100** (asignar, mergeada) y **SCRUM-101** (agregar la semana a la lista, [sección 16](#16-scrum-101-agregar-la-semana-a-la-lista)). El cómo (archivos, flujo, decisiones) está en [plan.md](plan.md); los pasos, en [tasks.md](tasks.md).
+Esta spec cubre **SCRUM-99** (el calendario, mergeada), **SCRUM-100** (asignar, mergeada), **SCRUM-101** (agregar la semana a la lista, [sección 16](#16-scrum-101-agregar-la-semana-a-la-lista)) y **SCRUM-160** (elegir la lista de destino, [sección 17](#17-scrum-160-elegir-a-qué-lista-se-agrega-la-semana)). El cómo (archivos, flujo, decisiones) está en [plan.md](plan.md); los pasos, en [tasks.md](tasks.md).
 
 ## 1. Objetivo
 
@@ -134,6 +135,10 @@ SCRUM-100:
 - **SCRUM-100:** los espacios son botones con nombre completo ("Almuerzo del lunes 12, vacío, asignar" / "Almuerzo del lunes 12: Arroz con leche, cambiar"), así que el lector sabe qué día, qué comida y qué pasa al tocarlos. El "+" es decorativo.
 - **SCRUM-100:** el diálogo es `role="dialog"` con `aria-modal`, título y cierre con Escape (comportamiento del `Modal` compartido). Las recetas son un grupo de opciones (un `fieldset` con `legend` y radios, rol `group`) con la receta elegida marcada; el cocinero, otro grupo igual. El contador del multiplicador tiene botones "Menos porciones" / "Más porciones" y el valor se anuncia ("×2, 24 porciones") con `aria-live="polite"`. Los errores del diálogo son `role="alert"`.
 - **SCRUM-100:** al cerrar el diálogo el foco vuelve al espacio que lo abrió. Al guardar o quitar, el espacio muestra su nuevo estado.
+  - **Desde SCRUM-142:** esa devolución la hace el `Modal` compartido, no `useMealSlotDialog` ([components/ui/modal/specs/SPEC.md](../../../components/ui/modal/specs/SPEC.md), D4).
+  - **Safari:** el espacio se enfoca a sí mismo antes de abrir, porque ahí un clic no enfoca el botón.
+  - **Guardar y quitar:** el botón del espacio es el mismo nodo antes y después, así que el foco vuelve a él.
+  - "Agregar semana a la lista" (§16.8) no cambia.
 - **Límite conocido (revisión de código, 2026-10-09):** al pulsar una flecha esta queda deshabilitada (`disabled` nativo del `Button` compartido) y el foco del teclado se pierde: en Chrome pasa al `body`. Quien navega con teclado tiene que volver a tabular hasta la otra flecha. Se acepta porque con solo dos semanas el costo es de un Tab, y arreglarlo bien exige mover el foco a la otra flecha desde un componente de presentación (refs) o sumar `aria-disabled` al `Button` compartido, que usan otras features. Si se decide arreglar, lo natural es `aria-disabled` en el `Button` con el clic ignorado cuando está "deshabilitado".
 
 ## 10. Restricciones técnicas
@@ -266,7 +271,7 @@ SCRUM-99 no tenía contratos externos. Dos cosas que dejó resueltas para SCRUM-
   - **cocinero "Yo" / "Sin cocinero"**; los miembros se suman al mismo selector cuando exista HU-35. `assigned_cook` apunta a `auth.users` y no a `household_members` como decía documento-proyecto §6, porque un usuario sin household no está en `household_members` y no podría asignarse a sí mismo;
   - **multiplicador ×0,5 a ×4 en pasos de 0,5** y se guarda el multiplicador (como pide la tabla), no las porciones;
   - **receta borrada: el espacio queda libre** (`on delete cascade`) y el diálogo de eliminar avisa cuántos espacios usa. Cierra el CA-02 de HU-64b (SCRUM-96), que la SPEC de recetas §15 dejó para esta historia.
-- **Fusionar recetas y plan semanal al household: evaluado, no incluido (pedido del responsable, 2026-10-09).** Se examinó si se podía hacer en esta historia. Es posible, pero no entra por tamaño y por lo que arrastra:
+- **Fusionar recetas y plan semanal al household: evaluado, no incluido (pedido del responsable, 2026-10-09).** La parte de **recetas** la resuelve SCRUM-162 (`features/recipes/specs/SPEC.md` §17); sigue pendiente el plan compartido y elegir de cocinero a otro miembro. Se examinó si se podía hacer en esta historia. Es posible, pero no entra por tamaño y por lo que arrastra:
   - *Qué habría que hacer* (los pasos 1 a 6 de "Integración con households" del plan de recetas, más lo del plan):
     1. FK de `recipes.household_id` y `meal_plans.household_id` → `households(id)`;
     2. una función de membresía `security definer` con `search_path` vacío (por ejemplo `current_household_id()`) para que las políticas no se llamen a sí mismas;
@@ -318,7 +323,7 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 25. **Una semana a la vez.** El botón actúa sobre la semana a la vista, no sobre las dos. Al cambiar de semana con las flechas, el botón y el conteo cambian con ella.
 26. **Deshabilitado sin comidas.** Con 0 espacios asignados en la semana a la vista, mientras el plan carga y si falló la carga, el botón está deshabilitado.
 27. **Confirmación siempre.** Antes de agregar se pide confirmar, también la primera vez. Dice el número de comidas de la semana a la vista ("Vas a agregar a tu lista general los ingredientes de 5 comidas (12 – 18 oct)."). A diferencia de SCRUM-97, no se guarda en el navegador qué se agregó: la pregunta es siempre.
-28. **Destino: la lista general.** Elegir una sublista de fecha (HU-69 CA-03) queda pendiente hasta que existan las sublistas (HU-44 a HU-46, Sprint 4); ver sección 14.
+28. **Destino: la lista general.** (Reemplazada por SCRUM-160, sección 17.) Elegir una sublista de fecha (HU-69 CA-03) queda pendiente hasta que existan las sublistas (HU-44 a HU-46, Sprint 4); ver sección 14.
 29. **Una vez por espacio.** Se recorre cada espacio asignado de la semana, en orden (fecha y luego desayuno, almuerzo, cena). Si la misma receta está en tres espacios, sus ingredientes se agregan tres veces, cada una con el multiplicador de su espacio.
 30. **Las cantidades se multiplican.** Los ingredientes de cada espacio se agregan con su cantidad × el multiplicador del espacio (×0,5 a ×4) antes de aplicar las reglas 17 a 26 de recetas. Esto cambia el contrato anterior ([sección 15](#15-notas-de-implementación)), que dejaba las cantidades en las porciones base.
 31. **Mismo ingrediente en varios días (CA-02).** Todo lo que pide el mismo producto cae en una sola fila de la lista por presentación, sin duplicarse. Las cantidades se acumulan exactamente como si las recetas se hubieran agregado una detrás de otra con SCRUM-97: lo de volumen o peso descuenta lo que ya hay y lo que ya pidieron las otras comidas (regla 20 de recetas), y lo que se mide en unidades suma encima hasta cubrir cada comida (regla 19, "aunque sobre"). Esa última regla puede dejar más de lo estrictamente necesario cuando la presentación trae varias unidades; es el mismo comportamiento de SCRUM-97 y queda como decisión abierta (sección 15).
@@ -386,7 +391,7 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 ### 16.11 Casos fuera de alcance
 
 - **Ver en pantalla el efecto del multiplicador y de las repeticiones en lo que se mide en ml o g (decidido el 2026-10-10, opción A):** agregar la semana sigue las reglas de SCRUM-97, así que un producto de volumen o peso que ya está en la lista no suma más envases por otra comida ni por volver a pulsar "Agregar": solo crece el faltante que queda registrado en `list_item_recipe_requirements`. Hoy ese faltante solo se ve en el aviso al agregar (con los nombres, "Te falta comprar: …"). El panel "Ver qué falta" de SCRUM-98 muestra el estado de cada ingrediente y la cantidad solo cuando el producto se tacha con faltante, y el aviso bajo cada producto en `/lista` es de SCRUM-114 (Marcos), todavía sin hacer. Cambiar esto para que la semana sume envases sería cambiar la regla 20, que es de SCRUM-97 y de la lista de otra persona.
-- **Elegir una sublista de fecha como destino (HU-69 CA-03):** depende de las sublistas (HU-44 a HU-46 / SCRUM-76 a SCRUM-78, de Marcos, Sprint 4) y de que `lists` las distinga por fecha; hoy solo existe la lista general. Cuando existan, el diálogo suma un selector de destino y la RPC recibe el id de la lista. Hasta entonces el destino es fijo y el CA-03 queda cumplido a medias; **hay que avisarlo en la PR**.
+- **Elegir una sublista de fecha como destino (HU-69 CA-03):** lo resuelve SCRUM-160 (sección 17). Lo que decía: depende de las sublistas (HU-44 a HU-46 / SCRUM-76 a SCRUM-78, de Marcos, Sprint 4) y de que `lists` las distinga por fecha; hoy solo existe la lista general. Cuando existan, el diálogo suma un selector de destino y la RPC recibe el id de la lista. Hasta entonces el destino es fijo y el CA-03 queda cumplido a medias; **hay que avisarlo en la PR**.
 - **Agregar las dos semanas de una vez:** el botón actúa sobre la semana a la vista.
 - **Agregar solo algunos días o comidas** (casillas por espacio): no lo pide la historia.
 - **Avisar que la semana ya se agregó antes** (como la regla 27 de recetas): se pregunta siempre, sin recordar nada en el navegador.
@@ -403,3 +408,234 @@ Decidido con el responsable el 2026-10-10 (las seis preguntas que la historia no
 - **Decisión abierta: conteos que sobran.** Con la regla 19 cada espacio suma encima hasta cubrir su comida, así que 2 cebollas pedidas en dos días con una bolsa de 6 dan 2 bolsas, no 1. Es lo que haría SCRUM-97 agregando las recetas una por una. Sumar primero todo lo que pide el producto en la semana y redondear una vez daría 1 bolsa, pero perdería el registro por receta de `list_item_recipe_requirements`. Si en QA molesta, es un ajuste de la función interna.
 - **Cuando las dos copias se junten.** Si los dueños lo acuerdan, `add_recipe_to_general_list` puede pasar a llamar a `add_week_ingredients_to_list` con multiplicador 1 y se borra la copia (un `create or replace` del cuerpo, probado con las pruebas SQL de la 015, la 017 y la de equivalencia de la 022). Mientras tanto, cualquier corrección a las reglas 17 a 26 hay que hacerla en las dos.
 - **Tiempo.** El rango es de lunes a domingo en hora local del navegador (regla 1); el cliente manda las dos claves y la base solo compara fechas.
+
+## 17. SCRUM-160: elegir a qué lista se agrega la semana
+
+Cierra el CA-03 de HU-69, que SCRUM-101 dejó pendiente porque las sublistas por fecha no existían (hoy sí: SCRUM-76 a SCRUM-78). Reemplaza la regla 28 y el punto de las sublistas de la [sección 16.11](#1611-casos-fuera-de-alcance); el resto de la sección 16 sigue igual.
+
+Decidido con el responsable el 2026-11-24: el faltante se guarda en la base y no se muestra en la sublista; se ofrecen solo las sublistas **pendientes de hoy en adelante**; desde el diálogo se elige, no se crea.
+
+### 17.1 Alcance
+
+- El diálogo de confirmación suma un selector **"¿A qué lista?"**: la lista general (elegida por defecto) y las sublistas por fecha que se ofrecen (regla 40).
+- "Agregar" escribe solo en la lista elegida, con las mismas reglas de la sección 16.
+- El aviso final nombra la lista elegida y su enlace lleva a ella.
+- Tests unitarios que faltaban de agregar una receta a la lista: `toAddRecipeToListResponse`, `toAddToListSummaryText` y `useRecipeListAddition` (tarea pendiente de SCRUM-97).
+
+### 17.2 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Sublistas | id, nombre, fecha y estado | `lists` de tipo `date` que ve quien llama (RLS) |
+| Hoy | clave `"2026-11-24"` | fecha local del navegador (`useToday`) |
+| Destino | lista general o id de una sublista | selector del diálogo |
+
+Las demás son las de la sección 16.2.
+
+### 17.3 Salidas
+
+- Filas nuevas o cantidades sumadas en `list_items` de la lista elegida, y registros en `list_item_recipe_requirements` de esas filas.
+- El aviso con el resumen y "Ver lista", hacia `/lista` o `/fechas/{id}`.
+- Ninguna otra lista cambia, ni `meal_plans`.
+
+### 17.4 Reglas de negocio
+
+39. **General por defecto.** Cada vez que se abre el diálogo queda elegida la general. No se recuerda la elección anterior.
+40. **Qué sublistas se ofrecen.** Las que el usuario ve, con estado pendiente (`active`) y `event_date` de hoy o posterior según la fecha local, de la más próxima a la más lejana. Cada opción muestra nombre y fecha, porque el nombre se puede repetir.
+41. **Se piden al abrir.** Las sublistas se cargan cada vez que se abre el diálogo, así una recién creada aparece. Si al volver a cargar desaparece la elegida, la selección vuelve a la general.
+42. **La general nunca espera.** Mientras cargan o si falla la carga de las sublistas, la general se puede usar igual. Sin sublistas que ofrecer no hay selector: queda la confirmación de siempre.
+43. **Un solo destino por vez**, y sus cuentas son independientes: el "disponible" de las reglas 20 y 31 mira solo la lista elegida. Lo que ya está en otra lista no descuenta.
+44. **El faltante se guarda y no se muestra.** Agregar a una sublista guarda los mismos registros que en la general, porque sin ellos dos comidas que piden el mismo producto no se descontarían entre sí. Solo se ve en "Te falta comprar" del aviso; la sublista no muestra avisos ni panel "¿Qué hiciste?" (SCRUM-114 y SCRUM-115 leen solo la lista general).
+45. **La base vuelve a validar el destino:** existe, quien llama la ve, es de tipo `date` y está `active`. Si no, `P0002` y no se escribe nada, también con la semana vacía. La fecha no se valida en la base: su "hoy" está en UTC y en la noche de Costa Rica ya sería mañana (regla 2 de sublistas).
+46. **Atómico** también en la sublista (regla 32): entra toda la semana o nada.
+47. **El destino no cambia a mitad.** Mientras agrega, el selector está deshabilitado. El aviso usa el destino que se confirmó.
+48. **Permisos.** `security invoker`, sin ids de usuario. Una sublista de la familia la puede elegir cualquier miembro; el plan y las recetas siguen siendo los de quien llama.
+
+### 17.5 Estados
+
+A los de la sección 16.5 se suma la carga de sublistas: `loading` · `ready` · `failed`. Es independiente de la confirmación. Una respuesta que llega con el diálogo cerrado o de una apertura anterior se descarta.
+
+### 17.6 Errores
+
+| Caso | Qué se muestra |
+|---|---|
+| Falla al cargar las sublistas | En el diálogo: "No se pudieron cargar tus sublistas. Puedes agregar a la lista general." con "Reintentar" |
+| La sublista dejó de estar disponible (`P0002`) | En el diálogo: "Esa sublista ya no está disponible. Elige otra lista." Se recargan las opciones y la selección vuelve a la general |
+| Otra falla al agregar | El de la sección 16.6; se conserva la elección para reintentar |
+
+En todos los casos ninguna lista cambió. Una receta borrada a mitad también da `P0002`, pero sin el `hint` de la sublista (17.9): cae en "Otra falla al agregar".
+
+### 17.7 UI esperada
+
+- Dentro del diálogo, debajo de la frase: grupo **"¿A qué lista?"** con una opción por lista ("Lista general", "Paseo a la playa · 28 nov"; con el año si no es el actual).
+- La frase ya no nombra la lista: "Vas a agregar los ingredientes de 5 comidas (23 – 29 nov)." Sin selector conserva el texto de hoy.
+- Con muchas sublistas el grupo se desplaza y los botones siguen visibles, en desktop y en 360 px.
+- El aviso: "Agregaste 8 ingredientes de 5 comidas a Paseo a la playa." En la general, el texto de hoy ("a tu lista").
+- Los textos siguen el estilo del planificador (tuteo).
+
+### 17.8 Accesibilidad
+
+- Opciones de radio en un `fieldset` con `legend`, recorribles con flechas; la elegida no se distingue solo por el color.
+- La carga se anuncia con `role="status"` y los errores con `role="alert"`.
+- El foco no se mueve cuando llegan las sublistas. El resto, como la sección 16.8.
+
+### 17.9 Contratos externos
+
+- **RPC nueva `add_week_to_list(week_from date, week_to date, target_list_id uuid default null) returns jsonb`**, `security invoker`, `search_path` vacío, solo `authenticated`. Sin `target_list_id` agrega a la general. Devuelve lo mismo que `add_week_to_general_list`. Sin sesión: `42501`; rango inválido: `22023`; destino no disponible: `P0002` con `hint = 'date_list_unavailable'`.
+- **`add_week_to_general_list(date, date)` conserva firma, respuesta y comportamiento**: la base es compartida y el código mergeado la sigue llamando. Por dentro pasa a llamar a `add_week_to_list`.
+- Reusa `add_week_ingredients_to_list` sin cambios: no hay una tercera copia de las reglas 17 a 26.
+- Sin tablas nuevas, sin cambios de RLS y sin tocar las funciones de sublistas (038, 043).
+- Migración: el siguiente número libre al aplicarla (la `058` hoy; `056` y `057` son de PRs abiertas).
+
+### 17.10 Casos de aceptación (SCRUM-160)
+
+- [ ] CA-01: en el diálogo se puede elegir la general o una sublista existente.
+- [ ] CA-02: la general viene elegida al abrir, también después de haber usado una sublista.
+- [ ] CA-03: se agrega solo a la lista elegida y un producto repetido queda en una sola fila por presentación; las otras listas no cambian.
+- [ ] CA-04: se ofrecen solo las pendientes de hoy en adelante a las que se tiene acceso; ni canceladas, ni completadas, ni pasadas, ni ajenas.
+- [ ] Sin sublistas no hay selector y todo funciona como en SCRUM-101.
+- [ ] Si falla la carga de sublistas, la general se puede usar y se puede reintentar.
+- [ ] Dos sublistas con el mismo nombre se distinguen por la fecha.
+- [ ] La sublista se cancela o se completa en otra pestaña antes de confirmar: mensaje, opciones recargadas y nada escrito.
+- [ ] El multiplicador y la misma receta en dos espacios cuentan igual que en la general.
+- [ ] Dos comidas que piden el mismo producto en ml o g se descuentan entre sí dentro de la sublista, y el faltante sale en el aviso.
+- [ ] El faltante de la sublista no aparece en `/lista`, en "Ver qué falta" ni en la sublista.
+- [ ] El aviso nombra la sublista y "Ver lista" abre `/fechas/{id}`.
+- [ ] Doble clic: una sola petición. Todo o nada si una comida falla.
+- [ ] SQL: sublista ajena, inexistente, cancelada, completada o lista general como destino → `P0002`; sin sesión → `42501`; rango inválido → `22023`; semana vacía no escribe; un miembro sí agrega a la sublista de su familia; `anon` sin permiso; la misma semana deja las mismas filas en una sublista vacía que en una general vacía.
+- [ ] La prueba SQL de la 022 sigue pasando.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test` y el E2E del planificador pasan.
+
+### 17.11 Casos fuera de alcance
+
+- **Crear una sublista desde el diálogo:** se crea en Fechas.
+- **Avisos y panel de faltantes en sublistas:** regla 44.
+- **Elegir varias listas a la vez, o listas privadas** (estas últimas no existen todavía).
+- **Elegir destino al agregar una receta suelta:** HU-65 dice "mi lista".
+- **Preseleccionar la sublista según la semana del plan.**
+- **Borrar `get_general_list_shortfalls()` y `get_recipe_coverage(uuid)`:** `main` todavía llama a `get_recipe_coverage` y la base es compartida; borrarla rompería lo entregado. Va después de que `main` tenga SCRUM-115.
+- **Combinar la sublista con la general al comprar:** SCRUM-68.
+
+### 17.12 Notas de implementación
+
+- **HU-76 CA-03 no prohíbe la regla 44.** Dice que un aviso no nace de una sublista, porque sus productos son unidades concretas. Aquí el faltante nace del plan, y además no se muestra. Marcos está de acuerdo (2026-11-24).
+- **Carrera aceptada:** una cancelación entre la validación y el final de la transacción puede dejar productos en una sublista cancelada, igual que en `add_item_to_date_list`.
+- **Tachar a la vez:** el trigger de 043 bloquea la fila de la lista al insertar, y tachar bloquea primero el producto. Un cruce puede terminar en deadlock; Postgres aborta una de las dos transacciones. Si es la semana, no entra nada y sale el error para reintentar.
+- **Sin importar entre features:** el planificador necesita leer las sublistas y la regla de "pendiente". Se promueven las constantes de estado y tipo y `toDateListPath` (plan), con revisión de Marcos.
+
+## 18. SCRUM-162: plan semanal de la familia
+
+Amplía SCRUM-162 (decidido el 2026-11-25) y completa el CA-01 de HU-68 ("asignar cocinero, miembro del household"). Se apoya en las recetas de la familia (`features/recipes/specs/SPEC.md` §17). Reemplaza la regla 24 y lo que las secciones 14 y 15 dejan pendiente sobre el household.
+
+Decidido con el responsable:
+
+- conviven **"Mi plan"** y **"Plan de la familia"**, con un selector;
+- **cualquier miembro** cambia el de la familia;
+- ese plan solo lleva **recetas de la familia**;
+- si el cocinero sale de la familia, sus espacios quedan **sin cocinero**.
+
+### 18.1 Alcance
+
+- Selector "Mi plan" / "Plan de la familia" para quien tiene familia.
+- Ver, asignar, cambiar y quitar espacios del plan de la familia.
+- Elegir como cocinero a cualquier miembro en el plan de la familia.
+- "Agregar semana a la lista" usa el plan a la vista.
+
+### 18.2 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Plan a la vista | personal o familia | selector; arranca en personal |
+| Miembros de la familia | id, nombre, si soy yo | `get_household_members_page` |
+| Cocinero | "Yo", otro miembro o nadie | diálogo |
+| Recetas a elegir | las de la familia (plan de la familia); todas las visibles (personal) | base, por RLS |
+
+### 18.3 Salidas
+
+- Filas de `meal_plans` con `household_id`, una por día y comida de la familia.
+- La grilla del plan elegido, con receta, nombre del cocinero y multiplicador.
+
+### 18.4 Reglas de negocio
+
+49. **Sin familia no hay selector** y todo es como hoy. Si no se pudo saber si tiene familia, tampoco aparece.
+50. **Los planes no se mezclan.** Cambiar uno no toca el otro. Nada se comparte ni se copia solo: tampoco al unirse a una familia.
+51. **Un solo espacio por día y comida** en el plan de la familia. Dos miembros a la vez: queda el último guardado, sin duplicados.
+52. **Cualquier miembro** ve, asigna, cambia y quita. Quien no es miembro, un exmiembro o una sesión anónima no ve ni cambia nada.
+53. **Solo recetas de la familia** en ese plan; lo exige la base. En el personal siguen valiendo las propias y las de la familia.
+54. **Cocinero:** en el plan de la familia, cualquier miembro o nadie; por defecto, quien asigna. Lo valida la base. En el personal, "Yo" o nadie, como hoy.
+55. **Nombre del cocinero:** "Yo" si es quien mira; si no, su nombre, o "Integrante sin nombre" si no tiene.
+56. **Cambiar de plan** vuelve a pedir el plan y descarta respuestas del anterior que lleguen tarde. La semana a la vista se conserva.
+57. **Agregar la semana** suma las comidas del plan a la vista a la lista elegida (regla 42). El destino no cambia: la general de quien tiene familia es la de la familia.
+58. **Al salir o ser removido:** sus espacios como cocinero quedan sin cocinero y el plan de la familia se conserva completo, también lo que esa persona asignó. Su plan personal sigue la regla 69 de recetas.
+59. **Al disolver,** los espacios quedan en el plan personal del último admin; si choca con uno suyo, gana el personal (ya lo hace la `024`).
+60. **Eliminar una receta de la familia** libera sus espacios en todos los planes. El diálogo lo avisa; no cuenta los de otros.
+61. **Si deja de ser miembro** con la pantalla abierta: se avisa y vuelve a "Mi plan".
+
+### 18.5 Estados
+
+| Elemento | Estado | Notas |
+|---|---|---|
+| Selector | oculto · personal · familia | Deshabilitado mientras se guarda o se agrega la semana |
+| Plan | los de la sección 6, por plan | Cambiar de plan vuelve a "cargando" |
+| Cocineros | cargando · listos · error | Con error solo se ofrecen "Yo" y "Sin cocinero", con aviso y reintento |
+
+### 18.6 Errores
+
+| Caso | Qué se muestra |
+|---|---|
+| No carga el plan de la familia | El error de siempre con "Reintentar" |
+| Ya no es miembro | "Ya no formas parte de una familia. Te mostramos tu plan." |
+| La receta ya no es de la familia o se borró | "Esa receta ya no está disponible. Elige otra." y se quita de las opciones |
+| El cocinero ya no es miembro | "Esa persona ya no está en tu familia. Elige otro cocinero." y se vuelven a pedir |
+| No cargan los miembros | "No se pudieron cargar los integrantes." con "Reintentar" |
+
+### 18.7 UI esperada
+
+- El selector va entre los sub-tabs y la semana: dos opciones, con la elegida marcada.
+- El diálogo usa los mismos campos; "Quién cocina" lista "Yo", los demás miembros por nombre y "Sin cocinero".
+- Sin recetas de la familia: "Tu familia todavía no tiene recetas." con el enlace a crear una.
+- Desktop y 360 px; muchos miembros se desplazan dentro del campo.
+
+### 18.8 Accesibilidad
+
+- El selector es un grupo de radios con nombre, operable con teclado; la opción no depende solo del color.
+- Al cambiar de plan se anuncia cuál quedó y su carga.
+
+### 18.9 Contratos externos
+
+- **`meal_plans.household_id`** pasa a tener FK a `households` y un índice único por familia, día y comida. Sus políticas y permisos **no cambian**: por la API directa cada quien ve y cambia solo lo personal.
+- El plan de la familia va **solo por funciones**: leer, asignar y quitar. Ninguna recibe la familia: sale de la membresía. `42501` sin cuenta o sin familia; `P0002` receta o cocinero que no es de la familia.
+- **`assign_meal_slot` y `add_week_to_list` conservan firma y comportamiento** (plan personal). Una función nueva agrega la semana de cualquiera de los dos.
+- El trigger de salida de la `060` se reescribe: no debe mover ni borrar espacios del plan de la familia.
+- Migración: la `062` o la siguiente libre.
+
+### 18.10 Casos de aceptación
+
+- [x] CA-13: quien tiene familia alterna entre los dos planes; sin familia solo ve el suyo.
+- [x] CA-14: todos los miembros ven, asignan, cambian y quitan espacios del plan de la familia.
+- [x] CA-15: en ese plan solo se eligen recetas de la familia (interfaz y SQL).
+- [x] CA-16: el cocinero puede ser cualquier miembro o nadie; otro usuario se rechaza (SQL).
+- [x] CA-17: la grilla muestra la receta y el nombre del cocinero.
+- [x] CA-18: agregar la semana usa el plan a la vista y solo ese.
+- [x] CA-19: ni otra familia, ni un exmiembro, ni una sesión anónima ven o cambian el plan de la familia; los personales siguen privados (SQL).
+- [x] CA-20: al salir o ser removido, sus espacios quedan sin cocinero y el plan se conserva, también lo que asignó (SQL).
+- [x] CA-21: dos miembros en el mismo espacio dejan uno solo, el último.
+- [x] CA-22: al unirse a una familia no se comparte el plan personal.
+- [x] CA-23: al disolver, los espacios pasan al último admin y, si chocan, gana el personal (SQL).
+- [x] Quitar o cambiar un espacio personal no toca el de la familia del mismo día y comida, y al revés.
+- [x] Una respuesta tardía del plan anterior no pisa la del elegido.
+- [x] El cocinero o la receta que dejan de estar se avisan sin perder lo demás.
+- [x] Transferir el admin y salir conserva el plan.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, SQL y E2E pasan.
+
+### 18.11 Casos fuera de alcance
+
+- Cambios en vivo de otro miembro, notificaciones al cocinero y copiar un plan en otro.
+- Recordar el último plan visto.
+- Más de 50 miembros en el selector de cocinero.
+- **Borrar una cuenta:** borra los espacios del plan de la familia que esa persona asignó (tarea aparte, igual que sus recetas).
+
+### 18.12 Notas de implementación
+
+- **Por qué funciones y no abrir las políticas:** el cliente actual borra un espacio por fecha y comida, y lee el plan sin filtrar. Con políticas de miembros borraría el espacio de la familia al quitar el personal, y los mezclaría al leer, mientras `main` no tenga esto.
+- **Por qué la FK es diferida:** al disolver, la `024` convierte los espacios a personales y resuelve los choques. `set null` chocaría antes con el índice personal, y una FK inmediata fallaría antes de que corra.

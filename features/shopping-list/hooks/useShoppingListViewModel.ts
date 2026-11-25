@@ -11,7 +11,7 @@ import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interfac
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
 import type { ShortfallPanelViewModel, UndoUncheckViewModel } from "../models/shortfall-resolution.types";
 import type { StorePickerViewModel } from "../models/StorePickerViewModel.interface";
-import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
+import { toCatalogSearchResults } from "@/utils/toCatalogSearchResults";
 import { isBoughtInSession, toShoppingListRow } from "../utils/toShoppingListRow";
 import { toStorePriceRanges } from "@/utils/toStorePriceRanges";
 import { useClosePurchase } from "./useClosePurchase";

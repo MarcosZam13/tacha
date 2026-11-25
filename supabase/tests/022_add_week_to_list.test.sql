@@ -14,8 +14,8 @@
 -- terminar bien se ve la fila del último `select set_config(...)`. Un error
 -- sale en rojo.
 --
--- Datos (se buscan en el catálogo; los pasos que dependen de uno que no existe
--- avisan con un `raise notice` y se omiten, así que mira los avisos):
+-- Datos (los productos son propios de la prueba: el catálogo compartido tiene
+-- productos personales que la RLS de la 032 oculta a los usuarios de prueba):
 --   P1  producto con una sola presentación en ml o g (base_quantity = b): la
 --       cuenta es exacta porque pick_recipe_variant no tiene otra que elegir;
 --   P2  producto con una sola presentación en `unidad` (regla 19);
@@ -52,63 +52,31 @@ declare
   p1 record;
   p2 record;
   p3 record;
-  p4 uuid;
+  p4 uuid := gen_random_uuid();
+  product_1 uuid := gen_random_uuid();
+  product_2 uuid := gen_random_uuid();
+  product_3 uuid := gen_random_uuid();
   p3_unit text;
 begin
-  select v.id, v.product_catalog_id, v.base_quantity, v.base_unit into p1
-  from public.product_catalog_variants v
-  where v.base_unit in ('ml', 'g')
-    and v.base_quantity > 0
-    and v.base_quantity <= 50000
-    and not exists (
-      select 1 from public.product_catalog_variants other
-      where other.product_catalog_id = v.product_catalog_id
-        and other.id <> v.id
-        and other.base_quantity > 0
-    )
-  limit 1;
+  -- Productos propios (se van con el rollback). Nombre con sufijo único por el
+  -- índice de nombres del catálogo global.
+  insert into public.product_catalog (id, name, source)
+  select id, 'P101 ' || id, 'manual' from unnest(array[product_1, product_2, product_3, p4]) as t(id);
 
-  assert p1.id is not null, 'el catálogo no tiene un producto con una sola presentación en ml o g';
+  insert into public.product_catalog_variants (product_catalog_id, name, base_unit, base_quantity)
+  values
+    (product_1, 'P101 leche 1000 ml', 'ml', 1000),
+    (product_2, 'P101 huevo 6 unidades', 'unidad', 6),
+    (product_3, 'P101 harina 500 g', 'g', 500);
+
+  select v.id, v.product_catalog_id, v.base_quantity, v.base_unit into p1
+  from public.product_catalog_variants v where v.product_catalog_id = product_1;
 
   select v.id, v.product_catalog_id, v.base_quantity into p2
-  from public.product_catalog_variants v
-  where v.base_unit = 'unidad'
-    and v.base_quantity > 0
-    and v.base_quantity <= 100
-    and v.product_catalog_id <> p1.product_catalog_id
-    and not exists (
-      select 1 from public.product_catalog_variants other
-      where other.product_catalog_id = v.product_catalog_id
-        and other.id <> v.id
-        and other.base_quantity > 0
-    )
-  limit 1;
+  from public.product_catalog_variants v where v.product_catalog_id = product_2;
 
   select v.id, v.product_catalog_id, v.base_unit into p3
-  from public.product_catalog_variants v
-  where v.base_unit in ('ml', 'g')
-    and v.base_quantity > 0
-    and v.base_quantity <= 50000
-    and v.product_catalog_id not in (p1.product_catalog_id, coalesce(p2.product_catalog_id, gen_random_uuid()))
-    and not exists (
-      select 1 from public.product_catalog_variants other
-      where other.product_catalog_id = v.product_catalog_id
-        and other.id <> v.id
-        and other.base_quantity > 0
-    )
-  limit 1;
-
-  select pc.id into p4
-  from public.product_catalog pc
-  where not exists (
-    select 1 from public.product_catalog_variants v
-    where v.product_catalog_id = pc.id and v.base_quantity > 0
-  )
-  limit 1;
-
-  if p2.id is null then raise notice 'Sin P2 (presentación en unidad): se omiten la regla 19 y el paso 8.'; end if;
-  if p3.id is null then raise notice 'Sin P3 (unidad sin coincidencia): se omite la regla 22.'; end if;
-  if p4 is null then raise notice 'Sin P4 (producto sin presentación): se omite la regla 26.'; end if;
+  from public.product_catalog_variants v where v.product_catalog_id = product_3;
 
   insert into auth.users (id, aud, role, email)
   values
@@ -479,8 +447,7 @@ reset role;
 
 -- ----------------------------------------------------------------------------
 -- 6. Todo o nada: una semana cuya segunda comida es una receta con 51
---    ingredientes se aborta entera. Solo si el catálogo tiene 51 productos
---    distintos; si no, se omite con un aviso (mira los avisos al correrlo).
+--    ingredientes se aborta entera.
 --    Ojo: la comprobación de que no quedó nada corre dentro de un bloque con
 --    `exception`, que ya deshace sus propias escrituras, así que este paso
 --    prueba que la función falla con 22023, no la atomicidad por sí sola (un
@@ -492,13 +459,12 @@ declare
   product_ids uuid[];
   big_recipe uuid := gen_random_uuid();
 begin
-  select array_agg(id) into product_ids from (select id from public.product_catalog limit 51) as products;
-
-  if coalesce(cardinality(product_ids), 0) < 51 then
-    raise notice 'Paso 6 omitido: el catálogo tiene menos de 51 productos.';
-    perform set_config('tacha_test.big_recipe', '', true);
-    return;
-  end if;
+  with big_products as (
+    insert into public.product_catalog (name, source)
+    select 'P101 extra ' || n || ' ' || big_recipe, 'manual' from generate_series(1, 51) as n
+    returning id
+  )
+  select array_agg(id) into product_ids from big_products;
 
   insert into public.recipes (id, owner_id, name, base_servings)
   values (big_recipe, current_setting('tacha_test.user_a')::uuid, 'Receta grande SCRUM-101', 4);

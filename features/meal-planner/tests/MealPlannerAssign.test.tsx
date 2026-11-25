@@ -321,6 +321,48 @@ describe("MealPlanner: closing the dialog", () => {
     expect(page.getFocusedElement()).toBe(page.getSlotButton(EMPTY_MONDAY_DINNER));
   });
 
+  // SCRUM-142, D4: la devolución del foco ya no es del hook sino del Modal compartido. Estos tests usan
+  // los componentes reales y comparan el mismo nodo antes y después: el espacio no se vuelve a montar al
+  // guardar o quitar (duda 8), así que el foco vuelve a él.
+  it("gives the focus back to the same slot after saving a recipe", async () => {
+    saveMealSlotMock.mockResolvedValue({ slotId: "slot-new" });
+    const page = await renderPlanner();
+    const slotButton = page.getSlotButton(EMPTY_MONDAY_DINNER);
+    await page.openSlot(EMPTY_MONDAY_DINNER);
+    await page.chooseRecipe("Flan");
+
+    await page.save();
+
+    await waitFor(() => expect(page.queryDialog()).not.toBeInTheDocument());
+    expect(page.getSlotButton("Cena del lunes 12: Flan, cambiar")).toBe(slotButton);
+    expect(page.getFocusedElement()).toBe(slotButton);
+  });
+
+  it("gives the focus back to the same slot after removing its meal", async () => {
+    clearMealSlotMock.mockResolvedValue({ dateKey: "2026-10-12", mealType: MEAL_TYPE.LUNCH });
+    const page = await renderPlanner();
+    const slotButton = page.getSlotButton(ASSIGNED_MONDAY_LUNCH);
+    await page.openSlot(ASSIGNED_MONDAY_LUNCH);
+    await page.findRecipeRadio("Arroz con leche");
+
+    await page.remove();
+
+    await waitFor(() => expect(page.queryDialog()).not.toBeInTheDocument());
+    expect(page.getSlotButton("Almuerzo del lunes 12, vacío, asignar")).toBe(slotButton);
+    expect(page.getFocusedElement()).toBe(slotButton);
+  });
+
+  it("gives the focus back to the slot even when the click did not focus it, as in Safari", async () => {
+    const page = await renderPlanner();
+    page.openSlotWithoutFocusing(EMPTY_MONDAY_DINNER);
+    await page.findRecipeRadio("Flan");
+
+    await page.cancel();
+
+    expect(page.queryDialog()).not.toBeInTheDocument();
+    expect(page.getFocusedElement()).toBe(page.getSlotButton(EMPTY_MONDAY_DINNER));
+  });
+
   it("closes with Escape", async () => {
     const page = await renderPlanner();
     await page.openSlot(EMPTY_MONDAY_DINNER);

@@ -9,6 +9,7 @@ export const PROFILE_TEXT = {
   REMOVE_PHOTO: "Quitar foto",
   SAVE: "Guardar cambios",
   SAVING: "Guardando...",
+  SETTINGS: "Configuración",
   TITLE: "Mi perfil",
   UNNAMED: "Sin nombre",
 } as const;
@@ -57,21 +58,9 @@ export const PROFILE_PHOTO_CHANGE = {
 export type ProfilePhotoChangeKindType =
   (typeof PROFILE_PHOTO_CHANGE)[keyof typeof PROFILE_PHOTO_CHANGE];
 
-export const PROFILE_NAME_MAX_LENGTH = 60;
-
 // Las mismas reglas del bucket `avatars` (supabase/migrations/036_create_avatars_bucket.sql): ahí las hace
 // cumplir Storage; acá solo se avisa antes de subir.
 export const AVATAR_MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
-
-// Extensión del objeto según el tipo MIME; las claves son además la lista de tipos permitidos.
-export const AVATAR_FILE_EXTENSION_BY_MIME_TYPE: Readonly<Record<string, string>> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-
-// Valor del atributo `accept` del selector de archivos.
-export const AVATAR_ACCEPT = Object.keys(AVATAR_FILE_EXTENSION_BY_MIME_TYPE).join(",");
 
 export const AVATAR_STORAGE = {
   BUCKET: "avatars",

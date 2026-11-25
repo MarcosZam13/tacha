@@ -1,13 +1,7 @@
+import { DATE_LIST_STATUS } from "@/constants";
+import type { DateListStatusType } from "@/constants";
+
 // Constantes de las sublistas por fecha (SCRUM-77, SPEC.md).
-
-// Espejo del check de lists.status (004). "active" se muestra como "Pendiente".
-export const DATE_LIST_STATUS = {
-  ACTIVE: "active",
-  CANCELLED: "cancelled",
-  COMPLETED: "completed",
-} as const;
-
-export type DateListStatusType = (typeof DATE_LIST_STATUS)[keyof typeof DATE_LIST_STATUS];
 
 export const DATE_LIST_STATUS_LABEL: Record<DateListStatusType, string> = {
   [DATE_LIST_STATUS.ACTIVE]: "Pendiente",
@@ -58,7 +52,6 @@ export const DATE_LIST_DB = {
   DETAIL_SELECT:
     "id, name, event_date, status, spent_total, list_items(id, checked_at, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   LIST_SELECT: "id, name, event_date, status, spent_total",
-  LIST_TYPE: "date",
   RPC: {
     ADD_ITEM: "add_item_to_date_list",
     CREATE: "create_date_list",

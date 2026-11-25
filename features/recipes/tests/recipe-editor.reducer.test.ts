@@ -16,7 +16,12 @@ const LOADED_VALUES: RecipeEditorValues = { baseServings: "4", ingredients: [FLO
 
 // Un formulario ya con ingredientes, listo para tocar; parte sin cambios.
 const stateWithFlour = () =>
-  recipeEditorReducer(createInitialRecipeEditorState(true), { type: RECIPE_EDITOR_ACTION.LOADED, values: LOADED_VALUES });
+  recipeEditorReducer(createInitialRecipeEditorState(true), {
+    isShared: false,
+    photo: null,
+    type: RECIPE_EDITOR_ACTION.LOADED,
+    values: LOADED_VALUES,
+  });
 
 describe("recipe editor reducer — unsaved changes", () => {
   it("starts a new recipe without changes", () => {
@@ -62,6 +67,33 @@ describe("recipe editor reducer — unsaved changes", () => {
   it("keeps the changes when saving fails, so the warning stays", () => {
     const edited = recipeEditorReducer(stateWithFlour(), { name: "Pan casero", type: RECIPE_EDITOR_ACTION.NAME_CHANGED });
 
-    expect(recipeEditorReducer(edited, { type: RECIPE_EDITOR_ACTION.SAVE_FAILED }).hasChanges).toBe(true);
+    expect(recipeEditorReducer(edited, { message: "x", type: RECIPE_EDITOR_ACTION.SAVE_FAILED }).hasChanges).toBe(true);
+  });
+});
+
+describe("recipe editor reducer — photo", () => {
+  it("remembers the saved photo of the recipe to edit", () => {
+    const state = recipeEditorReducer(createInitialRecipeEditorState(true), {
+      isShared: false,
+      photo: { url: "https://pan" },
+      type: RECIPE_EDITOR_ACTION.LOADED,
+      values: LOADED_VALUES,
+    });
+
+    expect(state.savedPhoto).toEqual({ url: "https://pan" });
+  });
+
+  it("keeps what was written and remembers the recipe when only the photo failed", () => {
+    const state = recipeEditorReducer(
+      recipeEditorReducer(stateWithFlour(), { type: RECIPE_EDITOR_ACTION.SAVE_STARTED }),
+      { hasLostHousehold: false, message: "Falló la foto", recipeId: "pan", type: RECIPE_EDITOR_ACTION.SAVED_PARTIALLY },
+    );
+
+    expect(state).toMatchObject({
+      saveErrorMessage: "Falló la foto",
+      savedRecipeId: "pan",
+      status: "editing",
+      values: LOADED_VALUES,
+    });
   });
 });

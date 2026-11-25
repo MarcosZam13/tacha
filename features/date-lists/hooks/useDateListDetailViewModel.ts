@@ -6,7 +6,8 @@ import { useProductSearch } from "@/hooks/useProductSearch";
 import { changeListItemQuantity } from "@/services/list-items.service";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
-import { DATE_LIST_STATUS, DATE_LIST_TEXT } from "../constants/date-lists.constants";
+import { DATE_LIST_STATUS } from "@/constants";
+import { DATE_LIST_TEXT } from "../constants/date-lists.constants";
 import type { DateListDetail } from "../models/DateList.interface";
 import {
   addItemToDateList,

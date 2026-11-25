@@ -8,6 +8,7 @@ import { AddWeekToListDialog } from "./components/AddWeekToListDialog";
 import { AddWeekToListResult } from "./components/AddWeekToListResult";
 import { MealPlanLoadError } from "./components/MealPlanLoadError";
 import { MealSlotDialog } from "./components/MealSlotDialog";
+import { PlanScopeSelector } from "./components/PlanScopeSelector";
 import { WeekGrid } from "./components/WeekGrid";
 import { WeekSelector } from "./components/WeekSelector";
 import { useMealPlannerViewModel } from "./hooks/useMealPlannerViewModel";
@@ -28,6 +29,7 @@ export const MealPlanner = (): React.JSX.Element => {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{MEAL_PLANNER_TEXT.TITLE}</h1>
       <RecipesTabs activeTab={RECIPES_TAB.PLANNER} />
+      <PlanScopeSelector {...viewModel.planScope} />
       <WeekSelector
         canGoToNextWeek={viewModel.canGoToNextWeek}
         canGoToPreviousWeek={viewModel.canGoToPreviousWeek}
@@ -39,7 +41,7 @@ export const MealPlanner = (): React.JSX.Element => {
       {plan.hasLoadError ? <MealPlanLoadError onRetry={plan.onPlanRetry} /> : null}
       <div className="flex flex-col items-start gap-3">
         <AddWeekToListButton canOpen={weekAddition.canOpen} onOpen={weekAddition.onOpen} />
-        <AddWeekToListResult resultLines={weekAddition.resultLines} />
+        <AddWeekToListResult resultLines={weekAddition.resultLines} resultListHref={weekAddition.resultListHref} />
       </div>
       {isReady ? (
         // Sin leer el plan no se sabe qué espacios tienen receta: no se puede asignar a ciegas. Con la
@@ -54,11 +56,17 @@ export const MealPlanner = (): React.JSX.Element => {
       <MealSlotDialog {...dialog} />
       <AddWeekToListDialog
         confirmMessage={weekAddition.confirmMessage}
+        dateListOptions={weekAddition.dateListOptions}
+        destination={weekAddition.destination}
         errorMessage={weekAddition.errorMessage}
+        hasOptionsError={weekAddition.hasOptionsError}
         isAdding={weekAddition.isAdding}
+        isLoadingOptions={weekAddition.isLoadingOptions}
         isOpen={weekAddition.isOpen}
         onClose={weekAddition.onClose}
         onConfirm={weekAddition.onConfirm}
+        onDestinationChange={weekAddition.onDestinationChange}
+        onOptionsRetry={weekAddition.onOptionsRetry}
       />
     </div>
   );

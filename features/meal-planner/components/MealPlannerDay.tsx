@@ -32,7 +32,7 @@ export const MealPlannerDay = ({ day, getEntry, isDisabled, onSlotOpen }: MealPl
             entry={entry}
             isDisabled={isDisabled}
             label={getMealSlotLabel(slot.mealType, day.longLabel, entry)}
-            onOpen={(opener) => onSlotOpen({ dateKey: day.dateKey, mealType: slot.mealType }, opener)}
+            onOpen={() => onSlotOpen({ dateKey: day.dateKey, mealType: slot.mealType })}
             slot={slot}
           />
         );

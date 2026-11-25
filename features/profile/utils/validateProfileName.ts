@@ -1,5 +1,6 @@
 import type { NullableUndefined } from "@/types/nullable.types";
-import { PROFILE_ERROR_MESSAGE, PROFILE_NAME_MAX_LENGTH } from "../constants/profile.constants";
+import { USER_NAME_MAX_LENGTH } from "@/constants";
+import { PROFILE_ERROR_MESSAGE } from "../constants/profile.constants";
 
 /**
  * Mensaje de error del nombre, o `undefined` si es válido. El nombre es obligatorio (se recorta antes de
@@ -10,5 +11,5 @@ export const validateProfileName = (name: string): NullableUndefined<string> => 
 
   if (trimmedName.length === 0) return PROFILE_ERROR_MESSAGE.NAME_REQUIRED;
 
-  return trimmedName.length > PROFILE_NAME_MAX_LENGTH ? PROFILE_ERROR_MESSAGE.NAME_TOO_LONG : undefined;
+  return trimmedName.length > USER_NAME_MAX_LENGTH ? PROFILE_ERROR_MESSAGE.NAME_TOO_LONG : undefined;
 };

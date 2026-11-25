@@ -68,6 +68,7 @@ describe("toSavedMealPlanEntry", () => {
 
   it("builds the entry the screen shows after saving, with the texts written", () => {
     const savedEntry = toSavedMealPlanEntry({
+      cookName: null,
       option: OPTION,
       slotId: "slot-1",
       target: { dateKey: "2026-10-12", mealType: MEAL_TYPE.LUNCH },
@@ -90,6 +91,7 @@ describe("toSavedMealPlanEntry", () => {
 
   it("leaves the cook and the chip out for no cook at x1", () => {
     const savedEntry = toSavedMealPlanEntry({
+      cookName: null,
       option: OPTION,
       slotId: "slot-2",
       target: { dateKey: "2026-10-13", mealType: MEAL_TYPE.DINNER },

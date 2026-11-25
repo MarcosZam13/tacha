@@ -2,7 +2,7 @@ import { startTransition, useEffect, useOptimistic, useReducer, useRef } from "r
 import type { NullableRef } from "@/types/nullable.types";
 import { SHOPPING_LIST_ACTION, SHOPPING_LIST_TEXT } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
-import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
+import type { CatalogSearchResult } from "@/types/catalog.types";
 import type { ItemCheck } from "../models/ItemCheck.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { ShoppingListState } from "../models/ShoppingListState.interface";

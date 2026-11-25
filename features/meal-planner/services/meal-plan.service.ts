@@ -18,9 +18,8 @@ import { toRecipeOption } from "../utils/toRecipeOption";
  * Trae el plan de un rango de fechas (las dos semanas de la grilla) con la
  * receta de cada espacio embebida, en una sola petición.
  *
- * No filtra por dueño a propósito: lo decide RLS en la base. Hoy la política
- * devuelve solo el plan propio; cuando exista el household se suma la de
- * miembros y esta consulta devuelve también el plan compartido sin cambiar nada.
+ * No filtra por dueño a propósito: RLS devuelve solo el plan propio. El de la
+ * familia sale de household-meal-plan.service.ts.
  */
 export const getMealPlan = async (params: GetMealPlanParams): Promise<MealPlanEntry[]> => {
   // Sin sesión la petición iría como anon, que no tiene permisos sobre meal_plans.
