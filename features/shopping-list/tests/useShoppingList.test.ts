@@ -8,6 +8,7 @@ import type { ItemCheck } from "../models/ItemCheck.interface";
 import type { ItemCheckResult } from "../models/ItemCheckResult.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import {
+  addItemToGeneralList,
   changeItemBoughtQuantity,
   changeItemQuantity,
   checkItemInSession,
@@ -27,6 +28,7 @@ vi.mock("../services/shopping-list.service", () => ({
   getGeneralListShortfalls: vi.fn(() => Promise.resolve(new Map())),
   setItemChecked: vi.fn(),
 }));
+const addItemToGeneralListMock = vi.mocked(addItemToGeneralList);
 const changeItemBoughtQuantityMock = vi.mocked(changeItemBoughtQuantity);
 const checkItemInSessionMock = vi.mocked(checkItemInSession);
 const getGeneralListMock = vi.mocked(getGeneralList);
@@ -252,3 +254,33 @@ describe("useShoppingList: recipe shortfalls (SCRUM-115)", () => {
   });
 });
 
+// SCRUM-104: el ✓ de una sugerencia usa addItem y necesita saber si se agregó.
+describe("useShoppingList: addItem tells whether it was added (SCRUM-104)", () => {
+  const ARROZ = { productName: "Arroz", sizeLabel: "1800 g", variantId: "variant-arroz" };
+
+  it("returns true and shows the new row when the database adds it", async () => {
+    const { result } = await renderLoadedList([]);
+    addItemToGeneralListMock.mockResolvedValue({ ...LECHE, id: "item-arroz", productName: "Arroz", quantity: 1, variantId: "variant-arroz" });
+
+    let wasAdded = false;
+    await act(async () => {
+      wasAdded = await result.current.addItem(ARROZ);
+    });
+
+    expect(wasAdded).toBe(true);
+    expect(result.current.state.items.map((item) => item.id)).toEqual(["item-arroz"]);
+  });
+
+  it("returns false and keeps the error when the database rejects it", async () => {
+    const { result } = await renderLoadedList([]);
+    addItemToGeneralListMock.mockRejectedValue(new Error("network"));
+
+    let wasAdded = true;
+    await act(async () => {
+      wasAdded = await result.current.addItem(ARROZ);
+    });
+
+    expect(wasAdded).toBe(false);
+    expect(result.current.state.addErrorMessage).toBe(SHOPPING_LIST_TEXT.ADD_ERROR);
+  });
+});

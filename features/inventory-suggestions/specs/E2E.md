@@ -30,3 +30,22 @@ Nivel más bajo que alcanza: el cálculo (qué se sugiere, con qué duración y 
 - **Cubre:** CA-03.
 - **Pasos:** la RPC responde 500; abrir `/lista`.
 - **Resultado esperado:** se ve la lista vacía, el buscador está habilitado y no hay región "¿Se te acabó?".
+
+## SCRUM-104: confirmar o descartar
+
+La RPC del ✓ (`add_item_to_general_list`) se responde con la fila que agregaría la base (cantidad 1) y la de la ✕ (`dismiss_inventory_suggestion`) con 204; el test anota lo que mandó la pantalla. Que la base posponga 7 días y no toque el historial lo cubre la prueba SQL de la `064`.
+
+### E2E-INV-05: el ✓ agrega el producto a la lista con cantidad 1
+- **Cubre:** HU-71 CA-01 y CA-02.
+- **Pasos:** sugerencias Leche y Arroz; tocar "Agregar Leche a la lista".
+- **Resultado esperado:** la tarjeta de Leche desaparece y la de Arroz sigue; Leche aparece en "Pendientes" con cantidad 1; se mandó `{ target_variant_id }` de Leche y ninguna ✕.
+
+### E2E-INV-06: la ✕ saca la sugerencia sin agregar nada
+- **Cubre:** HU-71 CA-01 y CA-03.
+- **Pasos:** sugerencias Leche y Arroz; tocar "Descartar Arroz".
+- **Resultado esperado:** la tarjeta de Arroz desaparece y la de Leche sigue; se mandó la ✕ de Arroz; no se agregó nada (la lista sigue vacía).
+
+### E2E-INV-07: se puede ignorar la fila
+- **Cubre:** HU-71 CA-04.
+- **Pasos:** una sugerencia; escribir en el buscador sin tocar la tarjeta.
+- **Resultado esperado:** el buscador busca (con la base simulada responde "No encontramos productos con ese nombre."), la tarjeta sigue y no salió ningún ✓ ni ✕.

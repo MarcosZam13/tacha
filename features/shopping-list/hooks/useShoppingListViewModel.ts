@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
+import type { CatalogSearchResult } from "@/types/catalog.types";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
 import type { KeptPersonalListRow } from "../components/models/KeptPersonalListSectionProps.interface";
@@ -51,6 +52,8 @@ interface UseShoppingListViewModelReturn {
   keptPersonalRows: KeptPersonalListRow[];
   loadErrorMessage: NullableRef<string>;
   onCloseDetail: () => void;
+  /** El ✓ de una sugerencia de inventario (SCRUM-104): la agrega como el buscador. true si se agregó. */
+  onConfirmSuggestion: (suggestion: CatalogSearchResult) => Promise<boolean>;
   onDecreaseQuantity: (itemId: string) => void;
   onExitShoppingMode: () => void;
   onIncreaseQuantity: (itemId: string) => void;
@@ -64,6 +67,8 @@ interface UseShoppingListViewModelReturn {
   onUndoRemove: () => void;
   /** Sección "Pendientes", en el orden en que se añadieron. */
   pendingRows: ShoppingListRowViewModel[];
+  /** Las presentaciones pendientes: las sugerencias de inventario no las ofrecen (SCRUM-104). */
+  pendingVariantIds: string[];
   quantityErrorMessage: NullableRef<string>;
   query: string;
   removeErrorMessage: NullableRef<string>;
@@ -270,6 +275,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       })),
     loadErrorMessage: state.loadErrorMessage,
     onCloseDetail,
+    onConfirmSuggestion: addItem,
     onDecreaseQuantity,
     onExitShoppingMode: purchase.exitShoppingMode,
     onIncreaseQuantity,
@@ -282,6 +288,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     onToggleChecked,
     onUndoRemove: removal.cancelRemoval,
     pendingRows,
+    pendingVariantIds: state.items.filter((item) => item.checkedAt === null).map((item) => item.variantId),
     quantityErrorMessage: state.quantityErrorMessage,
     query: search.query,
     removeErrorMessage: state.removeErrorMessage,
