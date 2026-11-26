@@ -322,6 +322,49 @@ export type Database = {
           },
         ]
       }
+      inventory_manual_items: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          added_day: string | null
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          shelf_life_choice: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          list_id: string
+          product_catalog_variant_id: string
+          shelf_life_choice?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          list_id?: string
+          product_catalog_variant_id?: string
+          shelf_life_choice?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_manual_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_manual_items_product_catalog_variant_id_fkey"
+            columns: ["product_catalog_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_suggestion_dismissals: {
         Row: {
           dismissed_by: string | null
@@ -1309,6 +1352,10 @@ export type Database = {
       add_week_to_list: {
         Args: { target_list_id?: string; week_from: string; week_to: string }
         Returns: Json
+      }
+      add_inventory_item: {
+        Args: { target_choice?: string; target_variant_id: string }
+        Returns: undefined
       }
       adjust_inventory_item: {
         Args: { target_choice: string; target_variant_id: string }

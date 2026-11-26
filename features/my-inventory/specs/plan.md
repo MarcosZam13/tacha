@@ -76,3 +76,39 @@ Reutiliza `ShelfLifeChips` y `SHELF_LIFE_CHOICE` de `features/shopping-list/` (S
 | D12 | "Ya se acabó" esconde la fila antes de que responda la base | Esperar la respuesta | CA-01 "de inmediato"; si falla, vuelve con el error (como el ✓ de SCRUM-104) |
 | D13 | Importar `ShelfLifeChips` y `SHELF_LIFE_CHOICE` desde `features/shopping-list/` | Moverlos ya a `components/` y `constants/` | CA-02 pide los mismos chips; moverlos toca SCRUM-103 entero y sus tests. A decidir con el equipo; si se acepta mover, ticket aparte |
 | D14 | El texto "No se pudo guardar. Intenta de nuevo." se repite en esta feature | Importarlo de `shopping-list` | Es el texto de esta pantalla; si cambia uno, no tiene por qué cambiar el otro |
+
+## SCRUM-107: agregar algo a mano
+
+### Datos: migración `068_manual_inventory_items.sql`
+
+- Tabla `inventory_manual_items` (lista, presentación, chip opcional, quién y cuándo). Una fila por cada vez que se agrega. RLS de lectura por listas visibles; sin escritura directa.
+- `add_inventory_item(uuid, text default null)`: `security definer`. Sesión, chip válido, lista con `ensure_general_list_id` y que el producto sea uno que esa lista puede usar (032, 066). Guarda la fila.
+- `inventory_estimates()`: las llegadas son lo tachado más lo agregado (`union all`).
+- `save_inventory_adjustment(...)`: busca la presentación y la última llegada en las dos tablas, así "Ya se acabó" y "Ajustar fecha" sirven para lo agregado.
+- Prueba: `supabase/tests/068_manual_inventory_items.test.sql`.
+
+### Front
+
+```
+features/my-inventory/
+  components/AddInventoryItemPanel.tsx                 nuevo: buscador, chips y Agregar/Cancelar
+  components/models/AddInventoryItemPanelProps.interface.ts
+  hooks/useAddInventoryItem.ts                         nuevo: estado del panel (usa hooks/useProductSearch)
+  models/AddInventoryItemViewModel.interface.ts
+  hooks/useMyInventoryViewModel.ts                     el panel, OBS-1 y OBS-2 de la #124
+  MyInventory.tsx                                      el botón, el panel y el foco al cerrarlo
+  services/my-inventory.service.ts                     addInventoryItem
+```
+
+Reutiliza `components/product-search/ProductSearch` y `hooks/useProductSearch` (compartidos) y `ShelfLifeChips` (D13).
+
+### Decisiones
+
+| # | Decisión | Alternativa | Por qué esta |
+|---|---|---|---|
+| D15 | Tabla `inventory_manual_items` con una fila por llegada | Una fila por producto en una tabla de inventario (`household_inventory_items`) | Igual que en D7: el inventario se calcula desde las llegadas. Así lo agregado entra al mismo cálculo y CA-02 se cumple sin código aparte |
+| D16 | Lo agregado cuenta como una llegada (también para el promedio) | Que solo fije una fecha | "Las sugerencias también lo tengan en cuenta" (HU-71d); es lo mismo que comprarlo fuera de Tacha |
+| D17 | Buscador del catálogo global (el de la lista) | `searchCatalogIncludingOwn` (con personales) | Es el que usa la lista general, y evita ofrecer en una familia un producto personal que la base va a rechazar. Los personales quedan fuera de alcance |
+| D18 | Validar en la base qué producto puede usar la lista | Confiar en el buscador | La función es `security definer`: sin esta revisión aceptaría cualquier presentación |
+| D19 | `ensure_general_list_id` (crea la lista si falta) | `find_general_list_id` y error si no hay | Alguien puede empezar por el inventario antes de usar la lista |
+| D20 | Panel en la misma pantalla | Una pantalla nueva | Es un paso corto; así el producto aparece en su grupo sin navegar |
