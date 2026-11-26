@@ -2,6 +2,7 @@
 
 import { Spinner } from "@/components/ui";
 import { SPINNER_SIZE } from "@/constants";
+import { Logo } from "@/features/landing/components/Logo";
 import { ResetPasswordDone } from "./components/ResetPasswordDone";
 import { ResetPasswordForm } from "./components/ResetPasswordForm";
 import { ResetPasswordInvalid } from "./components/ResetPasswordInvalid";
@@ -18,6 +19,10 @@ export const ResetPassword = (): React.JSX.Element => {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 bg-tacha-bg px-4 py-8">
+      {/* Marca y salida al inicio: sin esto la pantalla queda sola, sin navbar. */}
+      <div className="self-start">
+        <Logo />
+      </div>
       {viewModel.status === RESET_PASSWORD_STATUS.VERIFYING ? (
         <div className="flex justify-center">
           <Spinner size={SPINNER_SIZE.LARGE} label={RESET_PASSWORD_LABEL.CHECKING} />

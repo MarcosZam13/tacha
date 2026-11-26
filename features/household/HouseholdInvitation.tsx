@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Button, Spinner } from "@/components/ui";
+import { Logo } from "@/features/landing/components/Logo";
 import { PersonalListsDecision } from "./components/PersonalListsDecision";
 import { HOUSEHOLD_JOIN_TEXT, HOUSEHOLD_ROUTE } from "./constants/household.constants";
 import { useHouseholdInvitationViewModel } from "./hooks/useHouseholdInvitationViewModel";
@@ -22,6 +23,10 @@ export const HouseholdInvitation = ({ token }: HouseholdInvitationProps): React.
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 bg-tacha-bg px-4 py-8">
+      {/* Marca y salida al inicio: sin esto la pantalla queda sola, sin navbar. */}
+      <div className="self-start">
+        <Logo />
+      </div>
       <h1 className="font-display text-3xl font-bold text-tacha-text">{HOUSEHOLD_JOIN_TEXT.TITLE}</h1>
 
       {/* Siempre montada, aunque esté vacía, para que el lector de pantalla
