@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MY_INVENTORY_DB } from "../constants/my-inventory.constants";
 import { SHELF_LIFE_CHOICE } from "@/features/shopping-list/constants/shelf-life.constants";
-import { adjustInventoryItem, getMyInventory, markInventoryItemUsedUp } from "../services/my-inventory.service";
+import {
+  addInventoryItem,
+  adjustInventoryItem,
+  getMyInventory,
+  markInventoryItemUsedUp,
+} from "../services/my-inventory.service";
 
 // Sin Supabase real: un cliente falso con solo rpc().
 const rpcMock = vi.fn();
@@ -73,6 +78,37 @@ describe("markInventoryItemUsedUp (SCRUM-106)", () => {
     rpcMock.mockResolvedValue({ data: null, error: databaseError });
 
     await expect(markInventoryItemUsedUp("variant-leche")).rejects.toBe(databaseError);
+  });
+});
+
+describe("addInventoryItem (SCRUM-107)", () => {
+  it("abre la sesión y manda la presentación y el chip", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await expect(addInventoryItem("variant-leche", SHELF_LIFE_CHOICE.TWO_TO_FOUR_WEEKS)).resolves.toBeUndefined();
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(MY_INVENTORY_DB.RPC.ADD_INVENTORY_ITEM, {
+      target_choice: "two_to_four_weeks",
+      target_variant_id: "variant-leche",
+    });
+  });
+
+  it("sin chip no manda target_choice (la base usa null)", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await addInventoryItem("variant-leche", null);
+
+    expect(rpcMock).toHaveBeenCalledWith(MY_INVENTORY_DB.RPC.ADD_INVENTORY_ITEM, {
+      target_choice: undefined,
+      target_variant_id: "variant-leche",
+    });
+  });
+
+  it("propaga el error de la base", async () => {
+    const databaseError = { code: "22023", message: "Ese producto no se puede agregar" };
+    rpcMock.mockResolvedValue({ data: null, error: databaseError });
+
+    await expect(addInventoryItem("variant-leche", null)).rejects.toBe(databaseError);
   });
 });
 

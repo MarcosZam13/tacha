@@ -1,7 +1,9 @@
-// Constantes de "Mi inventario" (SCRUM-105, HU-71b; SCRUM-106, HU-71c).
+// Constantes de "Mi inventario" (SCRUM-105, HU-71b; SCRUM-106, HU-71c; SCRUM-107, HU-71d).
 
 export const MY_INVENTORY_DB = {
   RPC: {
+    // "+ Agregar a mi inventario": algo que ya había en casa (migración 068).
+    ADD_INVENTORY_ITEM: "add_inventory_item",
     // Ajusta la fecha con un chip, contando desde ahora (migración 067).
     ADJUST_INVENTORY_ITEM: "adjust_inventory_item",
     // Lo que todavía se cree que hay en casa (migración 065).
@@ -59,6 +61,15 @@ export const MY_INVENTORY_TEXT = {
   ACTION_ERROR: "No se pudo guardar. Intenta de nuevo.",
   // Separa la acción del producto en el nombre accesible: "Ajustar fecha: Leche".
   ACTION_LABEL_SEPARATOR: ":",
+  // SCRUM-107: el panel para agregar a mano (CA-01).
+  ADD_CANCEL: "Cancelar",
+  ADD_CHANGE_PRODUCT: "Cambiar producto",
+  ADD_CONFIRM: "Agregar",
+  // Aviso para el lector de pantalla: "Leche se agregó a tu inventario.".
+  ADDED_SUFFIX: " se agregó a tu inventario.",
+  ADD_ERROR: "No se pudo agregar. Intenta de nuevo.",
+  ADD_OPEN: "+ Agregar a mi inventario",
+  ADD_TITLE: "Agregar a mi inventario",
   // Abre los chips de HU-70b debajo del producto (SCRUM-106, CA-02).
   ADJUST: "Ajustar fecha",
   // Aviso para el lector de pantalla después de un chip: "Leche: fecha actualizada.".

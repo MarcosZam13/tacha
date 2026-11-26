@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   INVENTORY_PATH,
   LIST_PATH,
+  createCatalogRow,
   createInventoryRow,
   getGroup,
   getGroupTitles,
@@ -108,6 +109,29 @@ test.describe("Mi inventario: Ya se acabó y ajustar la fecha", () => {
     await expect(getGroup(page, "Este mes")).toContainText("Te quedan 21 días");
     await expect(chips).toHaveCount(0);
     expect(calls.adjust).toEqual([{ target_choice: "two_to_four_weeks", target_variant_id: "e2e-variant-Leche" }]);
+  });
+});
+
+test.describe("Mi inventario: agregar a mano", () => {
+  test("E2E-MINV-07 — Agregar algo que ya había en casa, con un chip", async ({ page }) => {
+    const calls = await stubInventoryWithActions(page, [], [createInventoryRow("Leche", 21)], [createCatalogRow("Leche")]);
+    await page.goto(INVENTORY_PATH);
+
+    await page.getByRole("button", { name: "+ Agregar a mi inventario" }).click();
+    const panel = page.getByRole("group", { name: "Agregar a mi inventario" });
+    await panel.getByRole("textbox", { name: "Buscar producto" }).fill("le");
+    await panel.getByRole("button", { name: /^Leche\s*1000 ml$/u }).click();
+    await panel.getByRole("button", { name: "2-4 semanas" }).click();
+    const hasPageHorizontalScroll = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(hasPageHorizontalScroll).toBe(false);
+    await panel.getByRole("button", { name: "Agregar", exact: true }).click();
+
+    await expect(panel).toHaveCount(0);
+    await expect(getGroup(page, "Este mes")).toContainText("Leche");
+    await expect(getGroup(page, "Este mes")).toContainText("Te quedan 21 días");
+    expect(calls.add).toEqual([{ target_choice: "two_to_four_weeks", target_variant_id: "e2e-variant-Leche" }]);
   });
 });
 

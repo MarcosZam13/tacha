@@ -1,6 +1,7 @@
 import type { ShelfLifeChoiceType } from "@/features/shopping-list/constants/shelf-life.constants";
 import type { NullableRef } from "@/types/nullable.types";
 import type { InventoryGroupType, MyInventoryStatusType } from "../constants/my-inventory.constants";
+import type { AddInventoryItemViewModel } from "./AddInventoryItemViewModel.interface";
 
 /** Una fila de "Mi inventario", ya con el texto de cuánto le queda. */
 export interface InventoryItemViewModel {
@@ -51,4 +52,10 @@ export interface MyInventoryViewModel {
   announcement: string;
   /** Sube cada vez que el título tiene que recibir el foco (después de "Ya se acabó"). */
   titleFocusRequest: number;
+  /** "+ Agregar a mi inventario" (SCRUM-107). */
+  addItem: AddInventoryItemViewModel;
+  /** Si se ofrece agregar: con productos y en el vacío, no mientras carga ni si no cargó. */
+  canAdd: boolean;
+  /** Un error que no es de ninguna fila en pantalla (lo agregado no se pudo recargar); null si no hay. */
+  pageNotice: NullableRef<string>;
 }

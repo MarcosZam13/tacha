@@ -179,4 +179,71 @@ La pantalla muestra el mismo texto para todos: "No se pudo guardar. Intenta de n
 ### Fuera de alcance
 
 - Deshacer un ajuste (se puede volver a ajustar, o tocar la ✕ en "¿Se te acabó?").
-- Agregar algo a mano: SCRUM-107.
+- Agregar algo a mano: SCRUM-107, §17.
+
+## 17. SCRUM-107: agregar algo a mi inventario a mano
+
+Historia: HU-71d ([SCRUM-107](https://tacha.atlassian.net/browse/SCRUM-107)). Migración `068_manual_inventory_items.sql`.
+
+### Objetivo
+
+Que el inventario y las sugerencias tengan en cuenta lo que ya había en casa y no vino de una compra hecha en Tacha.
+
+### Reglas de negocio
+
+1. **Entrada (CA-01).** "+ Agregar a mi inventario" se ve debajo del título, con productos y también en el estado vacío (el texto del vacío sigue sin pedir que se llene a mano, CA-04 de SCRUM-105). No se ve mientras carga ni si el inventario no cargó.
+2. **Elegir el producto.** El panel usa el buscador del catálogo de la lista general (`components/product-search`, catálogo global): una opción por presentación, con su tamaño. "Cambiar producto" vuelve al buscador.
+3. **Cuánto le queda (CA-01, opcional).** Los mismos chips de HU-70b. Tocar el elegido lo quita. Con chip, cuenta desde ahora: 4, 21 o 60 días. Es exactamente el chip al tachar (063), porque lo agregado es una llegada más: "No vence" deja el producto sin fecha si es su primera llegada, y si ya se había comprado antes usa el promedio entre llegadas, igual que al tachar con "No vence". Sin chip, como una compra de hoy: la categoría, o 14 días (o el promedio, si ya se había comprado).
+4. **Aparece como cualquier otro (CA-02).** En la base, lo agregado es una llegada más del producto, igual que lo tachado: entra al mismo cálculo (§5), al promedio entre llegadas si ya se había comprado, y "Ya se acabó" y "Ajustar fecha" funcionan igual. La pantalla no lo distingue.
+5. **No es una compra.** No crea filas en la lista (`list_items`): no aparece en el historial de compras ni en Finanzas.
+6. **Volver a agregar** el mismo producto es otra llegada: como volver a comprarlo, deja sin efecto un ajuste anterior (§16 regla 4). El mismo día y la misma presentación, no se crea otra fila: se actualizan la hora y el chip (el promedio cuenta días, así que no cambia). Es también un tope: nadie puede llenar la tabla de una familia con llamadas seguidas.
+7. **Qué se puede agregar.** Lo del catálogo global; un producto propio solo en una lista personal; uno compartido con la familia, en la lista de esa familia. Un producto personal sin compartir no entra a la lista de una familia (como en SCRUM-163): el resto no podría verlo. Con el buscador del catálogo global solo aparecen los del catálogo; la base igual lo revisa.
+8. **Sin lista general todavía:** la base la crea (como al agregar el primer producto a la lista).
+9. **En familia,** lo agregado es de la lista general compartida: lo ven todos los miembros.
+11. **Lo pospuesto con la ✕ sigue pospuesto** al agregar (igual que al volver a tachar): la ✕ vence sola a los 7 días. Solo "Ya se acabó" y "Ajustar fecha" la borran (§16 regla 5), porque son una corrección explícita.
+12. **Un solo grupo de chips a la vez:** abrir el panel cierra los chips de "Ajustar fecha". Si lo agregado se guarda pero no se puede recargar, la lista sigue en pantalla y debajo del título dice "Se guardó, pero no se pudo actualizar la pantalla. Recarga la página.".
+10. **Al agregar** se cierra el panel, se vuelve a pedir el inventario, se avisa "Leche se agregó a tu inventario." y el foco va a "Ajustar fecha" de ese producto. Si falla, el panel sigue abierto con "No se pudo agregar. Intenta de nuevo.". "Cancelar" cierra sin guardar y el foco vuelve a "+ Agregar a mi inventario".
+
+### Correcciones de la PR #124 (QA de SCRUM-106)
+
+- **OBS-1:** si "Ya se acabó" falla, el foco vuelve a la fila ("Ajustar fecha" de ese producto), no se queda en el título.
+- **OBS-2:** dos avisos iguales seguidos (por ejemplo, ajustar dos veces el mismo producto) se leen los dos: el texto de la región `status` alterna un espacio duro invisible.
+
+### Errores de la base
+
+| Caso | Código |
+|---|---|
+| Sin sesión | `42501` |
+| Sin presentación, chip no válido, o un producto que esa lista no puede usar (personal ajeno, propio sin compartir en una familia, de otra familia, archivado) | `22023`, el mismo mensaje para todos |
+
+### Contratos externos
+
+- `add_inventory_item(target_variant_id uuid, target_choice text default null)` → nada.
+- `inventory_estimates()` y `save_inventory_adjustment(...)`: misma firma; también leen `inventory_manual_items`.
+
+### Accesibilidad
+
+- El panel es un grupo con nombre ("Agregar a mi inventario"), no una región: las regiones de la pantalla son los grupos por urgencia.
+- Al abrirse, el foco va a su título; al cerrarse, al botón que lo abrió.
+- Botones de al menos 40 px de alto.
+
+### Casos de aceptación
+
+- [x] CA-01: "+ Agregar a mi inventario" permite elegir un producto del catálogo y, si se quiere, el chip. (`MyInventory.test.tsx`, E2E-MINV-07, prueba SQL de la `068`)
+- [x] CA-02: aparece igual que cualquier otro, también para "Ya se acabó" y "Ajustar fecha". (`MyInventory.test.tsx`, E2E-MINV-07, prueba SQL pasos 3 y 6)
+
+### Mapa de pruebas
+
+| Caso | Clasificación | Por qué | Archivo | Escenario E2E |
+|---|---|---|---|---|
+| Panel: abrir, buscar, elegir, chip opcional, cambiar, cancelar, error, foco | Unitario | Estados del ViewModel | `features/my-inventory/tests/MyInventory.test.tsx` | — |
+| OBS-1 y OBS-2 de la #124 | Unitario | Foco y avisos | mismo | — |
+| Llamada a la base | Unitario | Contrato del servicio | `features/my-inventory/tests/my-inventory.service.test.ts` | — |
+| Agregar con un chip en un navegador | E2E | Pantalla real y celular | `e2e/features/my-inventory/my-inventory.spec.ts` | E2E-MINV-07 |
+| Cálculo, qué se puede agregar, familia, lista nueva | SQL | La regla vive en la base | `supabase/tests/068_manual_inventory_items.test.sql` | — |
+
+### Fuera de alcance
+
+- Agregar productos personales desde este buscador (usa el catálogo global, como la lista general).
+- Borrar algo agregado por error: se marca "Ya se acabó".
+- Cantidad (cuántas unidades hay en casa): el inventario es por producto, no por unidades.
