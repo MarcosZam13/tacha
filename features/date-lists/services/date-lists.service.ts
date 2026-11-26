@@ -1,4 +1,4 @@
-import { DATE_LIST_TYPE } from "@/constants";
+import { DATE_LIST_TYPE, LIST_ITEM_TEXT } from "@/constants";
 import type { CatalogBaseUnitType, DateListStatusType } from "@/constants";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
@@ -11,6 +11,7 @@ interface DateListRow {
   event_date: NullableRef<string>;
   id: string;
   name: NullableRef<string>;
+  spent_total: NullableRef<number>;
   status: string;
 }
 
@@ -23,6 +24,7 @@ const toDateList = (row: DateListRow): DateList => ({
   eventDate: row.event_date ?? "",
   id: row.id,
   name: row.name ?? "",
+  spentTotal: row.spent_total,
   status: row.status as DateListStatusType,
 });
 
@@ -71,15 +73,20 @@ export const getDateListDetail = async (listId: string): Promise<NullableRef<Dat
   return {
     ...toDateList(data),
     items: sortPendingFirst(data.list_items.map((listItem) => {
-      const variant = listItem.product_catalog_variants;
+      // SCRUM-163: la RLS de la 032 devuelve la presentación en null si quien
+      // mira no puede ver el producto (personal de otro miembro). Hoy la app no
+      // deja llegar a ese caso en una sublista, pero si pasa, la fila sale "no
+      // disponible" en vez de tumbar la sublista (misma guarda que la lista general).
+      const variant: NullableRef<typeof listItem.product_catalog_variants> = listItem.product_catalog_variants;
       return {
         id: listItem.id,
         isChecked: listItem.checked_at !== null,
-        productName: variant.product_catalog.name,
+        productName: variant ? variant.product_catalog.name : LIST_ITEM_TEXT.UNAVAILABLE_PRODUCT,
         quantity: listItem.quantity_requested,
         // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
-        sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
-        variantId: variant.id,
+        // Sin presentación legible no hay tamaño que mostrar.
+        sizeLabel: variant ? formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType) : "",
+        variantId: listItem.product_catalog_variant_id,
       };
     })),
   };
@@ -120,6 +127,20 @@ export const setDateListCancelled = async (listId: string, isCancelled: boolean)
 
   const { error } = await getSupabaseClient().rpc(DATE_LIST_DB.RPC.SET_CANCELLED, {
     is_cancelled: isCancelled,
+    target_list_id: listId,
+  });
+  if (error) throw error;
+};
+
+/**
+ * Agrega o cambia el total gastado (SPEC §10). La base rechaza un monto inválido (22023), una
+ * sublista ajena o inexistente (P0002) y una cancelada (55000); para la pantalla todos son "no se guardó".
+ */
+export const setDateListTotal = async (listId: string, total: number): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient().rpc(DATE_LIST_DB.RPC.SET_TOTAL, {
+    new_total: total,
     target_list_id: listId,
   });
   if (error) throw error;

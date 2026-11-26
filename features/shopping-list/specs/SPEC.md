@@ -549,7 +549,7 @@ Migración **`037_resolve_recipe_shortfalls.sql`** (la `034` es de la PR #84 y l
 
 ### 18.11 Casos fuera de alcance
 
-- **Chips de "cuánto le va a durar" al tachar** (HU-70b, Melany): otro panel de la misma acción; cuando exista, se decide cómo convive con este.
+- **Chips de "cuánto le va a durar" al tachar** (HU-70b, Melany): ya existen (§19, regla 53). El panel se abre primero y los chips quedan debajo de la fila.
 - **Tiempo real** (SCRUM-155): un aviso nuevo de otro miembro se ve al recargar.
 - **Revertir sin destachar** (un "deshacer" aparte): solo se revierte al destachar, con confirmación (regla 45).
 - **Guardar cada cambio por separado** para revertir solo lo del panel y conservar lo manual: se revierte a la foto de antes del panel, y el diálogo lo avisa.
@@ -589,3 +589,142 @@ Migración **`037_resolve_recipe_shortfalls.sql`** (la `034` es de la PR #84 y l
 - [x] La base rechaza: sin sesión (`42501`), fila ajena (`P0002`), fila pendiente o presentación de otro producto (`22023`); `anon` sin `execute`.
 - [x] Falla al resolver: mensaje en el panel, que sigue abierto; reintentar funciona.
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm run build` y `npm test` pasan.
+
+## 19. SCRUM-103: cuánto le va a durar, al tachar (HU-70b)
+
+Historia: HU-70b en [docs/historias-usuario.md](../../../docs/historias-usuario.md). Completa las sugerencias de inventario de SCRUM-102 (HU-70), que viven en `features/inventory-suggestions/`; la migración `061` es de esa historia.
+
+### 19.1 Objetivo
+
+Al tachar en modo compra, poder decir, sin obligación y de un toque, cuánto le va a durar el producto, para que las sugerencias de inventario sean más precisas.
+
+### 19.2 Alcance
+
+- Cuatro chips debajo de la fila recién tachada en modo compra: "Vence en pocos días", "2-4 semanas", "1-3 meses" y "No vence / no aplica".
+- Guardar el chip en la fila (`list_items.shelf_life_choice`, migración `063`).
+- `get_inventory_suggestions` (061) usa el chip de la última compra.
+
+### 19.3 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Fila recién tachada | `ShoppingListItem` | el tachado confirmado por la base (`checkItemInSession`) |
+| Compra activa | id de `purchase_sessions` | `?compra=` (SCRUM-67) |
+| Chip | uno de los cuatro valores, o ninguno | un toque del usuario |
+
+### 19.4 Salidas
+
+- `list_items.shelf_life_choice` de esa fila: `few_days`, `two_to_four_weeks`, `one_to_three_months`, `no_expiry` o `null`.
+- Las sugerencias de inventario (`get_inventory_suggestions`) calculan con él.
+
+### 19.5 Reglas de negocio
+
+47. **Opcional (CA-02).** Sin chip la fila queda con `null` y las sugerencias calculan como en la 061 (historial o categoría).
+48. **Solo en modo compra (CA-01).** Fuera de modo compra, tachar no muestra chips.
+49. **Mismo gesto (CA-03).** Los chips aparecen cuando la base confirma el tachado, debajo de esa fila. No hay botón de confirmar: tocar un chip lo guarda. Tocar el chip elegido lo quita. La fila sigue tachada y se puede seguir tachando otras.
+50. **Una fila a la vez.** Tachar otra fila mueve los chips a esa; la anterior conserva su chip en la base. Destachar la fila o salir del modo compra los esconde.
+51. **Destachar borra el chip.** Una fila pendiente no tiene chip: la base lo borra al destachar y no deja guardarlo en una pendiente (trigger de la 063).
+52. **Duración (propuesta, a confirmar con el PO).** El chip de la **última** compra de un producto manda sobre el historial y la categoría:
+
+| Chip | Días |
+|---|---|
+| Vence en pocos días | 4 |
+| 2-4 semanas | 21 |
+| 1-3 meses | 60 |
+| No vence / no aplica | sin fecha por vencimiento: con 2 compras o más, el historial (061); con 1, no se sugiere |
+
+53. **Con "¿Qué hiciste?" (§18).** Si la fila tiene aviso de receta se abre el panel (es un modal) y los chips quedan debajo de la fila para cuando se cierra. Ninguno espera al otro.
+
+### 19.6 Estados
+
+| Estado | Qué se ve |
+|---|---|
+| Sin elegir | Los cuatro chips, ninguno marcado |
+| Elegido | Ese chip marcado (teal, `aria-pressed`) |
+| Guardando | Los chips deshabilitados un momento; lo elegido ya se ve marcado |
+| Error | Vuelve a lo de antes y "No se pudo guardar. Intenta de nuevo." |
+
+### 19.7 Errores
+
+Si no se puede guardar, el chip vuelve a como estaba y aparece el mensaje debajo, sin tapar la lista ni destachar la fila. Si la RLS no deja escribir la fila (otra lista), el servicio lo trata como error: pide la fila de vuelta y no la recibe.
+
+### 19.8 UI esperada
+
+En una línea propia debajo de la fila recién tachada, a todo el ancho de la fila y fuera del botón de tachar: "¿Cuánto te va a durar? (opcional)" y los cuatro chips; si no caben en un renglón pasan al siguiente, así que se ven todos sin deslizar (con scroll horizontal, en el celular las opciones de la derecha quedaban escondidas). No van dentro de la columna del nombre: ahí compartían el ancho con los controles y en el celular quedaban de unos 47 px (BUG-1 de QA de la PR #121).
+
+### 19.9 Accesibilidad
+
+- Los chips son `<button>` con `aria-pressed`, en un `role="group"` con nombre "¿Cuánto te va a durar <producto>?".
+- Están fuera del botón de la fila: tocar un chip no destacha.
+- El error usa `role="alert"`.
+
+### 19.10 Contratos externos
+
+- `update list_items set shelf_life_choice = ... where id = ...` (PostgREST, con `select("id").single()`). `authenticated` solo tiene `update` sobre esa columna (además de las de 005, 015 y 016) y la política de update de la 024 limita a listas visibles.
+- `get_inventory_suggestions()`: misma firma que en la 061.
+
+### 19.11 Casos fuera de alcance
+
+- Elegir el chip fuera de modo compra o cambiarlo después: SCRUM-106 (ajustar el vencimiento desde "Mi inventario"). Por eso, al recargar la página, una fila que sigue tachada ya no muestra los chips: se eligen en el mismo gesto de tachar (CA-03). Lo elegido sigue guardado en la base.
+- Selector de fecha exacta: la historia lo descarta.
+- Tabla de inventario (`household_inventory_items`): llega con SCRUM-106 y 107, que necesitan "ya se acabó" y lo agregado a mano. SCRUM-103 solo necesita el chip de cada compra (corrige lo que decía la SPEC de SCRUM-102, §14).
+
+### 19.12 Notas de implementación
+
+- **Por qué una columna y un update directo.** Es un dato de la compra, como `quantity_bought`, y se escribe igual que el tachado (015): permiso por columna y la política de la 024. Una función `security definer` no agregaría nada.
+- **Por qué el chip de la última compra.** Es lo más reciente que se sabe de ese producto en la casa.
+- **Depende de la 061** (SCRUM-102, PR #120): la `063` vuelve a definir `get_inventory_suggestions`. Se mergea después de la #120.
+
+### 19.13 Casos de aceptación (HU-70b, SCRUM-103)
+
+- [x] CA-01: en modo compra, tachar muestra los cuatro chips debajo de la fila; fuera de modo compra no. (E2E-LISTA-09, `useShelfLifeChips.test.ts`)
+- [x] CA-02: sin tocar ningún chip no se guarda nada y las sugerencias calculan como en la 061. (prueba SQL de la `063`, Arroz)
+- [x] CA-03: un toque guarda, sin confirmar; la fila sigue tachada; tocar el mismo lo quita. (E2E-LISTA-09)
+- [x] El chip de la última compra manda sobre la categoría y el historial; "No vence" con una compra no se sugiere y con dos usa el historial. (prueba SQL de la `063`)
+- [x] Destachar borra el chip; una fila pendiente no lo guarda; no se puede escribir el chip de una fila de otra lista. (prueba SQL de la `063`)
+- [x] Error al guardar: vuelve a lo de antes y muestra el mensaje. (`useShelfLifeChips.test.ts`)
+
+## 20. SCRUM-163 (fix): un producto personal sin compartir en la lista de la familia
+
+### Objetivo
+Que un producto personal sin compartir nunca deje a los demás miembros sin poder cargar la lista de la familia.
+
+### Problema
+Desde la migración 032 (SCRUM-87), un producto personal sin compartir (`product_catalog.owner_id` no nulo) solo lo ve su dueño. Si está en la lista de la familia, para los demás miembros la fila llega con `product_catalog_variants: null` (RLS). El armado de la lista (`toShoppingListItems`) leía `variant.product_catalog.name` sin revisar `null`, así que la carga completa fallaba: "No se pudo cargar tu lista. Intenta de nuevo." y ninguna fila. Verificado contra la base (la lista real de una familia leída como el otro miembro) y en el navegador.
+
+Caminos por los que entra: "Agregar a mi lista" en el detalle de un producto personal (SCRUM-85/87/88) y "Agregar a lista" de un grupo personal (SCRUM-111). La búsqueda de la lista y la de recetas no muestran productos personales (`search_catalog`), así que no son caminos.
+
+### Reglas
+1. **La lista no se cae por una fila que no puede leer.** Esa fila se muestra como **"Producto no disponible"**, sin tamaño, y el resto carga normal (mismo criterio que Finanzas, D37). Cantidad, tachar y eliminar siguen funcionando (usan el id de la fila); el detalle de esa fila muestra su propio error. La misma guarda está en las sublistas por fecha (`features/date-lists/services/date-lists.service.ts`): hoy la app no deja llegar a ese caso ahí (su buscador usa `search_catalog`), pero si pasa, la sublista no se cae. El texto vive en `constants/list-items.constants.ts` (`LIST_ITEM_TEXT`).
+2. **Detalle del producto:** si el producto es personal sin compartir y el usuario está en una familia, en vez de "Agregar a mi lista" se muestra un aviso (`role="note"`): «Este producto es solo tuyo y tu lista es la de tu familia: el resto no podría verlo. Para usarlo en la lista, créalo de nuevo marcando «Compartir con mi familia».». Sin familia, se agrega como siempre. Mientras se consulta si hay familia, no se ofrece agregar (un toque en ese lapso lo metería en la lista de la familia). Si la consulta falla, no se bloquea: la regla 1 ya evita que la lista se caiga.
+3. **Grupos:** si la lista general es la de una familia, `add_group_to_general_list` salta los productos personales sin compartir y los devuelve en `personal`; el resumen dice «No se agregaron porque son solo tuyos y tu lista es la de tu familia: X.». Lo demás del grupo se agrega. Sin familia, nada cambia.
+
+### Fuera de alcance
+- Compartir un producto ya creado: ninguna historia lo pide (HU-56 CA-03 lo decide al crear; HU-58 solo editar y eliminar; `features/my-products/specs/SPEC.md` §14). Sería una historia nueva.
+- La fila que ya existía en la base antes del arreglo: se ve "Producto no disponible" para los demás miembros.
+
+### Alternativas descartadas
+Criterios: privacidad (un producto personal solo lo ve su dueño mientras no lo comparta, SCRUM-87); coherencia (la lista de la familia solo tiene productos que toda la familia puede ver: regla 7 de grupos, SCRUM-110, y recetas compartidas, SCRUM-162); alcance (nada que no pida una historia); impacto en otros (no cambiar funciones o políticas compartidas si se resuelve en el código del ticket).
+
+| Alternativa | Por qué se descartó |
+|---|---|
+| Ampliar la RLS de `product_catalog`: visible si está en una lista que el usuario puede ver | Rompe la privacidad: la familia vería también marca, tienda y precio de referencia del dueño (viven en la variante, SCRUM-88). Contradice la regla 7 de grupos y SCRUM-162. La búsqueda de grupos (`search_catalog_including_own`, invoker) mostraría el producto ajeno y `create_product_group` (definer) lo rechazaría al guardar. Se evalúa en cada lectura del catálogo: riesgo de rendimiento |
+| Función `security definer` que devuelva la lista con los nombres | La misma fuga de privacidad por otro camino |
+| Compartir el producto automáticamente al agregarlo a la lista de la familia | Cambia el dueño sin que el usuario lo decida y es irreversible: un compartido queda con `owner_id` null, cualquier miembro lo edita o elimina y no existe "dejar de compartir" (032). Va contra "compartir es una decisión explícita" |
+| Permitir compartir un producto ya creado (diálogo "¿compartir y agregar?") | Fuera de alcance (ver arriba) |
+| Bloquear en `add_item_to_general_list` / `add_units_to_list_item` | `add_units_to_list_item` la usan recetas (013), tachado (015), plan semanal (022), listas de familia (024) y grupos (057): toca a todo el equipo. No arregla la fila existente. Los únicos caminos de entrada son el detalle y los grupos |
+| Ocultar en silencio la fila | El miembro no sabría que hay algo en la lista y el dueño sí: dos listas distintas sin aviso |
+| Borrar la fila o limpiar datos | Borra lo que agregó el dueño y no evita que vuelva a pasar |
+| Solo arreglar la lista, sin cerrar los caminos | Se seguirían creando filas "no disponibles": la regla 1 es la red de seguridad, no la solución |
+
+### Contratos
+- `GENERAL_LIST_SELECT` agrega `list_items.product_catalog_variant_id` (el `variantId` de una fila sin presentación sale de ahí).
+- `add_group_to_general_list` (migración nueva de SCRUM-163; número al aplicarla): misma firma; la respuesta agrega `personal: text[]`. El cliente toma `personal` ausente como `[]` (compatible con la 057).
+- `getCatalogVariantDetail` lee `product_catalog.owner_id` → `CatalogVariantDetail.isPersonal`. La familia se consulta con `hasHousehold()` (`services/personal-product.service.ts`), solo si el producto es personal.
+
+### Casos de aceptación
+- Caso 163-1: un miembro abre la lista de la familia con una fila de un producto personal ajeno → la lista carga y esa fila dice "Producto no disponible" (E2E-LISTA-10; `tests/shopping-list.service.test.ts`).
+- Caso 163-2: en una familia, el detalle de mi producto personal muestra el aviso y no el botón de agregar (`features/catalog-product-detail/tests/`).
+- Caso 163-3: sin familia, el detalle de mi producto personal deja agregarlo; mientras se consulta la familia no se ofrece agregar; si la consulta falla, se ofrece (idem).
+- Caso 163-4: en una familia, agregar mi grupo personal con un producto personal agrega el resto y nombra el personal; ningún miembro ve una fila sin producto (`supabase/tests/066_skip_personal_products_in_household_list.test.sql`; `features/product-groups/tests/`).
+- Caso 163-5: sin familia, el grupo con mi producto personal se agrega completo (prueba SQL).

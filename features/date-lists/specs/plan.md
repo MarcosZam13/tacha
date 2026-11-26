@@ -20,3 +20,12 @@
 - `services/date-lists.service.ts`: el detalle trae también los tachados. Tachar reutiliza `set_list_item_checked`, la misma RPC de la lista general.
 - `hooks/useDateListDetailViewModel.ts`: sigue el patrón de `runChange`, que vuelve a leer la sublista. Por eso el estado nuevo aparece sin que el cliente lo calcule.
 - `components/ui/checkbox`: recibe `ariaLabel` e `isDisabled`, porque en la fila no hay texto visible al lado.
+
+## SCRUM-79: total de gasto
+
+- `supabase/migrations/050_date_list_spent_total.sql`: columna `lists.spent_total` con su `check`, y la RPC `set_date_list_total(target_list_id, new_total)`. `security definer` con `search_path` vacío, como `set_date_list_cancelled` (043): misma regla de acceso, mismo error si no existe o no es suya (P0002), y 55000 si está cancelada.
+- `supabase/tests/050_date_list_spent_total.test.sql`: pruebas con rollback (acceso, cancelada, montos inválidos, permisos).
+- `services/date-lists.service.ts`: `spent_total` en los dos `select` y `setDateListTotal`.
+- `hooks/useDateListTotalEditor.ts`: el estado del campo (abierto, texto, error), aparte del ViewModel del detalle para no inflarlo. Guarda con el mismo `runChange`, que vuelve a leer la sublista.
+- `components/DateListTotal.tsx`: muestra el total o "Sin total" y el lápiz; abierto, el campo con Guardar y Cancelar. Valida con `parseColonesAmount` y muestra con `formatColones`, los dos de `features/finance/utils/`, por alias. No se mueven a `utils/` para no tocar archivos de Finanzas mientras #102 (SCRUM-93) está abierto.
+- `components/DateListCard.tsx`: "· ₡12 500" junto a la fecha cuando hay total.

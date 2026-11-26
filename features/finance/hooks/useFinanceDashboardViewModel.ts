@@ -18,16 +18,21 @@ import {
 } from "../constants/finance.constants";
 import type { PendingTotalReminderProps } from "../components/models/PendingTotalReminderProps.interface";
 import type { SpendingBudgetProps } from "../components/models/SpendingBudgetProps.interface";
+import type { SpendingByStoreProps } from "../components/models/SpendingByStoreProps.interface";
 import type { SpendingPeriodOption } from "../components/models/SpendingPeriodSelectorProps.interface";
 import type { SpendingTotalProps } from "../components/models/SpendingTotalProps.interface";
 import type { FinanceAccessStatusType, SpendingPeriodType } from "../constants/finance.constants";
+import type { PeriodAdjustment } from "../models/PeriodAdjustment.interface";
+import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
 import type { PeriodSpending } from "../models/PeriodSpending.interface";
 import { formatColones } from "../utils/formatColones";
 import { formatPeriodRange } from "../utils/formatPeriodRange";
+import { formatSignedColones } from "../utils/formatSignedColones";
+import { groupSpendingByStore } from "../utils/groupSpendingByStore";
 import { toPendingTotalReminder } from "../utils/toPendingTotalReminder";
 import { useFinanceAccess } from "./useFinanceAccess";
 import { usePendingPurchases } from "./usePendingPurchases";
-import { usePeriodSpending } from "./usePeriodSpending";
+import { usePeriodPurchases } from "./usePeriodPurchases";
 import { useSpendingBudgets } from "./useSpendingBudgets";
 
 interface UseFinanceDashboardViewModelReturn {
@@ -37,6 +42,8 @@ interface UseFinanceDashboardViewModelReturn {
   pendingReminder: PendingTotalReminderProps;
   periodOptions: SpendingPeriodOption[];
   spending: SpendingTotalProps;
+  /** El desglose por supermercado (SCRUM-72); null mientras carga, si falla o sin compras (D48, regla 115). */
+  spendingByStore: NullableRef<SpendingByStoreProps>;
   /** Lo que anuncia la zona role="status" (SPEC §9): el total nuevo o "Presupuesto guardado". */
   statusMessage: NullableRef<string>;
 }
@@ -57,23 +64,56 @@ const toDifferenceText = (budgetAmount: number, spending: PeriodSpending): strin
     : `${FINANCE_TEXT.OVER_BUDGET_PREFIX}${formatColones(-difference)}`;
 };
 
+// SCRUM-72: las filas y la línea del ajuste, con los textos ya armados (SPEC §8).
+// El orden y las sumas vienen de groupSpendingByStore (reglas 107 a 113).
+const toSpendingByStore = (
+  purchases: readonly PeriodPurchase[],
+  adjustments: readonly PeriodAdjustment[],
+): SpendingByStoreProps => {
+  const { adjustmentCount, adjustmentTotal, stores } = groupSpendingByStore(purchases, adjustments);
+  return {
+    adjustment:
+      adjustmentTotal === null
+        ? null
+        : {
+            amountText: formatSignedColones(adjustmentTotal),
+            labelText: adjustmentCount === 1 ? FINANCE_TEXT.ADJUSTMENT : FINANCE_TEXT.ADJUSTMENTS,
+          },
+    rows: stores.map(({ amount, closedCount, storeName, withoutTotalCount }) => {
+      const hasNoTotal = closedCount === 0;
+      return {
+        amountText: hasNoTotal ? FINANCE_TEXT.WITHOUT_TOTAL : formatColones(amount),
+        hasNoTotal,
+        id: storeName ?? "",
+        storeText: storeName ?? FINANCE_TEXT.STORE_UNAVAILABLE,
+        withoutTotalText:
+          withoutTotalCount === 0 ? null : `${withoutTotalCount}${FINANCE_TEXT.WITHOUT_TOTAL_COUNT_SUFFIX}`,
+      };
+    }),
+  };
+};
+
 /**
  * Facade del dashboard de Finanzas (SCRUM-69). Decide el acceso (D6: sin
  * cuenta registrada no se pide ningún dato), guarda el periodo elegido (D2,
- * arranca en Semana), compone usePeriodSpending, useSpendingBudgets y el
+ * arranca en Semana), compone usePeriodPurchases, useSpendingBudgets y el
  * recordatorio de compras sin total (SCRUM-92), y le entrega a la pantalla
  * exactamente lo que dibuja.
+ *
+ * Lee el periodo con la misma lectura que el Historial (SCRUM-72, regla 107):
+ * el total y el desglose por supermercado salen de las mismas compras. No usa
+ * `applySavedPurchase` ni `applySavedPeriodTotal`: el Dashboard no edita (D11).
  */
 export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelReturn => {
   const { accessStatus, isRegistered, retryIfRegistered } = useFinanceAccess();
   const [period, setPeriod] = useState<SpendingPeriodType>(DEFAULT_SPENDING_PERIOD);
 
-  const periodSpending = usePeriodSpending(period, isRegistered);
+  const periodPurchases = usePeriodPurchases(period, isRegistered);
   const spendingBudgets = useSpendingBudgets(period, isRegistered);
   // El mismo recordatorio que el Historial; acá no se edita ni se listan las compras (D11).
   const pendingPurchases = usePendingPurchases(isRegistered);
 
-  const { spending } = periodSpending;
+  const { adjustments, purchases, spending } = periodPurchases;
   const hasSpending = spending !== null;
   const totalText = spending ? formatColones(spending.total) : null;
   const budgetAmount = spendingBudgets.amount;
@@ -81,8 +121,8 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
   // Con TZ002 no hay totales: el mensaje dice por qué, sin caer a otra zona (regla 60).
   // La zona se confirma desde el Historial.
   const getSpendingErrorMessage = (): NullableRef<string> => {
-    if (periodSpending.status !== SPENDING_STATUS.FAILED) return null;
-    return periodSpending.needsTimeZoneConfirmation
+    if (periodPurchases.status !== SPENDING_STATUS.FAILED) return null;
+    return periodPurchases.needsTimeZoneConfirmation
       ? TOTAL_SAVE_ERROR_MESSAGE[TOTAL_SAVE_ERROR.TIME_ZONE_UNRECOGNIZED]
       : FINANCE_TEXT.SPENDING_LOAD_ERROR;
   };
@@ -127,15 +167,20 @@ export const useFinanceDashboardViewModel = (): UseFinanceDashboardViewModelRetu
       label: SPENT_LABEL[period],
       // Solo con ajustes; "Compras" y "Sin total" no cambian (D16, SPEC §8). El Dashboard no edita (D11).
       noteText: spending && spending.adjustmentCount > 0 ? FINANCE_TEXT.INCLUDES_ADJUSTMENTS : null,
-      onRetry: () => void retryIfRegistered(periodSpending.onRetry),
+      onRetry: () => void retryIfRegistered(periodPurchases.onRetry),
       rangeText:
-        periodSpending.bounds && hasSpending
-          ? formatPeriodRange(period, periodSpending.bounds, periodSpending.timeZone)
+        periodPurchases.bounds && hasSpending
+          ? formatPeriodRange(period, periodPurchases.bounds, periodPurchases.timeZone)
           : null,
-      status: periodSpending.status,
+      status: periodPurchases.status,
       totalText,
       withoutTotalCount: spending?.withoutTotalCount ?? 0,
     },
+    // Solo con el gasto listo y alguna compra: un periodo solo con ajustes no la muestra (D48, regla 115).
+    spendingByStore:
+      periodPurchases.status === SPENDING_STATUS.READY && purchases && purchases.length > 0
+        ? toSpendingByStore(purchases, adjustments ?? [])
+        : null,
     statusMessage: spendingBudgets.noticeMessage ?? (totalText ? `${SPENT_LABEL[period]}: ${totalText}` : null),
   };
 };

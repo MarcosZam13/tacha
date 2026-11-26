@@ -13,6 +13,7 @@ import {
   getPeriodGroup,
   getSelect,
   getStatusRegion,
+  getTotalSection,
   getVisibleAppNav,
   signInAsAnonymousUser,
   signInAsRegisteredUser,
@@ -27,9 +28,12 @@ import {
 const WEEK_FILTERS = ["gte.2026-10-12T06:00:00.000Z", "lt.2026-10-19T06:00:00.000Z"];
 const DAY_FILTERS = ["gte.2026-10-18T06:00:00.000Z", "lt.2026-10-19T06:00:00.000Z"];
 const MONTH_FILTERS = ["gte.2026-10-01T06:00:00.000Z", "lt.2026-11-01T06:00:00.000Z"];
+// Desde SCRUM-72 el Dashboard lee las compras con la consulta del Historial.
+const HISTORY_SELECT = "id,closed_at,total_amount,stores(display_name)";
 const INPUT_LABEL_WEEK = "Presupuesto semanal (₡)";
 const INVALID_AMOUNT_MESSAGE = "Escribe el monto en colones, solo números (ej. 50000).";
 const NO_ACCOUNT_MESSAGE = "Inicia sesión con tu cuenta para ver tus finanzas.";
+const STORE_SPENDING_TITLE = "Gasto por supermercado";
 
 test.use({ timezoneId: TIME_ZONE });
 
@@ -61,30 +65,34 @@ test.describe("Finanzas", () => {
     await expect(getPeriodButton(page, "Semana")).toHaveAttribute("aria-pressed", "true");
     await expect(getPeriodButton(page, "Mes")).toHaveAttribute("aria-pressed", "false");
 
-    // Semana.
+    // Semana. Los montos y contadores del total se buscan en su tarjeta: desde
+    // SCRUM-72 el desglose por supermercado repite montos y "Sin total".
     await expect(page.getByText("Gastado esta semana", { exact: true })).toBeVisible();
-    await expect(getExactText(page, "₡15 000")).toBeVisible();
+    await expect(getExactText(getTotalSection(page), "₡15 000")).toBeVisible();
     await expect(page.getByText("Lunes 12 a domingo 18 de octubre", { exact: true })).toBeVisible();
-    await expect(page.getByText("Compras", { exact: true }).locator("..")).toContainText("2");
-    await expect(page.getByText("Sin total", { exact: true }).locator("..")).toContainText("1");
-    expect(getSelect(recorder.spendingRequests[0])).toBe("total_amount");
-    expect(getClosedAtFilters(recorder.spendingRequests[0])).toEqual(WEEK_FILTERS);
-    expect(recorder.spendingRequests[0].url()).not.toContain("owner_id");
+    await expect(getTotalSection(page).getByText("Compras", { exact: true }).locator("..")).toContainText("2");
+    await expect(getTotalSection(page).getByText("Sin total", { exact: true }).locator("..")).toContainText("1");
+    // La lectura del Historial (SCRUM-72): conteo exacto, límites, sin filtrar por dueño.
+    const weekRequest = recorder.historyRequests[0];
+    expect(getSelect(weekRequest)).toBe(HISTORY_SELECT);
+    expect(getClosedAtFilters(weekRequest)).toEqual(WEEK_FILTERS);
+    expect((await weekRequest.allHeaders()).prefer).toContain("count=exact");
+    expect(weekRequest.url()).not.toContain("owner_id");
 
     // Día.
     await getPeriodButton(page, "Día").click();
     await expect(page.getByText("Gastado hoy", { exact: true })).toBeVisible();
-    await expect(getExactText(page, "₡10 000")).toBeVisible();
+    await expect(getExactText(getTotalSection(page), "₡10 000")).toBeVisible();
     await expect(page.getByText("Domingo 18 de octubre", { exact: true })).toBeVisible();
     await expect(getStatusRegion(page)).toHaveText(/^Gastado hoy: ₡10\s000$/u);
-    expect(getClosedAtFilters(recorder.spendingRequests.at(-1)!)).toEqual(DAY_FILTERS);
+    expect(getClosedAtFilters(recorder.historyRequests.at(-1)!)).toEqual(DAY_FILTERS);
 
     // Mes.
     await getPeriodButton(page, "Mes").click();
     await expect(page.getByText("Gastado este mes", { exact: true })).toBeVisible();
-    await expect(getExactText(page, "₡35 000")).toBeVisible();
+    await expect(getExactText(getTotalSection(page), "₡35 000")).toBeVisible();
     await expect(page.getByText("Octubre de 2026", { exact: true })).toBeVisible();
-    expect(getClosedAtFilters(recorder.spendingRequests.at(-1)!)).toEqual(MONTH_FILTERS);
+    expect(getClosedAtFilters(recorder.historyRequests.at(-1)!)).toEqual(MONTH_FILTERS);
 
     // Sin navegar ni recargar, y los presupuestos se pidieron una sola vez.
     await expect(page).toHaveURL(FINANCE_PATH);
@@ -162,17 +170,20 @@ test.describe("Finanzas", () => {
   });
 
   test("E2E-FIN-03 — Errores de carga del gasto y del presupuesto", async ({ page }) => {
-    await stubFinanceSupabase(page, { failBudgets: true, failSpendingTimes: 1 });
+    await stubFinanceSupabase(page, { failBudgets: true, failHistoryTimes: 1 });
     await signInAsRegisteredUser(page);
     await page.goto(FINANCE_PATH);
 
     await expect(page.getByText("No se pudo cargar tu gasto. Intenta de nuevo.", { exact: true })).toBeVisible();
     await expect(page.getByText("No se pudo cargar tu presupuesto. Intenta de nuevo.", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /presupuesto$/u })).toHaveCount(0);
+    // Con el error, el desglose no aparece: el error y "Reintentar" están solo en el total (SCRUM-72, regla 115).
+    await expect(page.getByRole("region", { name: STORE_SPENDING_TITLE })).toHaveCount(0);
 
     // Reintentar el gasto (el primero de los dos "Reintentar").
     await page.getByRole("button", { name: "Reintentar" }).first().click();
-    await expect(getExactText(page, "₡15 000")).toBeVisible();
+    await expect(getExactText(getTotalSection(page), "₡15 000")).toBeVisible();
+    await expect(page.getByRole("region", { name: STORE_SPENDING_TITLE })).toBeVisible();
     await expect(page.getByText("No se pudo cargar tu presupuesto. Intenta de nuevo.", { exact: true })).toBeVisible();
   });
 
@@ -183,7 +194,8 @@ test.describe("Finanzas", () => {
     await expect(page.getByText(NO_ACCOUNT_MESSAGE, { exact: true })).toBeVisible();
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(page.getByText(/presupuesto/iu)).toHaveCount(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
+    // D6: tampoco la lectura de las compras, que desde SCRUM-72 es la del Historial.
+    expect(recorder.historyRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
     expect(recorder.pendingRequests).toHaveLength(0);
     expect(recorder.budgetRequests).toHaveLength(0);
@@ -201,7 +213,8 @@ test.describe("Finanzas", () => {
     await expect(page.getByText(NO_ACCOUNT_MESSAGE, { exact: true })).toBeVisible();
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(page.getByText(/presupuesto/iu)).toHaveCount(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
+    // D6: tampoco la lectura de las compras, que desde SCRUM-72 es la del Historial.
+    expect(recorder.historyRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
     expect(recorder.pendingRequests).toHaveLength(0);
     expect(recorder.budgetRequests).toHaveLength(0);

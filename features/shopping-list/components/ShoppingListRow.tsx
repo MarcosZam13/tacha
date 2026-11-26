@@ -39,6 +39,7 @@ export const ShoppingListRow = ({
   onRemove,
   onToggleChecked,
   row,
+  shelfLifeSlot,
 }: ShoppingListRowProps): React.JSX.Element => {
   // El único indicador de tachado va sobre el texto (HU-36e CA-03).
   const checkedTextClass = row.isChecked ? "text-tacha-textsec line-through" : "text-tacha-text";
@@ -46,7 +47,8 @@ export const ShoppingListRow = ({
   const shortfallNotesId = `${SHOPPING_LIST_DOM_ID_PREFIX.SHORTFALL_NOTES}${row.item.id}`;
 
   return (
-    <li className="flex flex-col md:flex-row md:items-center md:gap-3 md:pr-3">
+    // En el celular: nombre arriba y acciones abajo. Desde md, en una línea; los chips de SCRUM-103 van en su propia línea (basis-full).
+    <li className="flex flex-col md:flex-row md:flex-wrap md:items-center md:gap-x-3 md:pr-3">
       <div className="flex min-w-0 flex-1 flex-col self-stretch">
         <button
           type="button"
@@ -96,6 +98,9 @@ export const ShoppingListRow = ({
           onClick={onRemove}
         />
       </div>
+      {/* SCRUM-103: línea propia debajo de la fila, a todo el ancho y fuera del botón de tachar
+          (tocar un chip no destacha). */}
+      {shelfLifeSlot ? <div className="min-w-0 md:basis-full">{shelfLifeSlot}</div> : null}
     </li>
   );
 };

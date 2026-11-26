@@ -32,7 +32,7 @@ describe("useProductGroupListAddition", () => {
 
   it("shows the missing-group notice, asks to reload, and clears it on the next add", async () => {
     const onGroupMissing = vi.fn();
-    addGroupToListMock.mockResolvedValueOnce(null).mockResolvedValueOnce({ added: ["Leche"], skipped: [] });
+    addGroupToListMock.mockResolvedValueOnce(null).mockResolvedValueOnce({ added: ["Leche"], personal: [], skipped: [] });
     const { result } = renderHook(() => useProductGroupListAddition(onGroupMissing));
 
     act(() => result.current.onAddToList(GROUP));

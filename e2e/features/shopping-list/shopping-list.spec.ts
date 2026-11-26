@@ -12,11 +12,14 @@ import {
   getEmptyListMessage,
   getListRow,
   getListSection,
+  getShelfLifeChips,
   getShoppingModeBar,
   getShortfallNote,
   getShortfallPanel,
   getUndoDialog,
+  recordShelfLifeSaves,
   startPurchaseAt,
+  stubHouseholdListWithHiddenRow,
 } from "./shopping-list.helpers";
 
 // Escenarios: features/shopping-list/specs/E2E.md. Cada test arranca con un
@@ -124,6 +127,63 @@ test.describe("Lista general", () => {
     await expect(page).toHaveURL(LIST_URL);
     await expect(getShoppingModeBar(page)).toHaveCount(0);
     await expect(getClosePurchasePanel(page)).toHaveCount(0);
+  });
+
+  test("E2E-LISTA-09 — Chips de cuánto le va a durar al tachar en modo compra", async ({ page }) => {
+    const savedBodies = await recordShelfLifeSaves(page);
+    const productName = await addFirstSearchResult(page, SEARCH_TERM);
+    const checkedSection = getListSection(page, CHECKED_SECTION);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await expect(getCheckButton(pendingSection, productName)).toBeVisible();
+
+    // 1. Fuera de modo compra, tachar no muestra chips (CA-01).
+    await getCheckButton(pendingSection, productName).click();
+    await expect(getCheckButton(checkedSection, productName)).toBeEnabled();
+    await expect(getShelfLifeChips(page, productName)).toHaveCount(0);
+    await getCheckButton(checkedSection, productName).click();
+    await expect(getCheckButton(pendingSection, productName)).toBeEnabled();
+
+    // 2. En modo compra, tachar muestra los cuatro chips, sin ninguno elegido (CA-01, CA-02).
+    await startPurchaseAt(page, STORE_NAME);
+    await expect(getShoppingModeBar(page)).toContainText(STORE_NAME);
+    await getCheckButton(pendingSection, productName).click();
+    await expect(getCheckButton(checkedSection, productName)).toHaveAttribute("aria-pressed", "true");
+    const chips = getShelfLifeChips(page, productName);
+    await expect(chips.getByRole("button")).toHaveText([
+      "Vence en pocos días",
+      "2-4 semanas",
+      "1-3 meses",
+      "No vence / no aplica",
+    ]);
+    await expect(chips.getByRole("button", { pressed: true })).toHaveCount(0);
+    // Los chips van en su propia línea, a todo el ancho de la fila (BUG-1 de QA de la PR #121:
+    // dentro de la columna del nombre quedaban de ~47 px en el celular).
+    const chipsBox = await chips.boundingBox();
+    const rowTextBox = await getCheckButton(checkedSection, productName).boundingBox();
+    expect(chipsBox!.width).toBeGreaterThanOrEqual(rowTextBox!.width);
+    // Los cuatro se ven enteros, sin deslizar: si no caben en un renglón pasan al siguiente.
+    // En el celular la fila puede quedar debajo del borde: se lleva a la vista antes de medir.
+    await chips.scrollIntoViewIfNeeded();
+    for (const chip of await chips.getByRole("button").all()) {
+      await expect(chip).toBeInViewport({ ratio: 1 });
+    }
+
+    // 3. Un toque elige y guarda, sin confirmar; la fila sigue tachada (CA-03).
+    await chips.getByRole("button", { name: "1-3 meses" }).click();
+    await expect(chips.getByRole("button", { name: "1-3 meses" })).toHaveAttribute("aria-pressed", "true");
+    await expect(getCheckButton(checkedSection, productName)).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => savedBodies).toEqual([{ shelf_life_choice: "one_to_three_months" }]);
+
+    // 4. Tocar el mismo chip lo quita.
+    await chips.getByRole("button", { name: "1-3 meses" }).click();
+    await expect(chips.getByRole("button", { pressed: true })).toHaveCount(0);
+    await expect.poll(() => savedBodies.length).toBe(2);
+    expect(savedBodies[1]).toEqual({ shelf_life_choice: null });
+
+    // 5. Destachar esconde los chips.
+    await getCheckButton(checkedSection, productName).click();
+    await expect(getCheckButton(pendingSection, productName)).toBeVisible();
+    await expect(getShelfLifeChips(page, productName)).toHaveCount(0);
   });
 });
 
@@ -271,5 +331,20 @@ test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
     await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
     const uncheckedRow = getRowWithShortfall(pendingSection, recipeName);
     await expect(uncheckedRow.getByText("1", { exact: true })).toBeVisible();
+  });
+});
+
+// SCRUM-163: un producto personal de otro miembro no tumba la lista de la familia.
+test.describe("Lista de la familia con un producto que no se puede ver", () => {
+  test("E2E-LISTA-10 — La lista carga y muestra la fila como no disponible", async ({ page }) => {
+    const visibleProductName = "Arroz";
+    await stubHouseholdListWithHiddenRow(page, visibleProductName);
+
+    await page.goto(LIST_PATH);
+
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await expect(getListRow(page, visibleProductName)).toBeVisible();
+    await expect(pendingSection.getByText("Producto no disponible", { exact: true })).toBeVisible();
+    await expect(page.getByText("No se pudo cargar tu lista. Intenta de nuevo.")).toHaveCount(0);
   });
 });

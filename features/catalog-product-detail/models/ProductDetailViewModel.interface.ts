@@ -13,7 +13,17 @@ export interface ProductDetailStorePriceRow {
 export interface ProductDetailViewModel {
   /** Mensaje de "agregar a mi lista" fallido; la cantidad elegida se conserva (SPEC.md §7). */
   addErrorMessage: NullableRef<string>;
+  /**
+   * SCRUM-163: por qué no se puede agregar (producto personal sin compartir y
+   * la lista es la de la familia). null si se puede.
+   */
+  addToListBlockedMessage: NullableRef<string>;
   brands: CatalogBrand[];
+  /**
+   * SCRUM-163: false mientras se consulta si un producto personal puede ir a
+   * la lista (o si no puede): no se muestra "Agregar a mi lista".
+   */
+  canAddToList: boolean;
   canDecreaseQuantity: boolean;
   /** Error de carga o "producto no encontrado"; solo relevante en status ERROR. */
   errorMessage: NullableRef<string>;

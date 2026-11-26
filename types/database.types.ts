@@ -274,6 +274,93 @@ export type Database = {
           },
         ]
       }
+      inventory_adjustments: {
+        Row: {
+          adjusted_by: string | null
+          expected_out_at: string | null
+          list_id: string
+          product_catalog_id: string
+          purchased_at: string
+          shelf_life_choice: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          expected_out_at?: string | null
+          list_id: string
+          product_catalog_id: string
+          purchased_at: string
+          shelf_life_choice?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          expected_out_at?: string | null
+          list_id?: string
+          product_catalog_id?: string
+          purchased_at?: string
+          shelf_life_choice?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_suggestion_dismissals: {
+        Row: {
+          dismissed_by: string | null
+          dismissed_until: string
+          list_id: string
+          product_catalog_id: string
+          updated_at: string
+        }
+        Insert: {
+          dismissed_by?: string | null
+          dismissed_until: string
+          list_id: string
+          product_catalog_id: string
+          updated_at?: string
+        }
+        Update: {
+          dismissed_by?: string | null
+          dismissed_until?: string
+          list_id?: string
+          product_catalog_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_suggestion_dismissals_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_suggestion_dismissals_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           assigned_to: string | null
@@ -286,6 +373,7 @@ export type Database = {
           purchase_session_id: string | null
           quantity_bought: number | null
           quantity_requested: number
+          shelf_life_choice: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -298,6 +386,7 @@ export type Database = {
           purchase_session_id?: string | null
           quantity_bought?: number | null
           quantity_requested?: number
+          shelf_life_choice?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -310,6 +399,7 @@ export type Database = {
           purchase_session_id?: string | null
           quantity_bought?: number | null
           quantity_requested?: number
+          shelf_life_choice?: string | null
         }
         Relationships: [
           {
@@ -366,6 +456,7 @@ export type Database = {
           id: string
           name: string | null
           owner_id: string
+          spent_total: number | null
           status: string
           type: string
         }
@@ -376,6 +467,7 @@ export type Database = {
           id?: string
           name?: string | null
           owner_id?: string
+          spent_total?: number | null
           status?: string
           type: string
         }
@@ -386,6 +478,7 @@ export type Database = {
           id?: string
           name?: string | null
           owner_id?: string
+          spent_total?: number | null
           status?: string
           type?: string
         }
@@ -1217,6 +1310,10 @@ export type Database = {
         Args: { target_list_id?: string; week_from: string; week_to: string }
         Returns: Json
       }
+      adjust_inventory_item: {
+        Args: { target_choice: string; target_variant_id: string }
+        Returns: undefined
+      }
       assert_local_day_start: {
         Args: { local_day_start: string }
         Returns: undefined
@@ -1337,6 +1434,7 @@ export type Database = {
           id: string
           name: string | null
           owner_id: string
+          spent_total: number | null
           status: string
           type: string
         }
@@ -1384,6 +1482,10 @@ export type Database = {
       }
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
       delete_personal_product: { Args: { target_product_id: string }; Returns: string }
+      dismiss_inventory_suggestion: {
+        Args: { target_variant_id: string }
+        Returns: undefined
+      }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
       get_general_list_recipe_shortfalls: {
@@ -1477,6 +1579,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_my_inventory: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string | null
+          last_purchased_at: string
+          product_catalog_variant_id: string
+          product_name: string
+        }[]
+      }
       get_period_finance: { Args: { target_scope: string }; Returns: Json }
       get_personal_product_usage: {
         Args: { target_product_id: string }
@@ -1526,6 +1639,20 @@ export type Database = {
           period_start: string
         }[]
       }
+      inventory_estimates: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string | null
+          is_dismissed: boolean
+          is_pending: boolean
+          last_purchased_at: string
+          product_catalog_id: string
+          product_catalog_variant_id: string
+          product_name: string
+        }[]
+      }
       is_recipe_photo_in_use: {
         Args: { target_photo_path: string }
         Returns: boolean
@@ -1559,6 +1686,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      mark_inventory_item_used_up: {
+        Args: { target_variant_id: string }
+        Returns: undefined
       }
       normalize_pending_staging: {
         Args: { batch_size?: number }
@@ -1661,6 +1792,27 @@ export type Database = {
           id: string
           name: string | null
           owner_id: string
+          spent_total: number | null
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_date_list_total: {
+        Args: { new_total: number; target_list_id: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          spent_total: number | null
           status: string
           type: string
         }

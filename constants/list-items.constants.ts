@@ -21,3 +21,10 @@ export const ITEM_QUANTITY = {
 } as const;
 
 export type ItemQuantityStepType = (typeof ITEM_QUANTITY.STEP)[keyof typeof ITEM_QUANTITY.STEP];
+
+// SCRUM-163: una fila de lista cuyo producto quien mira no puede leer (un
+// producto personal de otro miembro, RLS de la 032). La usan la lista general
+// y las sublistas por fecha. Mismo texto que Finanzas (D37).
+export const LIST_ITEM_TEXT = {
+  UNAVAILABLE_PRODUCT: "Producto no disponible",
+} as const;

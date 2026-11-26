@@ -5,6 +5,7 @@ import { FinanceNoAccount } from "./components/FinanceNoAccount";
 import { FinanceTabs } from "./components/FinanceTabs";
 import { PendingTotalReminder } from "./components/PendingTotalReminder";
 import { SpendingBudget } from "./components/SpendingBudget";
+import { SpendingByStore } from "./components/SpendingByStore";
 import { SpendingPeriodSelector } from "./components/SpendingPeriodSelector";
 import { SpendingTotal } from "./components/SpendingTotal";
 import { FINANCE_ACCESS_STATUS, FINANCE_TAB, FINANCE_TEXT } from "./constants/finance.constants";
@@ -49,6 +50,8 @@ export const FinanceDashboard = (): React.JSX.Element => {
           </div>
           {/* SCRUM-92 (D26): el recordatorio, con enlace a "Compras sin total" del Historial. */}
           <PendingTotalReminder {...viewModel.pendingReminder} />
+          {/* SCRUM-72: el gasto por supermercado, solo con compras en el periodo (D48). */}
+          {viewModel.spendingByStore ? <SpendingByStore {...viewModel.spendingByStore} /> : null}
         </>
       ) : null}
     </div>

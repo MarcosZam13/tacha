@@ -20,7 +20,7 @@ Una persona quiere separar las compras de un evento o viaje de su lista general:
 
 - La grilla de calendario: SCRUM-76 (§8). Hasta entonces la sección era una agenda ordenada por fecha, y CA-02 se cumplía sobre esa agenda. El camino "tocar un día" de CA-01 llega con la grilla; el botón ya cumple el criterio.
 - Tachar, completar y cancelar: SCRUM-78 (§9). Modo compra en sublistas: sin ticket todavía.
-- Total de gasto: SCRUM-79.
+- Total de gasto: SCRUM-79 (§10).
 - Menú "Más" en mobile: con Fechas son 6 tabs. DESIGN §3.2 lo pide; queda para el sprint de UI/UX.
 - Compartir sublistas personales al entrar a una familia: `decide_personal_lists` sigue moviendo solo la general. La sublista personal sigue visible para su dueña.
 
@@ -88,6 +88,34 @@ Reglas:
 6. Ya tachado no se cambia la cantidad desde la fila: se destacha primero. Los pendientes van antes que los tachados.
 7. CA-03: hoy no existe ningún resumen ni recordatorio de sublistas. Se cumple porque "cancelada" es un estado aparte de `active`: quien cuente pendientes filtra por `status = 'active'`. Revisarlo cuando exista el primero.
 
-Fuera de alcance: modo compra en sublistas y total de gasto (SCRUM-79).
+Fuera de alcance: modo compra en sublistas y total de gasto (SCRUM-79, §10).
 
 Datos: migración 043. Sin columnas nuevas: `lists.status` ya admitía los tres valores desde 004.
+
+## 10. Total de gasto de la sublista (SCRUM-79 / HU-47)
+
+Una persona quiere saber cuánto costó un evento o una compra puntual, sin mezclarlo con el gasto general.
+
+- CA-01: cada sublista muestra su propio total, independiente del total de la lista general.
+- CA-02: el total de la sublista sigue el mismo modelo de "total editable" que las compras del historial.
+
+Decisiones (Marcos, 2026-11-16):
+
+- **D1. Total propio, no suma de compras.** Las sublistas no tienen modo compra y ninguna compra guardada está ligada a una lista (`purchase_sessions.list_id` es nulo en las 87). El total es un dato de la sublista que la persona escribe. Si algún día hay modo compra en sublistas, el total podría pasar a calcularse de sus compras.
+- **D2. No cuenta en Finanzas.** La historia dice "sin mezclarlo con el gasto general". No se suma al total del periodo ni al presupuesto, y no se toca nada de Finanzas (SCRUM-90/91, de Laura).
+
+Reglas:
+
+1. Una sublista empieza "Sin total". Se agrega o se cambia desde su detalle; no se puede volver a dejar vacía. Es lo mismo que un total editado del historial (SCRUM-91): vacío no es un monto.
+2. El monto se valida igual que el de una compra: colones enteros de ₡0 a ₡9 999 999 999, con separadores de miles en grupos de 3. La UI usa `parseColonesAmount` de Finanzas; la base lo repite con un `check` en `lists.spent_total` y en la RPC.
+3. Lo puede cambiar cualquiera que vea la sublista: su dueña, o cualquier integrante si es de la familia. Es la misma regla que cancelar (§9).
+4. En una sublista cancelada el total se ve pero no se cambia: la pantalla no ofrece el lápiz y la base rechaza el cambio. Reactivarla lo vuelve a habilitar. Completada sí se puede: es justo cuando se sabe cuánto se gastó.
+5. El total sale en el detalle, debajo del estado, y en la tarjeta de la agenda junto a la fecha. Sin total, la tarjeta no dice nada.
+6. Una sesión anónima también puede escribirlo: las sublistas funcionan con sesión anónima. Finanzas exige cuenta registrada porque guarda una zona horaria y periodos; el total de la sublista no depende de ninguno.
+
+Fuera de alcance: modo compra en sublistas, sumar las sublistas en Finanzas, historial de cambios del total.
+
+Datos: migración 050. Columna `lists.spent_total` (numeric, nula) con un `check` que solo la permite en listas `date` y con monto válido, y la RPC `set_date_list_total`. `lists` no tiene política de `update`, así que el cliente no puede escribir la columna directo; solo por la RPC.
+
+## 11. SCRUM-163 (fix): fila con un producto que no se puede leer
+Si una fila llega sin presentación (producto personal de otro miembro, RLS de la 032), la sublista la muestra como "Producto no disponible" en vez de no cargar. Hoy la app no deja llegar a ese caso en una sublista. Detalle en `features/shopping-list/specs/SPEC.md` §20.

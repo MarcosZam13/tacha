@@ -30,7 +30,7 @@ export const SHOPPING_LIST_DB = {
   // valida al compilar, que es lo mismo que buscaría la constante.
   // id: para distinguir la lista personal de la de la familia (SCRUM-59).
   GENERAL_LIST_SELECT:
-    "id, list_items(id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+    "id, list_items(id, product_catalog_variant_id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   // Detalle de una variante: sus marcas y el último precio de cada marca en
   // cada tienda (la vista latest_prices ya se queda con el más reciente).
   ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
@@ -111,6 +111,8 @@ export const SHOPPING_LIST_TEXT = {
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
   // Entrada a "Mis grupos" (SCRUM-109, HU-72 CA-01).
   MANAGE_GROUPS: "Gestionar mis grupos",
+  // Entrada a "Mi inventario" (SCRUM-105, HU-71b CA-01) mientras no exista el menú "Más".
+  MY_INVENTORY: "Mi inventario",
   OPEN_DETAIL: "Ver detalle",
   PENDING_SECTION: "Pendientes",
   REMOVE_ERROR: "No se pudo eliminar el producto. Intenta de nuevo.",

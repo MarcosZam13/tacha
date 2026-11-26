@@ -124,3 +124,32 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
 - **Sincronización:** tachar antes de que la barra muestre el súper deja la fila fuera de la compra y el escenario deja de probar una compra cerrada.
 - **Oráculo:** lo que distingue el bug es el diálogo: sin la corrección aparece en el paso 4.
 - **Limpieza:** `deleteOwnListItems` y `deleteOwnRecipes`. La compra cerrada queda en la base, como en E2E-LISTA-05.
+
+### E2E-LISTA-09: chips de cuánto le va a durar al tachar en modo compra
+
+- **Cubre:** HU-70b CA-01, CA-02 y CA-03 (SPEC §19, reglas 47 a 50).
+- **Precondición:** usuario anónimo nuevo con un producto en la lista (pasos 1 a 4 de E2E-LISTA-01).
+- **Datos:** el guardado del chip (`PATCH /rest/v1/list_items` con `shelf_life_choice`) se responde desde el test y se anota lo que mandó la pantalla; el resto va a la base. Que la base guarde, valide y borre el chip lo cubre la prueba SQL de la `063`.
+- **Pasos:**
+  1. Sin modo compra, tachar el producto y destacharlo.
+  2. "Iniciar compra" en MaxiPali, esperar la barra y tachar el producto.
+  3. Tocar "1-3 meses".
+  4. Tocar "1-3 meses" otra vez.
+  5. Destachar el producto.
+- **Resultado esperado:**
+  - Paso 1: no aparece el grupo "¿Cuánto te va a durar <producto>?".
+  - Paso 2: aparecen los cuatro chips en orden ("Vence en pocos días", "2-4 semanas", "1-3 meses", "No vence / no aplica"), ninguno marcado. El grupo es al menos tan ancho como el texto de la fila y los cuatro chips se ven enteros, sin deslizar (en su propia línea, también en el celular).
+  - Paso 3: "1-3 meses" queda marcado, la fila sigue tachada y se guarda `{ shelf_life_choice: "one_to_three_months" }`.
+  - Paso 4: ninguno marcado y se guarda `{ shelf_life_choice: null }`.
+  - Paso 5: los chips desaparecen.
+- **Limpieza:** `deleteOwnListItems`. La compra abierta del usuario anónimo queda en la base, como en E2E-LISTA-05.
+
+### E2E-LISTA-10: la lista de la familia carga aunque un producto no se pueda ver (SCRUM-163)
+
+- **Cubre:** SCRUM-163, parte 1 (ver SPEC, sección SCRUM-163).
+- **Precondición:** usuario anónimo nuevo. Las familias exigen cuentas registradas, así que la respuesta de la base se **simula** con `page.route`, con la forma exacta que devuelve la RLS de la 032 a un miembro que no puede leer un producto personal ajeno (verificada contra la base el 2026-11-25): una fila normal ("Arroz") y una fila con `product_catalog_variants: null`.
+- **Pasos:**
+  1. Abrir `/lista`.
+- **Resultado esperado:** en "Pendientes" se ven "Arroz" y "Producto no disponible"; no aparece "No se pudo cargar tu lista. Intenta de nuevo.".
+- **Oráculo:** sin la corrección, la pantalla muestra el error de carga y ninguna fila.
+- **Limpieza:** no escribe en la base.

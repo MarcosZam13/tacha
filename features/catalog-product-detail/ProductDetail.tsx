@@ -64,16 +64,22 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
       <ProductDetailStorePrices storePriceRows={viewModel.storePriceRows} />
       <PriceDisclaimer />
 
-      <AddToListControl
-        addErrorMessage={viewModel.addErrorMessage}
-        canDecreaseQuantity={viewModel.canDecreaseQuantity}
-        isAdding={viewModel.status === PRODUCT_DETAIL_STATUS.ADDING}
-        onAddToList={viewModel.onAddToList}
-        onDecreaseQuantity={viewModel.onDecreaseQuantity}
-        onIncreaseQuantity={viewModel.onIncreaseQuantity}
-        quantity={viewModel.quantity}
-        wasJustAdded={viewModel.wasJustAdded}
-      />
+      {viewModel.addToListBlockedMessage !== null ? (
+        <p role="note" className="rounded-tacha-card border border-tacha-border bg-tacha-surface p-4 font-body text-sm text-tacha-textsec">
+          {viewModel.addToListBlockedMessage}
+        </p>
+      ) : viewModel.canAddToList ? (
+        <AddToListControl
+          addErrorMessage={viewModel.addErrorMessage}
+          canDecreaseQuantity={viewModel.canDecreaseQuantity}
+          isAdding={viewModel.status === PRODUCT_DETAIL_STATUS.ADDING}
+          onAddToList={viewModel.onAddToList}
+          onDecreaseQuantity={viewModel.onDecreaseQuantity}
+          onIncreaseQuantity={viewModel.onIncreaseQuantity}
+          quantity={viewModel.quantity}
+          wasJustAdded={viewModel.wasJustAdded}
+        />
+      ) : null}
     </div>
   );
 };

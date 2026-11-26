@@ -56,7 +56,6 @@ export const FINANCE_DB = {
   SELECT: {
     BUDGETS: "period, amount",
     PURCHASES: "id, closed_at, total_amount, stores(display_name)",
-    SPENDING: "total_amount",
     TIME_ZONE: "time_zone",
   },
   TABLE: {
@@ -273,6 +272,9 @@ export type PurchaseListType = (typeof PURCHASE_LIST)[keyof typeof PURCHASE_LIST
 // El ancla de la sección "Compras sin total", destino del recordatorio (SCRUM-92).
 export const PENDING_SECTION_ID = "compras-sin-total";
 
+// El título de "Gasto por supermercado", que da nombre a la sección y a su lista (SCRUM-72, SPEC §9).
+export const STORE_SPENDING_TITLE_ID = "gasto-por-supermercado-titulo";
+
 // Qué es cada fila de la lista del Historial: una compra o un ajuste manual (D16).
 export const HISTORY_ROW_KIND = {
   ADJUSTMENT: "adjustment",
@@ -298,6 +300,8 @@ const AMOUNT_INVALID_TEXT = "Escribe el monto en colones, solo números (ej. 500
 export const FINANCE_TEXT = {
   // La fila de un ajuste en el Historial (D16) y la indicación del Dashboard (SPEC §8).
   ADJUSTMENT: "Ajuste manual",
+  // La línea del desglose por supermercado cuando suma dos o más ajustes (SCRUM-72, D50).
+  ADJUSTMENTS: "Ajustes manuales",
   BUDGET_INVALID: AMOUNT_INVALID_TEXT,
   BUDGET_LOAD_ERROR: "No se pudo cargar tu presupuesto. Intenta de nuevo.",
   BUDGET_SAVED: "Presupuesto guardado",
@@ -334,6 +338,8 @@ export const FINANCE_TEXT = {
   SAVING: "Guardando…",
   SPENDING_EMPTY: "Todavía no tienes compras cerradas en este periodo.",
   SPENDING_LOAD_ERROR: "No se pudo cargar tu gasto. Intenta de nuevo.",
+  // El título de la sección del Dashboard (SCRUM-72, SPEC §8).
+  STORE_SPENDING_TITLE: "Gasto por supermercado",
   STORE_UNAVAILABLE: "Supermercado no disponible",
   TABS_NAV_LABEL: "Secciones de finanzas",
   // "Zona horaria: America/Costa_Rica", junto a "Confirmar" (SPEC §8).
@@ -344,6 +350,8 @@ export const FINANCE_TEXT = {
   TOTAL_INVALID: AMOUNT_INVALID_TEXT,
   TOTAL_SAVED: "Total guardado",
   WITHOUT_TOTAL: "Sin total",
+  // "1 sin total" / "3 sin total" en una fila del desglose por supermercado (SCRUM-72, D47).
+  WITHOUT_TOTAL_COUNT_SUFFIX: " sin total",
   WITHOUT_TOTAL_PLURAL: "compras sin total",
   WITHOUT_TOTAL_SINGULAR: "compra sin total",
 } as const;

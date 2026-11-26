@@ -68,3 +68,90 @@ export const getUndoDialog = (page: Page): Locator =>
 export const getShortfallNote = (row: Locator, recipeName: string): Locator =>
   row.getByText(new RegExp(`^\\+ .+ necesarios para ${recipeName}$`));
 
+/** Los chips de "cuánto le va a durar" de una fila (SCRUM-103): su nombre lleva el del producto. */
+export const getShelfLifeChips = (page: Page, productName: string): Locator =>
+  page.getByRole("group", { name: `¿Cuánto te va a durar ${productName}?` });
+
+/**
+ * Responde desde el test el guardado del chip (update de list_items.shelf_life_choice)
+ * y devuelve lo que la pantalla mandó. Así el escenario no depende de que la 063 esté
+ * aplicada; que la base guarde y valide el chip lo cubre la prueba SQL de la 063.
+ * Cualquier otra petición a list_items sigue a la base.
+ */
+export const recordShelfLifeSaves = async (page: Page): Promise<unknown[]> => {
+  const savedBodies: unknown[] = [];
+  await page.route("**/rest/v1/list_items?*", async (route) => {
+    const request = route.request();
+    const body = request.postDataJSON() as Record<string, unknown> | null;
+    if (request.method() !== "PATCH" || !body || !("shelf_life_choice" in body)) {
+      await route.fallback();
+      return;
+    }
+    savedBodies.push(body);
+    await route.fulfill({ json: { id: new URL(request.url()).searchParams.get("id")?.replace("eq.", "") } });
+  });
+  return savedBodies;
+};
+
+/**
+ * SCRUM-163: la lista de la familia tal como la ve un miembro que no puede
+ * leer un producto personal ajeno (RLS de la 032): la fila llega sin
+ * presentación. Las familias exigen cuentas registradas, así que se simula la
+ * respuesta de la base con la forma exacta que devuelve en ese caso.
+ */
+const STUB_LIST_ID = "00000000-0000-4000-8000-000000000163";
+const STUB_VISIBLE_ROW_ID = "00000000-0000-4000-8000-000000000001";
+const STUB_VISIBLE_VARIANT_ID = "00000000-0000-4000-8000-000000000011";
+const STUB_HIDDEN_ROW_ID = "00000000-0000-4000-8000-000000000002";
+const STUB_HIDDEN_VARIANT_ID = "00000000-0000-4000-8000-000000000022";
+
+export const stubHouseholdListWithHiddenRow = async (
+  page: Page,
+  visibleProductName: string,
+): Promise<void> => {
+  const baseRow = {
+    checked_at: null,
+    purchase_session_id: null,
+    quantity_bought: null,
+    quantity_requested: 1,
+  };
+  const rows = [
+    {
+      ...baseRow,
+      created_at: "2026-11-25T10:00:00Z",
+      id: STUB_VISIBLE_ROW_ID,
+      product_catalog_variant_id: STUB_VISIBLE_VARIANT_ID,
+      product_catalog_variants: {
+        base_quantity: 1000,
+        base_unit: "g",
+        id: STUB_VISIBLE_VARIANT_ID,
+        product_catalog: { name: visibleProductName },
+      },
+    },
+    // Lo que la RLS de la 032 le devuelve a quien no puede ver el producto.
+    {
+      ...baseRow,
+      created_at: "2026-11-25T11:00:00Z",
+      id: STUB_HIDDEN_ROW_ID,
+      product_catalog_variant_id: STUB_HIDDEN_VARIANT_ID,
+      product_catalog_variants: null,
+    },
+  ];
+  await page.route(
+    (url) => url.pathname.endsWith("/rpc/find_general_list_id"),
+    (route) => route.fulfill({ json: STUB_LIST_ID }),
+  );
+  await page.route(
+    (url) =>
+      /\/rpc\/get_general_list_(recipe_shortfalls|shortfall_snapshots)$/.test(
+        url.pathname,
+      ),
+    (route) => route.fulfill({ json: [] }),
+  );
+  await page.route(
+    (url) =>
+      url.pathname.endsWith("/rest/v1/lists") &&
+      (url.searchParams.get("select") ?? "").startsWith("id,list_items"),
+    (route) => route.fulfill({ json: { id: STUB_LIST_ID, list_items: rows } }),
+  );
+};

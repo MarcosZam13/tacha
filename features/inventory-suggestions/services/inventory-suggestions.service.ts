@@ -17,3 +17,16 @@ export const getInventorySuggestions = async (): Promise<InventorySuggestion[]> 
 
   return toInventorySuggestions(suggestionRows);
 };
+
+/**
+ * La ✕ (SCRUM-104): pospone el producto de esa presentación 7 días en la lista
+ * general, para toda la familia. No borra nada del historial (SPEC §16).
+ */
+export const dismissInventorySuggestion = async (variantId: string): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient().rpc(INVENTORY_SUGGESTIONS_DB.RPC.DISMISS_INVENTORY_SUGGESTION, {
+    target_variant_id: variantId,
+  });
+  if (error) throw error;
+};
