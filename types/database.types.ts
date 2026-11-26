@@ -274,6 +274,54 @@ export type Database = {
           },
         ]
       }
+      inventory_adjustments: {
+        Row: {
+          adjusted_by: string | null
+          expected_out_at: string | null
+          list_id: string
+          product_catalog_id: string
+          purchased_at: string
+          shelf_life_choice: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          expected_out_at?: string | null
+          list_id: string
+          product_catalog_id: string
+          purchased_at: string
+          shelf_life_choice?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          expected_out_at?: string | null
+          list_id?: string
+          product_catalog_id?: string
+          purchased_at?: string
+          shelf_life_choice?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_suggestion_dismissals: {
         Row: {
           dismissed_by: string | null
@@ -1262,6 +1310,10 @@ export type Database = {
         Args: { target_list_id?: string; week_from: string; week_to: string }
         Returns: Json
       }
+      adjust_inventory_item: {
+        Args: { target_choice: string; target_variant_id: string }
+        Returns: undefined
+      }
       assert_local_day_start: {
         Args: { local_day_start: string }
         Returns: undefined
@@ -1634,6 +1686,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      mark_inventory_item_used_up: {
+        Args: { target_variant_id: string }
+        Returns: undefined
       }
       normalize_pending_staging: {
         Args: { batch_size?: number }

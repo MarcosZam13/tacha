@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MY_INVENTORY_DB } from "../constants/my-inventory.constants";
-import { getMyInventory } from "../services/my-inventory.service";
+import { SHELF_LIFE_CHOICE } from "@/features/shopping-list/constants/shelf-life.constants";
+import { adjustInventoryItem, getMyInventory, markInventoryItemUsedUp } from "../services/my-inventory.service";
 
 // Sin Supabase real: un cliente falso con solo rpc().
 const rpcMock = vi.fn();
@@ -53,5 +54,44 @@ describe("getMyInventory (SCRUM-105)", () => {
     rpcMock.mockResolvedValue({ data: null, error: databaseError });
 
     await expect(getMyInventory()).rejects.toBe(databaseError);
+  });
+});
+
+describe("markInventoryItemUsedUp (SCRUM-106)", () => {
+  it("abre la sesión y manda la presentación", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await expect(markInventoryItemUsedUp("variant-leche")).resolves.toBeUndefined();
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(MY_INVENTORY_DB.RPC.MARK_INVENTORY_ITEM_USED_UP, {
+      target_variant_id: "variant-leche",
+    });
+  });
+
+  it("propaga el error de la base", async () => {
+    const databaseError = { code: "22023", message: "El producto no está en tu inventario" };
+    rpcMock.mockResolvedValue({ data: null, error: databaseError });
+
+    await expect(markInventoryItemUsedUp("variant-leche")).rejects.toBe(databaseError);
+  });
+});
+
+describe("adjustInventoryItem (SCRUM-106)", () => {
+  it("abre la sesión y manda la presentación y el chip", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+
+    await expect(adjustInventoryItem("variant-leche", SHELF_LIFE_CHOICE.ONE_TO_THREE_MONTHS)).resolves.toBeUndefined();
+    expect(ensureSessionMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(MY_INVENTORY_DB.RPC.ADJUST_INVENTORY_ITEM, {
+      target_choice: "one_to_three_months",
+      target_variant_id: "variant-leche",
+    });
+  });
+
+  it("propaga el error de la base", async () => {
+    const databaseError = { code: "22023", message: "Duración no válida" };
+    rpcMock.mockResolvedValue({ data: null, error: databaseError });
+
+    await expect(adjustInventoryItem("variant-leche", SHELF_LIFE_CHOICE.FEW_DAYS)).rejects.toBe(databaseError);
   });
 });

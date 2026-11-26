@@ -52,6 +52,44 @@ export const stubInventory = async (
   await signInAsFakeUser(page);
 };
 
+const USED_UP_RPC = "**/rest/v1/rpc/mark_inventory_item_used_up";
+const ADJUST_RPC = "**/rest/v1/rpc/adjust_inventory_item";
+
+/** Lo que la pantalla le mandó a la base con cada acción (SCRUM-106). */
+export interface InventoryActionCalls {
+  usedUp: unknown[];
+  adjust: unknown[];
+}
+
+/**
+ * Como stubInventory, y además: las dos acciones de SCRUM-106 responden bien y
+ * guardan lo que se les mandó. get_my_inventory responde `rows` hasta la
+ * primera acción y `rowsAfterAction` después (lo que la base devolvería). No
+ * se cuentan pedidos: en desarrollo React pide el inventario dos veces al montar.
+ */
+export const stubInventoryWithActions = async (
+  page: Page,
+  rows: InventoryRow[],
+  rowsAfterAction: InventoryRow[],
+): Promise<InventoryActionCalls> => {
+  const calls: InventoryActionCalls = { adjust: [], usedUp: [] };
+  await stubSupabaseApi(page);
+  await page.route(INVENTORY_RPC, (route) => {
+    const hasActed = calls.adjust.length > 0 || calls.usedUp.length > 0;
+    return route.fulfill({ json: hasActed ? rowsAfterAction : rows });
+  });
+  await page.route(USED_UP_RPC, (route) => {
+    calls.usedUp.push(route.request().postDataJSON());
+    return route.fulfill({ status: 204, body: "" });
+  });
+  await page.route(ADJUST_RPC, (route) => {
+    calls.adjust.push(route.request().postDataJSON());
+    return route.fulfill({ status: 204, body: "" });
+  });
+  await signInAsFakeUser(page);
+  return calls;
+};
+
 /** Un grupo de la pantalla ("Vence pronto", "Este mes"...), por su título. */
 export const getGroup = (page: Page, title: string): Locator => page.getByRole("region", { name: title });
 
