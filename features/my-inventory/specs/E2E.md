@@ -41,3 +41,10 @@ Nivel más bajo que alcanza: qué entra al inventario y en qué orden se prueba 
 - **Resultado esperado:** se ven los cuatro chips sin mover la página de lado (también en el celular); después de elegir, Leche está en "Este mes" con "Te quedan 21 días" y los chips se cerraron; la pantalla mandó `adjust_inventory_item` con `two_to_four_weeks`.
 
 En los dos, la base simulada responde lo que respondería la real; que el producto pase de verdad a "¿Se te acabó?" y el cálculo con el ajuste se prueban en `supabase/tests/067_adjust_inventory_items.test.sql`.
+
+### E2E-MINV-07: agregar algo que ya había en casa, con un chip
+- **Cubre:** SCRUM-107 CA-01 y CA-02.
+- **Pasos:** el inventario está vacío y el catálogo devuelve Leche (1000 ml); abrir `/lista/inventario`; tocar "+ Agregar a mi inventario"; buscar "le"; elegir "Leche 1000 ml"; tocar "2-4 semanas"; tocar "Agregar".
+- **Resultado esperado:** la página no se mueve de lado con el panel abierto (también en el celular); el panel se cierra; Leche está en "Este mes" con "Te quedan 21 días", como cualquier otro producto; la pantalla mandó `add_inventory_item` con la presentación y `two_to_four_weeks`.
+
+Que lo agregado entre de verdad al cálculo (y no a la lista ni a Finanzas) se prueba en `supabase/tests/068_manual_inventory_items.test.sql`.

@@ -1,22 +1,46 @@
 // @vitest-environment jsdom
 import { cleanup, render, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { APP_ROUTE } from "@/constants";
+import { APP_ROUTE, PRODUCT_SEARCH_TEXT } from "@/constants";
+import { MY_INVENTORY_TEXT } from "../constants/my-inventory.constants";
 import { MyInventory } from "../MyInventory";
 import type { InventoryItem } from "../models/InventoryItem.interface";
 import { SHELF_LIFE_CHOICE } from "@/features/shopping-list/constants/shelf-life.constants";
-import { adjustInventoryItem, getMyInventory, markInventoryItemUsedUp } from "../services/my-inventory.service";
+import { searchCatalog } from "@/services/catalog.service";
+import type { CatalogProduct } from "@/types/catalog.types";
+import {
+  addInventoryItem,
+  adjustInventoryItem,
+  getMyInventory,
+  markInventoryItemUsedUp,
+} from "../services/my-inventory.service";
 import { createMyInventoryPage } from "./MyInventory.page";
 
 // Sin Supabase real: el inventario sale de un servicio simulado.
 vi.mock("../services/my-inventory.service", () => ({
+  addInventoryItem: vi.fn(),
   adjustInventoryItem: vi.fn(),
   getMyInventory: vi.fn(),
   markInventoryItemUsedUp: vi.fn(),
 }));
+// El buscador del panel de SCRUM-107 (useProductSearch) usa el catálogo.
+vi.mock("@/services/catalog.service", () => ({ searchCatalog: vi.fn() }));
 const getMyInventoryMock = vi.mocked(getMyInventory);
 const markUsedUpMock = vi.mocked(markInventoryItemUsedUp);
 const adjustMock = vi.mocked(adjustInventoryItem);
+const addMock = vi.mocked(addInventoryItem);
+const searchCatalogMock = vi.mocked(searchCatalog);
+
+// Leche con dos presentaciones, como la devuelve el catálogo.
+const LECHE_IN_CATALOG: CatalogProduct = {
+  category: "Lácteos",
+  productId: "product-leche",
+  productName: "Leche",
+  variants: [
+    { baseQuantity: 1000, baseUnit: "ml", imageUrl: null, priceRangeByStore: {}, variantId: "variant-Leche" },
+    { baseQuantity: 500, baseUnit: "ml", imageUrl: null, priceRangeByStore: {}, variantId: "variant-Leche-500" },
+  ],
+};
 
 // Sin globals de Vitest, Testing Library no limpia el DOM sola entre tests.
 afterEach(cleanup);
@@ -157,6 +181,11 @@ describe("MyInventory: Ya se acabó y ajustar la fecha (SCRUM-106)", () => {
     expect(within(page.getRowOf("Huevos")).queryByRole("alert")).toBeNull();
     const soonItems = page.getItems(page.getGroup("soon"));
     expect(within(soonItems[0]).getByText("Leche")).toBeTruthy();
+
+    // OBS-1 de la PR #124: el foco vuelve a la fila, no se queda en el título.
+    await waitFor(() => expect(page.getAdjustButton("Leche")).toHaveFocus());
+    // Y el aviso "ya no está en tu inventario" se borra: dejó de ser cierto.
+    expect(page.getAnnouncement()).not.toHaveTextContent("ya no está en tu inventario");
 
     // Volver a intentar funciona.
     await page.markUsedUp("Leche");
@@ -310,5 +339,227 @@ describe("MyInventory: Ya se acabó y ajustar la fecha (SCRUM-106)", () => {
     expect(page.getUsedUpButton("Leche")).toBeDisabled();
     expect(page.getAdjustButton("Leche")).toBeDisabled();
     expect(page.getUsedUpButton("Café")).toBeEnabled();
+  });
+
+  it("dos ajustes seguidos del mismo producto se avisan los dos (OBS-2 de la PR #124)", async () => {
+    getMyInventoryMock.mockResolvedValue([itemOutInDays("Leche", 3)]);
+    adjustMock.mockResolvedValue();
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findGroups();
+
+    await page.toggleAdjust("Leche");
+    await page.chooseChip("Leche", SHELF_LIFE_CHOICE.FEW_DAYS);
+    await waitFor(() => expect(page.getAnnouncement()).toHaveTextContent("Leche: fecha actualizada."));
+    const firstAnnouncement = page.getAnnouncement().textContent;
+
+    await page.toggleAdjust("Leche");
+    await page.chooseChip("Leche", SHELF_LIFE_CHOICE.FEW_DAYS);
+    await waitFor(() => expect(adjustMock).toHaveBeenCalledTimes(2));
+
+    // Mismo mensaje, pero el texto de la región cambia: el lector lo vuelve a leer.
+    await waitFor(() => expect(page.getAnnouncement().textContent).not.toBe(firstAnnouncement));
+    expect(page.getAnnouncement()).toHaveTextContent("Leche: fecha actualizada.");
+  });
+});
+
+describe("MyInventory: agregar a mano (SCRUM-107)", () => {
+  const openPanelAndPickLeche = async (page: ReturnType<typeof createMyInventoryPage>): Promise<void> => {
+    await page.openAdd();
+    await page.searchProduct("le");
+    await page.chooseSearchOption("Leche", "500 ml");
+  };
+
+  it("el botón está con productos y también en el estado vacío, no mientras carga", async () => {
+    getMyInventoryMock.mockResolvedValue([]);
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+
+    // Mientras carga, todavía no.
+    expect(page.queryOpenAddButton()).toBeNull();
+    await page.findEmptyState();
+    // CA-04 de SCRUM-105: el texto del vacío no pide llenarlo a mano; el botón está, sin insistir.
+    expect(await page.findOpenAddButton()).toBeTruthy();
+  });
+
+  it("si el inventario no carga, no ofrece agregar", async () => {
+    getMyInventoryMock.mockRejectedValue(new Error("network"));
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+
+    await page.findError();
+
+    expect(page.queryOpenAddButton()).toBeNull();
+  });
+
+  it("abre el panel con el foco en su título y Cancelar lo cierra devolviendo el foco al botón", async () => {
+    getMyInventoryMock.mockResolvedValue([itemOutInDays("Café", 20)]);
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findGroups();
+
+    await page.openAdd();
+
+    expect(page.getAddPanelTitle()).toHaveFocus();
+    expect(page.queryOpenAddButton()).toBeNull();
+
+    await page.cancelAdd();
+
+    expect(page.queryAddPanel()).toBeNull();
+    expect(await page.findOpenAddButton()).toHaveFocus();
+    expect(addMock).not.toHaveBeenCalled();
+  });
+
+  it("busca en el catálogo y muestra una opción por presentación", async () => {
+    getMyInventoryMock.mockResolvedValue([]);
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findEmptyState();
+
+    await page.openAdd();
+    await page.searchProduct("le");
+
+    expect(await page.findSearchOption("Leche", "1000 ml")).toBeTruthy();
+    expect(await page.findSearchOption("Leche", "500 ml")).toBeTruthy();
+    expect(searchCatalogMock).toHaveBeenCalledWith("le");
+  });
+
+  it("agrega con el chip elegido, cierra el panel y el producto aparece como cualquier otro (CA-01, CA-02)", async () => {
+    getMyInventoryMock
+      .mockResolvedValueOnce([itemOutInDays("Café", 20)])
+      .mockResolvedValueOnce([itemOutInDays("Café", 20), { ...itemOutInDays("Leche", 21), variantId: "variant-Leche-500" }]);
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    addMock.mockResolvedValue();
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findGroups();
+
+    await openPanelAndPickLeche(page);
+    expect(within(page.getAddPanel()).getByText("500 ml")).toBeTruthy();
+    await page.chooseChip("Leche", SHELF_LIFE_CHOICE.TWO_TO_FOUR_WEEKS);
+    await page.confirmAdd();
+
+    expect(addMock).toHaveBeenCalledWith("variant-Leche-500", SHELF_LIFE_CHOICE.TWO_TO_FOUR_WEEKS);
+    expect(page.queryAddPanel()).toBeNull();
+    await waitFor(() => expect(within(page.getGroup("thisMonth")).getByText("Leche")).toBeTruthy());
+    expect(within(page.getRowOf("Leche")).getByText("Te quedan 21 días")).toBeTruthy();
+    expect(page.getAnnouncement()).toHaveTextContent("Leche se agregó a tu inventario.");
+    await waitFor(() => expect(page.getAdjustButton("Leche")).toHaveFocus());
+  });
+
+  it("el chip es opcional: sin chip agrega igual, y tocar el chip elegido lo quita", async () => {
+    getMyInventoryMock.mockResolvedValue([]);
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    addMock.mockResolvedValue();
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findEmptyState();
+
+    await openPanelAndPickLeche(page);
+    await page.chooseChip("Leche", SHELF_LIFE_CHOICE.FEW_DAYS);
+    await page.chooseChip("Leche", SHELF_LIFE_CHOICE.FEW_DAYS);
+    await page.confirmAdd();
+
+    expect(addMock).toHaveBeenCalledWith("variant-Leche-500", null);
+  });
+
+  it("Cambiar producto vuelve al buscador", async () => {
+    getMyInventoryMock.mockResolvedValue([]);
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findEmptyState();
+
+    await openPanelAndPickLeche(page);
+    await page.changeProduct();
+
+    expect(within(page.getAddPanel()).getByRole("textbox", { name: PRODUCT_SEARCH_TEXT.LABEL })).toBeTruthy();
+    expect(within(page.getAddPanel()).queryByRole("button", { name: MY_INVENTORY_TEXT.ADD_CONFIRM })).toBeNull();
+  });
+
+  it("si no se puede agregar, el panel sigue abierto con el error", async () => {
+    getMyInventoryMock.mockResolvedValue([]);
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    addMock.mockRejectedValue(new Error("network"));
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findEmptyState();
+
+    await openPanelAndPickLeche(page);
+    await page.confirmAdd();
+
+    expect(await within(page.getAddPanel()).findByRole("alert")).toHaveTextContent(
+      "No se pudo agregar. Intenta de nuevo.",
+    );
+    expect(getMyInventoryMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("si se agregó pero falla la recarga, la lista sigue y la pantalla avisa", async () => {
+    getMyInventoryMock
+      .mockResolvedValueOnce([itemOutInDays("Café", 20)])
+      .mockRejectedValueOnce(new Error("network"));
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    addMock.mockResolvedValue();
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findGroups();
+
+    await openPanelAndPickLeche(page);
+    await page.confirmAdd();
+
+    expect(await page.findError()).toHaveTextContent(
+      "Se guardó, pero no se pudo actualizar la pantalla. Recarga la página.",
+    );
+    expect(page.queryProduct("Café")).toBeTruthy();
+  });
+
+  it("si se marcó Ya se acabó y se vuelve a agregar en la misma pantalla, aparece", async () => {
+    getMyInventoryMock
+      .mockResolvedValueOnce([{ ...itemOutInDays("Leche", 3), variantId: "variant-Leche-500" }])
+      .mockResolvedValueOnce([{ ...itemOutInDays("Leche", 60), variantId: "variant-Leche-500" }]);
+    markUsedUpMock.mockResolvedValue();
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    addMock.mockResolvedValue();
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findGroups();
+
+    await page.markUsedUp("Leche");
+    expect(await page.findEmptyState()).toBeTruthy();
+    await openPanelAndPickLeche(page);
+    await page.chooseChip("Leche", SHELF_LIFE_CHOICE.ONE_TO_THREE_MONTHS);
+    await page.confirmAdd();
+
+    await waitFor(() => expect(within(page.getGroup("later")).getByText("Leche")).toBeTruthy());
+    await waitFor(() => expect(page.getAdjustButton("Leche")).toHaveFocus());
+  });
+  it("abrir el panel cierra los chips de Ajustar fecha", async () => {
+    getMyInventoryMock.mockResolvedValue([itemOutInDays("Leche", 3)]);
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findGroups();
+
+    await page.toggleAdjust("Leche");
+    await page.openAdd();
+
+    expect(page.queryChips("Leche")).toBeNull();
+    expect(page.getAdjustButton("Leche")).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("mientras agrega, Agregar y Cancelar quedan deshabilitados", async () => {
+    getMyInventoryMock.mockResolvedValue([]);
+    searchCatalogMock.mockResolvedValue([LECHE_IN_CATALOG]);
+    addMock.mockReturnValue(new Promise(() => {}));
+    render(<MyInventory />);
+    const page = createMyInventoryPage();
+    await page.findEmptyState();
+
+    await openPanelAndPickLeche(page);
+    await page.confirmAdd();
+
+    expect(within(page.getAddPanel()).getByRole("button", { name: MY_INVENTORY_TEXT.ADD_CONFIRM })).toBeDisabled();
+    expect(within(page.getAddPanel()).getByRole("button", { name: MY_INVENTORY_TEXT.ADD_CANCEL })).toBeDisabled();
+    expect(addMock).toHaveBeenCalledTimes(1);
   });
 });

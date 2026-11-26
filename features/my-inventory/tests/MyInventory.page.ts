@@ -5,6 +5,7 @@ import {
   SHELF_LIFE_TEXT,
 } from "@/features/shopping-list/constants/shelf-life.constants";
 import type { ShelfLifeChoiceType } from "@/features/shopping-list/constants/shelf-life.constants";
+import { PRODUCT_SEARCH_TEXT } from "@/constants";
 import { INVENTORY_GROUP_TITLE, MY_INVENTORY_TEXT } from "../constants/my-inventory.constants";
 
 /**
@@ -67,8 +68,53 @@ export const createMyInventoryPage = () => {
     await user.click(within(chips).getByRole("button", { name: SHELF_LIFE_CHOICE_LABEL[choice] }));
   };
 
+  // SCRUM-107: el panel "+ Agregar a mi inventario".
+  const queryOpenAddButton = (): HTMLElement | null =>
+    screen.queryByRole("button", { name: MY_INVENTORY_TEXT.ADD_OPEN });
+  const findOpenAddButton = (): Promise<HTMLElement> =>
+    screen.findByRole("button", { name: MY_INVENTORY_TEXT.ADD_OPEN });
+  const queryAddPanel = (): HTMLElement | null => screen.queryByRole("group", { name: MY_INVENTORY_TEXT.ADD_TITLE });
+  const getAddPanel = (): HTMLElement => screen.getByRole("group", { name: MY_INVENTORY_TEXT.ADD_TITLE });
+  const getAddPanelTitle = (): HTMLElement =>
+    within(getAddPanel()).getByRole("heading", { level: 2, name: MY_INVENTORY_TEXT.ADD_TITLE });
+  const openAdd = async (): Promise<void> => {
+    await user.click(await findOpenAddButton());
+  };
+  const searchProduct = async (text: string): Promise<void> => {
+    await user.type(within(getAddPanel()).getByRole("textbox", { name: PRODUCT_SEARCH_TEXT.LABEL }), text);
+  };
+  // Las opciones del buscador son botones con el nombre y el tamaño en dos span ("Leche" "1000 ml").
+  const searchOptionName = (productName: string, sizeLabel: string): RegExp =>
+    new RegExp(`^${productName}\\s*${sizeLabel}$`, "u");
+  const findSearchOption = (productName: string, sizeLabel: string): Promise<HTMLElement> =>
+    within(getAddPanel()).findByRole("button", { name: searchOptionName(productName, sizeLabel) });
+  const chooseSearchOption = async (productName: string, sizeLabel: string): Promise<void> => {
+    await user.click(await findSearchOption(productName, sizeLabel));
+  };
+  const confirmAdd = async (): Promise<void> => {
+    await user.click(within(getAddPanel()).getByRole("button", { name: MY_INVENTORY_TEXT.ADD_CONFIRM }));
+  };
+  const cancelAdd = async (): Promise<void> => {
+    await user.click(within(getAddPanel()).getByRole("button", { name: MY_INVENTORY_TEXT.ADD_CANCEL }));
+  };
+  const changeProduct = async (): Promise<void> => {
+    await user.click(within(getAddPanel()).getByRole("button", { name: MY_INVENTORY_TEXT.ADD_CHANGE_PRODUCT }));
+  };
+
   return {
+    cancelAdd,
+    changeProduct,
     chooseChip,
+    chooseSearchOption,
+    confirmAdd,
+    findOpenAddButton,
+    findSearchOption,
+    getAddPanel,
+    getAddPanelTitle,
+    openAdd,
+    queryAddPanel,
+    queryOpenAddButton,
+    searchProduct,
     findEmptyState,
     findError,
     findGroups,

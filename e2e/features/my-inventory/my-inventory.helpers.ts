@@ -54,12 +54,25 @@ export const stubInventory = async (
 
 const USED_UP_RPC = "**/rest/v1/rpc/mark_inventory_item_used_up";
 const ADJUST_RPC = "**/rest/v1/rpc/adjust_inventory_item";
+const ADD_RPC = "**/rest/v1/rpc/add_inventory_item";
+const SEARCH_RPC = "**/rest/v1/rpc/search_catalog";
 
-/** Lo que la pantalla le mandó a la base con cada acción (SCRUM-106). */
+/** Lo que la pantalla le mandó a la base con cada acción (SCRUM-106 y 107). */
 export interface InventoryActionCalls {
   usedUp: unknown[];
   adjust: unknown[];
+  add: unknown[];
 }
+
+/** Un producto del catálogo como lo devuelve search_catalog, con una presentación de 1000 ml. */
+export const createCatalogRow = (productName: string) => ({
+  category: "Lácteos",
+  name: productName,
+  product_catalog_id: `e2e-product-${productName}`,
+  variants: [
+    { base_quantity: 1000, base_unit: "ml", image_url: null, price_ranges: {}, variant_id: `e2e-variant-${productName}` },
+  ],
+});
 
 /**
  * Como stubInventory, y además: las dos acciones de SCRUM-106 responden bien y
@@ -71,12 +84,18 @@ export const stubInventoryWithActions = async (
   page: Page,
   rows: InventoryRow[],
   rowsAfterAction: InventoryRow[],
+  catalogRows: ReturnType<typeof createCatalogRow>[] = [],
 ): Promise<InventoryActionCalls> => {
-  const calls: InventoryActionCalls = { adjust: [], usedUp: [] };
+  const calls: InventoryActionCalls = { add: [], adjust: [], usedUp: [] };
   await stubSupabaseApi(page);
   await page.route(INVENTORY_RPC, (route) => {
-    const hasActed = calls.adjust.length > 0 || calls.usedUp.length > 0;
+    const hasActed = calls.adjust.length > 0 || calls.usedUp.length > 0 || calls.add.length > 0;
     return route.fulfill({ json: hasActed ? rowsAfterAction : rows });
+  });
+  await page.route(SEARCH_RPC, (route) => route.fulfill({ json: catalogRows }));
+  await page.route(ADD_RPC, (route) => {
+    calls.add.push(route.request().postDataJSON());
+    return route.fulfill({ status: 204, body: "" });
   });
   await page.route(USED_UP_RPC, (route) => {
     calls.usedUp.push(route.request().postDataJSON());
