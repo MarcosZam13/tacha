@@ -7,6 +7,7 @@ Historias (criterios en [historias-usuario.md](../../../docs/historias-usuario.m
 - [SCRUM-91 / HU-60](https://tacha.atlassian.net/browse/SCRUM-91): editar el total de una sesión o periodo. En planificación.
 - [SCRUM-92 / HU-61](https://tacha.atlassian.net/browse/SCRUM-92): ver sesiones sin total ingresado. En planificación; decisiones D23 a D27 tomadas el 2026-11-13 (§5).
 - [SCRUM-93 / HU-62](https://tacha.atlassian.net/browse/SCRUM-93): consultar frecuencia e historial de compra por producto. Implementada, con migración `049` aplicada, pruebas automatizadas en verde y QA manual dada por completada por la dueña de la historia (§13). Decisiones D28 a D44 (D39 sustituye a D28). Faltan la confirmación del equipo de D38 y la aprobación de la documentación.
+- [SCRUM-72 / HU-40](https://tacha.atlassian.net/browse/SCRUM-72): ver gastos por supermercado. Implementada el 2026-11-24, con las decisiones D45 a D50 (§5) y sin migración; las pruebas automatizadas pasan y la QA manual (§13) está pendiente.
 
 El cómo está en [plan.md](plan.md) y los pasos en [tasks.md](tasks.md). Producto: [documento-proyecto.md §4.2.1 y §4.6](../../../docs/documento-proyecto.md#42-lista-general-y-dashboard-financiero); diseño: [DESIGN.md §7.9 y §7.11](../../../docs/DESIGN.md).
 
@@ -35,6 +36,12 @@ Que una persona con cuenta sepa cuántas veces compró cada producto y, al elegi
 El monto que se muestra es siempre el **total de la compra completa**. Tacha guarda el total de cada compra, no el precio de cada producto, así que ese monto no se le atribuye al producto.
 
 **Cambio de alcance (Jira, 2026-11-14):** HU-62 era "Filtrar historial por supermercado y categoría". Ahora es "Consultar frecuencia e historial de compra por producto". Esta sección describe solo el alcance nuevo. Los filtros quedan como funcionalidad futura (D38).
+
+### SCRUM-72
+
+Que una persona con cuenta vea en el Dashboard cuánto gastó en cada supermercado durante el periodo elegido, del que más al que menos, para saber dónde está gastando más.
+
+Los montos son los **totales de sus compras cerradas**, agrupados por supermercado. No se estima ni se reparte nada: lo que no tiene supermercado (los ajustes manuales) o no tiene total (las compras "Sin total") se muestra aparte, nunca atribuido a un supermercado.
 
 ## 2. Alcance
 
@@ -115,6 +122,21 @@ No incluye ([§14](#14-casos-fuera-de-alcance)):
 - editar totales (D34);
 - los productos más comprados y más costosos del Dashboard (HU-42).
 
+### SCRUM-72
+
+**Dentro:**
+
+- Una sección **"Gasto por supermercado"** en el Dashboard, con cada supermercado y lo que se gastó en él en el periodo elegido (CA-01).
+- Ordenada de **mayor a menor gasto** (CA-02), también "Supermercado no disponible" (D49).
+- Los **ajustes manuales** en una línea aparte, fuera del desglose (D45), con "Ajuste manual" o "Ajustes manuales" según cuántos cuenten (D50).
+- Un supermercado que solo tiene compras sin total aparece **al final con "Sin total"**, nunca con ₡0 (D46).
+- La **cantidad de compras sin total** de cada supermercado (D47).
+- La sección **no aparece** si el periodo no tiene compras (D48).
+- El Dashboard pasa a leer con `usePeriodPurchases`, la misma lectura del Historial, para que el total y el desglose salgan de las mismas filas (regla 25). `usePeriodSpending` y `getPeriodSpending` se quitan después, en un commit aparte, si no quedan otros consumidores.
+- Sin migración, RPC nueva ni cambios de RLS o de tipos.
+
+**Fuera:** §14.
+
 ## 3. Entradas
 
 ### SCRUM-69
@@ -173,6 +195,16 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
 - **Cerrar o cambiar la selección:** volver a tocar el producto o tocar otro (D32).
 - **"Reintentar":** uno por lectura, en la lista y en el detalle.
 
+### SCRUM-72
+
+- La sesión registrada (D6).
+- El periodo elegido en el Dashboard: el día, la semana o el mes **en curso** (D2, D7).
+- Las compras **cerradas propias** del periodo, con su supermercado (`store_name`) y su total, nulo si es "Sin total" (D3, D4, D8).
+- Los ajustes manuales que cuentan en el periodo (reglas 49 y 52). Sin zona guardada no hay ajustes (regla 59).
+- La zona guardada, si hay, para los límites del periodo (SCRUM-91).
+
+Todo sale de **una sola lectura**, la del Historial (regla 25): `get_period_finance` con zona guardada, `getPeriodPurchases` sin ella.
+
 ## 4. Salidas
 
 ### SCRUM-69
@@ -225,6 +257,16 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
   La suma de las apariciones de las filas coincide con el conteo del producto (regla 89).
 - Los anuncios de carga, vacío y error de cada lectura.
 - No escribe nada en la base.
+
+### SCRUM-72
+
+- **Lista de supermercados:** cada uno con su nombre y lo que se gastó en él, ordenada según la regla 113.
+- **En cada fila, si corresponde:** cuántas de sus compras no tienen total ("1 sin total", "2 sin total").
+- **Supermercado solo con compras sin total:** al final, con "Sin total" en lugar del monto.
+- **"Supermercado no disponible":** un grupo propio para las compras cuyo nombre llega nulo o en blanco.
+- **Ajuste manual:** una línea aparte, debajo de la lista, con la suma de los ajustes del periodo y su signo. Dice "Ajustes manuales" si cuenta más de uno (D50).
+- **Periodo sin compras:** la sección no se muestra.
+- El total del periodo, el presupuesto y el recordatorio de SCRUM-69 y SCRUM-92 no cambian.
 
 ## 5. Reglas de negocio
 
@@ -547,6 +589,50 @@ El cliente nunca manda `owner_id`, el monto del ajuste, los límites del periodo
      - La RPC de detalle valida el límite de 500 con `22023`, y la prueba SQL lo cubre.
      - **Comprobación de la implementación** (plan, "Datos"; tasks 1.2): el nombre original más largo del catálogo mide **16** caracteres (medido por la dueña de la historia el 2026-11-16, con una consulta de solo lectura). El largo normalizado también mide **16**, medido después de aplicar la `049` (tasks 1.4).
 
+### SCRUM-72
+
+**Numeración:** las reglas 72 a 102, las decisiones D28 a D44 y los escenarios E2E-FIN-19 a 23 son de SCRUM-93. SCRUM-72 sigue después.
+
+**Decididas por la dueña de la historia** (2026-11-24). Las alternativas descartadas están en [plan.md](plan.md), "SCRUM-72".
+
+103. **D45. Ajustes manuales:** se muestran en **una línea aparte**, "Ajuste manual" o "Ajustes manuales" (D50), con la suma de los ajustes del periodo y su signo, debajo de la lista y **fuera del desglose y del orden**. Un ajuste no tiene supermercado (`spending_adjustments`, `040`), así que nunca se reparte ni se le suma a uno.
+104. **D46. Supermercado solo con compras sin total:** aparece **al final** de la lista con **"Sin total"**, nunca con ₡0. Un total real de ₡0 sí se muestra como ₡0 (D8).
+105. **D47. Compras sin total por supermercado:** cada fila muestra cuántas compras de ese supermercado no tienen total. Esas compras no suman a ningún monto.
+106. **D48. Periodo sin compras:** si el periodo no tiene ninguna compra cerrada, con o sin total, **la sección no se muestra**, aunque haya un ajuste. El total del periodo ya muestra el vacío o "Incluye ajustes manuales".
+
+**Heredadas, sin cambios:** D2, D3, D4, D6 y regla 7, D7, D8, D11 (el Dashboard no edita), y las reglas 11, 13, 25, 28, 29, 30, 49, 52 y 59.
+
+**Agrupación (CA-01):**
+
+107. **Qué se agrupa:** las compras cerradas propias del periodo elegido, **las mismas filas** de las que sale el total (regla 25). El desglose y el total vienen de una sola lectura y no pueden contradecirse.
+108. **Qué identifica a un supermercado:** su **nombre** (`store_name`), porque la lectura no trae `store_id` (§12).
+     - **Límite aceptado:** dos supermercados distintos con el mismo nombre se verían como uno solo, con la suma de los dos.
+     - **Hoy no pasa:** hay tres supermercados, con nombres distintos (`supabase/schema.sql`, `stores`). El nombre no tiene restricción de único, así que podría pasar si se agrega uno.
+     - **Evitarlo** pide que la lectura devuelva `store_id`, y eso es una migración (fuera de alcance, §14).
+109. **Nombre nulo o en blanco** (regla 29): las compras van a un grupo propio, **"Supermercado no disponible"**. Nunca se suman a otro supermercado.
+110. **Monto de un supermercado:** la suma de los totales no nulos de sus compras, **en centavos enteros**, como `summarizeSpending`. Se redondea solo al mostrarlo (regla 11). Un ₡0 real cuenta como ₡0 (D8).
+111. **Compras sin total** (D8, D47): no suman al monto de su supermercado; se cuentan aparte en su fila.
+
+**Orden (CA-02):**
+
+112. **Lo que entra en el orden:** solo los supermercados. La línea del ajuste queda fuera (D45).
+113. **Cómo se ordena** (D49):
+     1. los grupos con al menos una compra con total, "Supermercado no disponible" incluido, **de mayor a menor monto**;
+     2. si empatan en monto, por nombre (orden alfabético en español), con "Supermercado no disponible" después de los que tienen nombre;
+     3. al final, los que solo tienen compras sin total (D46), por nombre, con "Supermercado no disponible" al último.
+
+**Coherencia y lectura:**
+
+114. **Los montos no se tocan para que cuadren:** la suma de los supermercados más el ajuste es el total del periodo, en centavos. Por el redondeo al mostrar, la suma de las filas visibles puede diferir en ₡1 del total, como en la regla 28. Se acepta así: no se redondea distinto ni se corrige ninguna fila.
+115. **Solo con el gasto cargado:** la sección aparece solo cuando el gasto del periodo está listo y tiene compras (D48). Mientras carga, o si la lectura falla, no se ve: el total ya muestra la carga, el error y "Reintentar" (SCRUM-69 §6), una sola vez.
+116. **Cambio de periodo:** el desglose se recalcula con la lectura del periodo nuevo. Una respuesta vieja se descarta (regla 13).
+117. **Solo lectura:** sin lápices ni enlaces en las filas (D11).
+
+**Decididas por la dueña de la historia** (2026-11-24, en la revisión de la etapa 0):
+
+118. **D49. Orden de "Supermercado no disponible":** se ordena **por su monto**, como cualquier supermercado, para cumplir CA-02. Solo en un empate de monto va después de los que tienen nombre. Si solo tiene compras sin total, va con ellos al final (D46), al último. Sustituye la propuesta de dejarlo siempre al final, que no llegó a aprobarse.
+119. **D50. Texto de la línea del ajuste:** **"Ajuste manual"** si en el periodo cuenta un solo ajuste y **"Ajustes manuales"** si cuentan dos o más; por ejemplo, en el mes, el ajuste de un día y el de una semana (regla 52). El monto es siempre la suma con signo (D45). En el Historial cada ajuste sigue en su propia fila "Ajuste manual" (D16).
+
 ## 6. Estados
 
 ### SCRUM-69
@@ -651,6 +737,19 @@ Uniones derivadas de constantes, como las de SCRUM-90:
   - `empty`: el producto ya no tiene apariciones, por la regla 90;
   - `failed`.
 - **Acceso:** el de `useFinanceAccess` (`checking` · `registered` · `noAccount`).
+
+### SCRUM-72
+
+**Desglose por supermercado:** sigue al gasto del periodo (`SPENDING_STATUS`, SCRUM-69); no tiene un estado propio.
+
+| Gasto del periodo | Compras en el periodo | Qué se ve en la sección |
+|---|---|---|
+| `loading` | — | Nada (regla 115) |
+| `failed` | — | Nada; el error está en el total (regla 115) |
+| `empty` | Ninguna | Nada (D48) |
+| `ready` | Ninguna, solo ajustes | Nada (D48) |
+| `ready` | Una o más | La lista, y la línea del ajuste si hay ajustes (D45) |
+
 ## 7. Errores
 
 ### SCRUM-69
@@ -725,6 +824,16 @@ Textos propuestos (se confirman al escribir las constantes):
 - **Sesión vencida o anónima:** pasa a `noAccount`, como en el resto de Finanzas.
 - **El producto ya no tiene apariciones** (regla 90): mensaje de vacío en el detalle, no de error.
 
+### SCRUM-72
+
+Sin errores nuevos. El desglose sale de la misma lectura que el total:
+
+| Situación | Qué pasa |
+|---|---|
+| Falla la lectura del periodo | El error y "Reintentar" del total, de SCRUM-69 §7; la sección no aparece |
+| La zona guardada ya no se reconoce (`TZ002`) | El mensaje de SCRUM-91 en el total; la sección no aparece |
+| Sin zona, el conteo exacto es nulo o no coincide | Falla la carga, como la regla 30: mejor un error que un desglose incompleto |
+
 ## 8. UI esperada
 
 ### SCRUM-69
@@ -796,6 +905,20 @@ Según DESIGN.md §7.9: "Sesiones sin total ingresado deben distinguirse visualm
 - Vacío, sin resultados, carga y error de cada lectura.
 - Sin lápices (D34).
 
+### SCRUM-72
+
+Según DESIGN.md §7.11. Textos propuestos (se confirman al escribir las constantes):
+
+- **Dónde:** una tarjeta debajo del total y el presupuesto, y debajo del recordatorio de SCRUM-92, con el mismo estilo de las otras tarjetas del Dashboard.
+- **Título:** **"Gasto por supermercado"**.
+- **Cada fila:**
+  - a la izquierda, el nombre del supermercado o "Supermercado no disponible";
+  - a la derecha, el monto (`formatColones`);
+  - debajo del nombre, en texto chico, **"1 sin total"** o **"N sin total"**, solo si tiene alguna (D47).
+- **Supermercado solo con compras sin total** (D46): en lugar del monto, el `Chip` **"Sin total"** con el tono `TERRACOTTA_STRONG` de SCRUM-92 (D27), al final de la lista.
+- **Ajuste manual** (D45): una línea debajo de la lista, separada de ella, con "Ajuste manual" (o "Ajustes manuales" si cuenta más de uno, D50) y el monto con signo (`formatSignedColones`, como `PeriodAdjustmentRow`).
+- Sin lápices, sin enlaces y sin gráfico.
+
 ## 9. Accesibilidad
 
 ### SCRUM-69
@@ -844,6 +967,15 @@ Según DESIGN.md §7.9: "Sesiones sin total ingresado deben distinguirse visualm
 - **Anuncios:** la carga y el vacío con `role="status"`; los errores con `role="alert"`, como el resto de Finanzas.
 - **Contraste:** el producto elegido y la vista activa cumplen AA. El chip `TEAL` activo midió 4.09:1 en modo claro, menos que 4.5:1. Si se usa ese tono, hay que corregirlo (plan, "Riesgos").
 - **Monto:** la aclaración de la regla 85 es texto visible, no solo un `title` o un tooltip.
+
+### SCRUM-72
+
+- **Sección con nombre:** un `<section>` con su título como encabezado, unido con `aria-labelledby`.
+- **Lista:** un `<ul>` y un `<li>` por supermercado, en el orden de la regla 113. Cada `<li>` se lee completo: nombre, monto o "Sin total", y "N sin total" si corresponde.
+- **El ajuste:** fuera de la lista, para que no se lea como un supermercado más.
+- **"Sin total":** va en texto; el color acompaña. Contraste según D27.
+- **Sin anuncios nuevos:** la zona `role="status"` sigue anunciando solo el total (SCRUM-69 §9). La sección no tiene nada interactivo.
+- Se lee bien en desktop y en mobile, sin desplazamiento horizontal.
 
 ## 10. Restricciones técnicas
 
@@ -903,6 +1035,18 @@ Según DESIGN.md §7.9: "Sesiones sin total ingresado deben distinguirse visualm
 - **Sin librerías nuevas.**
 - **La base hace el trabajo:** cuenta, agrupa, busca y pagina. El cliente no recibe todos los artículos de todas las compras.
 
+### SCRUM-72
+
+- **Sin migración, RPC, Edge Function ni cambios de RLS o de tipos:** la lectura es la del Historial (`usePeriodPurchases`; SCRUM-90 y SCRUM-91).
+- **Una función pura** para agrupar, sumar y ordenar, en `features/finance/utils/`, con sus tests. El ViewModel arma los textos; el componente solo dibuja.
+- **Reutiliza sin duplicar:** `usePeriodPurchases`, el patrón de centavos de `summarizeSpending`, `formatColones`, `formatSignedColones`, el `Chip` con `TERRACOTTA_STRONG` y los textos `FINANCE_TEXT.STORE_UNAVAILABLE`, `WITHOUT_TOTAL` y `ADJUSTMENT`.
+- **Textos nuevos en constantes** (constants-standards), no sueltos en el componente.
+- **Quitar lo que queda sin uso**, en un commit aparte (decisión de la dueña de la historia, 2026-11-24): `usePeriodSpending`, `getPeriodSpending` y `FINANCE_DB.SELECT.SPENDING`, con sus tests, y en `e2e/features/finance/finance.helpers.ts` la rama del stub de gasto con sus datos y opciones, **solo después de confirmar** que no tienen otros consumidores.
+  - **Comprobado el 2026-11-24:** el único consumidor es `useFinanceDashboardViewModel`; `usePeriodPurchases` los nombra solo en un comentario.
+  - **D19 se sigue cumpliendo:** el Dashboard y el Historial dan el mismo total porque usan la misma lectura.
+- **Sin librería de gráficos:** no hay ninguna en el proyecto, y la historia pide una lista.
+- **Cada commit deja las pruebas existentes en verde:** la adaptación de los stubs E2E del Dashboard va con el cambio de lectura (plan, "Pruebas").
+
 ## 11. Dependencias
 
 ### SCRUM-69
@@ -956,6 +1100,16 @@ No depende de ningún PR sin mergear.
 - **De Finanzas:** `useFinanceAccess`, `FinanceTabs`, `formatColones`, el formato de fecha de `PurchaseSessionRow`, `finance.service.ts` y `finance.constants.ts`.
 - `@/constants` (`ROUTES`, para la ruta de la vista "Productos") y `@/components/ui`.
 - **Tablas que se leen:** `purchase_sessions`, `list_items`, `product_catalog_variants`, `product_catalog` y `stores`.
+
+### SCRUM-72
+
+| Depende de | Estado | Uso |
+|---|---|---|
+| SCRUM-69 (HU-37): Dashboard, `useFinanceDashboardViewModel`, `SpendingTotal` | En `develop` | Se extiende |
+| SCRUM-90 (HU-59): `usePeriodPurchases`, `getPeriodPurchases`, regla 29 | En `develop` | Se reutiliza sin cambiar su contrato |
+| SCRUM-91 (HU-60): `get_period_finance`, ajustes, zona guardada (`040`) | En `develop` | Se reutiliza |
+| SCRUM-92 (HU-61): `Chip` `TERRACOTTA_STRONG`, recordatorio del Dashboard | En `develop` | Se reutiliza; el recordatorio no cambia |
+| SCRUM-93 (HU-62): vista "Productos" | En `develop` | No se cruza; solo comparten `finance.constants.ts` |
 
 ## 12. Contratos externos
 
@@ -1188,6 +1342,27 @@ Firmas de la migración `049` (`supabase/migrations/049_product_purchase_history
 - No hay precio por artículo: `list_items` no tiene precio ni marca.
 - `product_prices` es el precio de mercado obtenido por scraping, no lo que se pagó, y esta historia no lo usa.
 
+### SCRUM-72
+
+**Sin contratos nuevos.** El Dashboard usa las lecturas del Historial (solo con sesión registrada, sin `owner_id`; la RLS de `016` deja solo las propias):
+
+```
+Con zona guardada:
+rpc/get_period_finance(target_scope)
+  → { time_zone, period_start, period_end,
+      purchases: [{ id, closed_at, total_amount, store_name }],
+      adjustments: [{ id, scope, effective_at, amount }],
+      total }                                                  (040)
+
+Sin zona:
+purchase_sessions  select id, closed_at, total_amount, stores(display_name)
+                   where closed_at >= inicio and closed_at < fin
+                   order by closed_at desc, id                 con count: "exact" (regla 30)
+```
+
+- **Lo que dejó de pedir el Dashboard:** `purchase_sessions select total_amount`, la lectura de `getPeriodSpending`, que se quitó en esta historia (§10). Con zona guardada la llamada es la misma de antes.
+- **Sin `store_id`:** ninguna de las dos lecturas lo devuelve; por eso se agrupa por nombre (regla 108).
+
 ## 13. Casos de aceptación
 
 ### HU-37 (SCRUM-69)
@@ -1408,6 +1583,24 @@ Casos de cada flujo:
 - [x] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad (tasks 2.1 a 4.1).
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan (tasks 6.1).
 
+### HU-40 (SCRUM-72)
+
+**Validado con pruebas automatizadas el 2026-11-24** (Vitest, E2E con Supabase simulado, `tsc`, lint y build). Falta la QA manual contra la base, `TC-SCRUM-72-01` a `06` (plan, "Pruebas"): por eso CA-01, CA-02 y el último punto "Manual" siguen sin marcar.
+
+- [ ] **CA-01, monto por supermercado:** el Dashboard muestra cada supermercado con lo que se gastó en él en el periodo elegido, y cambia al cambiar de periodo. La suma de los supermercados más el ajuste es el total del periodo (regla 114). Función pura, ViewModel, pantalla, E2E y manual contra el Historial.
+- [ ] **CA-02, orden:** de mayor a menor monto, "Supermercado no disponible" incluido (D49), con los empates y el final de la lista según la regla 113. Función pura, pantalla y E2E-FIN-24 y 25.
+- [x] **D45 y D50, ajuste:** con un ajuste en el periodo se ve "Ajuste manual" con su signo, fuera de la lista; con dos o más, "Ajustes manuales" con la suma.
+- [x] **D46 y D47, sin total:** un supermercado solo con compras sin total aparece al final con "Sin total" y nunca con ₡0; uno con compras con y sin total muestra su monto y "N sin total". Un ₡0 real se ve como ₡0.
+- [x] **D48, sin compras:** sin compras en el periodo, la sección no se ve, aunque haya un ajuste.
+- [x] **Regla 109:** las compras con nombre nulo o en blanco van a "Supermercado no disponible".
+- [x] **Regla 115:** mientras carga o si falla, la sección no aparece y el error se ve una sola vez, en el total.
+- [x] **D6:** sin cuenta registrada o con sesión anónima no se pide nada.
+- [x] **Sin regresiones:** el total, el presupuesto y el recordatorio del Dashboard siguen igual; E2E-FIN-01 a 23 pasan, con E2E-FIN-01 a 05, 08 y 11 adaptados a la lectura nueva sin cambiar lo que comprueban (D6 incluido).
+- [x] **E2E (interfaz):** E2E-FIN-24 y 25 pasan en `chromium` y `mobile-chrome`. Validan la interfaz con Supabase simulado, no la base.
+- [ ] **Manual:** contra la base compartida, el desglose de cada periodo coincide con las compras del Historial del mismo periodo; teclado y mobile, con capturas sin correos.
+- [x] Tests automáticos (Vitest) del camino feliz y de al menos un caso negativo o límite por unidad.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` y `git diff --check` pasan.
+
 ## 14. Casos fuera de alcance
 
 ### SCRUM-69
@@ -1480,6 +1673,16 @@ Casos de cada flujo:
 - **Paginar el detalle de un producto** (D35, §15 problema 4).
 - **El recordatorio y la sección "Compras sin total"** (HU-61). No cambian.
 
+### SCRUM-72
+
+- Devolver `store_id` en la lectura para distinguir supermercados con el mismo nombre (regla 108): pide una migración.
+- Repartir los ajustes manuales entre supermercados (D45).
+- Estimar montos con `product_prices` o completar las compras sin total.
+- Periodos anteriores o rangos de fechas (D7).
+- Gráficos, porcentajes o comparaciones entre periodos.
+- Tocar un supermercado para ver sus compras, o filtrar el Historial por supermercado (D38).
+- Compras de otros integrantes de la familia (D4) y desgloses por categoría, persona o lista (HU-38, HU-39, HU-41).
+
 ## 15. Notas de implementación
 
 ### SCRUM-69
@@ -1493,6 +1696,7 @@ Casos de cada flujo:
 
 - **`SpendingTotal` se reutiliza entero:** ya resuelve total, fechas, contadores, vacío, error y reintento. Por eso el error dice "tu gasto" también en el Historial.
 - **Dos hooks parecidos, a propósito:** `usePeriodPurchases` repite el patrón de respuesta vieja de `usePeriodSpending`, porque pide y devuelve datos distintos. El Dashboard sigue pidiendo solo `total_amount`.
+  - **Desde SCRUM-72:** el Dashboard lee con `usePeriodPurchases` y `usePeriodSpending` se quita (SCRUM-72, §10).
 - **Sesión anónima:** la limitación de la regla 7 sigue igual. Por la API solo podría leer sus propias compras.
 - **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.
 
@@ -1549,3 +1753,10 @@ Casos de cada flujo:
 **Número de la migración:** `049`, elegido por la dueña de la historia y comunicado al equipo el 2026-11-16. Está aplicada en la base compartida y registrada en el historial de migraciones (tasks 1.4). El día que se eligió, `develop` llega a la `044`, con huecos en `037`, `041` y `043`. El 2026-11-16 ningún PR abierto usaba otra `049` (tasks 1.2).
 
 **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.
+
+### SCRUM-72
+
+- **Por qué `usePeriodPurchases`:** el Dashboard leía con `usePeriodSpending`, que con zona guardada descartaba las compras de `get_period_finance` y sin zona pedía solo `total_amount`. Pasar al hook del Historial da el desglose sin una segunda lectura, y el total y el desglose no pueden contradecirse (regla 107).
+- **Agrupar por nombre** es un límite aceptado (regla 108): mientras no haya dos supermercados con el mismo nombre, el resultado es el mismo que por `store_id`.
+- **Redondeo:** no cambia (reglas 11, 28 y 114). Si la suma visible difiere en ₡1 del total, es por mostrar sin decimales, no un error.
+- **Probar con una cuenta registrada en local:** ver la nota de SCRUM-69 en esta misma sección.

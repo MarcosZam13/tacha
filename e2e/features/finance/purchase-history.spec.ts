@@ -86,8 +86,9 @@ test.describe("Finanzas: Historial", () => {
     await expect(getTotalSection(page).getByText("Sin total", { exact: true }).locator("..")).toContainText("1");
     await expect(getPriceDisclaimer(page)).toHaveCount(1);
 
-    // La petición: conteo exacto, límites y orden, sin filtrar por dueño.
-    const weekRequest = recorder.historyRequests[0];
+    // La petición: conteo exacto, límites y orden, sin filtrar por dueño. Es la
+    // última: desde SCRUM-72 el Dashboard también lee con la consulta del Historial.
+    const weekRequest = recorder.historyRequests.at(-1)!;
     expect(getSelect(weekRequest)).toBe(HISTORY_SELECT);
     expect(getClosedAtFilters(weekRequest)).toEqual(WEEK_FILTERS);
     expect(new URL(weekRequest.url()).searchParams.get("order")).toBe(HISTORY_ORDER);
@@ -212,7 +213,6 @@ test.describe("Finanzas: Historial", () => {
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(getPurchaseList(page)).toHaveCount(0);
     expect(recorder.historyRequests).toHaveLength(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
     expect(recorder.pendingRequests).toHaveLength(0);
 
@@ -230,7 +230,6 @@ test.describe("Finanzas: Historial", () => {
     await expect(getPeriodGroup(page)).toHaveCount(0);
     await expect(getPurchaseList(page)).toHaveCount(0);
     expect(recorder.historyRequests).toHaveLength(0);
-    expect(recorder.spendingRequests).toHaveLength(0);
     expect(recorder.periodFinanceRequests).toHaveLength(0);
     expect(recorder.pendingRequests).toHaveLength(0);
   });

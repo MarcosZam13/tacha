@@ -18,7 +18,7 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 Bloqueado / pendiente de decisión del equipo:
 
 - [ ] Enganchar `/recetas` al sidebar cuando exista (ver SPEC, fuera de alcance).
-- [ ] Integración con households (ver [plan.md](plan.md#integración-con-households-pendiente)).
+- [x] Integración con households: SCRUM-162.
 
 ## Pendiente cuando el proyecto tenga runner de tests
 
@@ -131,3 +131,29 @@ Bloqueado / fuera de esta historia:
 
 - [ ] Compartir recetas y su foto con la familia (D1), y decidir antes si se quitan los metadatos de ubicación.
 - [ ] Borrar `recipes.image_url`: cuando `main` ya no la lea.
+
+## SCRUM-162: compartir recetas con la familia
+
+- [x] 1. SPEC (sección 17; decisiones del responsable del 2026-11-24).
+- [x] 2. Plan y tareas.
+- [x] 3. Migración `060_share_recipes.sql` (plan, puntos 1 a 11). Revisar el número libre antes de crearla y antes del merge.
+- [x] 4. Prueba SQL `supabase/tests/060_share_recipes.test.sql` con rollback: los casos SQL de SPEC 17.10 con todos los roles. Probarla en un Postgres local y con mutaciones (quitar cada regla la hace fallar). Volver a correr 013/019/022/023/024/026/033/037/058/059 y adaptar las que den por hecho "solo el dueño".
+- [x] 5. Avisar a Laura (trigger sobre `household_members`) y al responsable de productos (deuda). Aplicar la `060` (Roberto, SQL Editor: ensayo con rollback, después con su fila) y sumar lo nuevo a `types/database.types.ts`.
+- [x] 6. Constantes y modelos: destino, resultados del guardado, textos, RPC, estados de copia.
+- [x] 7. `removePhotoMetadata` y su test (tipo, tamaño, límite, imagen que no se puede leer).
+- [x] 8. `recipe-photos.service.ts`: limpiar al subir y limpiar la guardada; tests.
+- [x] 9. `recipe-sharing.service.ts` y `recipes.service.ts` con sus tests (sin familia, productos personales, receta que no se ve).
+- [x] 10. `recipe-save.service.ts` y su test: orden y los siete desenlaces.
+- [x] 11. Reducer, `useRecipeEditor` y su ViewModel, con tests (reintento que no duplica, destino fijo, sin familia).
+- [x] 12. `useRecipeCopy` y el ViewModel del catálogo, con tests (doble clic, error, recarga fallida).
+- [x] 13. Presentación: `RecipeAudienceField`, `RecipeCopyAction`, tarjeta, diálogo y editor; tests con Page Object. Verificar que un ingrediente sin producto visible no rompe las pantallas.
+- [x] 14. `docs/documento-proyecto.md` §6; marcar como resueltos los pendientes de household en esta carpeta y en `features/meal-planner/specs/`.
+- [x] 15. `E2E.md` y E2E: sin familia no hay selector; una foto subida queda sin metadatos. Lo de varios usuarios, en SQL y a mano.
+- [x] 16. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E de recetas y planificador; validar SPEC 17.10 en el navegador (desktop y 360 px).
+- [x] 17. `code-reviewer` y `security-reviewer` en paralelo, correcciones, pasos de prueba manual con dos cuentas y `waiting qa`.
+
+Bloqueado / fuera de esta historia:
+
+- [ ] Plan semanal compartido y cocinero miembro: se sumó a SCRUM-162 (`features/meal-planner/specs/` §18).
+- [ ] Error previo hallado al probar: la lista de la familia no carga si tiene un producto personal de otro miembro (módulo de listas; reportado aparte).
+- [ ] Que borrar una cuenta no borre lo compartido con su familia.

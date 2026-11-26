@@ -29,7 +29,7 @@ export const useHouseholdListBlock = (isPersonalProduct: boolean, variantId: str
           if (!isCancelled) setAnswer({ isInHousehold, variantId });
         })
         // A propósito no bloquea si la consulta falla: la lista ya tolera una
-        // fila que otro miembro no puede leer (SPEC de shopping-list §19, regla 1).
+        // fila que otro miembro no puede leer (SPEC de shopping-list §20, regla 1).
         .catch(() => {
           if (!isCancelled) setAnswer({ isInHousehold: false, variantId });
         });

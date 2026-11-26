@@ -5,10 +5,13 @@ import { ASSIGNEE_LIST_SOURCE } from "@/components/assignee-field/constants/assi
 import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/useListAssigneesViewModel";
 import type { ListAssigneeViewModel } from "@/components/assignee-field/models/ListAssigneeViewModel.interface";
 import { ShoppingListInner } from "../ShoppingListInner";
+import { createShelfLifeChipsPage } from "./ShelfLifeChips.page";
 import { useShoppingListViewModel } from "../hooks/useShoppingListViewModel";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
 
 vi.mock("../hooks/useShoppingListViewModel", () => ({ useShoppingListViewModel: vi.fn() }));
+// La fila de sugerencias (SCRUM-102) tiene su propio ViewModel y sus propios tests; acá no se dibuja.
+vi.mock("@/features/inventory-suggestions/InventorySuggestions", () => ({ InventorySuggestions: () => null }));
 vi.mock("@/components/assignee-field/hooks/useListAssigneesViewModel", () => ({
   useListAssigneesViewModel: vi.fn(),
 }));
@@ -76,6 +79,7 @@ const createViewModel = (
   keptPersonalRows: [{ id: "item-personal", productName: "Pan", quantity: 1, sizeLabel: "500 g" }],
   loadErrorMessage: null,
   onCloseDetail: vi.fn(),
+  onConfirmSuggestion: vi.fn(),
   onDecreaseQuantity: vi.fn(),
   onExitShoppingMode: vi.fn(),
   onIncreaseQuantity: vi.fn(),
@@ -88,12 +92,20 @@ const createViewModel = (
   onToggleChecked: vi.fn(),
   onUndoRemove: vi.fn(),
   pendingRows: [PENDING_ROW],
+  pendingVariantIds: [PENDING_ROW.item.variantId],
   quantityErrorMessage: null,
   query: "",
   removeErrorMessage: null,
   searchErrorMessage: null,
   searchOptions: [],
   sessionNoticeMessage: null,
+  shelfLifeChips: {
+    errorMessage: null,
+    isSaving: false,
+    itemId: null,
+    onChoose: vi.fn(),
+    selectedChoice: null,
+  },
   shortfallNoticeMessage: null,
   shortfallPanel: {
     errorMessage: null,
@@ -197,5 +209,50 @@ describe("ShoppingListInner: assignee field (SCRUM-108)", () => {
 
     expect(screen.getByText("Pan")).toBeInTheDocument();
     expect(getFieldButtons()).toHaveLength(1);
+  });
+});
+
+// SCRUM-105 (HU-71b CA-01): la entrada a "Mi inventario" mientras no exista el menú "Más".
+describe("ShoppingListInner: link to my inventory (SCRUM-105)", () => {
+  it("links to my inventory from the header", () => {
+    render(<ShoppingListInner />);
+
+    expect(screen.getByRole("link", { name: "Mi inventario" })).toHaveAttribute("href", "/lista/inventario");
+  });
+});
+
+// SCRUM-103 (HU-70b CA-01): los chips de duración, solo debajo de la fila recién tachada.
+describe("ShoppingListInner: shelf life chips (SCRUM-103)", () => {
+  const getChipGroups = (): HTMLElement[] => screen.queryAllByRole("group", { name: /^¿Cuánto te va a durar / });
+
+  it("shows no chips when no row was just checked", () => {
+    render(<ShoppingListInner />);
+
+    expect(getChipGroups()).toHaveLength(0);
+  });
+
+  it("shows the chips only under the row that was just checked", () => {
+    const viewModel = createViewModel();
+    useShoppingListViewModelMock.mockReturnValue(
+      createViewModel({ shelfLifeChips: { ...viewModel.shelfLifeChips, itemId: CHECKED_ROW.item.id } }),
+    );
+    render(<ShoppingListInner />);
+    const chipsPage = createShelfLifeChipsPage(CHECKED_ROW.item.productName);
+
+    expect(getChipGroups()).toHaveLength(1);
+    expect(chipsPage.getGroup()).toBeInTheDocument();
+  });
+
+  it("tapping a chip does not toggle the row", async () => {
+    const viewModel = createViewModel();
+    const chips = { ...viewModel.shelfLifeChips, itemId: CHECKED_ROW.item.id };
+    useShoppingListViewModelMock.mockReturnValue(createViewModel({ shelfLifeChips: chips }));
+    render(<ShoppingListInner />);
+    const chipsPage = createShelfLifeChipsPage(CHECKED_ROW.item.productName);
+
+    await chipsPage.clickChip("1-3 meses");
+
+    expect(chips.onChoose).toHaveBeenCalledTimes(1);
+    expect(useShoppingListViewModelMock.mock.results[0].value.onToggleChecked).not.toHaveBeenCalled();
   });
 });

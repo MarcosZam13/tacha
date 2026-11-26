@@ -1,6 +1,6 @@
 import type { NullableRef } from "@/types/nullable.types";
-import type { CookChoiceType, RecipeOptionsStatusType } from "./meal-plan.types";
-import type { MealTypeType } from "./meal-planner.types";
+import type { CookChoiceType, CookOptionsStatusType, RecipeOptionsStatusType, SaveSlotResult } from "./meal-plan.types";
+import type { MealTypeType, PlanScopeType } from "./meal-planner.types";
 
 // Interfaces del plan semanal (SCRUM-100), en el orden en que se usan: lo que
 // devuelve la base, lo que ve la pantalla, y las mutaciones. Los types (las
@@ -23,7 +23,7 @@ export interface MealPlanRow {
 /** Un espacio asignado listo para la grilla y el diálogo: los textos ya vienen armados. */
 export interface MealPlanEntry {
   baseServings: number;
-  /** "Yo" si el usuario cocina; null si no hay cocinero. */
+  /** "Yo", el nombre de otro miembro, o null si no hay cocinero. */
   cookLabel: NullableRef<string>;
   cookChoice: CookChoiceType;
   /** "2026-10-12": el día del espacio, en hora local. */
@@ -41,12 +41,42 @@ export interface MealPlanEntry {
 export interface MealPlanEntryParts {
   baseServings: number;
   cookChoice: CookChoiceType;
+  /** El nombre, si cocina otro miembro. */
+  cookName?: NullableRef<string>;
   dateKey: string;
   id: string;
   mealType: MealTypeType;
   recipeId: string;
   recipeName: string;
   servingsMultiplier: number;
+}
+
+/** Un espacio del plan de la familia, tal como lo devuelve get_household_meal_plan (062). */
+export interface HouseholdMealPlanRow {
+  cook_is_current_user: boolean;
+  cook_name: NullableRef<string>;
+  cook_user_id: NullableRef<string>;
+  meal_type: string;
+  recipe_base_servings: number;
+  recipe_id: string;
+  recipe_name: string;
+  servings_multiplier: number;
+  slot_date: string;
+  slot_id: string;
+}
+
+/** Un cocinero que se puede elegir. */
+export interface CookOption {
+  label: string;
+  value: CookChoiceType;
+}
+
+/** De dónde sale y a dónde va un plan. Null o false: ya no tiene familia. */
+export interface MealPlanSource {
+  clearSlot: (payload: ClearMealSlotPayload) => Promise<boolean>;
+  getPlan: (params: GetMealPlanParams) => Promise<NullableRef<MealPlanEntry[]>>;
+  getRecipeOptions: () => Promise<RecipeOption[]>;
+  saveSlot: (payload: SaveMealSlotPayload) => Promise<SaveSlotResult>;
 }
 
 /** Una receta tal como la devuelve MEAL_PLAN_DB.RECIPE_OPTIONS_SELECT. */
@@ -97,6 +127,8 @@ export interface SaveMealSlotPayload extends MealSlotTarget {
 
 /** Lo que hace falta para armar la entrada que queda en pantalla después de guardar. */
 export interface SavedMealSlot {
+  /** El nombre del cocinero elegido, si es otro miembro. */
+  cookName: NullableRef<string>;
   option: RecipeOption;
   slotId: string;
   target: MealSlotTarget;
@@ -118,6 +150,8 @@ export type ClearMealSlotResponse = MealSlotTarget;
 
 /** Lo que usa `useWeekMealPlan`: el rango de fechas que pide, o null mientras no se conoce "hoy". */
 export interface UseWeekMealPlanParams {
+  onHouseholdLost: () => void;
+  scope: PlanScopeType;
   range: NullableRef<GetMealPlanParams>;
 }
 
@@ -143,9 +177,19 @@ export interface UseMealSlotDialogParams {
   /** "Lunes 12" para un día de la semana; null si ese día no está a la vista. Arma el subtítulo. */
   getDayLongLabel: (dateKey: string) => NullableRef<string>;
   getEntry: WeekMealPlanViewModel["getEntry"];
+  onHouseholdLost: () => void;
   onRecipeGone: WeekMealPlanViewModel["removeRecipeSlots"];
   onRemoved: WeekMealPlanViewModel["removeEntry"];
   onSaved: WeekMealPlanViewModel["saveEntry"];
+  scope: PlanScopeType;
+}
+
+/** Lo que useCookOptions entrega al diálogo. */
+export interface UseCookOptionsReturn {
+  /** "Yo", los demás miembros (si ya se cargaron) y "Sin cocinero". */
+  options: CookOption[];
+  reload: () => void;
+  status: CookOptionsStatusType;
 }
 
 /** Lo que useMealSlotDialog le entrega a MealPlanner.tsx: el diálogo ya calculado. */
@@ -155,6 +199,8 @@ export interface MealSlotDialogViewModel {
   /** Hay una receta válida elegida, las recetas están cargadas y no se está guardando. */
   canSave: boolean;
   cookChoice: CookChoiceType;
+  cookOptions: CookOption[];
+  cooksStatus: CookOptionsStatusType;
   /** El error de guardar, quitar o de la receta que ya no existe; null si no hay. */
   errorMessage: NullableRef<string>;
   /** true si el espacio ya tenía una asignación: muestra "Quitar" y el título "Cambiar comida". */
@@ -165,6 +211,7 @@ export interface MealSlotDialogViewModel {
   /** "×1": el multiplicador elegido, para mostrarlo mientras no hay receta con porciones. */
   multiplierLabel: string;
   onClose: () => void;
+  onCooksRetry: () => void;
   onCookChange: (cookChoice: CookChoiceType) => void;
   onMultiplierDecrease: () => void;
   onMultiplierIncrease: () => void;
@@ -174,6 +221,8 @@ export interface MealSlotDialogViewModel {
   onSave: () => void;
   /** Abre el diálogo del espacio. El foco de vuelta al cerrar lo hace el Modal compartido (SCRUM-142). */
   onSlotOpen: (target: MealSlotTarget) => void;
+  /** Qué decir si no hay recetas para elegir. */
+  noRecipesText: string;
   recipeOptions: RecipeOption[];
   recipesStatus: RecipeOptionsStatusType;
   /** La receta elegida, solo si sigue entre las opciones; null si no hay o ya no existe. */

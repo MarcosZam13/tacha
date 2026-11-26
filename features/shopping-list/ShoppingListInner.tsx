@@ -7,6 +7,7 @@ import { useListAssigneesViewModel } from "@/components/assignee-field/hooks/use
 import { ProductSearch } from "@/components/product-search/ProductSearch";
 import { Button, Modal, Spinner } from "@/components/ui";
 import { APP_ROUTE, BUTTON_VARIANT } from "@/constants";
+import { InventorySuggestions } from "@/features/inventory-suggestions/InventorySuggestions";
 import { PURCHASE_SESSION_TEXT } from "./constants/purchase-session.constants";
 import { SHOPPING_LIST_TEXT } from "./constants/shopping-list.constants";
 import { ClosePurchasePanel } from "./components/ClosePurchasePanel";
@@ -16,6 +17,7 @@ import { ShoppingListEmptyState } from "./components/ShoppingListEmptyState";
 import { ShoppingListItemDetail } from "./components/ShoppingListItemDetail";
 import { ShoppingListRow } from "./components/ShoppingListRow";
 import { ShoppingListSection } from "./components/ShoppingListSection";
+import { ShelfLifeChips } from "./components/ShelfLifeChips";
 import { ShoppingModeBar } from "./components/ShoppingModeBar";
 import { ShortfallResolutionPanel } from "./components/ShortfallResolutionPanel";
 import { StorePicker } from "./components/StorePicker";
@@ -46,6 +48,12 @@ export const ShoppingListInner = (): React.JSX.Element => {
       onOpenDetail={() => viewModel.onOpenDetail(row.item.id)}
       onRemove={() => viewModel.onRemoveItem(row.item.id)}
       onToggleChecked={() => viewModel.onToggleChecked(row.item.id)}
+      shelfLifeSlot={
+        // SCRUM-103: solo la fila recién tachada en modo compra.
+        viewModel.shelfLifeChips.itemId === row.item.id ? (
+          <ShelfLifeChips chips={viewModel.shelfLifeChips} productName={row.item.productName} />
+        ) : null
+      }
     />
   );
 
@@ -53,13 +61,22 @@ export const ShoppingListInner = (): React.JSX.Element => {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold text-tacha-text">{SHOPPING_LIST_TEXT.TITLE}</h1>
-        {/* SCRUM-109 (HU-72 CA-01). Link y no Button: es navegación. */}
-        <Link
-          href={APP_ROUTE.LIST_GROUPS}
-          className="rounded-tacha-badge border border-tacha-teal px-4 py-2 font-body text-sm font-semibold text-tacha-teal hover:bg-tacha-teal/10"
-        >
-          {SHOPPING_LIST_TEXT.MANAGE_GROUPS}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {/* SCRUM-105 (HU-71b CA-01): mientras no exista el menú "Más", la entrada a "Mi inventario" va acá. */}
+          <Link
+            href={APP_ROUTE.LIST_INVENTORY}
+            className="rounded-tacha-badge border border-tacha-teal px-4 py-2 font-body text-sm font-semibold text-tacha-teal hover:bg-tacha-teal/10"
+          >
+            {SHOPPING_LIST_TEXT.MY_INVENTORY}
+          </Link>
+          {/* SCRUM-109 (HU-72 CA-01). Link y no Button: es navegación. */}
+          <Link
+            href={APP_ROUTE.LIST_GROUPS}
+            className="rounded-tacha-badge border border-tacha-teal px-4 py-2 font-body text-sm font-semibold text-tacha-teal hover:bg-tacha-teal/10"
+          >
+            {SHOPPING_LIST_TEXT.MANAGE_GROUPS}
+          </Link>
+        </div>
       </div>
 
       {viewModel.activeStoreName ? (
@@ -69,6 +86,14 @@ export const ShoppingListInner = (): React.JSX.Element => {
           onFinish={viewModel.onRequestClosePurchase}
         />
       ) : null}
+
+      {/* SCRUM-102 (HU-70 CA-01): debajo del encabezado (y de la barra del modo compra, que sigue primero) y antes de la lista. Si falla, no se dibuja (CA-03). */}
+      {/* SCRUM-104: el ✓ agrega con el mismo addItem de la lista, así aparece en "Pendientes" sin recargar. */}
+      <InventorySuggestions
+        onConfirm={viewModel.onConfirmSuggestion}
+        pendingVariantIds={viewModel.pendingVariantIds}
+      />
+
       {viewModel.canStartPurchase ? (
         <div>
           <Button variant={BUTTON_VARIANT.PRIMARY} onClick={viewModel.onStartPurchase}>

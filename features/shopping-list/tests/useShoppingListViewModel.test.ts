@@ -7,6 +7,7 @@ import { useItemDetail } from "../hooks/useItemDetail";
 import { useItemRemoval } from "../hooks/useItemRemoval";
 import { useKeptPersonalList } from "../hooks/useKeptPersonalList";
 import { usePurchaseSession } from "../hooks/usePurchaseSession";
+import { useShelfLifeChips } from "../hooks/useShelfLifeChips";
 import { useShoppingList } from "../hooks/useShoppingList";
 import { useShoppingListViewModel } from "../hooks/useShoppingListViewModel";
 import { useShortfallFlowViewModel } from "../hooks/useShortfallFlowViewModel";
@@ -19,6 +20,7 @@ vi.mock("../hooks/useItemDetail", () => ({ useItemDetail: vi.fn() }));
 vi.mock("../hooks/useItemRemoval", () => ({ useItemRemoval: vi.fn() }));
 vi.mock("../hooks/useKeptPersonalList", () => ({ useKeptPersonalList: vi.fn() }));
 vi.mock("../hooks/usePurchaseSession", () => ({ usePurchaseSession: vi.fn() }));
+vi.mock("../hooks/useShelfLifeChips", () => ({ useShelfLifeChips: vi.fn() }));
 vi.mock("../hooks/useShoppingList", () => ({ useShoppingList: vi.fn() }));
 vi.mock("../hooks/useShortfallFlowViewModel", () => ({ useShortfallFlowViewModel: vi.fn() }));
 vi.mock("../hooks/useStorePicker", () => ({ useStorePicker: vi.fn() }));
@@ -26,10 +28,12 @@ vi.mock("../hooks/useStorePicker", () => ({ useStorePicker: vi.fn() }));
 const ACTIVE_SESSION_ID = "session-maxipali";
 const markPurchaseClosed = vi.fn();
 const leaveClosedSession = vi.fn();
+const openShelfLifeChipsFor = vi.fn();
 
 beforeEach(() => {
   markPurchaseClosed.mockReset();
   leaveClosedSession.mockReset();
+  openShelfLifeChipsFor.mockReset();
 
   vi.mocked(useShoppingList).mockReturnValue({
     markPurchaseClosed,
@@ -59,6 +63,10 @@ beforeEach(() => {
   vi.mocked(useKeptPersonalList).mockReturnValue([]);
   vi.mocked(useShortfallFlowViewModel).mockReturnValue({} as ReturnType<typeof useShortfallFlowViewModel>);
   vi.mocked(useStorePicker).mockReturnValue({ stores: [] } as unknown as ReturnType<typeof useStorePicker>);
+  vi.mocked(useShelfLifeChips).mockReturnValue({
+    chips: { errorMessage: null, isSaving: false, itemId: null, onChoose: vi.fn(), selectedChoice: null },
+    openFor: openShelfLifeChipsFor,
+  });
 });
 
 /** El onClosed que el ViewModel le pasó a useClosePurchase en el último render. */
@@ -85,5 +93,98 @@ describe("useShoppingListViewModel: closing the purchase (SCRUM-115, BUG-2)", ()
     renderHook(() => useShoppingListViewModel());
 
     expect(markPurchaseClosed).not.toHaveBeenCalled();
+  });
+});
+
+// SCRUM-103: al tachar en modo compra, la fila muestra los chips de duración.
+describe("useShoppingListViewModel: shelf life chips (SCRUM-103)", () => {
+  const PENDING_MILK = {
+    checkedAt: null,
+    id: "item-leche",
+    productName: "Leche",
+    purchaseSessionId: null,
+    quantity: 1,
+    quantityBought: null,
+    recipeShortfalls: [],
+    shortfallSnapshot: null,
+    sizeLabel: "1000 ml",
+    variantId: "variant-leche",
+  };
+  const toggleChecked = vi.fn();
+  const openPanelFor = vi.fn();
+
+  const mockList = (items: unknown[]): void => {
+    vi.mocked(useShoppingList).mockReturnValue({
+      markPurchaseClosed,
+      state: {
+        addErrorMessage: null,
+        checkErrorMessage: null,
+        isLoading: false,
+        items,
+        loadErrorMessage: null,
+        pendingItemIds: [],
+        quantityErrorMessage: null,
+        removeErrorMessage: null,
+      },
+      toggleChecked,
+    } as unknown as ReturnType<typeof useShoppingList>);
+    vi.mocked(useShortfallFlowViewModel).mockReturnValue({ openPanelFor } as unknown as ReturnType<
+      typeof useShortfallFlowViewModel
+    >);
+  };
+
+  /** Lo que el ViewModel hace cuando la base confirma el tachado. */
+  const getOnChecked = (): (() => void) | undefined => toggleChecked.mock.lastCall?.[3];
+
+  beforeEach(() => {
+    toggleChecked.mockReset();
+    openPanelFor.mockReset();
+  });
+
+  it("opens the chips under the row once the base confirms the check, in shopping mode", () => {
+    mockList([PENDING_MILK]);
+    const { result } = renderHook(() => useShoppingListViewModel());
+
+    act(() => result.current.onToggleChecked(PENDING_MILK.id));
+    act(() => getOnChecked()?.());
+
+    expect(toggleChecked).toHaveBeenCalledWith(PENDING_MILK.id, true, ACTIVE_SESSION_ID, expect.any(Function));
+    expect(openShelfLifeChipsFor).toHaveBeenCalledExactlyOnceWith(PENDING_MILK.id);
+  });
+
+  it("does not open the chips outside shopping mode", () => {
+    vi.mocked(usePurchaseSession).mockReturnValue({
+      activeSession: null,
+      isLoadingSession: false,
+      leaveClosedSession,
+      sessionNoticeMessage: null,
+    } as unknown as ReturnType<typeof usePurchaseSession>);
+    mockList([PENDING_MILK]);
+    const { result } = renderHook(() => useShoppingListViewModel());
+
+    act(() => result.current.onToggleChecked(PENDING_MILK.id));
+
+    expect(getOnChecked()).toBeUndefined();
+    expect(openShelfLifeChipsFor).not.toHaveBeenCalled();
+  });
+
+  it("with a shortfall note, opens the shortfall panel and also the chips", () => {
+    mockList([{ ...PENDING_MILK, recipeShortfalls: [{ quantityMissing: 600 }] }]);
+    const { result } = renderHook(() => useShoppingListViewModel());
+
+    act(() => result.current.onToggleChecked(PENDING_MILK.id));
+    act(() => getOnChecked()?.());
+
+    expect(openPanelFor).toHaveBeenCalledExactlyOnceWith(PENDING_MILK.id);
+    expect(openShelfLifeChipsFor).toHaveBeenCalledExactlyOnceWith(PENDING_MILK.id);
+  });
+
+  it("does not open the chips when unchecking", () => {
+    mockList([{ ...PENDING_MILK, checkedAt: "2026-11-25T15:00:00Z", purchaseSessionId: ACTIVE_SESSION_ID }]);
+    const { result } = renderHook(() => useShoppingListViewModel());
+
+    act(() => result.current.onToggleChecked(PENDING_MILK.id));
+
+    expect(getOnChecked()).toBeUndefined();
   });
 });

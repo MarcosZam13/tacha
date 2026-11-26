@@ -1,4 +1,5 @@
 import type { CatalogBaseUnitType } from "@/constants";
+import { RECIPE_UNAVAILABLE_PRODUCT } from "../constants/recipes.constants";
 import type { RecipeEditorRow, RecipeEditorValues } from "../models/recipe-editor.interfaces";
 
 /**
@@ -11,8 +12,8 @@ export const toRecipeEditorValues = (recipeRow: RecipeEditorRow): RecipeEditorVa
   ingredients: [...recipeRow.recipe_ingredients]
     .sort((first, second) => first.position - second.position)
     .map((ingredient) => ({
-      productId: ingredient.product_catalog.id,
-      productName: ingredient.product_catalog.name,
+      productId: ingredient.product_catalog_id,
+      productName: ingredient.product_catalog?.name ?? RECIPE_UNAVAILABLE_PRODUCT,
       quantity: String(ingredient.quantity_value),
       // quantity_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
       unit: ingredient.quantity_unit as CatalogBaseUnitType,

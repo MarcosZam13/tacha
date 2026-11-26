@@ -2,7 +2,7 @@
 -- Prueba de la migración 059 (SCRUM-161): foto de una receta.
 --
 -- Cómo se corre: completo en el SQL Editor (rol dueño), después de aplicar
--- 059. Todo pasa dentro de una transacción que termina en rollback: no deja
+-- 059 y 060 (que abre la foto a la familia). Todo pasa dentro de una transacción que termina en rollback: no deja
 -- usuarios, recetas ni archivos en la base compartida. Si una regla no se
 -- cumple, un `assert` corta con su mensaje; si termina sin error, pasó. Contra
 -- la base sin 059 falla en el paso 1.
@@ -43,6 +43,7 @@ begin
 
   insert into storage.objects (bucket_id, name, owner_id)
   values ('recipe-photos', photo_b, user_b::text);
+  update public.recipes set photo_path = photo_b where id = recipe_b;
 
   perform set_config('tacha_test.user_a', user_a::text, true);
   perform set_config('tacha_test.user_b', user_b::text, true);
@@ -78,10 +79,10 @@ begin
     '1: anon no ejecuta set_recipe_photo';
   assert has_function_privilege('authenticated', 'public.set_recipe_photo(uuid, text)', 'execute'),
     '1: authenticated ejecuta set_recipe_photo';
-  assert not (select p.prosecdef from pg_proc p where p.oid = 'public.set_recipe_photo(uuid, text)'::regprocedure),
-    '1: set_recipe_photo es security invoker';
+  assert (select p.prosecdef from pg_proc p where p.oid = 'public.set_recipe_photo(uuid, text)'::regprocedure),
+    '1: set_recipe_photo es security definer (060): falta aplicar la 060';
 
-  assert has_column_privilege('authenticated', 'public.recipes', 'photo_path', 'update'), '1: photo_path se puede cambiar';
+  assert not has_column_privilege('authenticated', 'public.recipes', 'photo_path', 'update'), '1: photo_path no se cambia directo';
   assert not has_column_privilege('authenticated', 'public.recipes', 'photo_path', 'insert'), '1: photo_path no se inserta';
   assert not has_column_privilege('authenticated', 'public.recipes', 'image_url', 'update'), '1: image_url sigue cerrada';
   assert not has_column_privilege('authenticated', 'public.recipes', 'owner_id', 'update'), '1: owner_id sigue cerrada';
@@ -201,7 +202,7 @@ begin
       update public.recipes set photo_path = bad_path where id = own;
       raise exception using errcode = 'P0004', message = '4: el update directo aceptó ' || bad_path;
     exception
-      when check_violation then null;
+      when insufficient_privilege then null;
     end;
   end loop;
 
@@ -226,8 +227,9 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
--- 4b. Con una receta ajena visible (como cuando se compartan), A ve su foto pero
---     no sube, no borra ni la cambia. La política extra se va con el rollback.
+-- 4b. Con una receta ajena visible, A ve su foto pero no la borra ni la cambia
+--     (la 060 decide eso por la membresía, no por lo visible). La política extra
+--     se va con el rollback.
 -- ----------------------------------------------------------------------------
 
 reset role;
@@ -242,18 +244,6 @@ begin
     select 1 from storage.objects
     where bucket_id = 'recipe-photos' and name = current_setting('tacha_test.photo_b')
   ), '4b: quien ve la receta ve su foto';
-
-  begin
-    insert into storage.objects (bucket_id, name, owner_id)
-    values (
-      'recipe-photos',
-      current_setting('tacha_test.recipe_b') || '/' || gen_random_uuid() || '.jpg',
-      current_setting('tacha_test.user_a')
-    );
-    raise exception using errcode = 'P0004', message = '4b: subió a una receta que ve pero no es suya';
-  exception
-    when insufficient_privilege then null;
-  end;
 
   delete from storage.objects
   where bucket_id = 'recipe-photos' and name = current_setting('tacha_test.photo_b');

@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { UNSAVED_CHANGES_SOURCE } from "@/constants";
+import { useHasHousehold } from "@/hooks/useHasHousehold";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import { useReportUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import type { NullableUndefined } from "@/types/nullable.types";
@@ -24,9 +25,21 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
   const router = useRouter();
   const editor = useRecipeEditor(recipeId);
   const search = useProductSearch();
-  const { errors, hasChanges, ingredientNotice, savedPhoto, savedRecipeId, saveErrorMessage, status, values } =
-    editor.state;
+  const {
+    audience,
+    errors,
+    hasChanges,
+    hasLostHousehold,
+    ingredientNotice,
+    isShared,
+    savedPhoto,
+    savedRecipeId,
+    saveErrorMessage,
+    status,
+    values,
+  } = editor.state;
   const photo = useRecipePhoto(savedPhoto);
+  const hasHousehold = useHasHousehold();
 
   // Cerrar sesión (SCRUM-55) pide confirmación mientras haya una receta sin guardar.
   useReportUnsavedChanges(UNSAVED_CHANGES_SOURCE.RECIPE_EDITOR, hasChanges || photo.hasPendingChange);
@@ -54,6 +67,12 @@ export const useRecipeEditorViewModel = (recipeId: NullableUndefined<string>): R
   };
 
   return {
+    audience: {
+      audience,
+      canChoose: hasHousehold && !hasLostHousehold && !isShared,
+      isShared,
+      onAudienceChange: editor.changeAudience,
+    },
     baseServings: values.baseServings,
     baseServingsError: errors.baseServings,
     ingredientNotice,

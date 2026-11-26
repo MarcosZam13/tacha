@@ -7,10 +7,11 @@ import { buildMealPlanEntry } from "./buildMealPlanEntry";
  * entero (una petición menos y sin parpadeo; SPEC regla 21). Los textos salen
  * de buildMealPlanEntry, el mismo que usa toMealPlanEntry.
  */
-export const toSavedMealPlanEntry = ({ option, slotId, target, values }: SavedMealSlot): MealPlanEntry =>
+export const toSavedMealPlanEntry = ({ cookName, option, slotId, target, values }: SavedMealSlot): MealPlanEntry =>
   buildMealPlanEntry({
     baseServings: option.baseServings,
     cookChoice: values.cookChoice,
+    cookName,
     dateKey: target.dateKey,
     id: slotId,
     mealType: target.mealType,

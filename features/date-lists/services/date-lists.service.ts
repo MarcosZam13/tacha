@@ -11,6 +11,7 @@ interface DateListRow {
   event_date: NullableRef<string>;
   id: string;
   name: NullableRef<string>;
+  spent_total: NullableRef<number>;
   status: string;
 }
 
@@ -23,6 +24,7 @@ const toDateList = (row: DateListRow): DateList => ({
   eventDate: row.event_date ?? "",
   id: row.id,
   name: row.name ?? "",
+  spentTotal: row.spent_total,
   status: row.status as DateListStatusType,
 });
 
@@ -125,6 +127,20 @@ export const setDateListCancelled = async (listId: string, isCancelled: boolean)
 
   const { error } = await getSupabaseClient().rpc(DATE_LIST_DB.RPC.SET_CANCELLED, {
     is_cancelled: isCancelled,
+    target_list_id: listId,
+  });
+  if (error) throw error;
+};
+
+/**
+ * Agrega o cambia el total gastado (SPEC §10). La base rechaza un monto inválido (22023), una
+ * sublista ajena o inexistente (P0002) y una cancelada (55000); para la pantalla todos son "no se guardó".
+ */
+export const setDateListTotal = async (listId: string, total: number): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient().rpc(DATE_LIST_DB.RPC.SET_TOTAL, {
+    new_total: total,
     target_list_id: listId,
   });
   if (error) throw error;

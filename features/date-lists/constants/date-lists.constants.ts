@@ -50,12 +50,13 @@ export const EVENT_DATE_FORMAT = {
 
 export const DATE_LIST_DB = {
   DETAIL_SELECT:
-    "id, name, event_date, status, list_items(id, product_catalog_variant_id, checked_at, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
-  LIST_SELECT: "id, name, event_date, status",
+    "id, name, event_date, status, spent_total, list_items(id, product_catalog_variant_id, checked_at, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+  LIST_SELECT: "id, name, event_date, status, spent_total",
   RPC: {
     ADD_ITEM: "add_item_to_date_list",
     CREATE: "create_date_list",
     SET_CANCELLED: "set_date_list_cancelled",
+    SET_TOTAL: "set_date_list_total",
     SET_ITEM_CHECKED: "set_list_item_checked",
   },
   TABLE: {
@@ -108,4 +109,14 @@ export const DATE_LIST_TEXT = {
   REMOVE_ERROR: "No pudimos eliminar el producto. Probá de nuevo.",
   REMOVE_ITEM: "Eliminar",
   TITLE: "Fechas",
+  TOTAL_CANCEL: "Cancelar",
+  TOTAL_EDIT: "Editar total gastado",
+  TOTAL_ERROR: "No pudimos guardar el total. Probá de nuevo.",
+  TOTAL_INPUT_LABEL: "Total gastado en colones",
+  // Mismo texto que Finanzas (SCRUM-91): el monto se valida con la misma regla.
+  TOTAL_INVALID: "Escribí el monto en colones, solo números (ej. 50000).",
+  TOTAL_LABEL: "Total gastado",
+  TOTAL_SAVE: "Guardar",
+  TOTAL_SAVING: "Guardando…",
+  TOTAL_WITHOUT: "Sin total",
 } as const;

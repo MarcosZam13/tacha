@@ -130,4 +130,4 @@ Casos adicionales:
 - **Aviso de un ticket futuro (SCRUM-133, "Reset del catálogo", todavía sin iniciar):** existe un ticket planeado para resetear y resembrar el catálogo. No cambia nada del contrato de esta historia, pero quien haga QA manual de SCRUM-85 después de que SCRUM-133 se implemente debería esperar otros productos/ids de ejemplo, no necesariamente los mismos 40 productos de hoy.
 
 ## SCRUM-163 (fix): producto personal y lista de la familia
-Si el producto es personal sin compartir (`isPersonal`) y el usuario está en una familia, "Agregar a mi lista" se reemplaza por un aviso (`role="note"`): su lista es la de la familia y el resto no podría ver el producto. Sin familia, nada cambia. Reglas, alternativas descartadas y casos en `features/shopping-list/specs/SPEC.md` §19.
+Si el producto es personal sin compartir (`isPersonal`) y el usuario está en una familia, "Agregar a mi lista" se reemplaza por un aviso (`role="note"`): su lista es la de la familia y el resto no podría ver el producto. Sin familia, nada cambia. Reglas, alternativas descartadas y casos en `features/shopping-list/specs/SPEC.md` §20.

@@ -18,6 +18,13 @@ export const createRecipeEditorPage = () => {
   const getTitle = (): HTMLElement => screen.getByRole("heading", { level: 1 });
   const findNotFound = (): Promise<HTMLElement> => screen.findByText("No encontramos esa receta.");
 
+  const findAudienceOption = (label: string): Promise<HTMLElement> => screen.findByRole("radio", { name: label });
+  const getText = (text: string): HTMLElement => screen.getByText(text);
+  const queryAudience = (): HTMLElement | null => screen.queryByRole("group", { name: "¿Para quién es?" });
+  const chooseAudience = async (label: string): Promise<void> => {
+    await user.click(await findAudienceOption(label));
+  };
+
   const choosePhoto = async (file: File): Promise<void> => {
     await user.upload(await findPhotoInput(), file);
   };
@@ -32,16 +39,20 @@ export const createRecipeEditorPage = () => {
   };
 
   return {
+    chooseAudience,
     choosePhoto,
     doubleSave,
     findAlert,
+    findAudienceOption,
     findNotFound,
     findPhotoInput,
     getNameInput,
     getPhoto,
     getPhotoInput,
     getSaveButton,
+    getText,
     getTitle,
+    queryAudience,
     queryPhoto,
     queryRemoveButton,
     removePhoto,

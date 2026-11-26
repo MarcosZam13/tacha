@@ -9,6 +9,7 @@ import {
   getDateListDetail,
   setDateListCancelled,
   setDateListItemChecked,
+  setDateListTotal,
 } from "../services/date-lists.service";
 import { createDateListDetailPage } from "./DateListDetailScreen.page";
 
@@ -18,6 +19,7 @@ vi.mock("../services/date-lists.service", () => ({
   removeDateListItem: vi.fn(),
   setDateListCancelled: vi.fn(),
   setDateListItemChecked: vi.fn(),
+  setDateListTotal: vi.fn(),
 }));
 vi.mock("@/hooks/useProductSearch", () => ({
   useProductSearch: () => ({
@@ -34,6 +36,7 @@ vi.mock("@/hooks/useProductSearch", () => ({
 const getDetailMock = vi.mocked(getDateListDetail);
 const setCancelledMock = vi.mocked(setDateListCancelled);
 const setCheckedMock = vi.mocked(setDateListItemChecked);
+const setTotalMock = vi.mocked(setDateListTotal);
 
 const LIST_ID = "lista-1";
 
@@ -51,6 +54,7 @@ const buildDetail = (overrides: Partial<DateListDetail> = {}): DateListDetail =>
   id: LIST_ID,
   items: [buildItem("Arroz", false), buildItem("Leche", true)],
   name: "Paseo",
+  spentTotal: null,
   status: DATE_LIST_STATUS.ACTIVE,
   ...overrides,
 });
@@ -63,6 +67,7 @@ beforeEach(() => {
   getDetailMock.mockResolvedValue(buildDetail());
   setCancelledMock.mockResolvedValue();
   setCheckedMock.mockResolvedValue();
+  setTotalMock.mockResolvedValue();
 });
 
 const renderScreen = async (): Promise<ReturnType<typeof createDateListDetailPage>> => {
@@ -73,6 +78,101 @@ const renderScreen = async (): Promise<ReturnType<typeof createDateListDetailPag
 };
 
 describe("DateListDetailScreen", () => {
+  describe("total gastado (SCRUM-79, SPEC §10)", () => {
+    it("starts without a total", async () => {
+      const page = await renderScreen();
+
+      expect(page.getWithoutTotal()).toBeInTheDocument();
+    });
+
+    it("shows the saved total in colones", async () => {
+      getDetailMock.mockResolvedValue(buildDetail({ spentTotal: 12500 }));
+      const page = await renderScreen();
+
+      expect(page.getTotal(12500)).toBeInTheDocument();
+    });
+
+    it("opens the field with the current total and the focus in it", async () => {
+      getDetailMock.mockResolvedValue(buildDetail({ spentTotal: 12500 }));
+      const page = await renderScreen();
+
+      await page.clickEditTotal();
+
+      expect(page.getTotalInput()).toHaveValue("12500");
+      expect(page.getTotalInput()).toHaveFocus();
+    });
+
+    it("rejects an amount with decimals without saving it (regla 2)", async () => {
+      const page = await renderScreen();
+
+      await page.clickEditTotal();
+      await page.typeTotal("12.5");
+      await page.clickSaveTotal();
+
+      expect(await page.findAlert()).toHaveTextContent(DATE_LIST_TEXT.TOTAL_INVALID);
+      expect(page.getTotalInput()).toHaveAttribute("aria-invalid", "true");
+      expect(setTotalMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects an empty total: once set, it cannot go back to empty (regla 1)", async () => {
+      getDetailMock.mockResolvedValue(buildDetail({ spentTotal: 500 }));
+      const page = await renderScreen();
+
+      await page.clickEditTotal();
+      await page.typeTotal("   ");
+      await page.clickSaveTotal();
+
+      expect(await page.findAlert()).toHaveTextContent(DATE_LIST_TEXT.TOTAL_INVALID);
+      expect(setTotalMock).not.toHaveBeenCalled();
+    });
+
+    it("saves with thousands separators, shows the new total and returns the focus to the pencil", async () => {
+      const page = await renderScreen();
+      getDetailMock.mockResolvedValue(buildDetail({ spentTotal: 12500 }));
+
+      await page.clickEditTotal();
+      await page.typeTotal("12.500");
+      await page.clickSaveTotal();
+
+      expect(setTotalMock).toHaveBeenCalledWith(LIST_ID, 12500);
+      expect(await page.findTotal(12500)).toBeInTheDocument();
+      expect(page.queryTotalInput()).not.toBeInTheDocument();
+      expect(page.getEditTotal()).toHaveFocus();
+    });
+
+    it("keeps the field open with what was typed when saving fails", async () => {
+      setTotalMock.mockRejectedValue(new Error("sin red"));
+      const page = await renderScreen();
+
+      await page.clickEditTotal();
+      await page.typeTotal("8000");
+      await page.clickSaveTotal();
+
+      expect(await page.findAlert()).toHaveTextContent(DATE_LIST_TEXT.TOTAL_ERROR);
+      expect(page.getTotalInput()).toHaveValue("8000");
+    });
+
+    it("closes with Escape without saving", async () => {
+      const page = await renderScreen();
+
+      await page.clickEditTotal();
+      await page.typeTotal("8000");
+      await page.pressEscape();
+
+      expect(page.queryTotalInput()).not.toBeInTheDocument();
+      expect(setTotalMock).not.toHaveBeenCalled();
+      expect(page.getEditTotal()).toHaveFocus();
+    });
+
+    it("shows the total of a cancelled list but does not offer to change it (regla 4)", async () => {
+      getDetailMock.mockResolvedValue(buildDetail({ spentTotal: 9000, status: DATE_LIST_STATUS.CANCELLED }));
+      const page = await renderScreen();
+
+      expect(page.getTotal(9000)).toBeInTheDocument();
+      expect(page.queryEditTotal()).not.toBeInTheDocument();
+    });
+  });
+
   describe("tachar (HU-46 CA-01)", () => {
     it("shows which items are checked, and only pending ones can change quantity", async () => {
       getDetailMock.mockResolvedValue(buildDetail({ items: [buildItem("Leche", true)] }));

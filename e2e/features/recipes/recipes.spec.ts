@@ -6,6 +6,7 @@ import {
   deleteOwnRecipes,
 } from "../../support/supabase";
 import {
+  LOCATED_PHOTO_FILE,
   PHOTO_FILE,
   RECIPES_PATH,
   TEXT_FILE,
@@ -13,6 +14,7 @@ import {
   fillNewRecipe,
   getCardHeading,
   getCardPhoto,
+  getImageSize,
   getPhotoInput,
   getPreview,
   getSaveButton,
@@ -120,6 +122,31 @@ test.describe("Foto de una receta", () => {
     await expect(page).toHaveURL(RECIPES_PATH, { timeout: SESSION_TIMEOUT_MS });
     await expect(getCardPhoto(page, FLAN)).toBeVisible();
     await expect(getCardHeading(page, FLAN)).toHaveCount(1);
+  });
+
+  test("E2E-RECETAS-06 — La foto se guarda sin ubicación y con su orientación", async ({ page, request }) => {
+    expect(LOCATED_PHOTO_FILE.buffer.includes("Exif")).toBe(true);
+    await fillNewRecipe(page, FLAN);
+    await getPhotoInput(page).setInputFiles(LOCATED_PHOTO_FILE);
+    await getSaveButton(page).click();
+    await expect(getCardPhoto(page, FLAN)).toBeVisible({ timeout: SESSION_TIMEOUT_MS });
+    await expect.poll(() => hasLoadedImage(getCardPhoto(page, FLAN))).toBe(true);
+
+    const photoUrl = await getCardPhoto(page, FLAN).getAttribute("src");
+    const savedPhoto = await (await request.get(photoUrl ?? "")).body();
+
+    expect(savedPhoto.length).toBeGreaterThan(0);
+    expect(savedPhoto.includes("Exif")).toBe(false);
+    expect(await getImageSize(getCardPhoto(page, FLAN))).toEqual({ height: 16, width: 8 });
+  });
+
+  test("E2E-RECETAS-07 — Sin familia no se ofrece compartir", async ({ page }) => {
+    const householdResponse = page.waitForResponse(/\/rpc\/current_household_id/);
+    await page.goto(`${RECIPES_PATH}/nueva`);
+    expect((await householdResponse).ok()).toBe(true);
+
+    await expect(getSaveButton(page)).toBeVisible();
+    await expect(page.getByRole("group", { name: "¿Para quién es?" })).toHaveCount(0);
   });
 
   test("E2E-RECETAS-05 — Cancelar no sube la foto elegida", async ({ page, request }) => {

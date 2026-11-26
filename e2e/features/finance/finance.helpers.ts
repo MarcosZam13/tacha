@@ -65,18 +65,6 @@ export const signInAsAnonymousUser = async (page: Page): Promise<void> => {
 // Supabase simulado por ruta (E2E.md, tabla de peticiones).
 // ----------------------------------------------------------------------------
 
-// Compras simuladas por periodo, según el inicio pedido (closed_at=gte.…).
-const PURCHASES_BY_PERIOD_START: Record<string, { total_amount: number | null }[]> = {
-  "2026-10-18T06:00:00.000Z": [{ total_amount: 10000 }],
-  "2026-10-12T06:00:00.000Z": [{ total_amount: 10000 }, { total_amount: 5000 }, { total_amount: null }],
-  "2026-10-01T06:00:00.000Z": [
-    { total_amount: 10000 },
-    { total_amount: 5000 },
-    { total_amount: null },
-    { total_amount: 20000 },
-  ],
-};
-
 /** Una fila del Historial, como la devuelve la consulta de getPeriodPurchases. */
 export interface HistoryRow {
   closed_at: string;
@@ -137,7 +125,8 @@ export const PENDING_ROWS = {
     total_amount: null,
   },
 } as const satisfies Record<string, HistoryRow>;
-// La consulta del Historial se distingue de la del Dashboard por su select.
+// La consulta de las compras del periodo se reconoce por su select. Desde SCRUM-72
+// es la misma en el Historial y en el Dashboard (sin zona guardada).
 const HISTORY_SELECT_COLUMN = "stores(display_name)";
 
 // La de compras sin total (SCRUM-92) usa el mismo select que el Historial; se
@@ -186,7 +175,8 @@ const PERIOD_BOUNDS: Record<Scope, { end: string; start: string }> = {
   week: { end: "2026-10-19T06:00:00.000Z", start: "2026-10-12T06:00:00.000Z" },
 };
 
-interface SimulatedAdjustment {
+/** Un ajuste manual guardado, como lo devuelve get_period_finance (sin dueño). */
+export interface SimulatedAdjustment {
   amount: number;
   effective_at: string;
   id: string;
@@ -290,15 +280,18 @@ const MILK_PURCHASES: ProductPurchaseRow[] = [
 const toSearchKey = (text: string): string => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 
 export interface FinanceStubOptions {
+  /**
+   * Los ajustes manuales ya guardados al empezar (SCRUM-72, E2E-FIN-25). Solo
+   * cuentan con `savedTimeZone`: sin zona la respuesta no trae ajustes (regla 59).
+   */
+  adjustments?: SimulatedAdjustment[];
   /** Los presupuestos guardados al empezar, por periodo. */
   budgets?: Partial<Record<Scope, number>>;
-  /** Cuántas veces seguidas falla la consulta de compras antes de responder bien. */
-  failSpendingTimes?: number;
   /** Si la lectura de presupuestos falla siempre. */
   failBudgets?: boolean;
   /** Si guardar un presupuesto falla siempre. */
   failSave?: boolean;
-  /** Cuántas veces seguidas falla la consulta del Historial antes de responder bien. */
+  /** Cuántas veces seguidas falla la consulta de compras del periodo (Historial y Dashboard) antes de responder bien. */
   failHistoryTimes?: number;
   /** Las filas del Historial, en lugar de las de cada periodo. */
   historyRows?: HistoryRow[];
@@ -332,7 +325,6 @@ export interface FinanceStubRecorder {
   /** set_purchase_session_total y set_period_total. */
   totalRequests: Request[];
   rpcRequests: Request[];
-  spendingRequests: Request[];
   timeZoneRequests: Request[];
   /** get_purchased_products y get_product_purchases (SCRUM-93). */
   productRequests: Request[];
@@ -357,15 +349,13 @@ export const stubFinanceSupabase = async (
     productPurchaseRequests: [],
     productRequests: [],
     rpcRequests: [],
-    spendingRequests: [],
     timeZoneRequests: [],
     totalRequests: [],
   };
   const savedBudgets = new Map<string, number>(Object.entries(options.budgets ?? {}));
   const savedPurchaseTotals = new Map<string, number>();
-  let adjustments: SimulatedAdjustment[] = [];
+  let adjustments: SimulatedAdjustment[] = [...(options.adjustments ?? [])];
   let savedTimeZone: string | null = options.savedTimeZone ?? null;
-  let spendingFailuresLeft = options.failSpendingTimes ?? 0;
   let historyFailuresLeft = options.failHistoryTimes ?? 0;
   let pendingFailuresLeft = options.failPendingTimes ?? 0;
   // Completar una compra la quita de las pendientes (E2E.md, SCRUM-92).
@@ -463,18 +453,6 @@ export const stubFinanceSupabase = async (
       }
       const periodStart = searchParams.getAll("closed_at").find((filter) => filter.startsWith("gte."))?.slice(4) ?? "";
       const rows = options.historyRows ?? HISTORY_ROWS_BY_PERIOD_START[periodStart] ?? [];
-      return route.fulfill({ headers: toContentRangeHeaders(rows.length), json: rows, status: OK_STATUS });
-    }
-
-    if (pathname.endsWith("/rest/v1/purchase_sessions")) {
-      recorder.spendingRequests.push(request);
-      if (spendingFailuresLeft > 0) {
-        spendingFailuresLeft -= 1;
-        return route.fulfill({ json: SERVER_ERROR, status: SERVER_ERROR_STATUS });
-      }
-      const periodStart = searchParams.getAll("closed_at").find((filter) => filter.startsWith("gte."))?.slice(4) ?? "";
-      const rows = PURCHASES_BY_PERIOD_START[periodStart] ?? [];
-      // D19: el gasto también pide el conteo exacto.
       return route.fulfill({ headers: toContentRangeHeaders(rows.length), json: rows, status: OK_STATUS });
     }
 
@@ -652,7 +630,8 @@ export const getStatusRegion = (page: Page): Locator => page.locator('[role="sta
 
 /**
  * Un texto con montos. Intl separa los miles con un espacio especial, así que
- * cada espacio del texto acepta cualquier espacio.
+ * cada espacio del texto acepta cualquier espacio. Se busca en la página o dentro
+ * de una parte (la tarjeta del total), porque un monto puede repetirse (SCRUM-72).
  */
-export const getExactText = (page: Page, text: string): Locator =>
-  page.getByText(new RegExp(`^${text.replace(/ /gu, "\\s")}$`, "u"));
+export const getExactText = (scope: Page | Locator, text: string): Locator =>
+  scope.getByText(new RegExp(`^${text.replace(/ /gu, "\\s")}$`, "u"));

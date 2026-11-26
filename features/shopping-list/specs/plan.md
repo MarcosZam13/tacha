@@ -535,6 +535,46 @@ docs/documento-proyecto.md                      §4.9.1 y §6
 | Presentaciones solo en la unidad de los avisos | Todas las del producto | QA: una presentación en otra unidad nunca cubre la receta (regla 33) y el aviso subía en vez de bajar |
 | Foto en una tabla aparte | Columnas en `list_items` | `list_items` es de Marcos y su grant de columnas es estricto; la tabla aparte se borra en cascada con la fila |
 
+## SCRUM-103: chips de duración al tachar
+
+### Datos: migración `063_shelf_life_choice.sql`
+
+- `list_items.shelf_life_choice text` con `check` de los cuatro valores; `grant update (shelf_life_choice)` a `authenticated`.
+- Trigger `list_items_clear_shelf_life_on_uncheck` (`clear_shelf_life_on_uncheck`, `security invoker`, sin `execute` para nadie): si `checked_at` es nulo, borra el chip.
+- `create or replace get_inventory_suggestions()` (061) con el chip de la última compra (`array_agg(... order by checked_at desc)[1]`): 4, 21 o 60 días; "No vence" usa el historial con 2 compras o más y con 1 no se sugiere (`duration_days` nulo, se filtra).
+- Prueba: `supabase/tests/063_shelf_life_choice.test.sql`.
+
+### Archivos
+
+```
+features/shopping-list/
+  constants/shelf-life.constants.ts          valores, orden en pantalla, etiquetas y textos
+  services/shelf-life.service.ts             update de shelf_life_choice
+  hooks/useShelfLifeChips.ts                 fila abierta, chip elegido, guardado y error
+  models/ShelfLifeChipsViewModel.interface.ts
+  components/ShelfLifeChips.tsx              grupo de chips (presentacional)
+  components/models/ShelfLifeChipsProps.interface.ts
+```
+
+Cambian: `ShoppingListRow` (prop `shelfLifeSlot`, fuera del botón), `useShoppingListViewModel` (abre los chips en el `onChecked` del tachado en modo compra y devuelve `shelfLifeChips`), `ShoppingListInner` (dibuja los chips en la fila abierta) y `types/database.types.ts`.
+
+### Flujo
+
+1. `onToggleChecked` en modo compra pasa un `onChecked` que llama a `shelfLife.openFor(itemId)` (y al panel de §18 si hay avisos).
+2. `useShelfLifeChips` calcula qué fila los muestra: la abierta, si sigue tachada y hay compra activa.
+3. Un toque marca el chip, llama a `saveShelfLifeChoice` y, si falla, vuelve a lo de antes con el mensaje.
+
+### Decisiones
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D1 | Columna en `list_items`, no tabla de inventario | Es un dato de cada compra; la tabla llega cuando haga falta "ya se acabó" o agregar a mano (SCRUM-106, 107) |
+| D2 | Update directo con permiso por columna | Igual que `checked_at` (015); sin `security definer` |
+| D3 | Trigger que borra el chip al destachar | Una fila pendiente no es una compra |
+| D4 | Manda el chip de la última compra | Es lo más reciente que se sabe |
+| D5 | "No vence" con una compra no se sugiere | No hay fecha ni ritmo de compra que estimar |
+| D6 | Chips debajo de la fila, sin modal | CA-03: no interrumpe el tachado |
+
 ## SCRUM-163: un producto personal sin compartir en la lista de la familia
 
 | Archivo | Cambio |
@@ -548,4 +588,4 @@ docs/documento-proyecto.md                      §4.9.1 y §6
 | `features/product-groups/` | `AddGroupToListResponse.personal`; el servicio normaliza su ausencia; `toAddGroupSummaryText` agrega la línea de personales |
 | `supabase/migrations/066_skip_personal_products_in_household_list.sql` + `supabase/tests/066_…test.sql` | `create or replace` de `add_group_to_general_list`; número provisional, se fija al aplicarla |
 
-Decisiones: ver SPEC §19 (alternativas descartadas). Si la consulta de familia falla, el detalle no bloquea: la regla 1 ya evita que la lista se caiga.
+Decisiones: ver SPEC §20 (alternativas descartadas). Si la consulta de familia falla, el detalle no bloquea: la regla 1 ya evita que la lista se caiga.

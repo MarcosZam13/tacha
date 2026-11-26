@@ -347,7 +347,7 @@ Cada pantalla tiene una unión de estados derivada de constantes, no varios bool
 - [x] CA-01: un botón "+ Nueva receta" abre un formulario con nombre, porciones base e ingredientes (búsqueda estilo catálogo).
 - [x] CA-02: por cada ingrediente, el usuario primero elige el producto (ej. "Leche") y después le asigna cantidad con su unidad (ej. "500 ml"); el ingrediente queda ligado al producto desde ese paso.
 - [x] CA-03: cada ingrediente se elige de entre los productos del catálogo, no se escribe como texto libre.
-- [ ] CA-04 (**parcial**): quien creó la receta la puede **editar** (SCRUM-95) y **eliminar** (SCRUM-96). Falta que lo haga **cualquier miembro del household** si es compartida (integración con households).
+- [ ] CA-04 (**lo completa SCRUM-162, sección 17**): quien creó la receta la puede **editar** (SCRUM-95) y **eliminar** (SCRUM-96); si es compartida, también cualquier miembro del household.
 - [x] Cada error de validación de la [sección 7](#7-errores) se muestra y no llama a la base.
 - [x] Doble clic en "Guardar receta": se crea una sola receta.
 - [x] Receta ajena o id inválido por URL: "No encontramos esa receta."
@@ -591,3 +591,176 @@ Decidido con el responsable el 2026-11-24: bucket **privado** con enlaces tempor
 - **Uso abusivo:** una sesión anónima también es `authenticated` y puede subir fotos, igual que en `avatars`. Un tope por receta no lo frena (plan); lo revisa el `security-reviewer`.
 - **Peso:** hasta 5 MB por tarjeta y sin caché entre cargas, porque el enlace cambia. `next/image` ya las carga a medida que se ven. Si molesta, el siguiente paso es reducirlas al subir.
 - **Dos piezas parecidas al perfil** (validar el archivo y el campo de foto): se quedan en la feature porque el formato, los límites y los textos son distintos. Solo se promueve el mapa de tipos de archivo, con revisión de Esteban.
+
+## 17. SCRUM-162: compartir recetas con la familia
+
+Completa HU-63 ("recetas del household") y el CA-04 de HU-64 ("cualquier miembro del household, si la receta es compartida"). Reemplaza lo que las secciones anteriores dejan fuera sobre household y responde las preguntas abiertas de `features/meal-planner/specs/SPEC.md` §15 que tocan recetas.
+
+Decidido con el responsable el 2026-11-24:
+
+- cada receta es **personal o de la familia**, y siempre tiene un dueño (`owner_id`);
+- cualquier miembro **edita y elimina** una receta de la familia;
+- "Guardar copia personal" **copia**: la familia conserva la suya;
+- quien sale o es removido **se queda con una copia** de las que compartió, y la familia conserva las suyas;
+- al entrar a una familia, las recetas siguen personales;
+- la **ubicación** de las fotos se quita antes de compartir;
+- una receta con productos personales **no se puede compartir**;
+- un miembro **sí puede** poner una receta de la familia en su plan, que sigue siendo personal.
+
+### 17.1 Alcance
+
+- El editor suma "¿Para quién es?": *Solo para mí* / *Para mi familia*. Solo lo ve quien tiene familia.
+- El catálogo y el editor distinguen las recetas de la familia.
+- Acción "Guardar copia personal" en las recetas de la familia.
+- Las fotos se limpian de metadatos al subirlas, y las anteriores al compartir.
+- Agregar a la lista, "Ver qué falta" y el selector del planificador aceptan recetas de la familia.
+- Al salir de una familia, ser removido o disolverla, nadie pierde sus recetas.
+
+### 17.2 Entradas
+
+| Entrada | Tipo | De dónde |
+|---|---|---|
+| Destino | personal o familia | editor |
+| Guardar copia personal | clic | tarjeta de una receta de la familia |
+| Familia del usuario | `household_members` | base, por RLS |
+| Destino guardado | `recipes.household_id` | base |
+
+El cliente nunca manda un `household_id`: la base lo toma de la membresía de quien llama.
+
+### 17.3 Salidas
+
+- `recipes.household_id` con la familia de quien compartió.
+- Una receta personal nueva al guardar una copia o al salir de la familia.
+- Fotos sin metadatos en las recetas de la familia.
+
+### 17.4 Reglas de negocio
+
+**Compartir**
+
+51. **Personal por defecto**, al crear y también al entrar a una familia. Nada se comparte solo.
+52. **Solo el dueño comparte** su receta personal, y solo con la familia de la que es miembro. Quien no tiene familia no ve el selector. Una sesión anónima no puede compartir ni ver recetas de la familia.
+53. **Compartir no se deshace.** Una receta de la familia muestra su destino sin selector. Para tenerla personal se guarda una copia.
+54. **Productos personales.** Una receta de la familia solo lleva productos del catálogo común o de esa familia. Compartir con un producto personal se rechaza, con los nombres; también guardar cambios que lo agreguen. La base lo hace cumplir. El buscador de ingredientes no ofrece productos personales (SCRUM-87), así que por la interfaz no se llega a este caso.
+55. **Orden al guardar:** primero la receta, después la foto y por último compartir. Si la receta o la foto fallan no se comparte. Si falla solo compartir, la receta queda personal, se avisa y el editor sigue abierto; reintentar no la duplica (regla 41).
+
+55b. **Hasta 300 recetas por familia.** Al llegar, compartir otra se rechaza. Acota lo que se copia cuando alguien sale; dos personas a la vez pueden pasarlo por poco.
+
+**Usar una receta de la familia**
+
+56. **Todos los miembros la ven completa** (ingredientes y foto), pueden editarla, cambiar su foto y eliminarla. Editar no cambia el dueño.
+57. **Nadie más accede**: ni otra familia, ni un exmiembro, ni por la API. Las personales siguen siendo solo de su dueño, también para su familia.
+58. **Lista y "Ver qué falta"** funcionan igual que con una propia. Reemplaza la política que exige receta propia en `list_item_recipe_requirements`.
+59. **Planificador.** Cualquier receta visible se puede asignar al plan propio. El plan de otros no se ve ni se cambia.
+60. **Eliminar** una receta de la familia la borra para todos y libera los espacios de plan de todos. El diálogo lo dice; el conteo solo incluye los espacios propios, porque el plan de los demás es privado.
+61. **Dos miembros a la vez:** gana el último guardado, como hoy con dos pestañas. Si uno la eliminó, al otro le sale "No encontramos esa receta."
+
+**Copia personal**
+
+62. Copia nombre, porciones, ingredientes y foto. La copia es de quien la pide y **queda independiente**: cambiar o eliminar una no toca la otra, foto incluida.
+63. Cada pedido crea una copia. El botón se deshabilita mientras copia: un doble clic crea una sola.
+64. **La foto se comparte por referencia:** la copia apunta al mismo archivo. Quien ve alguna de las recetas que lo usan ve la foto, y el archivo solo se puede borrar cuando ninguna lo usa. Por eso copiar la foto no puede fallar aparte, y sirve también cuando la copia la hace la base (regla 66).
+
+**Salir, ser removido y disolver**
+
+65. Al dejar de ser miembro se pierde el acceso en el momento. Un enlace de foto ya pedido sigue sirviendo hasta que vence (una hora).
+66. Por cada receta de la familia de la que era **dueño**, quien sale o es removido recibe una copia personal, en la misma operación. Las que creó otro no se copian: para esas puede guardar una copia antes.
+67. **El original pasa a ser del admin** de la familia. Sin esto, al disolverla volvería a quien ya se fue, que tendría dos, y los que quedan la perderían.
+68. La copia de la regla 66 **omite los ingredientes que la persona ya no puede ver** (productos de la familia). Si no queda ninguno, no se crea la copia.
+69. **Plan:** los espacios que usaban una receta que se deja de ver pasan a la copia de la regla 66 si existe; si no, quedan libres.
+70. **Disolver:** las recetas de la familia pasan a personales de su dueño (ya lo hace la `024`). No se crean copias.
+
+**Fotos**
+
+71. **Metadatos:** toda foto nueva se vuelve a codificar en el navegador antes de subirla, conservando la orientación y con el lado mayor de hasta 2048 px, sin ubicación ni otros datos. Si no se puede, no se sube: es el caso de foto fallida (regla 40).
+72. **Fotos anteriores a esta historia:** al compartir, se descarga la foto que se conserva y, si lleva metadatos, se limpia y se sube de nuevo. Si falla, no se comparte (regla 55).
+73. El resultado respeta los tipos y 5 MB de la regla 37. Reemplaza la nota de metadatos de 16.12.
+74. **Limpieza de archivos:** mejor esfuerzo (regla 47). Solo quien subió un archivo puede borrarlo; si otro miembro cambia o elimina la receta, puede quedar un archivo suelto que solo puede ver quien lo subió.
+
+La regla 44 queda reemplazada: en una receta de la familia la foto la cambia cualquier miembro.
+
+### 17.5 Estados
+
+| Pantalla | Estado | Notas |
+|---|---|---|
+| Destino | sin familia (oculto) · elegible · fijo (familia) | Si no se pudo saber si tiene familia, se oculta y se guarda como personal |
+| Guardado | los de 16.5, más `shareFailed` | Receta y foto guardadas, sin compartir |
+| Copia | `idle` · `copying` · `copied` · `failed` | Por tarjeta |
+
+### 17.6 Errores
+
+| Caso | Qué se muestra |
+|---|---|
+| Productos personales | "Para compartirla, cambia estos ingredientes personales: {nombres}." |
+| La familia llegó a 300 recetas | "Tu familia ya tiene 300 recetas. Elimina alguna para compartir otra." La receta queda personal |
+| No se pudo compartir | "La receta se guardó, pero no se pudo compartir. Intenta de nuevo." |
+| Ya no es miembro al compartir | "Ya no formas parte de una familia. La receta quedó solo para ti." |
+| Dejó de ver la receta al guardar o copiar | "No encontramos esa receta." |
+| No se pudo copiar | "No se pudo guardar la copia. Intenta de nuevo." |
+| Copia lista | "Guardamos una copia personal." y aparece en el catálogo |
+
+### 17.7 UI esperada
+
+- El destino son dos opciones de radio después de la foto y el nombre. Ayuda: "Si es para tu familia, podrán verla, editarla y eliminarla. No se puede deshacer."
+- La tarjeta de la familia lleva la etiqueta "Familia"; las personales no llevan nada.
+- Los botones ya existentes no cambian; "Guardar copia personal" se suma a las de la familia.
+- El diálogo de eliminar una de la familia: "Se eliminará para toda tu familia."
+- Desktop y 360 px.
+
+### 17.8 Accesibilidad
+
+- El destino es un `fieldset` con `legend`, operable con teclado.
+- "Familia" es texto, no solo color.
+- El botón de copia incluye el nombre de la receta, y su resultado se anuncia (`role="status"`; los errores, `role="alert"`).
+
+### 17.9 Contratos externos
+
+- **`recipes.household_id`** pasa a tener FK a `households`. Sigue cerrado a escrituras directas. La disolución sigue devolviendo las recetas al dueño.
+- **Políticas** de `recipes`, `recipe_ingredients`, `list_item_recipe_requirements`, `meal_plans` y del bucket `recipe-photos`: de "dueño" a "receta visible". Los miembros se comprueban contra `household_members`, sin sesiones anónimas.
+- **RPC nuevas:** compartir (personal → familia de quien llama) y copiar (receta de la familia → personal). Errores: `42501` sin cuenta registrada, `P0002` receta que no se ve.
+- **`photo_path`:** deja de ser escribible en forma directa, para que nadie apunte su receta a un archivo ajeno. Solo lo escriben `set_recipe_photo`, que sigue exigiendo la carpeta de esa receta, y las copias.
+- **Salida de miembros:** la resuelve un trigger sobre `household_members`. **`leave_household` (023) y `remove_household_member` (026) no cambian.** No crea copias al disolver ni al borrar una cuenta.
+- `save_recipe` y `add_recipe_to_general_list` conservan su firma.
+- Migración: la `060` o la siguiente libre (verificar antes de crearla y del merge).
+
+### 17.10 Casos de aceptación (SCRUM-162)
+
+- [x] CA-01: al crear o editar se elige personal o familia; sin familia no aparece la opción.
+- [x] CA-02: el catálogo distingue las recetas de la familia.
+- [x] CA-03: un miembro ve la receta completa, con ingredientes y foto.
+- [x] CA-04: un miembro edita, cambia la foto y elimina, sin cambiar el dueño.
+- [x] CA-05: un miembro la agrega a la lista y usa "Ver qué falta".
+- [x] CA-06: otra familia, un exmiembro, una sesión anónima y `anon` no la leen, editan, eliminan ni firman su foto (SQL).
+- [x] CA-07: las personales no las ve la familia; entrar a una familia no comparte nada.
+- [x] CA-08: una foto con ubicación queda sin ella, también si se subió antes de esta historia; la orientación se conserva.
+- [x] CA-09: "Guardar copia personal" crea una copia completa y la familia conserva la suya.
+- [x] CA-10: cambiar o eliminar el original o la copia, o sus fotos, no afecta a la otra.
+- [x] CA-11: salir o ser removido deja copia personal de las propias, y la familia conserva el original con el admin como dueño.
+- [x] CA-12: disolver no pierde recetas ni crea duplicados, tampoco si el creador ya había salido.
+- [x] Compartir con un producto personal se rechaza con sus nombres; agregarlo a una ya compartida, también (interfaz y SQL).
+- [x] Un miembro asigna una receta de la familia a su plan; el de los demás no se ve.
+- [x] Al salir, los espacios del plan pasan a la copia o quedan libres; ninguno queda con una receta invisible.
+- [x] La copia al salir omite productos de la familia.
+- [x] Nadie puede escribir `household_id`, `owner_id` ni `photo_path` directo, ni compartir la receta de otro, ni apuntar a un archivo ajeno (SQL).
+- [x] Si falla compartir, la receta queda personal y reintentar no la duplica.
+- [x] Un doble clic en copiar crea una sola copia.
+- [x] Transferir el admin y salir: el original queda con el admin nuevo.
+- [x] `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, las pruebas SQL y el E2E pasan.
+
+### 17.11 Casos fuera de alcance
+
+- **Plan semanal compartido y elegir como cocinero a otro miembro:** D2.
+- **Borrar una cuenta sin borrar lo compartido:** tarea aparte, junto con la lista general y los grupos. Hoy, si el dueño borra su cuenta, sus recetas de la familia se van con él.
+- **Actualización en vivo** cuando otro miembro edita, y aviso de ediciones simultáneas.
+- **Mostrar quién creó** la receta, y filtrar el catálogo por destino.
+- **Dejar de compartir** sin copiar.
+- **Compartir un producto personal** desde la receta.
+- **Juntar archivos sueltos** (regla 74).
+
+### 17.12 Notas de implementación
+
+- **Por qué la copia comparte el archivo y no lo duplica:** la base no puede copiar archivos de Storage, y al remover a alguien quien ejecuta es el admin, no el dueño de la copia. Un archivo con varias recetas cubre los dos casos.
+- **Por qué un trigger y no tocar 023 y 026:** son del módulo de households y toda salida pasa por borrar la fila de `household_members`. Con el trigger no se duplica la regla ni se olvida un camino nuevo. Se coordina con Laura igual, porque pasa a correr dentro de sus funciones.
+- **Por qué el original cambia de dueño al salir (regla 67):** es consecuencia de la `024`, que al disolver devuelve cada receta a su `owner_id`. "Editar no cambia el dueño" sigue valiendo: solo cambia al irse.
+- **Limpieza en el navegador:** alguien que use la API directo puede subir su propia foto con ubicación; solo se expone a sí mismo. Limpiar en el servidor pediría una Edge Function.
+- **Pruebas con varios usuarios:** el E2E usa sesiones anónimas, que no pueden tener familia. Los permisos se prueban en SQL con varios usuarios; el E2E cubre lo personal y QA necesita dos cuentas reales.
+- **Productos de la familia en recetas personales** (existía antes): al salir, el dueño deja de ver ese ingrediente en las recetas personales que ya tenía. No se toca acá.
