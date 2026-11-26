@@ -44,7 +44,7 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <ProductDetailHeader
         imageUrl={viewModel.imageUrl}
         placeholderInitial={viewModel.placeholderInitial}

@@ -16,8 +16,8 @@ export type ChangePasswordCurrentFieldType =
   (typeof CHANGE_PASSWORD_FIELD)[keyof typeof CHANGE_PASSWORD_FIELD];
 
 export const CHANGE_PASSWORD_ERROR_MESSAGE = {
-  CURRENT_PASSWORD_REQUIRED: "Ingresá tu contraseña actual.",
-  TOO_MANY_ATTEMPTS: "Hiciste demasiados intentos. Esperá unos minutos y probá de nuevo.",
+  CURRENT_PASSWORD_REQUIRED: "Ingresa tu contraseña actual.",
+  TOO_MANY_ATTEMPTS: "Hiciste demasiados intentos. Espera unos minutos y prueba de nuevo.",
   WRONG_CURRENT_PASSWORD: "La contraseña actual no es correcta.",
 } as const;
 

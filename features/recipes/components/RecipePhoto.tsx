@@ -12,13 +12,13 @@ export const RecipePhoto = ({ alt, fallback, url }: RecipePhotoProps): React.JSX
   const { onImageError, visibleUrl } = useImageFallback(url);
 
   return visibleUrl ? (
-    <div className="relative aspect-[4/3]">
+    <div className="relative aspect-[16/9]">
       <Image src={visibleUrl} alt={alt} fill unoptimized className="object-cover" onError={onImageError} />
     </div>
   ) : (
     <div
       aria-hidden="true"
-      className="flex aspect-[4/3] items-center justify-center bg-tacha-chipbg font-display text-5xl text-tacha-teal"
+      className="flex aspect-[16/9] items-center justify-center bg-tacha-chipbg font-display text-4xl text-tacha-teal"
     >
       {fallback}
     </div>

@@ -39,13 +39,13 @@ describe("ForgotPasswordForm", () => {
   });
 
   it("shows the email error under the field", () => {
-    renderForm({ email: "ana@", emailError: "Ingresá un correo válido." });
+    renderForm({ email: "ana@", emailError: "Ingresa un correo válido." });
 
-    expect(screen.getByText("Ingresá un correo válido.")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa un correo válido.")).toBeInTheDocument();
   });
 
   it("shows the sending failure as an alert", () => {
-    renderForm({ submitError: "No pudimos enviar el correo. Intentá de nuevo en unos minutos." });
+    renderForm({ submitError: "No pudimos enviar el correo. Intenta de nuevo en unos minutos." });
 
     expect(forgotPasswordPage.errorAlert()).toHaveTextContent("No pudimos enviar el correo.");
   });

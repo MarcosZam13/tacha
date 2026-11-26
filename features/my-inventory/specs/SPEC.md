@@ -61,7 +61,7 @@ Si la consulta falla se muestra el error con "Reintentar". La base: sin sesión,
 
 ## 8. UI esperada
 
-"← Volver a la lista", el título "Mi inventario" y un bloque por grupo: título (`h2`) y una lista con el nombre y la presentación a la izquierda y cuánto le queda a la derecha.
+"Volver a la lista", el título "Mi inventario" y un bloque por grupo: título (`h2`) y una lista con el nombre y la presentación a la izquierda y cuánto le queda a la derecha.
 
 ## 9. Accesibilidad
 

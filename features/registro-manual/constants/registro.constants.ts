@@ -27,8 +27,8 @@ export const REGISTRO_LABEL = {
   CONFIRM_PASSWORD: "Repetir contraseña",
   EMAIL: "Correo electrónico",
   // SCRUM-144: enlace al login para quien ya tiene cuenta. Voseo, como el resto del registro.
-  HAS_ACCOUNT: "¿Ya tenés cuenta?",
-  LOG_IN: "Iniciá sesión",
+  HAS_ACCOUNT: "¿Ya tienes cuenta?",
+  LOG_IN: "Inicia sesión",
   NAME: "Nombre",
   PASSWORD: "Contraseña",
   SUBMIT: "Registrarme",
@@ -38,14 +38,14 @@ export const REGISTRO_LABEL = {
 
 export const REGISTRO_ERROR_MESSAGE = {
   EMAIL_ALREADY_EXISTS: "Ya existe una cuenta con este correo.",
-  EMAIL_INVALID: "Ingresá un correo válido.",
+  EMAIL_INVALID: "Ingresa un correo válido.",
   EMAIL_REQUIRED: "El correo es obligatorio.",
   NAME_REQUIRED: "El nombre es obligatorio.",
   PASSWORDS_MISMATCH: "Las contraseñas no coinciden.",
   PASSWORD_REQUIRED: "La contraseña es obligatoria.",
   PASSWORD_TOO_SHORT: "La contraseña debe tener al menos 8 caracteres.",
-  REPEAT_PASSWORD_REQUIRED: "Repetí tu contraseña.",
-  UNEXPECTED: "No pudimos crear tu cuenta. Intentá de nuevo en unos minutos.",
+  REPEAT_PASSWORD_REQUIRED: "Repite tu contraseña.",
+  UNEXPECTED: "No pudimos crear tu cuenta. Intenta de nuevo en unos minutos.",
 } as const;
 
 export const REGISTRO_SUBMIT_STATUS = {
@@ -94,20 +94,20 @@ export const RESEND_RESULT = {
 export type ResendResultType = (typeof RESEND_RESULT)[keyof typeof RESEND_RESULT];
 
 export const RESEND_MESSAGE: Record<ResendResultType, string> = {
-  [RESEND_RESULT.ERROR]: "No pudimos reenviar el correo. Intentá de nuevo en unos minutos.",
-  [RESEND_RESULT.RATE_LIMITED]: "Esperá un momento antes de reenviar el correo.",
+  [RESEND_RESULT.ERROR]: "No pudimos reenviar el correo. Intenta de nuevo en unos minutos.",
+  [RESEND_RESULT.RATE_LIMITED]: "Espera un momento antes de reenviar el correo.",
   [RESEND_RESULT.SUCCESS]: "Te enviamos un correo nuevo.",
 };
 
 export const VERIFICATION_LABEL = {
   CONFIRMED_MESSAGE: "Tu cuenta ya está verificada.",
   CONFIRMED_TITLE: "¡Correo confirmado!",
-  EXPIRED_MESSAGE: "El enlace expiró o ya no es válido. Pedí uno nuevo con tu correo.",
+  EXPIRED_MESSAGE: "El enlace expiró o ya no es válido. Pide uno nuevo con tu correo.",
   EXPIRED_TITLE: "Enlace no válido",
   PAGE_TITLE: "Verificación de correo",
   PENDING_MESSAGE_PREFIX: "Te enviamos un correo a",
-  PENDING_MESSAGE_SUFFIX: "Confirmá tu cuenta desde ahí.",
-  PENDING_TITLE: "Revisá tu correo",
+  PENDING_MESSAGE_SUFFIX: "Confirma tu cuenta desde ahí.",
+  PENDING_TITLE: "Revisa tu correo",
   RESEND: "Reenviar correo",
   RESENDING: "Enviando...",
   RESEND_WAIT: "Reenviar en",

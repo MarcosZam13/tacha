@@ -17,9 +17,9 @@ import type { RecoverResponse } from "./password-recovery.helpers";
 // Escenarios: features/password-recovery/specs/E2E.md. Los textos se escriben acá a propósito
 // (oráculo independiente del código, playwright-e2e).
 const SENT_MESSAGE =
-  "Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisá también la carpeta de spam.";
-const NETWORK_ERROR_MESSAGE = "No pudimos enviar el correo. Intentá de nuevo en unos minutos.";
-const INVALID_EMAIL_MESSAGE = "Ingresá un correo válido.";
+  "Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisa también la carpeta de spam.";
+const NETWORK_ERROR_MESSAGE = "No pudimos enviar el correo. Intenta de nuevo en unos minutos.";
+const INVALID_EMAIL_MESSAGE = "Ingresa un correo válido.";
 
 test.describe("Recuperación de contraseña", () => {
   test.describe.configure({ timeout: COLD_START_TEST_TIMEOUT_MS });

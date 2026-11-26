@@ -1,7 +1,7 @@
 export const SIGN_OUT_TEXT = {
   CANCEL: "Seguir editando",
   CONFIRM: "Cerrar sesión",
-  CONFIRM_BODY: "Tenés cambios sin guardar. Si cerrás sesión, se pierden.",
+  CONFIRM_BODY: "Tienes cambios sin guardar. Si cierras sesión, se pierden.",
   CONFIRM_TITLE: "¿Cerrar sesión?",
   SIGNING_OUT: "Cerrando sesión...",
   TRIGGER: "Cerrar sesión",

@@ -11,25 +11,25 @@ export type LoginFieldType = (typeof LOGIN_FIELD)[keyof typeof LOGIN_FIELD];
 export const LOGIN_LABEL = {
   EMAIL: "Correo electrónico",
   FORGOT_PASSWORD: "¿Olvidaste tu contraseña?",
-  NO_ACCOUNT: "¿No tenés cuenta?",
+  NO_ACCOUNT: "¿No tienes cuenta?",
   PASSWORD: "Contraseña",
-  REGISTER_LINK: "Registrate",
+  REGISTER_LINK: "Regístrate",
   SUBMIT: "Iniciar sesión",
   SUBMITTING: "Ingresando...",
   TITLE: "Iniciar sesión",
 } as const;
 
 export const LOGIN_ERROR_MESSAGE = {
-  ACCOUNT_BLOCKED: "Tu cuenta está bloqueada. Contactá al equipo de Tacha.",
-  CAPTCHA_FAILED: "No pudimos validar el reCAPTCHA. Intentá de nuevo.",
-  CAPTCHA_REQUIRED: "Confirmá que no sos un robot.",
-  EMAIL_INVALID: "Ingresá un correo válido.",
-  EMAIL_NOT_CONFIRMED: "Confirmá tu correo antes de iniciar sesión.",
+  ACCOUNT_BLOCKED: "Tu cuenta está bloqueada. Contacta al equipo de Tacha.",
+  CAPTCHA_FAILED: "No pudimos validar el reCAPTCHA. Intenta de nuevo.",
+  CAPTCHA_REQUIRED: "Confirma que no eres un robot.",
+  EMAIL_INVALID: "Ingresa un correo válido.",
+  EMAIL_NOT_CONFIRMED: "Confirma tu correo antes de iniciar sesión.",
   EMAIL_REQUIRED: "El correo es obligatorio.",
   INVALID_CREDENTIALS: "Correo o contraseña incorrectos.",
   PASSWORD_REQUIRED: "La contraseña es obligatoria.",
-  RATE_LIMITED: "Demasiados intentos. Esperá un momento e intentá de nuevo.",
-  UNEXPECTED: "No pudimos iniciar sesión. Intentá de nuevo en unos minutos.",
+  RATE_LIMITED: "Demasiados intentos. Espera un momento e intenta de nuevo.",
+  UNEXPECTED: "No pudimos iniciar sesión. Intenta de nuevo en unos minutos.",
 } as const;
 
 export const LOGIN_SUBMIT_STATUS = {
@@ -159,5 +159,5 @@ export const INACTIVITY_NOTICE_STORAGE_KEY = "tacha:inactivity-notice";
 export const INACTIVITY_NOTICE_FLAG = "1";
 
 export const INACTIVITY_LABEL = {
-  NOTICE: "Tu sesión se cerró por inactividad. Iniciá sesión de nuevo.",
+  NOTICE: "Tu sesión se cerró por inactividad. Inicia sesión de nuevo.",
 } as const;

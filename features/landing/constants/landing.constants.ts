@@ -76,7 +76,7 @@ export const DEMO_IMAGE = {
 } as const;
 
 export const ABOUT_TEXT = {
-  DESCRIPTION: "Conocé quiénes somos y hacia dónde vamos.",
+  DESCRIPTION: "Conoce quiénes somos y hacia dónde vamos.",
   MISSION:
     "Ayudar a los hogares costarricenses a organizar sus compras en equipo, con información real de precios, para que gasten menos tiempo y menos dinero.",
   MISSION_TITLE: "Misión",
@@ -118,7 +118,7 @@ export const ORGANIZATION_FACTS: readonly InfoBlock[] = [
 export const PLATFORM_FEATURES: readonly PlatformFeature[] = [
   {
     detail:
-      "Creás un hogar, invitás con un enlace a quienes viven con vos y todos trabajan sobre la misma lista. Cuando alguien tacha un producto en el súper, los demás lo ven al instante.",
+      "Creas un hogar, invitas con un enlace a quienes viven contigo y todos trabajan sobre la misma lista. Cuando alguien tacha un producto en el súper, los demás lo ven al instante.",
     id: "lista-compartida",
     summary: "Todos en la casa agregan y tachan productos en la misma lista, en tiempo real.",
     title: "Una lista para toda la casa",
@@ -135,7 +135,7 @@ export const PLATFORM_FEATURES: readonly PlatformFeature[] = [
       "Cada compra guarda quién la hizo, en qué supermercado y cuánto costó. Con ese historial el hogar ve en qué se va la plata por producto, categoría o supermercado.",
     id: "gastos",
     summary: "Cada compra queda registrada: quién, dónde, cuándo y cuánto.",
-    title: "Sabé cuánto gastan",
+    title: "Descubre cuánto gastan",
   },
 ];
 
@@ -178,7 +178,7 @@ export const CAROUSEL_ICON_PATH = {
 
 export const FOOTER_TEXT = {
   ABOUT_LABEL: "Sobre Tacha",
-  CONTACT_DESCRIPTION: "Escribinos por mensaje directo en Instagram.",
+  CONTACT_DESCRIPTION: "Escríbenos por mensaje directo en Instagram.",
   CONTACT_TITLE: "Contacto",
   DESCRIPTION:
     "Listas de compras colaborativas para el hogar: una lista compartida, precios aproximados por supermercado y menos mandados repetidos.",

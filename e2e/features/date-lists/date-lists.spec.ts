@@ -166,7 +166,7 @@ test.describe("Sublistas por fecha", () => {
   test("E2E-FECHAS-02: una fecha pasada no se acepta", async ({ page }) => {
     await fillCreateForm(page, PAST_DATE);
 
-    await expect(page.getByText("Elegí hoy o una fecha futura.")).toBeVisible();
+    await expect(page.getByText("Elige hoy o una fecha futura.")).toBeVisible();
     await expect(page.getByRole("dialog")).toBeVisible();
   });
 

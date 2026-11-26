@@ -60,7 +60,7 @@ test.describe("Mi inventario", () => {
     await expect(page).toHaveURL(INVENTORY_PATH);
     await expect(getGroup(page, "Vence pronto")).toContainText("Leche");
 
-    await page.getByRole("link", { name: "← Volver a la lista" }).click();
+    await page.getByRole("link", { name: "Volver a la lista" }).click();
 
     await expect(page).toHaveURL(LIST_PATH);
   });

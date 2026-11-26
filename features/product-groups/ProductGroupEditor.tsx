@@ -18,7 +18,7 @@ export const ProductGroupEditor = (): React.JSX.Element => {
   const viewModel = useProductGroupEditorViewModel();
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <Link href={APP_ROUTE.LIST_GROUPS} className="self-start font-body text-sm text-tacha-teal hover:underline">
         {PRODUCT_GROUP_EDITOR_TEXT.BACK_TO_GROUPS}
       </Link>

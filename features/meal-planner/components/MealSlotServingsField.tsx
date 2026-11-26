@@ -25,7 +25,7 @@ export const MealSlotServingsField = ({
         <span aria-hidden="true">{MEAL_SLOT_TEXT.SERVINGS_MINUS_MARK}</span>
         <span className="sr-only">{MEAL_SLOT_TEXT.DECREASE_SERVINGS}</span>
       </Button>
-      <p aria-live="polite" className="flex-1 text-center font-body text-sm font-semibold text-tacha-text">
+      <p aria-live="polite" className="min-w-24 text-center font-body text-sm font-semibold text-tacha-text">
         {servingsSummary ?? multiplierLabel}
       </p>
       <Button variant={BUTTON_VARIANT.SECONDARY} isDisabled={!canIncreaseServings} onClick={onMultiplierIncrease}>

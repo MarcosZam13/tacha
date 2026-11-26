@@ -26,7 +26,7 @@ export const MealPlanner = (): React.JSX.Element => {
   const { onSlotOpen, ...dialog } = viewModel.dialog;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{MEAL_PLANNER_TEXT.TITLE}</h1>
       <RecipesTabs activeTab={RECIPES_TAB.PLANNER} />
       <PlanScopeSelector {...viewModel.planScope} />

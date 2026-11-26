@@ -3,10 +3,10 @@
 export const FORGOT_PASSWORD_LABEL = {
   BACK_TO_LOGIN: "Volver al inicio de sesión",
   DESCRIPTION:
-    "Escribí el correo de tu cuenta y te enviaremos un enlace para restablecer tu contraseña.",
+    "Escribe el correo de tu cuenta y te enviaremos un enlace para restablecer tu contraseña.",
   EMAIL: "Correo electrónico",
   SENT_MESSAGE:
-    "Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisá también la carpeta de spam.",
+    "Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisa también la carpeta de spam.",
   SUBMIT: "Enviar enlace",
   SUBMITTING: "Enviando...",
   TITLE: "Recuperar contraseña",
@@ -14,9 +14,9 @@ export const FORGOT_PASSWORD_LABEL = {
 } as const;
 
 export const FORGOT_PASSWORD_ERROR_MESSAGE = {
-  EMAIL_INVALID: "Ingresá un correo válido.",
+  EMAIL_INVALID: "Ingresa un correo válido.",
   EMAIL_REQUIRED: "El correo es obligatorio.",
-  UNEXPECTED: "No pudimos enviar el correo. Intentá de nuevo en unos minutos.",
+  UNEXPECTED: "No pudimos enviar el correo. Intenta de nuevo en unos minutos.",
 } as const;
 
 // `sent` es la confirmación genérica: se llega ahí exista o no la cuenta (y también con el límite de
@@ -82,7 +82,7 @@ export type ResetPasswordStatusType =
 // Error propio de la vista de actualización (los del guardado de la contraseña son de NEW_PASSWORD_ERROR_MESSAGE).
 export const RESET_PASSWORD_ERROR_MESSAGE = {
   SESSIONS_NOT_CLOSED:
-    "No pudimos cerrar tus otras sesiones, así que no cambiamos tu contraseña. Intentá de nuevo.",
+    "No pudimos cerrar tus otras sesiones, así que no cambiamos tu contraseña. Intenta de nuevo.",
 } as const;
 
 // Cuánto se espera a que Supabase confirme un enlace que ya procesó (INITIAL_SESSION con el fragmento borrado)
