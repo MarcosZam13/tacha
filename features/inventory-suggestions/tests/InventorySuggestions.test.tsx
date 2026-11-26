@@ -223,3 +223,16 @@ describe("InventorySuggestions: el ✓ que rechaza (SCRUM-104)", () => {
     expect(page.queryError()).toHaveTextContent("No se pudo guardar. Intenta de nuevo.");
   });
 });
+
+// SCRUM-105 (HU-71b CA-01): desde la fila se entra a la pantalla completa.
+describe("InventorySuggestions: enlace a Mi inventario (SCRUM-105)", () => {
+  it("la fila tiene el enlace Ver mi inventario", async () => {
+    getInventorySuggestionsMock.mockResolvedValue([MILK]);
+    const page = createInventorySuggestionsPage();
+    renderSuggestions();
+
+    const region = await page.findRegion();
+
+    expect(within(region).getByRole("link", { name: "Ver mi inventario" })).toHaveAttribute("href", "/lista/inventario");
+  });
+});

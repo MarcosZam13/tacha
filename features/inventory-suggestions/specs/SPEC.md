@@ -187,3 +187,7 @@ Debajo de los textos de la tarjeta, dos botones redondos: ✓ (teal, el principa
 - [x] CA-03: la ✕ no borra el historial y vence a los 7 días. (prueba SQL de la `064`, pasos 3 a 5)
 - [x] CA-04: se puede ignorar la fila; un error no bloquea la pantalla. (E2E-INV-07, `InventorySuggestions.test.tsx`)
 - [x] Familia: la ✕ de un miembro pospone para todos; no toca la lista de otra persona. (prueba SQL de la `064`, pasos 6 y 7)
+
+## 17. SCRUM-105: enlace a "Mi inventario"
+
+La fila tiene el enlace "Ver mi inventario" a `/lista/inventario` (HU-71b CA-01). Desde la migración `065` las sugerencias salen de `inventory_estimates`, el mismo cálculo que "Mi inventario" (`features/my-inventory/specs/SPEC.md`): un producto está en uno solo de los dos lugares.

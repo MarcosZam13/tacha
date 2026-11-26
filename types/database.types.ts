@@ -1523,6 +1523,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_my_inventory: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string | null
+          last_purchased_at: string
+          product_catalog_variant_id: string
+          product_name: string
+        }[]
+      }
       get_period_finance: { Args: { target_scope: string }; Returns: Json }
       get_personal_product_usage: {
         Args: { target_product_id: string }
@@ -1570,6 +1581,20 @@ export type Database = {
         Returns: {
           period_end: string
           period_start: string
+        }[]
+      }
+      inventory_estimates: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string | null
+          is_dismissed: boolean
+          is_pending: boolean
+          last_purchased_at: string
+          product_catalog_id: string
+          product_catalog_variant_id: string
+          product_name: string
         }[]
       }
       is_recipe_photo_in_use: {

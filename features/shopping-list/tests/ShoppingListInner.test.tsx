@@ -212,6 +212,15 @@ describe("ShoppingListInner: assignee field (SCRUM-108)", () => {
   });
 });
 
+// SCRUM-105 (HU-71b CA-01): la entrada a "Mi inventario" mientras no exista el menú "Más".
+describe("ShoppingListInner: link to my inventory (SCRUM-105)", () => {
+  it("links to my inventory from the header", () => {
+    render(<ShoppingListInner />);
+
+    expect(screen.getByRole("link", { name: "Mi inventario" })).toHaveAttribute("href", "/lista/inventario");
+  });
+});
+
 // SCRUM-103 (HU-70b CA-01): los chips de duración, solo debajo de la fila recién tachada.
 describe("ShoppingListInner: shelf life chips (SCRUM-103)", () => {
   const getChipGroups = (): HTMLElement[] => screen.queryAllByRole("group", { name: /^¿Cuánto te va a durar / });

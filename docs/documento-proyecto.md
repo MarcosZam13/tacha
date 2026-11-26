@@ -274,6 +274,8 @@ Esto convierte un problema de cálculo que "no siempre puede salir bien" en una 
 
 **Implementado (SCRUM-104, 2026-11-25): confirmar o descartar.** Cada sugerencia tiene ✓ (agrega a la lista general la presentación de la última compra, con cantidad 1) y ✕ (pospone el producto 7 días en la lista general, para toda la familia, en `inventory_suggestion_dismissals`, migración `064`). La ✕ no toca el historial y vence sola. Detalle en `features/inventory-suggestions/specs/SPEC.md` §16.
 
+**Implementado (SCRUM-105, 2026-11-25): "Mi inventario".** Pantalla `/lista/inventario` con lo que la app cree que hay en casa (lo que no se acabó o no tiene fecha), agrupado en "Vence pronto" (hasta 7 días), "Este mes" (8 a 30), "Más adelante" (más de 30, decidido con el equipo) y "Sin fecha estimada". Mientras no exista el menú "Más", se entra desde General (encabezado y fila de sugerencias). El cálculo pasa a una sola función, `inventory_estimates` (migración `065`), que usan el inventario y las sugerencias. Detalle en `features/my-inventory/specs/SPEC.md`.
+
 ### 4.11 Grupos de productos (aceptado 2026-08-18, confirmado por el equipo 2026-08-19)
 
 > Propuesta de Marcos, surgida después de la reunión de equipo del 2026-08-16 — aceptada el 2026-08-18 para poder generar la interfaz en [DESIGN.md](DESIGN.md) sin dejar huecos, y **confirmada por el equipo completo el 2026-08-19**.

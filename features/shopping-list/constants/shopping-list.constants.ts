@@ -109,6 +109,8 @@ export const SHOPPING_LIST_TEXT = {
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
   // Entrada a "Mis grupos" (SCRUM-109, HU-72 CA-01).
   MANAGE_GROUPS: "Gestionar mis grupos",
+  // Entrada a "Mi inventario" (SCRUM-105, HU-71b CA-01) mientras no exista el menú "Más".
+  MY_INVENTORY: "Mi inventario",
   OPEN_DETAIL: "Ver detalle",
   OPEN_DETAIL_ICON: "i",
   PENDING_SECTION: "Pendientes",
