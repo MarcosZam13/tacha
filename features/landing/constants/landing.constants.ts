@@ -127,7 +127,7 @@ export const PLATFORM_FEATURES: readonly PlatformFeature[] = [
     detail:
       "Tacha consulta los sitios oficiales de MaxiPali, Walmart y MasxMenos y guarda precios de referencia. Con eso te sugiere dónde te conviene comprar. Son aproximados: en tienda pueden variar.",
     id: "precios",
-    summary: "Compará precios aproximados de tres supermercados antes de salir.",
+    summary: "Compara precios aproximados de tres supermercados antes de salir.",
     title: "Precios por supermercado",
   },
   {
