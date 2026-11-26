@@ -17,7 +17,6 @@ import type { SpendingPeriodType, TotalSaveErrorType } from "../constants/financ
 import type { PeriodBounds } from "../models/PeriodBounds.interface";
 import type { PeriodFinance, PeriodFinanceResponse } from "../models/PeriodFinance.type";
 import type { PeriodPurchase } from "../models/PeriodPurchase.interface";
-import type { PeriodSpending } from "../models/PeriodSpending.interface";
 import type { ProductPurchase } from "../models/ProductPurchase.interface";
 import type { ProductPurchaseTarget } from "../models/ProductPurchaseTarget.type";
 import type {
@@ -36,7 +35,6 @@ import type {
 } from "../models/TotalMutations.interface";
 import { TotalSaveError } from "../models/TotalMutations.interface";
 import { isSpendingPeriod } from "../utils/isSpendingPeriod";
-import { summarizeSpending } from "../utils/summarizeSpending";
 import { toPeriodFinance } from "../utils/toPeriodFinance";
 import { toPurchasedProductsPage } from "../utils/toPurchasedProductsPage";
 
@@ -135,39 +133,12 @@ export const getPeriodFinance = async (period: SpendingPeriodType): Promise<Null
 };
 
 /**
- * El gasto del periodo sin zona guardada: las compras cerradas propias con
- * `closed_at` dentro de los límites del navegador (inicio incluido, fin
- * excluido; SPEC regla 8). Sin zona no hay ajustes (regla 59). La RLS de
- * purchase_sessions solo deja las propias (D4) y el filtro deja fuera las
- * abiertas, que tienen `closed_at` nulo (D3).
- *
- * Como getPeriodPurchases, si el conteo exacto es nulo o no coincide con las
- * filas recibidas, falla en vez de dar un total falso (D19, regla 30).
- */
-export const getPeriodSpending = async ({ end, start }: PeriodBounds): Promise<PeriodSpending> => {
-  assertPeriodMovesForward({ end, start });
-
-  const {
-    count,
-    data: purchaseRows,
-    error,
-  } = await getSupabaseClient()
-    .from(FINANCE_DB.TABLE.PURCHASE_SESSIONS)
-    .select(FINANCE_DB.SELECT.SPENDING, { count: "exact" })
-    .gte(FINANCE_DB.COLUMN.CLOSED_AT, start.toISOString())
-    .lt(FINANCE_DB.COLUMN.CLOSED_AT, end.toISOString());
-  if (error) throw error;
-  if (count !== purchaseRows.length) {
-    throw new Error(`${FINANCE_DB.TABLE.PURCHASE_SESSIONS} devolvió un resultado incompleto`);
-  }
-
-  return summarizeSpending(purchaseRows.map((purchaseRow) => purchaseRow.total_amount));
-};
-
-/**
  * Las compras cerradas propias del periodo para el Historial (SCRUM-90), de la
- * más reciente a la más antigua (SPEC regla 26). Mismos límites y misma RLS que
- * getPeriodSpending.
+ * más reciente a la más antigua (SPEC regla 26). Desde SCRUM-72 también es la
+ * lectura del Dashboard sin zona guardada (regla 107). Las compras con
+ * `closed_at` dentro de los límites del navegador (inicio incluido, fin
+ * excluido; regla 8); la RLS de purchase_sessions solo deja las propias (D4) y
+ * el filtro deja fuera las abiertas, que tienen `closed_at` nulo (D3).
  *
  * El servidor puede cortar la respuesta sin avisar: si el conteo exacto es nulo
  * o no coincide con las filas recibidas, falla en vez de dar un total falso

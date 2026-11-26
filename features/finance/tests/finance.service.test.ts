@@ -10,7 +10,6 @@ import {
 import {
   getPeriodFinance,
   getPeriodPurchases,
-  getPeriodSpending,
   getProductPurchases,
   getPurchasedProducts,
   getPurchasesWithoutTotal,
@@ -148,79 +147,6 @@ describe("getPeriodFinance", () => {
     rpcMock.mockResolvedValue({ data: { ...ZONED_RESPONSE, total: 9000 }, error: null });
 
     await expect(getPeriodFinance(SPENDING_PERIOD.WEEK)).rejects.toThrow("no cuadra");
-  });
-});
-
-describe("getPeriodSpending", () => {
-  // Semana del lunes 12 al domingo 18 de octubre de 2026, en hora local.
-  const WEEK_BOUNDS = getPeriodBounds(SPENDING_PERIOD.WEEK, new Date(2026, 9, 18, 15, 0));
-
-  it("reads only total_amount of the purchases closed inside the period, with the exact count", async () => {
-    ltMock.mockResolvedValue({ count: 0, data: [], error: null });
-
-    await getPeriodSpending(WEEK_BOUNDS);
-
-    // Nombres literales a propósito: fijan el contrato con la base (016)
-    // aunque alguien cambie las constantes por error.
-    expect(fromMock).toHaveBeenCalledWith("purchase_sessions");
-    expect(selectMock).toHaveBeenCalledWith("total_amount", { count: "exact" });
-    // Inicio incluido y fin excluido, en ISO (la base guarda closed_at en UTC).
-    expect(gteMock).toHaveBeenCalledWith("closed_at", new Date(2026, 9, 12).toISOString());
-    expect(ltMock).toHaveBeenCalledWith("closed_at", new Date(2026, 9, 19).toISOString());
-  });
-
-  it("never filters by owner: the RLS returns only the user's own purchases", async () => {
-    ltMock.mockResolvedValue({ count: 0, data: [], error: null });
-
-    await getPeriodSpending(WEEK_BOUNDS);
-
-    expect(JSON.stringify([selectMock.mock.calls, gteMock.mock.calls, ltMock.mock.calls])).not.toContain("owner_id");
-  });
-
-  it.each([null, 4])("fails instead of giving a wrong total when the count is %s (D19, rule 30)", async (count) => {
-    ltMock.mockResolvedValue({ count, data: [{ total_amount: 10000 }, { total_amount: 5000 }], error: null });
-
-    await expect(getPeriodSpending(WEEK_BOUNDS)).rejects.toThrow("incompleto");
-  });
-
-  it("adds the totals and counts purchases without a total apart", async () => {
-    ltMock.mockResolvedValue({
-      count: 3,
-      data: [{ total_amount: 10000 }, { total_amount: null }, { total_amount: 5000.5 }],
-      error: null,
-    });
-
-    await expect(getPeriodSpending(WEEK_BOUNDS)).resolves.toEqual({
-      adjustmentCount: 0,
-      closedCount: 2,
-      total: 15000.5,
-      withoutTotalCount: 1,
-    });
-  });
-
-  it("returns ₡0 when there are no closed purchases in the period", async () => {
-    ltMock.mockResolvedValue({ count: 0, data: [], error: null });
-
-    await expect(getPeriodSpending(WEEK_BOUNDS)).resolves.toEqual({
-      adjustmentCount: 0,
-      closedCount: 0,
-      total: 0,
-      withoutTotalCount: 0,
-    });
-  });
-
-  it("rejects bounds that do not move forward without calling the database", async () => {
-    const start = new Date(2026, 9, 12);
-
-    await expect(getPeriodSpending({ end: start, start })).rejects.toThrow(RangeError);
-    await expect(getPeriodSpending({ end: new Date(2026, 9, 11), start })).rejects.toThrow(RangeError);
-    expect(fromMock).not.toHaveBeenCalled();
-  });
-
-  it("rethrows the Supabase error", async () => {
-    ltMock.mockResolvedValue({ data: null, error: SUPABASE_ERROR });
-
-    await expect(getPeriodSpending(WEEK_BOUNDS)).rejects.toBe(SUPABASE_ERROR);
   });
 });
 

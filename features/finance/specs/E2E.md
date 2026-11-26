@@ -39,7 +39,7 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
 
   | Petición | Respuesta simulada |
   |---|---|
-  | `GET /rest/v1/purchase_sessions?select=total_amount&closed_at=gte.…&closed_at=lt.…` | Según el periodo pedido (`gte`), los montos de la tabla de abajo |
+  | `GET /rest/v1/purchase_sessions?select=total_amount&closed_at=gte.…&closed_at=lt.…` | Según el periodo pedido (`gte`), los montos de la tabla de abajo. **Desde SCRUM-72** el Dashboard ya no la pide: lee con la petición del Historial (fila siguiente) y esta rama del helper se quita (sección SCRUM-72) |
   | `GET /rest/v1/purchase_sessions?select=id,closed_at,total_amount,stores(display_name)&closed_at=gte.…&closed_at=lt.…&order=closed_at.desc,id.asc` (SCRUM-90) | Según el periodo pedido, las compras de E2E-FIN-05; el helper distingue esta petición por su `select`. Responde con el header `Content-Range` (por ejemplo, `0-2/3`, o `*/0` sin filas), porque sin él `count` llega nulo y la pantalla pasa a error. La forma exacta de la URL se confirma al escribir el test |
   | `GET /rest/v1/spending_budgets?select=period,amount` | Los presupuestos que guarda el escenario (empieza sin ninguno) |
   | `POST /rest/v1/rpc/set_spending_budget` | La fila guardada `{ owner_id, period, amount }`; el helper la recuerda para la siguiente lectura |
@@ -73,7 +73,7 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
   - La URL es `/finanzas`, el título es «Finanzas» y la barra de sub-tabs tiene «Dashboard» activo (SCRUM-90; antes no existía).
   - El grupo «Periodo» tiene «Día», «Semana» y «Mes», con **Semana** elegida (`aria-pressed="true"`).
   - **Semana:**
-    - la petición a `purchase_sessions` lleva `select=total_amount` y los límites de la semana (tabla de arriba), sin ningún filtro por `owner_id`;
+    - la petición a `purchase_sessions` lleva `select=total_amount` y los límites de la semana (tabla de arriba), sin ningún filtro por `owner_id`. **Desde SCRUM-72** lleva el `select` del Historial, `stores(display_name)` incluido, y `count=exact` (sección SCRUM-72);
     - se ve «Gastado esta semana», «₡15 000» y «Lunes 12 a domingo 18 de octubre»;
     - «Compras» dice 2 y «Sin total» dice 1: la compra sin total no suma ₡0.
   - **Día:** la petición lleva los límites del día; se ve «Gastado hoy», «₡10 000» y «Domingo 18 de octubre».
@@ -119,7 +119,7 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
      - se ve «No se pudo guardar tu presupuesto. Intenta de nuevo.» (`role="alert"`) y el campo conserva `30000`;
      - «Cancelar» cierra el campo y sigue «Sin presupuesto semanal».
   3. **Error al cargar el gasto:**
-     - la primera petición a `purchase_sessions` responde `500` y la segunda con las compras de la semana;
+     - la primera petición a `purchase_sessions` responde `500` y la segunda con las compras de la semana (**desde SCRUM-72**, la petición del Historial; mientras dura el error no se ve el desglose por supermercado);
      - se ve «No se pudo cargar tu gasto. Intenta de nuevo.» y «Reintentar»;
      - al tocarlo se ve «₡15 000»;
      - el presupuesto se siguió viendo durante el error.
@@ -138,7 +138,7 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
 - **Resultado esperado:**
   - Se ve «Inicia sesión con tu cuenta para ver tus finanzas.» y el enlace «Iniciar sesión».
   - No se ve el selector, ni montos, ni el presupuesto.
-  - **No hubo ninguna petición** a `purchase_sessions`, `spending_budgets` ni `rpc/set_spending_budget`.
+  - **No hubo ninguna petición** a `purchase_sessions`, `spending_budgets` ni `rpc/set_spending_budget`. **Desde SCRUM-72** se comprueba con el registro de la petición del Historial, que es la que hace el Dashboard; también `rpc/get_period_finance` y las pendientes.
   - El enlace lleva a `/login`.
 
 ### E2E-FIN-05: ver el historial y filtrarlo por periodo (SCRUM-90)
@@ -203,7 +203,7 @@ Una respuesta simulada puede alejarse de la real; el E2E pasaría con un contrat
 | Criterio | Escenarios E2E | Otros niveles |
 |---|---|---|
 | CA-01 (selector, Semana por defecto, navegación) | E2E-FIN-01 | `useFinanceDashboardViewModel.test.ts` |
-| CA-02 (recalcular sin recargar, compras sin total aparte) | E2E-FIN-01 | `getPeriodBounds.test.ts`, `summarizeSpending.test.ts`, `usePeriodSpending.test.ts` |
+| CA-02 (recalcular sin recargar, compras sin total aparte) | E2E-FIN-01 | `getPeriodBounds.test.ts`, `summarizeSpending.test.ts`, `usePeriodSpending.test.ts` (desde SCRUM-72, `usePeriodPurchases.test.ts` y `useFinanceDashboardViewModel.test.ts`) |
 | CA-03 (presupuesto por periodo, diferencia) | E2E-FIN-02, E2E-FIN-03 | `parseColonesAmount.test.ts`, `useSpendingBudgets.test.ts`, prueba SQL 027 |
 | D6 (solo cuentas registradas) | E2E-FIN-04 (interfaz) | `finance.service.test.ts`, `useFinanceDashboardViewModel.test.ts`, prueba SQL 027 (base), prueba manual (sesión anónima real) |
 | D4 (solo el gasto propio) | — (lo decide la RLS de `purchase_sessions`) | Prueba manual con dos cuentas de la misma familia |
@@ -279,7 +279,7 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
 - **Resultado esperado:**
   - El Dashboard dice ₡20 000, «Incluye ajustes manuales» y «Te quedan ₡10 000»; «Compras» sigue en 2.
   - Con la zona guardada, el gasto sale de `rpc/get_period_finance` (compras, ajustes y total en una sola lectura) y no hay consulta separada a `purchase_sessions`. Sin zona, la consulta de gasto lleva `count=exact` (E2E-FIN-01).
-  - No hay ningún lápiz de total ni fila «Ajuste manual».
+  - No hay ningún lápiz de total ni fila «Ajuste manual». **Desde SCRUM-72 (D45):** se ve **una** línea «Ajuste manual» en el desglose por supermercado, fuera de su lista y sin lápiz; los lápices siguen en cero (D11).
 
 ### E2E-FIN-12: validación y errores al guardar (SCRUM-91)
 
@@ -318,7 +318,7 @@ Cualquier escenario anterior sin ajustes recibe `[]`, así que sus resultados es
 |---|---|---|
 | HU-60 CA-01 | E2E-FIN-09 | `useTotalEdit.test.ts`, `PurchaseHistory.test.tsx`, prueba SQL 040, manual |
 | HU-60 CA-02 | E2E-FIN-10 | `usePeriodPurchases.test.ts`, `summarizeSpending.test.ts`, prueba SQL 040, manual |
-| HU-60 CA-03 y D19 | E2E-FIN-11 | `finance.service.test.ts`, `usePeriodSpending.test.ts`, `FinanceDashboard.test.tsx`, manual |
+| HU-60 CA-03 y D19 | E2E-FIN-11 | `finance.service.test.ts`, `usePeriodSpending.test.ts` (desde SCRUM-72, `usePeriodPurchases.test.ts`), `FinanceDashboard.test.tsx`, manual |
 | D12, totales nulos y ₡0 | E2E-FIN-09 | `summarizeSpending.test.ts`, `usePurchaseHistoryViewModel.test.ts` |
 | D13 y D14 | E2E-FIN-12 | `parseColonesAmount.test.ts`, prueba SQL 040 |
 | D17 | E2E-FIN-13 | `usePeriodPurchases.test.ts`, prueba SQL 040 |
@@ -531,3 +531,95 @@ Los errores (`500`) se encolan por RPC y por bloque, como en SCRUM-91.
 | Regla 90 (datos que cambian) | — (no llegan a la base) | Prueba SQL, manual |
 | Aislamiento y anónimo | E2E-FIN-23 (solo la interfaz) | Prueba SQL, manual |
 | Errores y vacío | E2E-FIN-22 | Hooks de lectura |
+
+## SCRUM-72: ver gastos por supermercado
+
+Deriva de SPEC §13 (HU-40) y de las decisiones D45 a D50 (SPEC §5). La agrupación, la suma en centavos y el orden se prueban en `groupSpendingByStore.test.ts`; acá va lo que la pantalla hace con esos datos.
+
+- **Archivo:** `e2e/features/finance/spending-by-store.spec.ts`. **Estado (2026-11-24):** escrito y en verde. E2E-FIN-24 (dos pruebas) y E2E-FIN-25 pasan en `chromium` y `mobile-chrome`: 6 de 6. `e2e/features/finance` completo: 66 de 66.
+- **Qué validan:** igual que los anteriores, usan una **sesión registrada simulada** y **respuestas de Supabase simuladas**, y validan **solo la interfaz**: ni la autenticación real, ni la RLS, ni `get_period_finance`.
+- **Qué cubre lo real:** el QA manual de SPEC §13, contra el Historial del mismo periodo.
+- **IDs:** siguen a E2E-FIN-19 a 23, de SCRUM-93.
+
+### Datos y entorno
+
+Mismos reloj, zona horaria y límites de E2E-FIN-05. No hay peticiones nuevas: el Dashboard usa las del Historial.
+
+| Petición | Respuesta simulada |
+|---|---|
+| `GET /rest/v1/purchase_sessions?select=id,closed_at,total_amount,stores(display_name)&closed_at=gte.…&closed_at=lt.…&order=closed_at.desc,id.asc` | Sin zona: las compras de E2E-FIN-05 por periodo (`HISTORY_ROWS_BY_PERIOD_START`), o `historyRows` si el escenario las da, con `Content-Range` |
+| `POST /rest/v1/rpc/get_period_finance` | Con zona: las compras de `historyRows`, con `store_name` desde `stores.display_name` (nulo si `stores` es `null`), los ajustes que cuentan en el nivel pedido y el total |
+
+**Opción nueva del helper** (tasks 5.1): `adjustments`, los ajustes ya guardados al empezar, sin pasar por la edición del Historial.
+- **Cómo:** se exporta el tipo `SimulatedAdjustment` (`amount`, `effective_at`, `id`, `scope`) y la lista interna empieza con una copia de `options.adjustments ?? []`, en vez de `[]`. Nada más cambia: `get_period_finance` ya devuelve los que cuentan en el nivel pedido (regla 52) y los suma al total, y `set_period_total` ya los reemplaza por nivel.
+- **Sin efecto en los escenarios anteriores:** ninguno pasa la opción, así que empiezan sin ajustes, como hoy. Sin zona guardada la respuesta no trae ajustes, así que la opción solo se usa con `savedTimeZone`.
+- **Datos de E2E-FIN-25:** uno de `day` (+500) y uno de `week` (−2 000), con ids distintos de los que crea `set_period_total`. En Semana cuentan los dos (−1 500, "Ajustes manuales"); en Día, solo el primero (+500, "Ajuste manual").
+
+**Escenarios anteriores:** cambian cómo se comprueban, no qué (plan, "Pruebas", escenarios existentes). Las notas están en E2E-FIN-01, 03, 04 y 11 y en las coberturas de SCRUM-69 y SCRUM-91. Además, E2E-FIN-05 toma la última petición del Historial (el Dashboard también la hace) y E2E-FIN-08 ya no comprueba `spendingRequests`, que se quitó en la etapa 4.
+
+### E2E-FIN-24: desglose sin zona guardada (SCRUM-72)
+
+- **Cubre:** CA-01, CA-02, D46, D48 y reglas 107, 113 y 116.
+- **Precondición:** sesión registrada simulada, sin zona guardada, con las compras de E2E-FIN-05. Corre en desktop y en Pixel 7.
+- **Pasos:**
+  1. Abrir `/finanzas`.
+  2. Mirar «Gasto por supermercado».
+  3. Tocar «Día» y después «Mes».
+  4. En otra prueba, con `historyRows: []`, abrir `/finanzas`.
+- **Resultado esperado:**
+  - **Semana**, con el total ₡15 000 sin cambios:
+    1. «MaxiPali» ₡10 000;
+    2. «MasXMenos» ₡5 000;
+    3. «Walmart» con «Sin total», al final y sin ₡0 (D46).
+  - **Día:** solo «MaxiPali» ₡10 000.
+  - **Mes:** «MaxiPali» ₡30 000, «MasXMenos» ₡5 000 y «Walmart» con «Sin total».
+  - **Sin línea de ajuste:** sin zona guardada no hay ajustes (regla 59).
+  - **Periodo vacío:** no se ve «Gasto por supermercado» (D48); el total muestra su estado vacío.
+  - **Peticiones:**
+    - una sola a `purchase_sessions` por periodo, con `select=id,closed_at,total_amount,stores(display_name)`, `count=exact` y los límites del periodo, sin `owner_id`;
+    - ninguna con `select=total_amount`.
+
+### E2E-FIN-25: desglose con zona guardada y ajustes (SCRUM-72)
+
+- **Cubre:** D45, D47, D49, D50 y reglas 109 y 114.
+- **Precondición:** sesión registrada simulada, con la zona `America/Costa_Rica` guardada. Corre en desktop y en Pixel 7.
+  - **Compras** (`historyRows`), todas dentro del día en curso, para que valgan en Día y en Semana:
+    - Walmart ₡12 000;
+    - MaxiPali ₡8 000;
+    - MaxiPali sin total;
+    - una con `stores: null` y ₡8 000;
+    - MasXMenos ₡3 000.
+  - **Ajustes guardados:** uno de nivel día de +₡500 y uno de nivel semana de −₡2 000, los dos dentro del día en curso.
+- **Pasos:**
+  1. Abrir `/finanzas` (Semana).
+  2. Mirar «Gasto por supermercado».
+  3. Tocar «Día».
+- **Resultado esperado:**
+  - **Semana:** el total es ₡29 500 (₡31 000 de compras y −₡1 500 de ajustes, regla 114). La lista, en este orden:
+    1. «Walmart» ₡12 000;
+    2. «MaxiPali» ₡8 000, con «1 sin total» (D47);
+    3. «Supermercado no disponible» ₡8 000: empata con MaxiPali, así que va después (D49 y regla 109);
+    4. «MasXMenos» ₡3 000: va después de «Supermercado no disponible», que no quedó al final.
+  - **Semana, ajustes:** debajo de la lista y fuera de ella, «Ajustes manuales» −₡1 500 (D45 y D50).
+  - **Día:**
+    - la misma lista;
+    - el total ₡31 500;
+    - «Ajuste manual» +₡500, porque el ajuste de la semana no cuenta en el día (regla 52).
+  - **Peticiones:**
+    - una a `rpc/get_period_finance` por periodo, con `{ target_scope: "week" }` y después `{ target_scope: "day" }`;
+    - ninguna a `purchase_sessions` con el `select` del Historial.
+  - **Sin edición:** ningún lápiz en el Dashboard (D11).
+
+### Cobertura de SCRUM-72
+
+| Criterio | Escenarios E2E | Otros niveles |
+|---|---|---|
+| HU-40 CA-01 | E2E-FIN-24, E2E-FIN-25 | `groupSpendingByStore.test.ts`, `useFinanceDashboardViewModel.test.ts`, `FinanceDashboard.test.tsx`, manual contra el Historial |
+| HU-40 CA-02 y D49 (orden) | E2E-FIN-24, E2E-FIN-25 | `groupSpendingByStore.test.ts` (empates y grupo sin nombre) |
+| D45 y D50 (ajustes) | E2E-FIN-25, E2E-FIN-11 | `groupSpendingByStore.test.ts`, `SpendingByStore.test.tsx` |
+| D46 y D47 (sin total) | E2E-FIN-24, E2E-FIN-25 | `groupSpendingByStore.test.ts`, `SpendingByStore.test.tsx` |
+| D48 (sin compras) | E2E-FIN-24 | `useFinanceDashboardViewModel.test.ts` |
+| Regla 108 (agrupar por nombre) | — (no hay dos supermercados con el mismo nombre) | `groupSpendingByStore.test.ts` |
+| Regla 114 (centavos y redondeo) | E2E-FIN-25 (el total) | `groupSpendingByStore.test.ts` |
+| Regla 115 (carga y error) | E2E-FIN-03 | `useFinanceDashboardViewModel.test.ts` |
+| D6 | E2E-FIN-04 (interfaz) | `useFinanceDashboardViewModel.test.ts`, manual |
