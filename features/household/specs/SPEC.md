@@ -355,7 +355,7 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 
    Por eso **eliminar a alguien no toca el enlace**. **Limitación aceptada:** mientras el enlace de la familia siga vigente (7 días desde que se generó), la persona eliminada puede volver a unirse con él si lo conserva. El administrador puede cortarlo cuando quiera con "Generar enlace nuevo" (SCRUM-56), que reemplaza el token. Un enlace por persona o una lista de bloqueados quedan fuera de esta historia ([§14](#14-casos-fuera-de-alcance)).
 2. **D2. Sin notificaciones** a la persona eliminada. La próxima vez que abra `/household` ve el estado sin familia, y `/lista` le muestra su lista personal.
-3. **D3. Textos aprobados:** "Eliminar integrante", "¿Eliminar a este integrante?", "Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán", "Cancelar", "Eliminar", "Integrante eliminado correctamente" y "No se pudo eliminar al integrante. Inténtalo de nuevo" (ver [§7](#7-errores) y [§8](#8-ui-esperada)). Se usan tal cual, incluida la palabra "household" que pidió la dueña de la historia.
+3. **D3. Textos aprobados:** "Eliminar integrante", "¿Eliminar a este integrante?", "Esta persona perderá acceso a los datos compartidos de esta familia. Sus datos personales no se eliminarán", "Cancelar", "Eliminar", "Integrante eliminado correctamente" y "No se pudo eliminar al integrante. Inténtalo de nuevo" (ver [§7](#7-errores) y [§8](#8-ui-esperada)). Se usan tal cual, incluida la palabra "household" que pidió la dueña de la historia.
 
 **Reglas:**
 
@@ -638,7 +638,7 @@ Componentes compartidos: `Input`, `Chip`, `Button` y `Spinner` de `@/components/
 En la sección "Integrantes de la familia" (SCRUM-60), solo para el administrador:
 
 - En cada fila que no es la suya, un botón **"Eliminar integrante"** (variante secundaria) al final de la fila.
-- Diálogo (`Modal`) con el título **"¿Eliminar a este integrante?"**, el nombre de la persona ("Miembro sin nombre" si no tiene) para que quede claro a quién se elimina, y el mensaje **"Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán"**. Botones **"Cancelar"** y **"Eliminar"** (variante destructiva).
+- Diálogo (`Modal`) con el título **"¿Eliminar a este integrante?"**, el nombre de la persona ("Miembro sin nombre" si no tiene) para que quede claro a quién se elimina, y el mensaje **"Esta persona perderá acceso a los datos compartidos de esta familia. Sus datos personales no se eliminarán"**. Botones **"Cancelar"** y **"Eliminar"** (variante destructiva).
 - Aviso después de eliminar, en la zona `role="status"`: **"Integrante eliminado correctamente"**.
 - Error, dentro del diálogo: **"No se pudo eliminar al integrante. Inténtalo de nuevo"**.
 

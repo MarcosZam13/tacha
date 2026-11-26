@@ -55,7 +55,7 @@ export const stubContactFunction = async (
 };
 
 export const getContactRegion = (page: Page): Locator =>
-  page.getByRole("region", { name: "Contactanos" });
+  page.getByRole("region", { name: "Contáctanos" });
 
 export const fillContactForm = async (
   page: Page,

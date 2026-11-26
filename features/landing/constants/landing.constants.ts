@@ -183,7 +183,7 @@ export const FOOTER_TEXT = {
   DESCRIPTION:
     "Listas de compras colaborativas para el hogar: una lista compartida, precios aproximados por supermercado y menos mandados repetidos.",
   LEGAL_LABEL: "Enlaces legales e institucionales",
-  SOCIAL_TITLE: "Seguinos",
+  SOCIAL_TITLE: "Síguenos",
 } as const;
 
 export const BACK_BUTTON_TEXT = {
