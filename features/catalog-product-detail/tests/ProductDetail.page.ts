@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { REFERENCE_PRICE_TEXT } from "@/constants";
 import { PRODUCT_DETAIL_TEXT } from "../constants/catalog-product-detail.constants";
 
 /**
@@ -43,7 +44,24 @@ export const createProductDetailPage = () => {
     await user.click(screen.getByRole("button", { name: PRODUCT_DETAIL_TEXT.ADD_TO_LIST_BUTTON }));
   };
 
+  // HU-57: sección "Precio de referencia" de un producto personalizado.
+  const findHeading = (name: string) => screen.findByRole("heading", { level: 1, name });
+  const findReferencePriceHeading = () => screen.findByRole("heading", { name: REFERENCE_PRICE_TEXT.TITLE });
+  const queryReferencePriceHeading = () => screen.queryByRole("heading", { name: REFERENCE_PRICE_TEXT.TITLE });
+  const queryText = (text: string) => screen.queryByText(text);
+  // El precio comparte su elemento con el ícono "i": se busca como parte del texto.
+  // Intl separa los miles con un espacio duro y Testing Library lo normaliza a
+  // un espacio normal en el DOM: se normaliza también lo buscado.
+  // Sin dígitos pegados antes ni después: "₡3 200" no coincide con "₡13 200".
+  const queryPrice = (priceLabel: string) => {
+    const escapedLabel = priceLabel.replace(/\s+/g, " ").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return screen.queryByText(new RegExp(`(?<!\\d)${escapedLabel}(?!\\d)`));
+  };
+
   const getAddErrorMessage = () => screen.queryByRole("alert");
+  // SCRUM-163: aviso de que un producto personal no entra a la lista de la familia.
+  const findAddToListBlockedNote = () => screen.findByRole("note");
+  const queryAddToListButton = () => screen.queryByRole("button", { name: PRODUCT_DETAIL_TEXT.ADD_TO_LIST_BUTTON });
   const queryAddedConfirmation = () => screen.queryByText(PRODUCT_DETAIL_TEXT.ADDED_CONFIRMATION);
 
   return {
@@ -51,15 +69,22 @@ export const createProductDetailPage = () => {
     clickDecreaseQuantity,
     clickIncreaseQuantity,
     clickRetry,
+    findAddToListBlockedNote,
+    findHeading,
+    findReferencePriceHeading,
     getAddErrorMessage,
     getBrandNames,
     getErrorMessage,
     getHeading,
     getQuantityValue,
     getStoreRows,
+    queryAddToListButton,
     queryAddedConfirmation,
     queryNoBrandsMessage,
     queryNoPricesMessage,
+    queryReferencePriceHeading,
     queryRetryButton,
+    queryPrice,
+    queryText,
   };
 };

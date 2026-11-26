@@ -9,7 +9,7 @@ export interface MealSlotProps {
   isDisabled: boolean;
   /** El nombre accesible completo: día, comida, qué tiene y qué pasa al tocarlo. */
   label: string;
-  /** Recibe el botón tocado, para que el diálogo le devuelva el foco al cerrar. */
-  onOpen: (opener: HTMLElement) => void;
+  /** Abre el diálogo. El espacio ya se enfocó, así el Modal le devuelve el foco al cerrar (SCRUM-142). */
+  onOpen: () => void;
   slot: WeekSlot;
 }

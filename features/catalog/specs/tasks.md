@@ -67,5 +67,5 @@ Deriva de [plan.md](plan.md#hu-52-scrum-84-filtrar-catálogo-por-categoría). No
 
 - [ ] Enganchar `/catalogo` al sidebar cuando exista.
 - [ ] SCRUM-85: detalle del producto — recibe el mismo `CatalogProduct`/`productId` sin importar de qué RPC vino (avisado en su Jira).
-- [ ] SCRUM-87: selector de categoría del formulario — puede reusar `getCategories()` (avisado en su Jira).
+- [X] SCRUM-87: selector de categoría del formulario — reusó `getCategories()`, como se avisó (resuelto 2026-10-29, ver `features/my-products/specs/plan.md`).
 - [ ] Revisar nombres en la tarjeta cuando se resuelva SCRUM-126/133 (marcas en el nombre de las madres viejas).

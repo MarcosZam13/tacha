@@ -1,6 +1,8 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FINANCE_TEXT } from "../constants/finance.constants";
+import { FINANCE_TEXT, SPENT_LABEL } from "../constants/finance.constants";
+
+const SPENT_LABELS: readonly string[] = Object.values(SPENT_LABEL);
 
 /**
  * Page Object de Finanzas: los componentes sueltos y, en la etapa 7, la
@@ -16,6 +18,14 @@ export const createFinanceDashboardPage = () => {
     screen.getAllByRole("status").find((region) => region.getAttribute("aria-live") === "polite");
   const findText = (text: string | RegExp) => screen.findByText(text);
   const queryText = (text: string | RegExp) => screen.queryByText(text);
+
+  // La tarjeta del total ("Gastado esta semana"…): un monto puede repetirse en el
+  // desglose por supermercado (SCRUM-72), así que los del total se buscan acá.
+  const findTotalCard = async () => {
+    const label = await screen.findByText((content) => SPENT_LABELS.includes(content));
+    return label.closest("section") as HTMLElement;
+  };
+  const findTotalText = async (text: string | RegExp) => within(await findTotalCard()).findByText(text);
 
   // Sin cuenta.
   const findNoAccountNotice = () => screen.findByText(FINANCE_TEXT.NO_ACCOUNT);
@@ -75,6 +85,8 @@ export const createFinanceDashboardPage = () => {
     findNoAccountNotice,
     findPeriodGroup,
     findText,
+    findTotalCard,
+    findTotalText,
     getAlert,
     getStatusRegion,
     getTitle,

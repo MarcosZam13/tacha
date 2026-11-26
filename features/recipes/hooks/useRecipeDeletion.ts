@@ -86,5 +86,7 @@ export const useRecipeDeletion = ({ onDeleted }: UseRecipeDeletionParams): Recip
     onDeleteConfirm,
     onDeleteRequest,
     recipeName: state.status === RECIPE_DELETION_STATUS.IDLE ? null : state.recipe.name,
+    sharedNotice:
+      state.status !== RECIPE_DELETION_STATUS.IDLE && state.recipe.isShared ? RECIPE_DELETE_TEXT.SHARED_NOTICE : null,
   };
 };

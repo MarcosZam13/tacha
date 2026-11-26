@@ -7,6 +7,7 @@ import { PRODUCT_DETAIL_STATUS, PRODUCT_DETAIL_TEXT } from "./constants/catalog-
 import { AddToListControl } from "./components/AddToListControl";
 import { ProductDetailBrands } from "./components/ProductDetailBrands";
 import { ProductDetailHeader } from "./components/ProductDetailHeader";
+import { ProductDetailReferencePrice } from "./components/ProductDetailReferencePrice";
 import { ProductDetailStorePrices } from "./components/ProductDetailStorePrices";
 import { useProductDetailViewModel } from "./hooks/useProductDetailViewModel";
 import type { ProductDetailProps } from "./models/ProductDetailProps.interface";
@@ -43,7 +44,7 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <ProductDetailHeader
         imageUrl={viewModel.imageUrl}
         placeholderInitial={viewModel.placeholderInitial}
@@ -53,19 +54,32 @@ export const ProductDetail = ({ variantId }: ProductDetailProps): React.JSX.Elem
 
       <ProductDetailBrands brands={viewModel.brands} />
 
+      {viewModel.hasReferencePrice ? (
+        <ProductDetailReferencePrice
+          priceLabel={viewModel.referencePriceLabel}
+          storeName={viewModel.referenceStoreName}
+        />
+      ) : null}
+
       <ProductDetailStorePrices storePriceRows={viewModel.storePriceRows} />
       <PriceDisclaimer />
 
-      <AddToListControl
-        addErrorMessage={viewModel.addErrorMessage}
-        canDecreaseQuantity={viewModel.canDecreaseQuantity}
-        isAdding={viewModel.status === PRODUCT_DETAIL_STATUS.ADDING}
-        onAddToList={viewModel.onAddToList}
-        onDecreaseQuantity={viewModel.onDecreaseQuantity}
-        onIncreaseQuantity={viewModel.onIncreaseQuantity}
-        quantity={viewModel.quantity}
-        wasJustAdded={viewModel.wasJustAdded}
-      />
+      {viewModel.addToListBlockedMessage !== null ? (
+        <p role="note" className="rounded-tacha-card border border-tacha-border bg-tacha-surface p-4 font-body text-sm text-tacha-textsec">
+          {viewModel.addToListBlockedMessage}
+        </p>
+      ) : viewModel.canAddToList ? (
+        <AddToListControl
+          addErrorMessage={viewModel.addErrorMessage}
+          canDecreaseQuantity={viewModel.canDecreaseQuantity}
+          isAdding={viewModel.status === PRODUCT_DETAIL_STATUS.ADDING}
+          onAddToList={viewModel.onAddToList}
+          onDecreaseQuantity={viewModel.onDecreaseQuantity}
+          onIncreaseQuantity={viewModel.onIncreaseQuantity}
+          quantity={viewModel.quantity}
+          wasJustAdded={viewModel.wasJustAdded}
+        />
+      ) : null}
     </div>
   );
 };

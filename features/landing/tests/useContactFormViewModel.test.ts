@@ -62,7 +62,7 @@ describe("useContactFormViewModel", () => {
 
     expect(submitContactMessageMock).toHaveBeenCalledTimes(1);
     expect(result.current.captchaResetCount).toBe(1);
-    expect(result.current.captchaError).toBe("Confirmá que no sos un robot.");
+    expect(result.current.captchaError).toBe("Confirma que no eres un robot.");
   });
 
   it("does not send twice while the first send is in flight", async () => {

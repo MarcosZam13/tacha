@@ -1,15 +1,25 @@
 import { expect, test } from "@playwright/test";
-import { deleteOwnListItems } from "../../support/supabase";
+import type { Locator } from "@playwright/test";
+import { createOwnRecipe, deleteOwnListItems, deleteOwnRecipes } from "../../support/supabase";
 import {
   LIST_PATH,
+  RECIPES_PATH,
   addFirstSearchResult,
+  getAddRecipeToListButton,
+  getAddRecipeToListSummary,
   getCheckButton,
   getClosePurchasePanel,
   getEmptyListMessage,
   getListRow,
   getListSection,
+  getShelfLifeChips,
   getShoppingModeBar,
+  getShortfallNote,
+  getShortfallPanel,
+  getUndoDialog,
+  recordShelfLifeSaves,
   startPurchaseAt,
+  stubHouseholdListWithHiddenRow,
 } from "./shopping-list.helpers";
 
 // Escenarios: features/shopping-list/specs/E2E.md. Cada test arranca con un
@@ -117,5 +127,224 @@ test.describe("Lista general", () => {
     await expect(page).toHaveURL(LIST_URL);
     await expect(getShoppingModeBar(page)).toHaveCount(0);
     await expect(getClosePurchasePanel(page)).toHaveCount(0);
+  });
+
+  test("E2E-LISTA-09 — Chips de cuánto le va a durar al tachar en modo compra", async ({ page }) => {
+    const savedBodies = await recordShelfLifeSaves(page);
+    const productName = await addFirstSearchResult(page, SEARCH_TERM);
+    const checkedSection = getListSection(page, CHECKED_SECTION);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await expect(getCheckButton(pendingSection, productName)).toBeVisible();
+
+    // 1. Fuera de modo compra, tachar no muestra chips (CA-01).
+    await getCheckButton(pendingSection, productName).click();
+    await expect(getCheckButton(checkedSection, productName)).toBeEnabled();
+    await expect(getShelfLifeChips(page, productName)).toHaveCount(0);
+    await getCheckButton(checkedSection, productName).click();
+    await expect(getCheckButton(pendingSection, productName)).toBeEnabled();
+
+    // 2. En modo compra, tachar muestra los cuatro chips, sin ninguno elegido (CA-01, CA-02).
+    await startPurchaseAt(page, STORE_NAME);
+    await expect(getShoppingModeBar(page)).toContainText(STORE_NAME);
+    await getCheckButton(pendingSection, productName).click();
+    await expect(getCheckButton(checkedSection, productName)).toHaveAttribute("aria-pressed", "true");
+    const chips = getShelfLifeChips(page, productName);
+    await expect(chips.getByRole("button")).toHaveText([
+      "Vence en pocos días",
+      "2-4 semanas",
+      "1-3 meses",
+      "No vence / no aplica",
+    ]);
+    await expect(chips.getByRole("button", { pressed: true })).toHaveCount(0);
+    // Los chips van en su propia línea, a todo el ancho de la fila (BUG-1 de QA de la PR #121:
+    // dentro de la columna del nombre quedaban de ~47 px en el celular).
+    const chipsBox = await chips.boundingBox();
+    const rowTextBox = await getCheckButton(checkedSection, productName).boundingBox();
+    expect(chipsBox!.width).toBeGreaterThanOrEqual(rowTextBox!.width);
+    // Los cuatro se ven enteros, sin deslizar: si no caben en un renglón pasan al siguiente.
+    // En el celular la fila puede quedar debajo del borde: se lleva a la vista antes de medir.
+    await chips.scrollIntoViewIfNeeded();
+    for (const chip of await chips.getByRole("button").all()) {
+      await expect(chip).toBeInViewport({ ratio: 1 });
+    }
+
+    // 3. Un toque elige y guarda, sin confirmar; la fila sigue tachada (CA-03).
+    await chips.getByRole("button", { name: "1-3 meses" }).click();
+    await expect(chips.getByRole("button", { name: "1-3 meses" })).toHaveAttribute("aria-pressed", "true");
+    await expect(getCheckButton(checkedSection, productName)).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => savedBodies).toEqual([{ shelf_life_choice: "one_to_three_months" }]);
+
+    // 4. Tocar el mismo chip lo quita.
+    await chips.getByRole("button", { name: "1-3 meses" }).click();
+    await expect(chips.getByRole("button", { pressed: true })).toHaveCount(0);
+    await expect.poll(() => savedBodies.length).toBe(2);
+    expect(savedBodies[1]).toEqual({ shelf_life_choice: null });
+
+    // 5. Destachar esconde los chips.
+    await getCheckButton(checkedSection, productName).click();
+    await expect(getCheckButton(pendingSection, productName)).toBeVisible();
+    await expect(getShelfLifeChips(page, productName)).toHaveCount(0);
+  });
+});
+
+test.describe("Lista general: aviso de faltante de receta", () => {
+  // El máximo que acepta una receta (regla 9 de recetas): ninguna presentación
+  // del catálogo lo cubre, así que agregarla siempre deja faltante.
+  const INGREDIENT_MILLILITERS = 100_000;
+  const RECIPE_BASE_SERVINGS = 2;
+
+  test.afterEach(async ({ page, request }) => {
+    await deleteOwnListItems(page, request);
+    // Los registros de faltante se van con la receta (cascada).
+    await deleteOwnRecipes(page, request);
+  });
+
+  test("E2E-LISTA-06 — Aviso de faltante de una receta", async ({ page, request }) => {
+    // Abrir /lista primero abre la sesión anónima que usa la API para crear la receta.
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    const note = getShortfallNote(pendingSection, recipeName);
+    await expect(note).toBeVisible();
+
+    await note.click();
+
+    await expect(getShortfallNote(getListSection(page, PENDING_SECTION), recipeName)).toBeVisible();
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
+  // El máximo que acepta una receta: una unidad más nunca cubre el faltante.
+  const INGREDIENT_MILLILITERS = 100_000;
+  const RECIPE_BASE_SERVINGS = 2;
+  // El botón de tachar de la fila es el único con aria-pressed; pressed: false
+  // de getByRole también encuentra los botones sin ese atributo (cantidad, detalle).
+  const CHECK_BUTTON = "button[aria-pressed]";
+  // La fila de la receta, por el texto de su aviso. first(): los avisos también
+  // son <li> dentro de la fila, y la fila va primero en el orden del DOM.
+  const getRowWithShortfall = (section: Locator, recipeName: string): Locator =>
+    section.getByRole("listitem").filter({ hasText: `necesarios para ${recipeName}` }).first();
+
+  test.afterEach(async ({ page, request }) => {
+    await deleteOwnListItems(page, request);
+    await deleteOwnRecipes(page, request);
+  });
+
+  test("E2E-LISTA-07 — ¿Qué hiciste? al tachar y deshacer al destachar", async ({ page, request }) => {
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    const pendingRow = getRowWithShortfall(pendingSection, recipeName);
+    await expect(pendingRow).toBeVisible();
+
+    // 1. Tachar abre el panel con el aviso.
+    await pendingRow.locator(CHECK_BUTTON).click();
+    const panel = getShortfallPanel(page);
+    await expect(panel).toBeVisible();
+    await expect(getShortfallNote(panel, recipeName)).toBeVisible();
+
+    // 2. Una unidad más no alcanza: el panel sigue abierto.
+    await panel.getByRole("button", { name: "Agregué otra igual" }).click();
+    await expect(panel.getByText("Todavía falta:")).toBeVisible();
+
+    // 3. Cerrar: la fila tachada quedó con 2 y su aviso.
+    await panel.getByRole("button", { name: "Ahora no" }).click();
+    await expect(panel).toHaveCount(0);
+    const checkedSection = getListSection(page, CHECKED_SECTION);
+    const checkedRow = getRowWithShortfall(checkedSection, recipeName);
+    await expect(checkedRow.getByText("2", { exact: true })).toBeVisible();
+
+    // 4. Destachar pide confirmar y deshace: vuelve a 1 en Pendientes, con aviso.
+    await checkedRow.locator(CHECK_BUTTON).click();
+    const undoDialog = getUndoDialog(page);
+    await expect(undoDialog).toContainText("La fila vuelve a 1 ×");
+    await undoDialog.getByRole("button", { name: "Destachar y deshacer" }).click();
+    await expect(undoDialog).toHaveCount(0);
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    const undoneRow = getRowWithShortfall(pendingSection, recipeName);
+    await expect(undoneRow.getByText("1", { exact: true })).toBeVisible();
+
+    // 5. Tachar otra vez y descartar: el aviso desaparece.
+    await undoneRow.locator(CHECK_BUTTON).click();
+    await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Ya tenía suficiente" }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(getShortfallNote(page.locator("main"), recipeName)).toHaveCount(0);
+  });
+
+  test("E2E-LISTA-08 — Después de cerrar la compra, destachar no ofrece deshacer", async ({ page, request }) => {
+    await page.goto(LIST_PATH);
+    await expect(getEmptyListMessage(page)).toBeVisible();
+    const recipeName = `Receta E2E ${crypto.randomUUID().slice(0, 8)}`;
+    await createOwnRecipe(page, request, recipeName, RECIPE_BASE_SERVINGS, INGREDIENT_MILLILITERS);
+
+    await page.goto(RECIPES_PATH);
+    await getAddRecipeToListButton(page, recipeName).click();
+    await expect(getAddRecipeToListSummary(page)).toBeVisible();
+
+    await page.goto(LIST_PATH);
+    await startPurchaseAt(page, STORE_NAME);
+    await expect(page).toHaveURL(SHOPPING_MODE_URL);
+    // Hasta que la barra muestra el súper la compra no cargó, y tachar antes la dejaría fuera de la compra.
+    await expect(getShoppingModeBar(page)).toContainText(STORE_NAME);
+
+    // 1. En la compra, tachar y elegir "Agregué otra igual": la fila queda con foto de deshacer.
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await getRowWithShortfall(pendingSection, recipeName).locator(CHECK_BUTTON).click();
+    const panel = getShortfallPanel(page);
+    await panel.getByRole("button", { name: "Agregué otra igual" }).click();
+    await expect(panel.getByText("Todavía falta:")).toBeVisible();
+    await panel.getByRole("button", { name: "Ahora no" }).click();
+    await expect(panel).toHaveCount(0);
+
+    // 2. Cerrar la compra vuelve a /lista, sin recargar la página.
+    const closePanel = getClosePurchasePanel(page);
+    await closePanel.getByRole("textbox", { name: "Total gastado (₡)" }).fill("12500");
+    await closePanel.getByRole("button", { name: "Cerrar compra" }).click();
+    await expect(page).toHaveURL(LIST_URL);
+    await expect(getShoppingModeBar(page)).toHaveCount(0);
+
+    // 3. Sin recargar: la compra está cerrada, así que se destacha directo, sin diálogo de deshacer.
+    // En la compra, "Agregué otra igual" sumó a lo comprado (regla 36) y destachar lo borra (018):
+    // la fila vuelve a Pendientes con lo pedido, 1.
+    const checkedRow = getRowWithShortfall(getListSection(page, CHECKED_SECTION), recipeName);
+    await checkedRow.locator(CHECK_BUTTON).click();
+    await expect(getUndoDialog(page)).toHaveCount(0);
+    await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
+    const uncheckedRow = getRowWithShortfall(pendingSection, recipeName);
+    await expect(uncheckedRow.getByText("1", { exact: true })).toBeVisible();
+  });
+});
+
+// SCRUM-163: un producto personal de otro miembro no tumba la lista de la familia.
+test.describe("Lista de la familia con un producto que no se puede ver", () => {
+  test("E2E-LISTA-10 — La lista carga y muestra la fila como no disponible", async ({ page }) => {
+    const visibleProductName = "Arroz";
+    await stubHouseholdListWithHiddenRow(page, visibleProductName);
+
+    await page.goto(LIST_PATH);
+
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await expect(getListRow(page, visibleProductName)).toBeVisible();
+    await expect(pendingSection.getByText("Producto no disponible", { exact: true })).toBeVisible();
+    await expect(page.getByText("No se pudo cargar tu lista. Intenta de nuevo.")).toHaveCount(0);
   });
 });

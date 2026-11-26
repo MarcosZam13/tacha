@@ -1,4 +1,4 @@
-# Plan E2E: landing — formulario de contacto
+# Plan E2E: landing — formulario de contacto y navbar
 
 Deriva de [SPEC.md](SPEC.md) (casos 10 a 17). Formato y reglas: `.agents/skills/playwright-e2e`. Los tests están en `e2e/features/landing/contact-form.spec.ts` y cada `test(...)` lleva el ID del escenario en el nombre.
 
@@ -36,3 +36,17 @@ Nivel más bajo que alcanza: las reglas de los campos (`validateContactForm`), l
 - **Cubre:** caso 17 (SCRUM-36).
 - **Pasos:** abrir `/nosotros`; completar Nombre, Correo y Mensaje; marcar el reCAPTCHA; tocar "Enviar mensaje".
 - **Resultado esperado:** se ve la confirmación y la petición lleva `source: "about"`.
+
+### E2E-LOGIN-ENTRADA-02: desde el registro se llega al login
+- **Cubre:** SCRUM-144 (incluido en SCRUM-158).
+- **Pasos:** abrir `/registro` y tocar "Iniciá sesión", debajo del título.
+- **Resultado esperado:** se abre `/login`.
+
+## Navbar (SCRUM-159)
+
+Los tests están en `e2e/features/landing/public-navbar.spec.ts`. Que el botón se oculte con una sesión registrada lo prueba `PublicNavbarCta.test.tsx`: es lógica del ViewModel y no necesita un navegador.
+
+### E2E-NAVBAR-01: un visitante llega al login desde la navbar
+- **Cubre:** caso 18.
+- **Pasos:** abrir `/` sin sesión; tocar "Iniciar sesión" en la navbar.
+- **Resultado esperado:** "Registrarse" sigue visible y la URL pasa a `/login`.

@@ -9,8 +9,9 @@ Incluye:
 - Sprint 2: HU-03 intro (SCRUM-25), HU-04 leer más (SCRUM-26), HU-05 testimonios (SCRUM-27), HU-07 sección de demo con marcador "Aquí va la demo" (SCRUM-29), HU-10 términos (SCRUM-32), HU-12 misión y visión (SCRUM-34), HU-13 organización (SCRUM-35).
 - Sprint 3: HU-06 formulario de contacto con reCAPTCHA en / y el enlace "Contacto" de la navbar apuntando a él (SCRUM-28).
 - Sprint 3: HU-14 el mismo formulario de contacto en /nosotros (SCRUM-36).
+- Botón "Iniciar sesión" en la navbar, junto a "Registrarse", que lleva a /login (SCRUM-159).
 
-No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
+No incluye: el video de la demo.
 
 ## 3. Entradas
 - testimonials: TestimonialList (lista no vacía) → TestimonialsCarousel
@@ -26,6 +27,7 @@ No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
 - Envío exitoso: el formulario se reemplaza por una confirmación con "Enviar otro mensaje".
 - Envío fallido: mensaje de error en un role="alert" y el texto escrito se conserva.
 - "Contacto" de la navbar lleva a la sección del formulario (/#formulario-contacto).
+- "Iniciar sesión" de la navbar lleva a /login (SCRUM-159).
 
 ## 5. Reglas de negocio
 - La información ampliada detalla los mismos puntos de la intro (una sola fuente de datos).
@@ -33,6 +35,7 @@ No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
 - Con un solo testimonio no se muestran controles.
 - /, /terminos y /nosotros son rutas públicas (PUBLIC_ROUTES del session guard).
 - Todo enlace de la navbar o el footer apunta a una página que existe.
+- "Iniciar sesión" se ve sin sesión o con una sesión anónima; con una sesión registrada la navbar muestra solo "Ir a mi lista" (SCRUM-159).
 - Nombre, correo y mensaje son obligatorios (los espacios de los extremos no cuentan).
 - Nombre: 2 a 100 caracteres. Mensaje: 10 a 1000. Correo: formato válido, máximo 254, se guarda en minúsculas.
 - Sin token de reCAPTCHA no se envía. El token se verifica en el servidor con la clave secreta.
@@ -54,19 +57,20 @@ No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
 ## 8. UI esperada
 - Intro: título, descripción, 3 tarjetas, enlace "Leer más".
 - Información ampliada: un bloque por cada punto de la intro y "Volver arriba".
-- Demo: recuadro con el texto "Aquí va la demo".
+- Demo: "Así se ve Tacha", con capturas reales de la lista general en computadora y celular (SCRUM-152, en SCRUM-158). En celular solo se ve la captura del celular. Reemplazó el recuadro "Aquí va la demo".
 - Testimonios: inicial, nombre, ubicación, cita, flechas y posición "1 de 3".
 - Footer: enlaces "Términos y condiciones" y "Nosotros".
 - /terminos: botón "Volver", título, fecha y secciones numeradas.
-- /nosotros: título, Misión y Visión en bloques separados, "Quiénes somos" y la sección "Contactanos" al final.
-- Sección "Contactanos" (id formulario-contacto) al final de /: descripción, Nombre, Correo electrónico, Mensaje (textarea con contador), reCAPTCHA y botón "Enviar mensaje" / "Enviando...".
+- /nosotros: título, Misión y Visión en bloques separados, "Quiénes somos" y la sección "Contáctanos" al final.
+- Sección "Contáctanos" (id formulario-contacto) al final de /: descripción, Nombre, Correo electrónico, Mensaje (textarea con contador), reCAPTCHA y botón "Enviar mensaje" / "Enviando...".
 - Confirmación: texto de éxito y botón "Enviar otro mensaje".
+- Navbar sin sesión: "Iniciar sesión" (secundario) a la izquierda de "Registrarse" (resaltado), como en docs/DESIGN.md (SCRUM-159).
 
 ## 9. Accesibilidad
 - Un h1 por página; h2 por sección; h3 por bloque.
 - Las flechas tienen aria-label; el testimonio se anuncia con aria-live="polite".
 - La etiqueta de "Leer más" incluye el texto visible.
-- La sección de contacto es una región con nombre (aria-labelledby al h2 "Contactanos").
+- La sección de contacto es una región con nombre (aria-labelledby al h2 "Contáctanos").
 - Cada campo tiene label; los obligatorios llevan "*" y el atributo required.
 - El botón no se deshabilita por campos vacíos: al enviar se muestran los errores, para que la persona sepa qué falta.
 - La confirmación usa role="status" y los errores generales, role="alert".
@@ -96,20 +100,23 @@ No incluye: "Iniciar sesión" en la navbar (HU-22), el video de la demo.
 - Caso 1 (HU-03): / muestra "¿Qué es Tacha?" con 3 puntos, sin sesión.
 - Caso 2 (HU-04): "Leer más" baja a la información ampliada con los mismos 3 puntos; "Volver arriba" e "Inicio" regresan.
 - Caso 3 (HU-05): se ve un testimonio con nombre y ubicación; las flechas cambian de testimonio en forma circular.
-- Caso 4 (HU-07): la sección de demo se ve sin sesión con el texto "Aquí va la demo". CA-03 a CA-05 quedan pendientes hasta tener el video.
+- Caso 4 (HU-07): la sección de demo se ve sin sesión, con las capturas de la app y su texto alternativo (SCRUM-152). CA-03 a CA-05 (video) siguen pendientes; si llega el video, reemplaza a las capturas.
 - Caso 5 (HU-10): el footer lleva a /terminos sin sesión; "Volver" regresa a la página anterior.
 - Caso 6 (HU-12): /nosotros muestra Misión y Visión en bloques separados.
 - Caso 7 (HU-13): /nosotros muestra el origen, el propósito y las características de la organización.
 - Caso 8: sin scroll horizontal en 320px; se ve bien en modo claro y oscuro.
 - Caso 9: tsc, lint, test y build pasan.
-- Caso 10 (HU-06 CA-01, CA-02): / muestra la sección "Contactanos" con Nombre, Correo electrónico, Mensaje, reCAPTCHA y "Enviar mensaje"; "Contacto" de la navbar lleva a ella.
+- Caso 10 (HU-06 CA-01, CA-02): / muestra la sección "Contáctanos" con Nombre, Correo electrónico, Mensaje, reCAPTCHA y "Enviar mensaje"; "Contacto" de la navbar lleva a ella.
 - Caso 11 (CA-03): enviar con campos vacíos muestra "obligatorio" en cada uno y no llama al servidor.
 - Caso 12 (CA-04, CA-05): sin marcar el reCAPTCHA no se envía y se pide marcarlo; si Google rechaza el token, se muestra el error y se pide marcarlo de nuevo.
 - Caso 13 (CA-06): un correo sin formato válido o un mensaje de menos de 10 caracteres muestra su error.
 - Caso 14 (CA-07): un envío exitoso muestra la confirmación y vacía el formulario.
 - Caso 15 (CA-08): un fallo del servidor o de la red muestra un mensaje claro y conserva el texto.
 - Caso 16 (seguridad): un insert directo a contact_messages con la anon key falla con 42501.
-- Caso 17 (HU-14 CA-01 a CA-08): /nosotros muestra la misma sección "Contactanos", con las mismas validaciones, reCAPTCHA, confirmación y errores; el mensaje se guarda con source "about".
+- Caso 17 (HU-14 CA-01 a CA-08): /nosotros muestra la misma sección "Contáctanos", con las mismas validaciones, reCAPTCHA, confirmación y errores; el mensaje se guarda con source "about".
+- Caso 18 (SCRUM-159 CA-01, CA-02): sin sesión, la navbar muestra "Iniciar sesión" junto a "Registrarse" y lleva a /login. *Cubierto por:* `PublicNavbarCta.test.tsx`, E2E-NAVBAR-01.
+- Caso 19 (SCRUM-159 CA-03, CA-04): con una sesión registrada no aparece "Iniciar sesión"; con una sesión anónima, mientras se verifica la sesión o al cerrarla, sí. *Cubierto por:* `PublicNavbarCta.test.tsx`.
+- Caso 20 (SCRUM-159 CA-05): "Iniciar sesión" es secundario y "Registrarse" sigue resaltado; se ven bien en 320px y en modo claro y oscuro. *Cubierto por:* prueba manual.
 
 ## 14. Casos fuera de alcance
 - El video de la demo y sus controles.

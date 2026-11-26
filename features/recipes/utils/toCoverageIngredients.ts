@@ -1,8 +1,8 @@
 import type { CatalogBaseUnitType } from "@/constants";
+import { formatRecipeQuantity } from "@/utils/formatRecipeQuantity";
 import { RECIPE_COVERAGE_INGREDIENT_STATUS, RECIPE_COVERAGE_TEXT } from "../constants/recipes.constants";
 import type { CoverageIngredient, CoverageRow } from "../models/recipe-coverage.interfaces";
 import type { CoverageReasonType } from "../models/recipe-coverage.types";
-import { formatRecipeQuantity } from "./formatRecipeQuantity";
 import { toCoverageReasonText } from "./toCoverageReasonText";
 
 /**

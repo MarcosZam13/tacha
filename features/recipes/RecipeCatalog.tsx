@@ -19,10 +19,11 @@ export const RecipeCatalog = (): React.JSX.Element => {
   const viewModel = useRecipeCatalogViewModel();
   const { onDeleteRequest, ...deleteDialog } = viewModel.deletion;
   const { getRecipeAddToList, onAddRequest, ...repeatAddDialog } = viewModel.listAddition;
+  const { getRecipeCopy, onCopyRequest } = viewModel.copy;
   const { getRecipeCoverage, onCoverageRetry, onCoverageToggle } = viewModel.coverage;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold text-tacha-text">{RECIPE_TEXT.TITLE}</h1>
         {/* Link y no Button: es navegación (CA-01 de SCRUM-95). */}
@@ -43,13 +44,15 @@ export const RecipeCatalog = (): React.JSX.Element => {
       {viewModel.isLoading ? <Spinner /> : null}
       {viewModel.isEmpty ? <RecipeCatalogEmptyState /> : null}
       {viewModel.hasRecipes ? (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {viewModel.recipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
               addToList={getRecipeAddToList(recipe.id)}
+              copy={getRecipeCopy(recipe.id)}
               coverage={getRecipeCoverage(recipe.id)}
               onAddToListRequest={onAddRequest}
+              onCopyRequest={onCopyRequest}
               onCoverageRetry={onCoverageRetry}
               onCoverageToggle={onCoverageToggle}
               onDeleteRequest={onDeleteRequest}

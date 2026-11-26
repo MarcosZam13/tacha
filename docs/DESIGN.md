@@ -38,6 +38,7 @@ Tomados directamente de `mockup-web-v2.html` (ya construido) — reusar tal cual
 | `--chipborder` | Borde de chip/badge | `#E9C4A5` |
 | `--text` | Texto principal | `#2B2420` |
 | `--textsec` | Texto secundario | `#8A7F70` |
+| `--danger` | Acciones destructivas: eliminar, salir (SCRUM-145) | `#B91C1C` |
 
 ### 2.3 Color — modo oscuro
 
@@ -52,6 +53,7 @@ Tomados directamente de `mockup-web-v2.html` (ya construido) — reusar tal cual
 | `--chipborder` | Borde de chip/badge | `#4A362A` |
 | `--text` | Texto principal | `#F5EFE6` |
 | `--textsec` | Texto secundario | `#B5A997` |
+| `--danger` | Acciones destructivas | `#F87171` |
 
 ### 2.4 Forma, espaciado, iconos
 
@@ -59,6 +61,19 @@ Tomados directamente de `mockup-web-v2.html` (ya construido) — reusar tal cual
 - Cards con radio ~14px, chips/badges con radio ~8-20px (pill para chips de estado, más cerrado para badges inline).
 - Un solo color de acento saturado (teal) para acciones/estados activos; terracota reservado para etiquetas contextuales y montos — nunca compiten entre sí en la misma pantalla.
 - Iconografía outline consistente, un solo grosor de trazo — **sin emojis** en ninguna pantalla de producto.
+
+### 2.5 Iconos (SCRUM-145)
+
+- **Librería única: `lucide-react`** (versión fija en `package.json`). No se agrega otra librería de íconos ni SVG sueltos nuevos.
+- **Siempre a través de `Icon`** (`components/ui/icon/`): pone el tamaño (`ICON_SIZE`: small 16 px, medium 20 px por defecto, large 24 px), el trazo único (`ICON_STROKE_WIDTH` = 2) y `aria-hidden`. Constantes en `constants/icons.constants.ts`.
+- **Qué ícono usa cada pantalla** lo decide cada feature en sus propias constantes (igual que sus textos), no dentro del componente.
+- **Color:** el ícono toma el color del texto del padre (`currentColor`). Para pintarlo se pinta el botón: `text-tacha-teal`, `text-tacha-danger`.
+- **Ícono + texto** cuando hay espacio (menú de escritorio, botones principales). **Solo ícono** cuando no lo hay (acciones de una fila, pestañas de móvil con etiqueta corta), y entonces el botón lleva `aria-label`. El nombre accesible de un botón no cambia al agregarle un ícono: los tests buscan por ese nombre.
+- **Destructivo:** eliminar o salir usan `tacha-danger` (texto, ícono o fondo del `Button` `destructive`). Contraste ≥ 4.5:1 sobre `bg` y `surface` en los dos modos.
+- **Botón de solo ícono:** `IconButton` (`components/ui/icon-button/`, SCRUM-158). Sin borde, para acciones secundarias (ver detalle, eliminar); `tone="danger"` para las destructivas. El nombre accesible es su `label`, en un `sr-only`. Mide 44 × 44 px en celular y 36 × 36 desde `md`.
+- **Cantidad:** `QuantityStepper` es un solo control con borde (`−` número `+`), la acción principal de la fila; detalle y eliminar van como `IconButton` al lado (SCRUM-147).
+- **Fila de lista en celular (SCRUM-148):** nombre y tamaño arriba, a todo el ancho y en máximo dos líneas (el nombre completo en `title`); los controles en una fila debajo. Desde `md` vuelve a ser una sola línea.
+- **Buscador de productos (SCRUM-149):** los resultados salen en un panel flotante pegado al campo (patrón combobox + listbox), con alto máximo, como mucho `PRODUCT_SEARCH.MAX_VISIBLE_RESULTS` (8) y un aviso para afinar si hay más. Flechas, Enter y Escape funcionan desde el campo.
 - Espaciado generoso, agrupación por categoría con separación real (no solo un borde).
 - Ambos modos (claro/oscuro) con el mismo nivel de cuidado — pedirle a Stitch ambas variantes, no solo claro con oscuro "invertido".
 
@@ -207,7 +222,7 @@ Cada prompt asume que Stitch ya tiene cargada la personalidad (sección 1), los 
 
 ### 7.6 Mis grupos — listar, crear y editar
 
-> Pantalla "Mis grupos", accesible desde un botón "Gestionar mis grupos" en la vista General. Lista de tarjetas (`group-card`), cada una con nombre del grupo (ej. "Mercado quincenal"), cantidad de productos que contiene, y un botón directo "Agregar a lista" que dispara la reconciliación de cantidades (7.3) si corresponde. Botón de cabecera "+ Crear grupo" que abre un flujo corto: nombre del grupo, luego búsqueda de productos (mismo patrón de búsqueda del catálogo, 7.1) para ir agregándolos con su cantidad/variante por defecto — nunca un formulario largo de una sola vez. Cada producto agregado al grupo aparece como una fila compacta con opción de quitar. Estado vacío (primera vez): "Agrupá los productos que siempre comprás juntos" + botón CTA grande.
+> Pantalla "Mis grupos", accesible desde un botón "Gestionar mis grupos" en la vista General. Lista de tarjetas (`group-card`), cada una con nombre del grupo (ej. "Mercado quincenal"), cantidad de productos que contiene, y un botón directo "Agregar a lista" que suma sus productos a la lista sin pantallas intermedias: la misma presentación suma la cantidad y otra presentación va en fila aparte, sin reconciliación (un producto de grupo ya es una unidad de compra, [documento de proyecto §4.9.1](documento-proyecto.md#491-reconciliación-de-cantidades-al-combinar-listas-decisión-2026-08-16-alcance-corregido-2026-08-18); corregido en SCRUM-111). Botón de cabecera "+ Crear grupo" que abre un flujo corto: nombre del grupo, luego búsqueda de productos (mismo patrón de búsqueda del catálogo, 7.1) para ir agregándolos con su cantidad/variante por defecto — nunca un formulario largo de una sola vez. Cada producto agregado al grupo aparece como una fila compacta con opción de quitar. Estado vacío (primera vez): "Agrupá los productos que siempre comprás juntos" + botón CTA grande.
 
 ### 7.7 Onboarding — con o sin household
 
@@ -239,7 +254,7 @@ Cada prompt asume que Stitch ya tiene cargada la personalidad (sección 1), los 
 
 ### 7.13 Recetas + planificador semanal
 
-> Ajuste sobre las pantallas ya prototipadas en `mockup-web-v2.html` ("Desktop — Planificador semanal de comidas" y su versión mobile), ahora organizadas como dos sub-tabs ("Recetas" / "Planificador semanal") dentro del ítem de sidebar "Recetas". El botón "Agregar receta a lista" y "Agregar semana a la lista" deben disparar la reconciliación de cantidades (7.3) cuando corresponda, igual que grupos.
+> Ajuste sobre las pantallas ya prototipadas en `mockup-web-v2.html` ("Desktop — Planificador semanal de comidas" y su versión mobile), ahora organizadas como dos sub-tabs ("Recetas" / "Planificador semanal") dentro del ítem de sidebar "Recetas". El botón "Agregar receta a lista" y "Agregar semana a la lista" deben disparar la reconciliación de cantidades (7.3) cuando corresponda (los grupos no: ver 7.6).
 
 ### 7.14 Auth — login / signup
 

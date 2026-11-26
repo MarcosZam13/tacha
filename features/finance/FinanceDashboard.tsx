@@ -2,23 +2,26 @@
 
 import { Spinner } from "@/components/ui";
 import { FinanceNoAccount } from "./components/FinanceNoAccount";
+import { FinanceTabs } from "./components/FinanceTabs";
+import { PendingTotalReminder } from "./components/PendingTotalReminder";
 import { SpendingBudget } from "./components/SpendingBudget";
+import { SpendingByStore } from "./components/SpendingByStore";
 import { SpendingPeriodSelector } from "./components/SpendingPeriodSelector";
 import { SpendingTotal } from "./components/SpendingTotal";
-import { FINANCE_ACCESS_STATUS, FINANCE_TEXT } from "./constants/finance.constants";
+import { FINANCE_ACCESS_STATUS, FINANCE_TAB, FINANCE_TEXT } from "./constants/finance.constants";
 import { useFinanceDashboardViewModel } from "./hooks/useFinanceDashboardViewModel";
 
 /**
  * Pantalla "Finanzas" (SCRUM-69 / HU-37): el gasto del periodo en curso y su
- * presupuesto, solo para cuentas registradas (SPEC D6). Hoy es solo el
- * Dashboard, sin sub-tabs hasta que exista "Historial" (D5). "use client"
- * porque usa hooks y lee la sesión del navegador.
+ * presupuesto, solo para cuentas registradas (SPEC D6). Es el sub-tab
+ * "Dashboard"; "Historial" es PurchaseHistory (SCRUM-90). "use client" porque
+ * usa hooks y lee la sesión del navegador.
  */
 export const FinanceDashboard = (): React.JSX.Element => {
   const viewModel = useFinanceDashboardViewModel();
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <h1 className="font-display text-3xl font-bold text-tacha-text">{FINANCE_TEXT.TITLE}</h1>
 
       {/* Siempre montada, aunque esté vacía: si la región naciera junto con el
@@ -35,6 +38,7 @@ export const FinanceDashboard = (): React.JSX.Element => {
 
       {viewModel.accessStatus === FINANCE_ACCESS_STATUS.REGISTERED ? (
         <>
+          <FinanceTabs activeTab={FINANCE_TAB.DASHBOARD} />
           <SpendingPeriodSelector options={viewModel.periodOptions} />
           <div className="grid gap-4 md:grid-cols-2">
             <section className="rounded-tacha-card border border-tacha-border bg-tacha-surface p-6">
@@ -44,6 +48,10 @@ export const FinanceDashboard = (): React.JSX.Element => {
               <SpendingBudget {...viewModel.budget} />
             </section>
           </div>
+          {/* SCRUM-92 (D26): el recordatorio, con enlace a "Compras sin total" del Historial. */}
+          <PendingTotalReminder {...viewModel.pendingReminder} />
+          {/* SCRUM-72: el gasto por supermercado, solo con compras en el periodo (D48). */}
+          {viewModel.spendingByStore ? <SpendingByStore {...viewModel.spendingByStore} /> : null}
         </>
       ) : null}
     </div>

@@ -117,12 +117,32 @@ export const RECIPE_OPTIONS_STATUS = {
   READY: "ready",
 } as const;
 
-// Quién cocina. Hoy solo el propio usuario o nadie: la lista de miembros del
-// household no existe todavía (HU-35). Es un valor del cliente, no un id: el id
-// del usuario lo pone la base (RPC assign_meal_slot, parámetro cook_is_self).
+// Quién cocina: el propio usuario o nadie. En el plan de la familia, además, el id
+// de otro miembro (SCRUM-162). SELF y NONE son valores del cliente, no ids.
 export const COOK_CHOICE = {
   NONE: "none",
   SELF: "self",
+} as const;
+
+// Qué plan se ve: el propio o el de la familia (SCRUM-162).
+export const PLAN_SCOPE = {
+  FAMILY: "family",
+  PERSONAL: "personal",
+} as const;
+
+// Cómo terminó guardar un espacio.
+export const SAVE_SLOT_RESULT = {
+  COOK_GONE: "cookGone",
+  NO_HOUSEHOLD: "noHousehold",
+  RECIPE_GONE: "recipeGone",
+  SAVED: "saved",
+} as const;
+
+// Los miembros que se pueden elegir de cocinero.
+export const COOK_OPTIONS_STATUS = {
+  ERROR: "error",
+  LOADING: "loading",
+  READY: "ready",
 } as const;
 
 // Multiplicador de porciones (SPEC regla 15): de ×0,5 a ×4 en pasos de 0,5. Los
@@ -152,14 +172,26 @@ export const MEAL_PLAN_DB = {
   // constante para que un typo no compile en silencio.
   COLUMN: {
     DATE: "date",
+    HOUSEHOLD_ID: "household_id",
     MEAL_TYPE: "meal_type",
     NAME: "name",
   },
+  // Hints de la 062: distinguen casos con el mismo código.
+  HINT: {
+    COOK_NOT_MEMBER: "plan_cook_not_member",
+    NO_HOUSEHOLD: "plan_no_household",
+  },
+  // El máximo que acepta get_household_members_page.
+  MEMBERS_PAGE_SIZE: 50,
   // La receta embebida da el nombre y las porciones base en una sola petición.
   PLAN_SELECT: "id, date, meal_type, assigned_cook, servings_multiplier, recipes(id, name, base_servings)",
   RECIPE_OPTIONS_SELECT: "id, name, base_servings",
   RPC: {
+    ASSIGN_HOUSEHOLD_MEAL_SLOT: "assign_household_meal_slot",
     ASSIGN_MEAL_SLOT: "assign_meal_slot",
+    CLEAR_HOUSEHOLD_MEAL_SLOT: "clear_household_meal_slot",
+    GET_HOUSEHOLD_MEAL_PLAN: "get_household_meal_plan",
+    GET_HOUSEHOLD_MEMBERS_PAGE: "get_household_members_page",
   },
   TABLE: {
     MEAL_PLANS: "meal_plans",
@@ -189,17 +221,23 @@ export const MEAL_SLOT_TEXT = {
   ASSIGN_TITLE: "Asignar comida",
   CANCEL: "Cancelar",
   CHANGE_TITLE: "Cambiar comida",
+  COOK_GONE: "Esa persona ya no está en tu familia. Elige otro cocinero.",
   COOK_LABEL: "Quién cocina",
+  COOKS_LOADING: "Cargando integrantes",
+  COOKS_LOAD_ERROR: "No se pudieron cargar los integrantes.",
+  COOK_UNNAMED: "Integrante sin nombre",
   COOK_NONE: "Sin cocinero",
   COOK_SELF: "Yo",
   CREATE_RECIPE: "Crear una receta",
   DECREASE_SERVINGS: "Menos porciones",
   EMPTY_ACTION: ", vacío, asignar",
   INCREASE_SERVINGS: "Más porciones",
+  NO_FAMILY_RECIPES: "Tu familia todavía no tiene recetas.",
   NO_RECIPES: "Todavía no tienes recetas.",
   OF_DAY: " del ",
   PLAN_LOAD_ERROR: "No se pudo cargar tu plan. Intenta de nuevo.",
   RECIPE_GONE: "Esa receta ya no existe. Elige otra.",
+  RECIPE_UNAVAILABLE: "Esa receta ya no está disponible. Elige otra.",
   RECIPE_LABEL: "Receta",
   RECIPES_LOADING: "Cargando recetas",
   RECIPES_LOAD_ERROR: "No se pudieron cargar tus recetas. Intenta de nuevo.",
@@ -217,11 +255,22 @@ export const MEAL_SLOT_TEXT = {
   SERVINGS_SUMMARY_SEPARATOR: " · ",
 } as const;
 
-// Opciones del selector de cocinero, en el orden en que se dibujan. Los textos
-// salen de MEAL_SLOT_TEXT para que haya una sola fuente de "Yo" y "Sin cocinero".
-export const COOK_OPTIONS = [
-  { label: MEAL_SLOT_TEXT.COOK_SELF, value: COOK_CHOICE.SELF },
-  { label: MEAL_SLOT_TEXT.COOK_NONE, value: COOK_CHOICE.NONE },
+export const PLAN_SCOPE_FORM = {
+  FIELD_NAME: "plan-scope",
+} as const;
+
+export const PLAN_SCOPE_TEXT = {
+  FAMILY: "Plan de la familia",
+  HOUSEHOLD_LOST: "Ya no formas parte de una familia. Te mostramos tu plan.",
+  LEGEND: "Qué plan ver",
+  LOADING_PREFIX: "Cargando:",
+  PERSONAL: "Mi plan",
+} as const;
+
+// En el orden en que se dibujan.
+export const PLAN_SCOPE_OPTIONS = [
+  { label: PLAN_SCOPE_TEXT.PERSONAL, value: PLAN_SCOPE.PERSONAL },
+  { label: PLAN_SCOPE_TEXT.FAMILY, value: PLAN_SCOPE.FAMILY },
 ] as const;
 
 // --- Agregar la semana a la lista (SCRUM-101) ---
@@ -239,20 +288,52 @@ export const WEEK_LIST_STATUS = {
 export const WEEK_LIST_ACTION = {
   CLOSED: "closed",
   CONFIRMED: "confirmed",
+  DESTINATION_CHANGED: "destinationChanged",
+  DESTINATION_LOST: "destinationLost",
   FAILED: "failed",
   OPENED: "opened",
   SUCCEEDED: "succeeded",
 } as const;
 
+// A qué lista se agrega la semana (SCRUM-160).
+export const WEEK_LIST_DESTINATION = {
+  DATE_LIST: "dateList",
+  GENERAL: "general",
+} as const;
+
+// Carga de las sublistas del selector: independiente de la confirmación (SPEC 17.5).
+export const DATE_LIST_OPTIONS_STATUS = {
+  FAILED: "failed",
+  IDLE: "idle",
+  LOADING: "loading",
+  READY: "ready",
+} as const;
+
 export const WEEK_LIST_DB = {
-  RPC: {
-    ADD_WEEK_TO_GENERAL_LIST: "add_week_to_general_list",
+  COLUMN: {
+    CREATED_AT: "created_at",
+    EVENT_DATE: "event_date",
+    STATUS: "status",
+    TYPE: "type",
   },
+  // El hint con el que add_week_to_list (058) distingue una sublista que ya no
+  // sirve del P0002 de una receta.
+  HINT_DATE_LIST_UNAVAILABLE: "date_list_unavailable",
+  OPTION_SELECT: "id, name, event_date",
+  RPC: {
+    ADD_PLAN_WEEK_TO_LIST: "add_plan_week_to_list",
+  },
+  TABLE_LISTS: "lists",
+} as const;
+
+export const WEEK_LIST_FORM = {
+  DESTINATION_FIELD_NAME: "week-list-destination",
 } as const;
 
 // Dónde se reemplazan los datos en las frases con huecos de WEEK_LIST_TEXT.
 export const WEEK_LIST_TOKEN = {
   INGREDIENTS: "{ingredients}",
+  LIST: "{list}",
   MEALS: "{meals}",
   RANGE: "{range}",
 } as const;
@@ -260,10 +341,16 @@ export const WEEK_LIST_TOKEN = {
 export const WEEK_LIST_TEXT = {
   ADDING: "Agregando…",
   ALREADY_COVERED: "Tu lista ya tenía lo necesario para esta semana.",
+  ALREADY_COVERED_DATE_LIST: "{list} ya tenía lo necesario para esta semana.",
   BUTTON: "Agregar semana a la lista",
   CANCEL: MEAL_SLOT_TEXT.CANCEL,
   CONFIRM: "Agregar",
   CONFIRM_MESSAGE: "Vas a agregar a tu lista general los ingredientes de {meals} ({range}).",
+  // Con selector la frase no nombra la lista: la nombra la opción elegida.
+  CONFIRM_MESSAGE_WITH_OPTIONS: "Vas a agregar los ingredientes de {meals} ({range}).",
+  DESTINATION_GENERAL: "Lista general",
+  DESTINATION_LABEL: "¿A qué lista?",
+  DESTINATION_LOST: "Esa sublista ya no está disponible. Elige otra lista.",
   DIALOG_TITLE: "Agregar semana a la lista",
   ERROR: "No se pudo agregar la semana a tu lista. Intenta de nuevo.",
   INGREDIENT_PLURAL: "ingredientes",
@@ -272,8 +359,14 @@ export const WEEK_LIST_TEXT = {
   MEAL_SINGULAR: "comida",
   MISSING_PREFIX: "Te falta comprar:",
   NO_MEALS: "No había comidas planeadas esta semana.",
+  // "Paseo a la playa · 28 nov".
+  OPTION_SEPARATOR: " · ",
+  OPTIONS_ERROR: "No se pudieron cargar tus sublistas. Puedes agregar a la lista general.",
+  OPTIONS_LOADING: "Cargando tus sublistas…",
+  RETRY: MEAL_SLOT_TEXT.RETRY,
   SKIPPED_PREFIX: "No se pudieron agregar:",
   SUCCESS: "Agregaste {ingredients} de {meals} a tu lista.",
+  SUCCESS_DATE_LIST: "Agregaste {ingredients} de {meals} a {list}.",
   // Separa los productos dentro de "Te falta comprar: …" y "No se pudieron agregar: …".
   SUMMARY_SEPARATOR: ", ",
   VIEW_LIST: "Ver lista",

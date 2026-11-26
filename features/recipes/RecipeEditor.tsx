@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { Spinner } from "@/components/ui";
 import { RECIPE_EDITOR_TEXT, RECIPE_ROUTE } from "./constants/recipes.constants";
+import { RecipeAudienceField } from "./components/RecipeAudienceField";
 import { RecipeBasicsFields } from "./components/RecipeBasicsFields";
 import { RecipeEditorActions } from "./components/RecipeEditorActions";
 import { RecipeIngredientsField } from "./components/RecipeIngredientsField";
+import { RecipePhotoField } from "./components/RecipePhotoField";
 import { useRecipeEditorViewModel } from "./hooks/useRecipeEditorViewModel";
 import type { RecipeEditorProps } from "./models/recipe-editor.interfaces";
 
@@ -18,7 +20,7 @@ export const RecipeEditor = ({ recipeId }: RecipeEditorProps): React.JSX.Element
   const viewModel = useRecipeEditorViewModel(recipeId);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <Link href={RECIPE_ROUTE.CATALOG} className="font-body text-sm text-tacha-teal hover:underline">
         {RECIPE_EDITOR_TEXT.BACK_TO_CATALOG}
       </Link>
@@ -37,6 +39,7 @@ export const RecipeEditor = ({ recipeId }: RecipeEditorProps): React.JSX.Element
       {viewModel.showForm ? (
         // noValidate: la validación la hace el ViewModel, con los mismos mensajes que la base.
         <form noValidate onSubmit={viewModel.onSubmit} className="flex flex-col gap-6">
+          <RecipePhotoField {...viewModel.photo} isSaving={viewModel.isSaving} />
           <RecipeBasicsFields
             baseServings={viewModel.baseServings}
             baseServingsError={viewModel.baseServingsError}
@@ -45,6 +48,7 @@ export const RecipeEditor = ({ recipeId }: RecipeEditorProps): React.JSX.Element
             onBaseServingsChange={viewModel.onBaseServingsChange}
             onNameChange={viewModel.onNameChange}
           />
+          <RecipeAudienceField {...viewModel.audience} isSaving={viewModel.isSaving} />
           <RecipeIngredientsField
             ingredientNotice={viewModel.ingredientNotice}
             ingredients={viewModel.ingredients}

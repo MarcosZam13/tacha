@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ProductSearchOption } from "@/components/product-search/models/ProductSearchOption.interface";
+import type { CatalogSearchResult } from "@/types/catalog.types";
 import { useProductSearch } from "@/hooks/useProductSearch";
 import type { NullableRef } from "@/types/nullable.types";
 import type { KeptPersonalListRow } from "../components/models/KeptPersonalListSectionProps.interface";
@@ -9,8 +10,10 @@ import type { ItemQuantityStepType } from "../constants/shopping-list.constants"
 import type { ClosePurchaseViewModel } from "../models/ClosePurchaseViewModel.interface";
 import type { ItemDetailViewModel } from "../models/ItemDetailViewModel.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
+import type { ShelfLifeChipsViewModel } from "../models/ShelfLifeChipsViewModel.interface";
+import type { ShortfallPanelViewModel, UndoUncheckViewModel } from "../models/shortfall-resolution.types";
 import type { StorePickerViewModel } from "../models/StorePickerViewModel.interface";
-import { toCatalogSearchResults } from "../utils/toCatalogSearchResults";
+import { toCatalogSearchResults } from "@/utils/toCatalogSearchResults";
 import { isBoughtInSession, toShoppingListRow } from "../utils/toShoppingListRow";
 import { toStorePriceRanges } from "@/utils/toStorePriceRanges";
 import { useClosePurchase } from "./useClosePurchase";
@@ -18,7 +21,9 @@ import { useItemDetail } from "./useItemDetail";
 import { useItemRemoval } from "./useItemRemoval";
 import { useKeptPersonalList } from "./useKeptPersonalList";
 import { usePurchaseSession } from "./usePurchaseSession";
+import { useShelfLifeChips } from "./useShelfLifeChips";
 import { useShoppingList } from "./useShoppingList";
+import { useShortfallFlowViewModel } from "./useShortfallFlowViewModel";
 import { useStorePicker } from "./useStorePicker";
 
 interface UseShoppingListViewModelReturn {
@@ -47,6 +52,8 @@ interface UseShoppingListViewModelReturn {
   keptPersonalRows: KeptPersonalListRow[];
   loadErrorMessage: NullableRef<string>;
   onCloseDetail: () => void;
+  /** El ✓ de una sugerencia de inventario (SCRUM-104): la agrega como el buscador. true si se agregó. */
+  onConfirmSuggestion: (suggestion: CatalogSearchResult) => Promise<boolean>;
   onDecreaseQuantity: (itemId: string) => void;
   onExitShoppingMode: () => void;
   onIncreaseQuantity: (itemId: string) => void;
@@ -60,6 +67,8 @@ interface UseShoppingListViewModelReturn {
   onUndoRemove: () => void;
   /** Sección "Pendientes", en el orden en que se añadieron. */
   pendingRows: ShoppingListRowViewModel[];
+  /** Las presentaciones pendientes: las sugerencias de inventario no las ofrecen (SCRUM-104). */
+  pendingVariantIds: string[];
   quantityErrorMessage: NullableRef<string>;
   query: string;
   removeErrorMessage: NullableRef<string>;
@@ -67,7 +76,15 @@ interface UseShoppingListViewModelReturn {
   searchOptions: ProductSearchOption[];
   /** Aviso cuando la compra de la URL no está abierta. */
   sessionNoticeMessage: NullableRef<string>;
+  /** "¿Cuánto te va a durar?" debajo de la fila recién tachada en modo compra (SCRUM-103). */
+  shelfLifeChips: ShelfLifeChipsViewModel;
+  /** Otro miembro ya había cambiado la fila que se quiso resolver o deshacer (SCRUM-115). */
+  shortfallNoticeMessage: NullableRef<string>;
+  /** "¿Qué hiciste?" al tachar una fila con aviso de faltante (SCRUM-115). */
+  shortfallPanel: ShortfallPanelViewModel;
   storePicker: StorePickerViewModel;
+  /** Confirmar antes de destachar una fila que "¿Qué hiciste?" cambió (SCRUM-115). */
+  undoUncheck: UndoUncheckViewModel;
 }
 
 /**
@@ -75,13 +92,16 @@ interface UseShoppingListViewModelReturn {
  * entrega a ShoppingListInner.tsx exactamente lo que dibuja, ya calculado.
  */
 export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
-  const { addItem, changeBoughtQuantity, changeQuantity, removeItem, state, toggleChecked } = useShoppingList();
+  const { addItem, changeBoughtQuantity, changeQuantity, markPurchaseClosed, reload, removeItem, state, toggleChecked } =
+    useShoppingList();
+  const shortfallFlow = useShortfallFlowViewModel({ items: state.items, reload });
   const keptPersonalItems = useKeptPersonalList();
   const search = useProductSearch();
   const removal = useItemRemoval({ removeItem });
   const purchase = usePurchaseSession();
   const storePicker = useStorePicker({ onStarted: purchase.enterShoppingMode });
   const activeSessionId = purchase.activeSession?.id ?? null;
+  const shelfLife = useShelfLifeChips({ activeSessionId, items: state.items });
   // Se guarda solo el id de la fila abierta; la fila en sí se busca en la
   // lista, así el modal siempre muestra la cantidad y el nombre actuales.
   const [openItemId, setOpenItemId] = useState<NullableRef<string>>(null);
@@ -94,7 +114,12 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     const searchResult = searchResults.find((result) => result.variantId === variantId);
     if (!searchResult) return;
     search.clearQuery();
-    const listedItem = state.items.find((item) => item.variantId === searchResult.variantId);
+    // Solo cuenta la fila PENDIENTE de esa variante. Si solo hay una tachada,
+    // es una compra nueva: la base crea otra fila y la tachada conserva su
+    // compra (regla 8, SCRUM-156).
+    const listedItem = state.items.find(
+      (item) => item.variantId === searchResult.variantId && item.checkedAt === null,
+    );
     if (!listedItem) {
       // addItem maneja su propio error (lo pasa al estado), por eso no se espera acá.
       void addItem(searchResult);
@@ -110,12 +135,6 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     // deshabilitado; si no, dos escrituras en paralelo podrían dejar en
     // pantalla una cantidad vieja.
     if (state.pendingItemIds.includes(listedItem.id)) return;
-    // Tachada: es una compra nueva. La RPC de añadir la reabre con cantidad 1
-    // (migración 015) en vez de sumarle a lo que ya se compró.
-    if (listedItem.checkedAt !== null) {
-      void addItem(searchResult);
-      return;
-    }
     void changeQuantity(listedItem.id, ITEM_QUANTITY.STEP.INCREASE);
   };
 
@@ -165,7 +184,25 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     const item = state.items.find((listedItem) => listedItem.id === itemId);
     // Fila esperando respuesta: se ignora, igual que el botón deshabilitado.
     if (!item || state.pendingItemIds.includes(itemId)) return;
-    toggleChecked(itemId, item.checkedAt === null, activeSessionId);
+    const isChecking = item.checkedAt === null;
+    // Una fila tachada que "¿Qué hiciste?" cambió no se destacha sin preguntar (SCRUM-115, regla 45).
+    if (!isChecking && item.shortfallSnapshot) {
+      shortfallFlow.requestUndo(itemId);
+      return;
+    }
+    // Cuando la base confirma el tachado: "¿Qué hiciste?" si la fila tiene avisos (regla 35) y,
+    // en modo compra, los chips de duración (SCRUM-103). El panel es un modal: se ve primero y
+    // los chips quedan debajo de la fila para cuando se cierra.
+    const opensShortfallPanel = isChecking && item.recipeShortfalls.length > 0;
+    const opensShelfLifeChips = isChecking && activeSessionId !== null;
+    const onChecked =
+      opensShortfallPanel || opensShelfLifeChips
+        ? () => {
+            if (opensShelfLifeChips) shelfLife.openFor(itemId);
+            if (opensShortfallPanel) shortfallFlow.openPanelFor(itemId);
+          }
+        : undefined;
+    toggleChecked(itemId, isChecking, activeSessionId, onChecked);
   };
 
   const onRemoveItem = (itemId: string): void => {
@@ -184,9 +221,15 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
   const pendingRows = rows.filter((row) => !row.isChecked);
   const checkedRows = rows.filter((row) => row.isChecked);
   const isAllChecked = rows.length > 0 && pendingRows.length === 0;
+  // Cerrar vuelve a /lista sin recargar la página: las filas de la compra pierden la foto de
+  // deshacer en ese momento, porque con la compra cerrada destacharlas ya no revierte nada (regla 45, 041).
+  const onPurchaseClosed = (): void => {
+    if (activeSessionId) markPurchaseClosed(activeSessionId);
+    purchase.leaveClosedSession();
+  };
   const closePurchase = useClosePurchase({
     isAllChecked,
-    onClosed: purchase.leaveClosedSession,
+    onClosed: onPurchaseClosed,
     sessionId: activeSessionId,
   });
 
@@ -232,6 +275,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       })),
     loadErrorMessage: state.loadErrorMessage,
     onCloseDetail,
+    onConfirmSuggestion: addItem,
     onDecreaseQuantity,
     onExitShoppingMode: purchase.exitShoppingMode,
     onIncreaseQuantity,
@@ -244,6 +288,7 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
     onToggleChecked,
     onUndoRemove: removal.cancelRemoval,
     pendingRows,
+    pendingVariantIds: state.items.filter((item) => item.checkedAt === null).map((item) => item.variantId),
     quantityErrorMessage: state.quantityErrorMessage,
     query: search.query,
     removeErrorMessage: state.removeErrorMessage,
@@ -254,6 +299,9 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       label: result.productName,
     })),
     sessionNoticeMessage: purchase.sessionNoticeMessage,
+    shelfLifeChips: shelfLife.chips,
+    shortfallNoticeMessage: shortfallFlow.noticeMessage,
+    shortfallPanel: shortfallFlow.shortfallPanel,
     storePicker: {
       errorMessage: storePicker.errorMessage,
       isLoading: storePicker.isLoadingStores,
@@ -263,5 +311,6 @@ export const useShoppingListViewModel = (): UseShoppingListViewModelReturn => {
       onPickStore: (storeId: string) => void storePicker.pickStore(storeId),
       stores: storePicker.stores,
     },
+    undoUncheck: shortfallFlow.undoUncheck,
   };
 };

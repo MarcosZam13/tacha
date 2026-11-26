@@ -1,0 +1,187 @@
+import type { Session } from "@supabase/supabase-js";
+import { PERSONAL_PRODUCT_DB } from "@/constants/create-product-form.constants";
+import type { PersonalProductDeleteResultType } from "@/constants/create-product-form.constants";
+import type { CatalogBaseUnitType } from "@/constants/catalog.constants";
+import type { StoreSlug } from "@/constants/stores.constants";
+import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
+import type { NullableRef } from "@/types/nullable.types";
+
+/** Lo que necesita create_personal_product (migraciones 031 y 051), ya en camelCase. */
+export interface CreatePersonalProductPayload {
+  baseQuantity: number;
+  baseUnit: CatalogBaseUnitType;
+  /** Vacío/ausente: no se crea product_brands (ver migración, sección 3). */
+  brandName?: string;
+  categoryId: string;
+  name: string;
+  /** HU-57: precio de referencia, opcional. Ausente: sin precio. */
+  referencePrice?: number;
+  /** HU-57: tienda escrita a mano. Nunca junto con referenceStoreSlug. */
+  referenceStoreName?: string;
+  /** HU-57: uno de los 3 supermercados. Nunca junto con referenceStoreName. */
+  referenceStoreSlug?: StoreSlug;
+  shareWithHousehold: boolean;
+}
+
+/**
+ * Crea el producto personal (SCRUM-87 / HU-56): producto + variante de
+ * tamaño (+ marca si se dio) en una sola transacción, vía create_personal_product
+ * (migración 031) — nunca un insert directo: product_catalog/
+ * product_catalog_variants no dan INSERT a authenticated (confirmado contra
+ * la base real, ver plan.md §Dependencias verificadas).
+ *
+ * household_id lo resuelve la base con auth.uid() contra household_members;
+ * share_with_household solo viaja como intención, nunca un household_id del
+ * cliente (misma regla de seguridad que el resto de las RPC security definer
+ * del proyecto, ej. ensure_general_list_id).
+ *
+ * ensureSession() y no getSession(): un usuario anónimo también puede crear
+ * productos personales (caso 2 de supabase/tests/031_create_personal_product.test.sql
+ * — solo la validación de datos lo frena, no la sesión), igual que ya hace
+ * addVariantToGeneralList() en services/list-items.service.ts.
+ *
+ * Devuelve el id del producto creado; no lanza por un error de validación
+ * del servidor (22023): ese caso no debería darse porque useCreateProductForm
+ * ya valida antes de llamar (CA-02), así que cualquier error que llegue aquí
+ * es un error genérico para quien llama.
+ */
+export const createPersonalProduct = async (payload: CreatePersonalProductPayload): Promise<string> => {
+  await ensureSession();
+
+  const { data: productId, error } = await getSupabaseClient().rpc(
+    PERSONAL_PRODUCT_DB.RPC.CREATE_PERSONAL_PRODUCT,
+    {
+      base_quantity: payload.baseQuantity,
+      base_unit: payload.baseUnit,
+      brand_name: payload.brandName,
+      category_id: payload.categoryId,
+      product_name: payload.name,
+      reference_price: payload.referencePrice,
+      reference_store_name: payload.referenceStoreName,
+      reference_store_slug: payload.referenceStoreSlug,
+      share_with_household: payload.shareWithHousehold,
+    },
+  );
+  if (error) throw error;
+
+  return productId;
+};
+
+/**
+ * Lo que necesita update_personal_product (migración 052, HU-58). Mismos
+ * campos que crear, menos compartir: editar no cambia si el producto está
+ * compartido (SPEC.md, reglas HU-58).
+ */
+export type UpdatePersonalProductPayload = Omit<CreatePersonalProductPayload, "shareWithHousehold"> & {
+  productId: string;
+};
+
+/** Cuántas listas activas y cuántas recetas usan un producto (aviso de HU-58 CA-02). */
+export interface PersonalProductUsage {
+  activeListCount: number;
+  /** SCRUM-110 (migración 056): grupos de productos que lo tienen. */
+  groupCount: number;
+  recipeCount: number;
+}
+
+/**
+ * Edita un producto personalizado (SCRUM-89 / HU-58) vía
+ * update_personal_product: quién puede hacerlo (dueño, o miembro del
+ * household si está compartido) lo decide la base con auth.uid(), nunca el
+ * cliente. Producto, variante y marca en una sola transacción.
+ *
+ * La tienda y el precio de referencia (HU-57, migración 055) se reemplazan
+ * igual que la marca: el formulario manda siempre el estado completo, y lo
+ * que no viaja queda vacío.
+ */
+export const updatePersonalProduct = async (payload: UpdatePersonalProductPayload): Promise<void> => {
+  await ensureSession();
+
+  const { error } = await getSupabaseClient().rpc(PERSONAL_PRODUCT_DB.RPC.UPDATE_PERSONAL_PRODUCT, {
+    new_base_quantity: payload.baseQuantity,
+    new_base_unit: payload.baseUnit,
+    new_brand_name: payload.brandName,
+    new_category_id: payload.categoryId,
+    new_product_name: payload.name,
+    // HU-57 en edición (migración 055): ausente = se borra ese dato.
+    new_reference_price: payload.referencePrice,
+    new_reference_store_name: payload.referenceStoreName,
+    new_reference_store_slug: payload.referenceStoreSlug,
+    target_product_id: payload.productId,
+  });
+  if (error) throw error;
+};
+
+/**
+ * Elimina un producto personalizado (HU-58) vía delete_personal_product: la
+ * base lo borra si nada lo usa, o lo archiva si lo usa alguna lista o receta.
+ * Devuelve cuál de las dos pasó.
+ */
+export const deletePersonalProduct = async (productId: string): Promise<PersonalProductDeleteResultType> => {
+  await ensureSession();
+
+  const { data: result, error } = await getSupabaseClient().rpc(PERSONAL_PRODUCT_DB.RPC.DELETE_PERSONAL_PRODUCT, {
+    target_product_id: productId,
+  });
+  if (error) throw error;
+
+  // La función solo devuelve 'deleted' o 'archived' (migración 052).
+  return result as PersonalProductDeleteResultType;
+};
+
+/**
+ * Cuántas listas activas y cuántas recetas usan el producto, para el aviso
+ * del diálogo de eliminar (HU-58 CA-02). La base cuenta también las recetas
+ * de los otros miembros si el producto está compartido (solo cantidades).
+ */
+export const getPersonalProductUsage = async (productId: string): Promise<PersonalProductUsage> => {
+  await ensureSession();
+
+  const { data: usageRows, error } = await getSupabaseClient().rpc(
+    PERSONAL_PRODUCT_DB.RPC.GET_PERSONAL_PRODUCT_USAGE,
+    { target_product_id: productId },
+  );
+  if (error) throw error;
+
+  // La función devuelve siempre una sola fila; sin ella, es un error de contrato, no "0 usos".
+  const [usageRow] = usageRows;
+  if (!usageRow) throw new Error("get_personal_product_usage no devolvió ninguna fila");
+  return {
+    activeListCount: usageRow.active_list_count,
+    groupCount: usageRow.group_count,
+    recipeCount: usageRow.recipe_count,
+  };
+};
+
+// Consulta propia y mínima: no se reusa getHouseholdMembership() de
+// features/household porque esa expone householdName/role, no lo que este
+// formulario necesita (solo si existe o no un household) — mismo criterio
+// que ya documenta getCurrentHouseholdId() en
+// features/my-products/services/my-products.service.ts (plan.md, decisión 4).
+const getStoredSession = async (): Promise<NullableRef<Session>> => {
+  const { data: sessionData, error } = await getSupabaseClient().auth.getSession();
+  if (error) throw error;
+
+  return sessionData.session;
+};
+
+/**
+ * true si el usuario actual pertenece a algún household. Decide si
+ * CreateProductForm muestra el checkbox "Compartir con mi familia"
+ * (SPEC.md §5: "si no pertenece a ninguno, el checkbox no se muestra").
+ * Sin sesión (todavía no se abrió el formulario ni se creó ninguna anónima):
+ * false, sin consultar la base.
+ */
+export const hasHousehold = async (): Promise<boolean> => {
+  const session = await getStoredSession();
+  if (!session) return false;
+
+  const { data: membershipRow, error } = await getSupabaseClient()
+    .from(PERSONAL_PRODUCT_DB.TABLE.HOUSEHOLD_MEMBERS)
+    .select(PERSONAL_PRODUCT_DB.COLUMN.USER_ID)
+    .eq(PERSONAL_PRODUCT_DB.COLUMN.USER_ID, session.user.id)
+    .maybeSingle();
+  if (error) throw error;
+
+  return membershipRow !== null;
+};

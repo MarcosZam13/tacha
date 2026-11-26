@@ -27,7 +27,7 @@ export const CONTACT_HEADING_ID = "formulario-contacto-titulo";
 
 export const CONTACT_LABEL = {
   DESCRIPTION:
-    "¿Tenés una duda, una idea o encontraste un problema? Escribinos y te respondemos al correo.",
+    "¿Tienes una duda, una idea o encontraste un problema? Escríbenos y te respondemos al correo.",
   EMAIL: "Correo electrónico",
   MESSAGE: "Mensaje",
   NAME: "Nombre",
@@ -35,13 +35,13 @@ export const CONTACT_LABEL = {
   SUBMIT: "Enviar mensaje",
   SUBMITTING: "Enviando...",
   SUCCESS: "¡Gracias! Recibimos tu mensaje y te vamos a responder al correo que nos dejaste.",
-  TITLE: "Contactanos",
+  TITLE: "Contáctanos",
 } as const;
 
 export const CONTACT_ERROR_MESSAGE = {
-  CAPTCHA_FAILED: "No pudimos validar el reCAPTCHA. Marcalo de nuevo e intentá otra vez.",
-  CAPTCHA_REQUIRED: "Confirmá que no sos un robot.",
-  EMAIL_INVALID: "Ingresá un correo válido.",
+  CAPTCHA_FAILED: "No pudimos validar el reCAPTCHA. Márcalo de nuevo e intenta otra vez.",
+  CAPTCHA_REQUIRED: "Confirma que no eres un robot.",
+  EMAIL_INVALID: "Ingresa un correo válido.",
   EMAIL_REQUIRED: "El correo es obligatorio.",
   MESSAGE_REQUIRED: "El mensaje es obligatorio.",
   MESSAGE_TOO_LONG: `El mensaje puede tener como máximo ${CONTACT_LIMIT.MESSAGE_MAX_LENGTH} caracteres.`,
@@ -49,8 +49,8 @@ export const CONTACT_ERROR_MESSAGE = {
   NAME_REQUIRED: "El nombre es obligatorio.",
   NAME_TOO_LONG: `El nombre puede tener como máximo ${CONTACT_LIMIT.NAME_MAX_LENGTH} caracteres.`,
   NAME_TOO_SHORT: `El nombre debe tener al menos ${CONTACT_LIMIT.NAME_MIN_LENGTH} caracteres.`,
-  RATE_LIMITED: "Ya recibimos varios mensajes tuyos. Esperá un rato antes de enviar otro.",
-  UNEXPECTED: "No pudimos enviar tu mensaje. Intentá de nuevo en unos minutos.",
+  RATE_LIMITED: "Ya recibimos varios mensajes tuyos. Espera un rato antes de enviar otro.",
+  UNEXPECTED: "No pudimos enviar tu mensaje. Intenta de nuevo en unos minutos.",
 } as const;
 
 export const CONTACT_SUBMIT_STATUS = {

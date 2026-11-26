@@ -1,10 +1,12 @@
+import { SignOutButton } from "@/components/sign-out-button/SignOutButton";
 import { APP_NAV_LINK_VARIANT } from "../constants/app-nav-link.constants";
 import { APP_SHELL_TEXT } from "../constants/app-shell.constants";
 import { AppNavLink } from "./AppNavLink";
-import type { AppNavigationProps } from "./models/AppNavigationProps.interface";
+import { AppProfileLink } from "./AppProfileLink";
+import type { AppSidebarProps } from "./models/AppSidebarProps.interface";
 
 /** Navegación de desktop (md en adelante): fija a la izquierda, DESIGN.md §3.1. */
-export const AppSidebar = ({ navItems }: AppNavigationProps): React.JSX.Element => (
+export const AppSidebar = ({ navItems, profileLink }: AppSidebarProps): React.JSX.Element => (
   <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col gap-6 border-r border-tacha-border bg-tacha-surface px-4 py-6 md:flex">
     <p className="px-3 font-display text-2xl font-bold text-tacha-text">{APP_SHELL_TEXT.BRAND}</p>
     <nav aria-label={APP_SHELL_TEXT.NAV_LABEL} className="flex-1">
@@ -16,6 +18,10 @@ export const AppSidebar = ({ navItems }: AppNavigationProps): React.JSX.Element 
         ))}
       </ul>
     </nav>
-    {/* Punto de extensión: "Cerrar sesión" (SCRUM-55) va acá, al pie del sidebar. */}
+    {/* Pie del sidebar: el perfil (SCRUM-53) y, debajo, cerrar sesión (SCRUM-55), siempre a la vista. */}
+    <div className="flex flex-col gap-2">
+      <AppProfileLink isNameVisible profileLink={profileLink} />
+      <SignOutButton />
+    </div>
   </aside>
 );

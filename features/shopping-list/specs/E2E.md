@@ -75,3 +75,81 @@ Nivel más bajo que alcanza: el reducer, la validación de cantidades y los rang
   - Paso 6: la URL vuelve a `/lista`, sin la barra ni el panel.
 - **Sincronización:** igual que E2E-LISTA-04, antes de tocar otra cosa en la fila se espera a que vuelva a estar habilitada (la base confirmó).
 - **Datos que quedan:** la compra cerrada del usuario anónimo queda en `purchase_sessions` (la limpieza solo borra los items, como en los otros escenarios).
+
+### E2E-LISTA-06: aviso de faltante de una receta
+
+- **Cubre:** HU-76 CA-01, CA-02 (SPEC §16).
+- **Precondición:** usuario anónimo nuevo con una receta propia creada por la API (`createOwnRecipe`) con un ingrediente de **100 000 ml** (el máximo que acepta una receta): ninguna presentación del catálogo lo cubre, así que agregarla siempre deja faltante (reglas 21 y 22 de recetas). El nombre de la receta lleva un sufijo aleatorio.
+- **Pasos:**
+  1. Abrir `/recetas` y tocar "Agregar receta a lista" en la tarjeta de la receta.
+  2. Abrir `/lista`.
+  3. Tocar el texto del aviso.
+- **Resultado esperado:** después del paso 2, en "Pendientes" hay una fila con un texto que empieza con "+ " y termina en "necesarios para {nombre de la receta}". Después del paso 3 la fila sigue en "Pendientes" (el aviso no tacha) y no se abrió ningún diálogo.
+- **Oráculo:** la cantidad exacta depende de las presentaciones del catálogo, así que se valida la forma del texto, no el número.
+- **Limpieza:** borra los items de la lista (`deleteOwnListItems`) y las recetas (`deleteOwnRecipes`; sus registros se van en cascada).
+- **Fuera del navegador:** conteos, faltante 0 y `unidad` (CA-03) en la prueba SQL de la `033`; el texto y la coma decimal en `tests/toShortfallNote.test.ts`; una línea por receta en `tests/toRecipeShortfalls.test.ts`; la familia (regla 29), en la prueba SQL y a mano (el E2E no maneja cuentas registradas).
+
+### E2E-LISTA-07: "¿Qué hiciste?" al tachar y deshacer al destachar
+
+- **Cubre:** HU-77 CA-01, CA-02, CA-04 y las reglas 39, 41 y 45 (SPEC §18).
+- **Precondición:** como E2E-LISTA-06: usuario anónimo nuevo con una receta propia de **100 000 ml** agregada a la lista, así que su fila tiene aviso y una unidad más nunca lo cubre.
+- **Pasos:**
+  1. En `/lista`, tocar la fila (tachar).
+  2. Tocar "Agregué otra igual".
+  3. Tocar "Ahora no".
+  4. Tocar la fila tachada (destachar) y confirmar "Destachar y deshacer".
+  5. Tocar la fila otra vez (tachar) y elegir "Ya tenía suficiente".
+- **Resultado esperado:**
+  - Paso 1: se abre el diálogo "¿Qué hiciste?" con el aviso de la receta.
+  - Paso 2: el panel sigue abierto con "Todavía falta:" (100 000 ml no se cubren con dos unidades).
+  - Paso 3: el panel se cierra; la fila está en "Tachados hoy" con cantidad 2 y su aviso.
+  - Paso 4: aparece "¿Destachar y deshacer lo que elegiste?" con "La fila vuelve a 1 ×"; al confirmar, la fila vuelve a "Pendientes" con cantidad 1 y su aviso.
+  - Paso 5: el panel se cierra y la fila ya no tiene aviso.
+- **Oráculo:** como E2E-LISTA-06, la cantidad del faltante depende del catálogo: se valida la forma del texto y las cantidades de la fila, no el número del faltante.
+- **Limpieza:** `deleteOwnListItems` y `deleteOwnRecipes`.
+- **Fuera del navegador:** la cuenta en vivo, "Cambié a otra presentación", modo compra, familia y los rechazos de la base están en `supabase/tests/037_resolve_recipe_shortfalls.test.sql`; el orden por precio en `tests/toPresentationOptions.test.ts`.
+
+### E2E-LISTA-08: después de cerrar la compra, destachar no ofrece deshacer
+
+- **Cubre:** regla 45 de SPEC §18, fila de una compra cerrada (BUG-2 de QA de la PR #82).
+- **Precondición:** como E2E-LISTA-07: usuario anónimo nuevo con una receta propia de **100 000 ml** agregada a la lista.
+- **Pasos:**
+  1. En `/lista`, "Iniciar compra" en MaxiPali y esperar a que la barra del modo compra muestre el súper.
+  2. Tocar la fila (tachar), elegir "Agregué otra igual" y después "Ahora no".
+  3. En "Cerrar compra", escribir un total y tocar "Cerrar compra".
+  4. **Sin recargar**, tocar la fila tachada.
+- **Resultado esperado:**
+  - Paso 3: vuelve a `/lista` y desaparece la barra del modo compra.
+  - Paso 4: no aparece "¿Destachar y deshacer lo que elegiste?"; la fila pasa a "Pendientes" con cantidad 1 (en la compra, "Agregué otra igual" sumó a lo comprado, regla 36, y destachar lo borra, 018).
+- **Sincronización:** tachar antes de que la barra muestre el súper deja la fila fuera de la compra y el escenario deja de probar una compra cerrada.
+- **Oráculo:** lo que distingue el bug es el diálogo: sin la corrección aparece en el paso 4.
+- **Limpieza:** `deleteOwnListItems` y `deleteOwnRecipes`. La compra cerrada queda en la base, como en E2E-LISTA-05.
+
+### E2E-LISTA-09: chips de cuánto le va a durar al tachar en modo compra
+
+- **Cubre:** HU-70b CA-01, CA-02 y CA-03 (SPEC §19, reglas 47 a 50).
+- **Precondición:** usuario anónimo nuevo con un producto en la lista (pasos 1 a 4 de E2E-LISTA-01).
+- **Datos:** el guardado del chip (`PATCH /rest/v1/list_items` con `shelf_life_choice`) se responde desde el test y se anota lo que mandó la pantalla; el resto va a la base. Que la base guarde, valide y borre el chip lo cubre la prueba SQL de la `063`.
+- **Pasos:**
+  1. Sin modo compra, tachar el producto y destacharlo.
+  2. "Iniciar compra" en MaxiPali, esperar la barra y tachar el producto.
+  3. Tocar "1-3 meses".
+  4. Tocar "1-3 meses" otra vez.
+  5. Destachar el producto.
+- **Resultado esperado:**
+  - Paso 1: no aparece el grupo "¿Cuánto te va a durar <producto>?".
+  - Paso 2: aparecen los cuatro chips en orden ("Vence en pocos días", "2-4 semanas", "1-3 meses", "No vence / no aplica"), ninguno marcado. El grupo es al menos tan ancho como el texto de la fila y los cuatro chips se ven enteros, sin deslizar (en su propia línea, también en el celular).
+  - Paso 3: "1-3 meses" queda marcado, la fila sigue tachada y se guarda `{ shelf_life_choice: "one_to_three_months" }`.
+  - Paso 4: ninguno marcado y se guarda `{ shelf_life_choice: null }`.
+  - Paso 5: los chips desaparecen.
+- **Limpieza:** `deleteOwnListItems`. La compra abierta del usuario anónimo queda en la base, como en E2E-LISTA-05.
+
+### E2E-LISTA-10: la lista de la familia carga aunque un producto no se pueda ver (SCRUM-163)
+
+- **Cubre:** SCRUM-163, parte 1 (ver SPEC, sección SCRUM-163).
+- **Precondición:** usuario anónimo nuevo. Las familias exigen cuentas registradas, así que la respuesta de la base se **simula** con `page.route`, con la forma exacta que devuelve la RLS de la 032 a un miembro que no puede leer un producto personal ajeno (verificada contra la base el 2026-11-25): una fila normal ("Arroz") y una fila con `product_catalog_variants: null`.
+- **Pasos:**
+  1. Abrir `/lista`.
+- **Resultado esperado:** en "Pendientes" se ven "Arroz" y "Producto no disponible"; no aparece "No se pudo cargar tu lista. Intenta de nuevo.".
+- **Oráculo:** sin la corrección, la pantalla muestra el error de carga y ninguna fila.
+- **Limpieza:** no escribe en la base.

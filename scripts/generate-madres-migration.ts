@@ -72,11 +72,18 @@ function generateProductCatalogSql(madres: MadreRule[]): string {
   return [
     "-- Seed de product_catalog global con las madres curadas.",
     "-- Upsert por nombre: nunca duplica ni borra las 28 madres viejas",
-    "-- (coinciden con la partial unique index idx_product_catalog_global_name,",
-    "-- creada arriba en esta misma migración).",
+    "-- (coinciden con la partial unique index idx_product_catalog_global_name).",
+    "-- El where de este on conflict tiene que ser idéntico al de la definición",
+    "-- real del índice (Postgres infiere el target por coincidencia exacta,",
+    "-- no por implicación lógica) — desde la migración 031 (SCRUM-87) el",
+    "-- índice quedó acotado a household_id is null AND owner_id is null, para",
+    "-- no chocar con los productos personales (que también tienen",
+    "-- household_id null); este insert nunca manda owner_id, así que siempre",
+    "-- cae del lado correcto, pero el conflict target tiene que repetir la",
+    "-- condición completa o Postgres no lo va a poder usar como destino.",
     "insert into product_catalog (name, category_id, household_id, source) values",
     values,
-    "on conflict (name) where household_id is null",
+    "on conflict (name) where household_id is null and owner_id is null",
     "do update set category_id = excluded.category_id;",
   ].join("\n");
 }

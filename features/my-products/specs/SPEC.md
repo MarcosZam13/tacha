@@ -1,14 +1,24 @@
 # Feature: MyProducts
 
-Historia: [SCRUM-86 / HU-55](https://tacha.atlassian.net/browse/SCRUM-86): ver mis productos personalizados. Sprint actual.
+Historias:
+- [SCRUM-86 / HU-55](https://tacha.atlassian.net/browse/SCRUM-86): ver mis productos personalizados. Sprint 3. **Implementado** (Done, mergeado).
+- [SCRUM-87 / HU-56](https://tacha.atlassian.net/browse/SCRUM-87): crear un producto personalizado. Sprint 4. **Implementado** (Done, mergeado; secciones marcadas "HU-56" abajo).
+- [SCRUM-88 / HU-57](https://tacha.atlassian.net/browse/SCRUM-88): tienda y precio de referencia. Sprint 4. **Historia en alcance** (secciones marcadas "HU-57" abajo).
+- [SCRUM-89 / HU-58](https://tacha.atlassian.net/browse/SCRUM-89): editar o eliminar un producto personalizado. Sprint 4. **Historia en alcance** (secciones marcadas "HU-58" abajo; el resto no cambia).
 
-Historias relacionadas que NO se hacen acá: SCRUM-87 / HU-56 (crear producto personalizado), HU-57 (tienda y precio de referencia), HU-58 (editar/eliminar). Esta historia es de solo lectura.
+Historias relacionadas: HU-57 (SCRUM-88, tienda y precio de referencia) y HU-58 (SCRUM-89, editar/eliminar). *(Nota 2026-11-17: HU-57 entra en alcance con SCRUM-88 y HU-58 con SCRUM-89. Editar la tienda y el precio se suma en SCRUM-89, cuando SCRUM-88 ya está mergeada.)*
 
 ---
 
 ## 1. Objetivo
 
 Que el usuario vea, dentro de la sección Catálogo, los productos que él mismo (o su household) agregó al catálogo porque no estaban en el catálogo global — para poder reutilizarlos más adelante sin crearlos de nuevo.
+
+**HU-56:** además, que el usuario pueda crear ese producto él mismo desde un formulario corto, sin depender de que el equipo lo cure en el catálogo global (CA-01/CA-02), y que quede marcado como propio, personal por defecto y compartible con su household (CA-03). El estado de "sin resultados" de "Buscar" también enlaza a este mismo formulario (CA-04, fusionado desde la HU-54 original).
+
+**HU-57 (SCRUM-88):** que el usuario pueda anotar, si quiere, dónde compró su producto personalizado y a cuánto, para recordarlo después. Ese precio se ve marcado como ingresado por el usuario y nunca se mezcla con los precios del scraping.
+
+**HU-58 (SCRUM-89):** que el usuario pueda corregir un producto que agregó o quitarlo si ya no lo usa, sin romper las listas, recetas ni el historial que ya lo tienen.
 
 ## 2. Alcance
 
@@ -21,29 +31,123 @@ Incluye:
 - Estado vacío con el texto exacto del ticket: "Agregá productos que no encontrás en el catálogo" (CA-02), sin acción real todavía — HU-56 (el formulario) no existe.
 - Estados: cargando, error, vacío, con resultados.
 
+**HU-56 (SCRUM-87) — añadido:**
+
+- Botón "+ Agregar producto" en la cabecera de "Mis productos" (CA-01), que abre un formulario corto: nombre, marca, categoría (select, ver §12), tamaño/presentación (unidad base + cantidad base) y un checkbox opcional "Compartir con mi familia" (visible solo si el usuario pertenece a uno — ver §5).
+- Validación de obligatorios (nombre, categoría) antes de habilitar "Guardar" (CA-02).
+- El producto se guarda con `owner_id` del usuario que lo crea, y `household_id` solo si marcó compartir (CA-03) — ver §5 y §15 para la justificación completa.
+- El componente del formulario (`CreateProductForm`) se construye directo en `components/create-product-form/` (compartido desde el día 1, no dentro de esta feature), porque CA-04 ya confirma un segundo consumidor real (`features/catalog/`) dentro de esta misma historia.
+- El enlace de CA-04 se agrega a `features/catalog/components/CatalogEmptyState.tsx`, que ya tiene el texto ("Si no existe, puedes crearlo en 'Mis productos'") pero sin enlace real — hoy solo es texto porque, según su propio comentario en el código, "esa pantalla todavía no existe" (ya existe desde SCRUM-86).
+- Sin subida de foto: todo producto personalizado usa el placeholder que `CatalogCard` ya muestra para un producto sin `image_url` (decisión del dueño de la historia, 2026-10-28, para no consumir el almacenamiento gratuito de Supabase).
+- Migración nueva: columna `owner_id` en `product_catalog` + función `security definer` nueva para la escritura (ver §12).
+
 No incluye (ver §14):
 
-- Crear, editar, tienda/precio o eliminar un producto personalizado (HU-56, HU-57, HU-58).
-- Resolver qué pasa cuando un usuario sin household pueda tener un producto personal propio (hoy la tabla no tiene esa columna; ver §12).
-- Cambiar el modelo de datos de `product_catalog` (no se agrega ninguna columna ni migración).
+- Crear, editar, tienda/precio o eliminar un producto personalizado (HU-56, HU-57, HU-58). *(Nota 2026-10-28: HU-56/crear pasa a estar en alcance de esta historia — ver bloque de arriba; HU-57/HU-58 siguen fuera.)*
+- Resolver qué pasa cuando un usuario sin household pueda tener un producto personal propio (hoy la tabla no tiene esa columna; ver §12). *(Nota 2026-10-28: se resuelve en esta historia agregando `owner_id` — ver §15.)*
+- Cambiar el modelo de datos de `product_catalog` (no se agrega ninguna columna ni migración). *(Nota 2026-10-28: esta historia sí agrega `owner_id` — ver §12 y §15; era cierto para SCRUM-86, ya no para SCRUM-87.)*
+
+**HU-57 (SCRUM-88) — añadido:**
+
+- El formulario de alta (`CreateProductForm`) suma dos campos opcionales (CA-01):
+  - **Tienda:** un selector con "Sin tienda", los 3 supermercados que ya conoce la app (MasXMenos, MaxiPali, Walmart) y "Otra tienda". "Otra tienda" muestra un campo de texto para escribirla (ej. "Carnicería Los Ángeles").
+  - **Precio de referencia.**
+- "Mis productos" muestra en cada tarjeta el precio y la tienda anotados. El precio lleva el ícono "i" y el aviso de CA-02.
+- El detalle del producto (`features/catalog-product-detail`) muestra un bloque "Precio de referencia" con la tienda, el precio, el ícono "i" y el aviso visible.
+- Migración nueva `051`: tres columnas opcionales en `product_catalog_variants` y `create_personal_product` con tres parámetros opcionales más (ver §12).
+
+No incluye: editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-89, se suma ahí con la migración `055`), ni usar el precio manual en las sugerencias de dónde comprar (sección 4.8 del documento de proyecto, que todavía no tiene pantalla).
+
+**HU-58 (SCRUM-89) — añadido:**
+
+- Botones "Editar" y "Eliminar" en cada tarjeta de "Mis productos" (CA-01), debajo de la tarjeta.
+- "Editar" abre el mismo formulario de HU-56, precargado, con el título "Editar producto". Se edita nombre, marca, categoría y tamaño, y también la tienda y el precio de referencia de HU-57.
+- "Eliminar" abre siempre un diálogo de confirmación. Si el producto está en listas activas o recetas, el diálogo dice cuántas (CA-02).
+- Al eliminar:
+  - si nada lo usa, se borra;
+  - si lo usa alguna lista (de cualquier estado), receta o snapshot de faltante, se **archiva**: deja de aparecer en "Mis productos" y todo lo que lo usa sigue igual.
+- Migraciones nuevas `052`, `053` y `055` (ver §12). `053` corrige el formato de la cantidad en el nombre de la variante al editar. `055` deja editar la tienda y el precio (HU-57, mergeada antes que esta historia).
+
+No incluye:
+- Cambiar si el producto está compartido.
+- Recuperar un producto archivado.
+- El caso "usado en un grupo": los grupos de productos (HU-72+) todavía no existen.
 
 ## 3. Entradas
 
 - Sesión del usuario actual (para resolver su household, si tiene).
-- Resultado de `listMyProducts()`: `CatalogProduct[]` (mismo tipo que ya usa "Buscar", reutilizado).
+- Resultado de `listMyProducts()`: `CatalogProduct[]` (mismo tipo que ya usa "Buscar").
+- **HU-56:** datos del formulario (nombre, marca, categoría, unidad/cantidad base, compartir sí/no).
+
+**HU-57:**
+
+- Tienda elegida: `""` (sin tienda), un slug de supermercado (`maxipali` / `walmart` / `masxmenos`) u `"otra"`.
+- Nombre de la tienda: texto, solo con "Otra tienda".
+- Precio de referencia: texto del campo, vacío = sin precio.
+
+**HU-58:** el producto elegido (id, nombre, marca, categoría, unidad y cantidad, ya cargados en el listado) y, al editar, los mismos campos del formulario de HU-56.
 
 ## 4. Salidas
 
 - Una tarjeta por variante de cada producto personalizado del household del usuario, con la etiqueta "Agregado por mí".
 - Estado vacío con el texto de CA-02 si no hay ninguno (incluye el caso "el usuario no tiene household").
 - Mensaje de carga o de error según corresponda.
+- **HU-56:** el producto recién creado, visible de inmediato en el listado (sin recargar la página).
+
+**HU-57:**
+
+- El producto se guarda con la tienda y el precio anotados, y la tarjeta los muestra sin recargar la página.
+- Tarjeta con precio: el precio en terracota, el ícono "i" y el aviso de CA-02 para lector de pantalla y al pasar el mouse. La tienda va como texto secundario.
+- Detalle con tienda o precio: sección "Precio de referencia", con el aviso visible.
+
+**HU-58:**
+
+- Editar: el listado se recarga con los datos nuevos, sin recargar la página.
+- Eliminar: el producto deja de aparecer en el listado (borrado o archivado: para el usuario es lo mismo).
 
 ## 5. Reglas de negocio
 
-- Se muestra una fila de `product_catalog` si y solo si `source = 'manual'` **y** `household_id` es igual al household del usuario actual (nunca por `source = 'manual'` solo: eso incluiría los "productos madre" curados globalmente por el equipo en SCRUM-131, que tienen `household_id = null` y no fueron agregados por ningún usuario).
-- Si el usuario no pertenece a ningún household, la pantalla siempre muestra el estado vacío (CA-02): hoy `product_catalog` no tiene una columna de dueño individual (`owner_id`), así que no hay dónde buscar un producto "solo mío" sin household. Esto es una limitación conocida del modelo de datos, no un bug — ver §15.
+- Se muestra una fila de `product_catalog` si y solo si `source = 'manual'` **y** `household_id` es igual al household del usuario actual (nunca por `source = 'manual'` solo: eso incluiría los "productos madre" curados globalmente por el equipo en SCRUM-131, que tienen `household_id = null` y no fueron agregados por ningún usuario). *(HU-56: ver más abajo, también se busca por `owner_id` cuando no hay household.)*
+- Si el usuario no pertenece a ningún household, la pantalla siempre muestra el estado vacío (CA-02) **a menos que tenga productos propios creados vía HU-56** (ver bloque HU-56 abajo) — antes de esta historia no había ninguna forma de tener un producto "solo mío" sin household; con `owner_id` ya sí.
 - El orden de las tarjetas es alfabético por nombre de producto, igual que no hay orden especial pedido en el ticket.
 - La etiqueta "Agregado por mí" se muestra en todas las tarjetas de esta pantalla (no depende de qué miembro del household la agregó, porque la tabla no guarda eso).
+
+**HU-56 (SCRUM-87) — añadido:**
+
+- Al crear, el producto siempre queda personal por defecto: `owner_id = auth.uid()`, `household_id = null`, sin importar si el usuario pertenece a un household o no (CA-03, "personal por defecto"). `household_id` **nunca** se asigna automáticamente por el solo hecho de pertenecer a un household — mismo criterio que ya usa el proyecto para las listas personales al unirse a un household (HU-34b: `decide_personal_lists`, verificado que existe de verdad en la base). Compartir es una decisión explícita, nunca un efecto automático de la membresía.
+- Si el usuario marca el checkbox "Compartir con mi familia" y pertenece a uno, `household_id` se guarda con el household actual, en el mismo momento de crear. Si no pertenece a ninguno, el checkbox no se muestra.
+- Después de creado, `household_id` no cambia solo: entrar o salir de un household después no mueve ni comparte retroactivamente un producto ya creado (una "re-decisión" tipo HU-34b para productos queda fuera de esta historia — ver §14).
+- `listMyProducts()` se extiende (de forma aditiva, sin tocar su contrato para quien ya la usa) para que, cuando no haya household, también busque por `owner_id = auth.uid()` en vez de resolver siempre a lista vacía.
+- Nombre y categoría son obligatorios (CA-02). Marca y la opción de compartir son opcionales. El tamaño (unidad + cantidad base) es obligatorio para poder crear la variante: `product_catalog_variants.base_unit`/`base_quantity` son `not null` en el esquema real (verificado).
+
+**HU-57 (SCRUM-88) — añadido:**
+
+- Tienda y precio son opcionales; se puede anotar uno, el otro, los dos o ninguno (CA-01).
+- La tienda es un supermercado o una escrita a mano, nunca las dos.
+- Con "Otra tienda", el nombre es obligatorio (1 a 80 caracteres, sin espacios a los costados).
+- El precio, si se escribe, tiene que ser un número mayor a 0 y menor a 10 000 000 000. Es el máximo de la columna `numeric(12,2)`; la base también rechaza `NaN`.
+- El precio manual **nunca** entra a `product_prices`. Por eso nunca aparece en los rangos de "Buscar", en los chips de categoría ni en el desglose por supermercado del detalle (CA-03).
+- Si una variante tuviera precios del scraping y además uno de referencia, la tarjeta muestra los del scraping. Hoy no pasa: un producto personal nunca tiene precios del scraping.
+- El aviso de CA-02 dice: "Precio ingresado por ti: no está verificado ni se actualiza automáticamente."
+
+**HU-58 (SCRUM-89) — añadido:**
+
+- Pueden editar o eliminar:
+  - un producto personal: su dueño;
+  - un producto compartido: cualquier miembro actual de su household. Al compartirlo, `owner_id` queda en null (032), así que no se guarda quién lo creó; mismo criterio que las listas del household.
+  - Nunca un producto del catálogo global ni uno ya archivado.
+- Editar usa las mismas validaciones que crear (HU-56 CA-02 y, para la tienda y el precio, HU-57) y no cambia si el producto está compartido.
+- Editar reemplaza la tienda y el precio, igual que la marca: lo que queda vacío en el formulario se borra.
+- Un producto personalizado tiene una sola variante. Editar el tamaño actualiza esa variante, así que las listas que lo tienen ven el tamaño nuevo.
+- Eliminar siempre pide confirmación. El aviso de CA-02 cuenta:
+  - **listas activas**: `lists.status = 'active'`, con algún ítem del producto;
+  - **recetas**: cualquiera que lo tenga de ingrediente. Hoy la app no deja agregar un producto personal a una receta (el selector de ingredientes usa `search_catalog`), así que esta parte del aviso solo se ve si el producto entró a una receta por otra vía. La base la cuenta igual y la cubre la prueba SQL de 052.
+- Eliminar borra o archiva según su uso:
+  - **Se archiva** (`archived_at`) si existe cualquier ítem de lista (también en listas completadas o canceladas: guardan el historial de compras), ingrediente de receta o snapshot de faltante.
+  - **Se borra** si no existe nada de eso.
+- Un producto archivado no se lista en "Mis productos" y no se puede editar ni eliminar otra vez.
+- "Buscar", sus chips de categoría y el selector de ingredientes de recetas nunca muestran productos personales, archivados o no. `search_catalog` y `list_catalog_by_category` filtran `owner_id is null and household_id is null` desde la migración 031. "Mis productos" es la única pantalla que los lista, y ahí se filtra `archived_at`.
+- Las listas y recetas que ya tienen un producto archivado lo siguen mostrando, y su detalle se sigue abriendo: es lo que significa archivar en vez de borrar.
 
 ## 6. Estados
 
@@ -54,10 +158,39 @@ No incluye (ver §14):
 
 (Misma unión de estados que ya usa `features/catalog` para "Buscar", con los mismos nombres de `CATALOG_SEARCH_STATUS` salvo que acá no hay estado `idle`: la pantalla busca sola al montar, no espera que el usuario escriba nada.)
 
+**HU-56 — estados propios del formulario:** `idle` (cerrado), `open` (abierto, sin enviar), `submitting`, `success` (cierra y refresca el listado), `error` (muestra el mensaje, el formulario sigue abierto con los datos ya escritos).
+
+**HU-57:** sin estados nuevos. La tienda y el precio son campos más del formulario de HU-56.
+
+**HU-58:**
+
+- Editar: los mismos estados del formulario de HU-56.
+- Eliminar: `idle`, `confirming`, `deleting` y `failed`. Es la misma unión que la eliminación de recetas.
+
 ## 7. Errores
 
 - Falla la consulta a `household_members` o a `product_catalog` (red, error de Supabase): mensaje de error genérico, igual look & feel que "Buscar" (`role="alert"`).
 - Sin sesión: no debería poder llegar a esta ruta (el guard de sesión ya protege `(app)/`); si pasara, se trata igual que "sin household" → estado vacío.
+
+**HU-56:**
+
+- Nombre vacío o categoría sin seleccionar → error inline (CA-02), antes de llamar al RPC — "Guardar" no se habilita.
+- Falla el RPC (red, validación del servidor): mensaje de error, el formulario se mantiene abierto con lo ya escrito (no se pierde el trabajo del usuario).
+
+**HU-57:**
+
+- Precio <= 0, que no es un número, o que redondeado a 2 decimales da 0 o llega a 10^10 → error inline en el campo; "Guardar" no se habilita. El decimal se escribe con coma o con punto ("2850,50" o "2850.50"). El campo es de texto con teclado decimal: un campo `number` entrega vacío cuando lo escrito no es un número ("-", "e"), y el producto se guardaría sin precio y sin avisar.
+- "Otra tienda" sin nombre (o solo con espacios), o con más de 80 caracteres → error inline en el campo; "Guardar" no se habilita.
+- Como "Guardar" queda deshabilitado, el error de precio y de tienda aparece al salir del campo, sin tener que intentar guardar.
+- La base repite el precio y el largo de la tienda (error `22023`). Una tienda escrita en blanco la guarda como "sin tienda" (no es un error: el cliente ya la bloquea). Si algo pasara igual, se ve el mismo mensaje genérico de HU-56.
+- El precio se muestra sin decimales, como todos los precios de la app (`PRICE_FORMAT.MAX_FRACTION_DIGITS`): 2850.50 se ve "₡2 851". Se guarda con sus 2 decimales.
+
+**HU-58:**
+
+- Falla editar → el mensaje genérico de HU-56 y el formulario sigue abierto con lo escrito.
+- Falla eliminar → mensaje dentro del diálogo, que sigue abierto; "Eliminar" reintenta.
+- No se puede contar el uso → el diálogo se abre sin el aviso y eliminar funciona igual.
+- Sin permiso (producto ajeno, global o archivado) → la base responde `42501` y se ve el mismo mensaje genérico.
 
 ## 8. UI esperada
 
@@ -66,10 +199,39 @@ No incluye (ver §14):
 - Tarjeta: foto o inicial, "{producto} — {tamaño}", precio (o "Sin precio disponible"), y la etiqueta "Agregado por mí" como badge visible.
 - Estado vacío: mensaje de CA-02, centrado, mismo estilo que `CatalogEmptyState`.
 
+**HU-56:** botón "+ Agregar producto" en la cabecera, junto al título. Formulario corto (nombre, marca, categoría —select—, unidad + cantidad de tamaño, checkbox "Compartir con mi familia" si aplica), con acciones "Guardar"/"Cancelar". Mismo componente reusado desde el enlace de CA-04 en `features/catalog/`.
+
+**HU-57:**
+
+- Formulario: "Tienda (opcional)" (selector), "Nombre de la tienda" (solo con "Otra tienda") y "Precio de referencia (opcional)", debajo de cantidad y unidad.
+- Tarjeta: la tienda debajo del título; el precio con un ícono "i" pequeño (DESIGN.md §7.2).
+- Detalle: sección "Precio de referencia" entre las marcas y los precios por supermercado.
+
+**HU-58:**
+
+- Tarjeta: "Editar" y "Eliminar" debajo, fuera del link de la tarjeta.
+- Diálogo "¿Eliminar este producto?" con:
+  - el nombre del producto;
+  - "Deja de aparecer en "Mis productos" y no se puede deshacer.";
+  - el aviso de uso en terracota, si lo hay;
+  - "Cancelar" y "Eliminar" (rojo).
+
 ## 9. Accesibilidad
 
 - El badge "Agregado por mí" es texto real (no solo color), legible por lector de pantalla.
 - Mismas reglas que "Buscar": error con `role="alert"`, tabs con `aria-current="page"`.
+
+**HU-56:** cada campo del formulario con su `label` asociado; errores de validación anunciados (`role="alert"` o `aria-live`); el checkbox con su label clara, no solo un ícono.
+
+**HU-57:**
+
+- Cada campo nuevo tiene su `label` asociado. El error de cada uno va ligado al campo, igual que en `Input`.
+- El ícono "i" es decorativo. El aviso es texto: oculto visualmente en la tarjeta, que es un link entero y no admite un botón adentro, y visible en el detalle.
+
+**HU-58:**
+
+- Cada botón lleva el nombre del producto oculto ("Eliminar Queso casero"), así que no hay varios "Eliminar" iguales para un lector de pantalla.
+- El aviso de uso tiene `role="status"`, porque llega después de abrir el diálogo.
 
 ## 10. Restricciones técnicas
 
@@ -77,7 +239,22 @@ No incluye (ver §14):
 - Reutilizar `CatalogProduct`, `toCatalogCards` y `CatalogCard` en vez de duplicar el mapeo de producto→tarjeta.
 - Sin librerías nuevas.
 - Separar UI (`MyProducts.tsx`) de lógica (`hooks/useMyProductsViewModel.ts`), sin fetch ni `useEffect` en el `.tsx`.
-- Sin RPC nueva: `product_catalog`/`product_catalog_variants` ya tienen policy de lectura pública (`using (true)`), así que una consulta directa desde el cliente alcanza — no se toca RLS ni se agrega ninguna policy.
+- Sin RPC nueva para leer: una consulta directa desde el cliente alcanza. *(Corrección 2026-10-29, hallazgo del `security-reviewer`: la frase original decía que no hacía falta tocar RLS para esto — falso desde que HU-56 agrega `owner_id`/producto personal sin compartir. La migración 032 corrige la policy de lectura de `product_catalog`/`product_catalog_variants`/`product_brands`, ver §12. HU-56 sí necesita una RPC nueva para escribir — ver abajo.)*
+
+**HU-56:**
+
+- El formulario se controla a mano (sin librería de formularios nueva — mismo criterio "sin librerías nuevas" ya vigente).
+- La escritura pasa siempre por la función RPC nueva (ver §12); nunca un `insert` directo desde el cliente — la política de la tabla no lo permite (verificado, ver §12).
+
+**HU-57:**
+
+- La tienda y el precio se guardan en la variante (`product_catalog_variants`), nunca en `product_prices`. Detalle en §12 y en `plan.md`.
+- Sin librerías nuevas. El ícono sale de `lucide-react`, la librería única del proyecto.
+
+**HU-58:**
+
+- Toda escritura pasa por funciones de la base. El cliente no tiene `UPDATE` ni `DELETE` sobre las tablas del catálogo (020).
+- Los botones no pueden ir dentro del link de la tarjeta (HTML inválido). `CatalogCard` recibe las acciones como composición (`actions`).
 
 ## 11. Dependencias
 
@@ -87,28 +264,127 @@ No incluye (ver §14):
 - `services/supabase.client`
 - `@/components/ui` (Spinner)
 
+**HU-56, añadido:**
+
+- `categories` (lectura directa, pública — ver §12)
+- `CATALOG_BASE_UNIT` (unidad de tamaño, ya existente y compartida)
+- Función RPC nueva (ver §12)
+
+**HU-57, añadido:**
+
+- `STORE_NAMES`/`STORE_DISPLAY` (`constants/stores.constants.ts`): los 3 supermercados del selector.
+- `REFERENCE_PRICE_TEXT` (`constants/catalog.constants.ts`): el aviso de CA-02, compartido por la tarjeta y el detalle.
+
+**HU-58:** `@/types/personal-product.types` (`EditablePersonalProduct`), `components/ui` (Modal, Button) y el patrón de eliminación de `features/recipes` (`useRecipeDeletion`).
+
 ## 12. Contratos externos
 
-- Tabla `product_catalog` (columnas: `id`, `name`, `category_id`, `household_id`, `source`) — policy `"public read product_catalog" using (true)`, ya existente, sin cambios.
-- Tabla `product_catalog_variants` — policy `"public read variants" using (true)`, ya existente, sin cambios.
-- Tabla `household_members` (columnas `user_id`, `household_id`) para resolver el household del usuario actual — misma tabla que ya usa `features/household`, consulta propia y mínima (solo `household_id`), sin importar el servicio de esa feature (ver `plan.md`, decisión 4).
-- No se crea ninguna migración ni política nueva.
+- Tabla `product_catalog` (columnas reales, verificadas contra la base: `id`, `name`, `category_id`, `household_id`, `source`, `created_at`, y desde esta historia `owner_id`) — policy de lectura corregida en la migración 032 (ver abajo): catálogo global + propio + household, `to authenticated`.
+- Tabla `product_catalog_variants` (columnas reales: `id`, `product_catalog_id`, `name`, `base_unit`, `base_quantity`, `image_url`, `created_at`) — policy de lectura corregida en la migración 032: visible si su producto es visible.
+- Tabla `household_members` (columnas `user_id`, `household_id`, `role`, `created_at`, `personal_lists_decision`) para resolver el household del usuario actual — misma tabla que ya usa `features/household`, consulta propia y mínima (solo `household_id`), sin importar el servicio de esa feature (ver `plan.md`, decisión 4 de SCRUM-86).
+- *(Corrección 2026-10-29: sí hubo policy nueva para lectura — ver "HU-56" abajo, migración 032.)*
+
+**HU-56 (SCRUM-87) — contratos nuevos:**
+
+- Migración nueva: `ALTER TABLE product_catalog ADD COLUMN owner_id uuid NULL REFERENCES auth.users(id) ON DELETE CASCADE`. Nullable porque los 12 productos madre curados en SCRUM-131 nunca tuvieron (ni tendrán) dueño — quedan con `owner_id = null` para siempre.
+- Función nueva `security definer`, nombre a confirmar (propuesto: `create_personal_product`), que en una sola transacción: resuelve `household_id` internamente vía `auth.uid()` contra `household_members` (nunca recibido como parámetro del cliente, mismo criterio de seguridad que `ensure_general_list_id`), inserta la fila de `product_catalog` (`owner_id`, `household_id` si corresponde, `category_id`, `name`, `source = 'manual'`) y la fila de `product_catalog_variants` (`base_unit`, `base_quantity`), y si se dio marca, la fila de `product_brands`. Devuelve el producto creado.
+- Tabla `categories`: confirmado contra la base real (`pg_policies`) que su policy `"public read categories"` es `for select to public using (true)` — se lee directo, sin RPC, igual que ya hace SCRUM-84 para sus chips (heads-up de Daniel en el comentario de Jira `10049` sobre SCRUM-87, puesto durante SCRUM-84).
+- Confirmado contra la base real (`information_schema.role_table_grants`) que `anon`/`authenticated` **no tienen** `INSERT` sobre `product_catalog` ni `product_catalog_variants` — solo `SELECT`/`REFERENCES`/`TRIGGER`. La función nueva es la única puerta de escritura.
+- Número de migración: el próximo libre verificado contra la base real es **031** (última aplicada: `030_fix_list_catalog_by_category_param_names`) — sin confirmar todavía con el equipo, pendiente de coordinar antes de crear el archivo.
+- **Migración 032, agregada al cierre (2026-10-29, hallazgo del `security-reviewer`):** corrige la policy de lectura de `product_catalog`/`product_catalog_variants`/`product_brands` (ver §10) y un bug de `create_personal_product` (dejaba `owner_id` y `household_id` a la vez al compartir, duplicando el producto en `listMyProducts()`). Detalle completo en el encabezado de la migración y en `plan.md`.
+
+**HU-57 (SCRUM-88) — contratos nuevos (migración `051_personal_product_reference_price.sql`):**
+
+- `product_catalog_variants`, columnas nullable nuevas:
+  - `reference_price numeric(12,2)`, check `> 0`
+  - `reference_store_id uuid` → `stores`, `on delete set null`
+  - `reference_store_name text`, check de 1 a 80 caracteres sin espacios a los costados
+  - check: `reference_store_id` y `reference_store_name` nunca a la vez
+- `create_personal_product`: misma función con tres parámetros opcionales más: `reference_price`, `reference_store_slug` (la base lo traduce al id de `stores`) y `reference_store_name`. Se borra la firma de 6 parámetros para no dejar sobrecargas. Una llamada con los 6 de antes sigue funcionando igual.
+- Lectura: la misma consulta directa de `listMyProducts()` y de `getCatalogVariantDetail()` trae las columnas nuevas y `stores(display_name)`. Las cubre la misma RLS de 032: nadie ve el precio de un producto que no puede ver.
+- Por qué no `product_prices`:
+  - `store_id` solo admite los 3 supermercados y exige una marca.
+  - Su lectura es pública.
+  - `latest_prices` alimenta "Buscar" y el detalle.
+  Ver `plan.md`, tabla de decisiones HU-57.
+
+**HU-58 (SCRUM-89) — contratos nuevos (migración `052_edit_delete_personal_products.sql`):**
+
+- `product_catalog.archived_at timestamptz` (nullable).
+- `can_manage_personal_product(target_product_id)`: la regla de quién puede editar o eliminar. Es interna: sin grant al cliente.
+- `get_personal_product_usage(target_product_id)` → `active_list_count`, `recipe_count`.
+  - Es `security definer` porque las recetas solo las ve su dueño, y en un producto compartido hay que contar las de los demás miembros.
+  - Devuelve solo cantidades.
+- `update_personal_product(target_product_id, new_product_name, new_category_id, new_base_unit, new_base_quantity, new_brand_name)`. Los parámetros llevan prefijo para no chocar con los nombres de columna.
+- `delete_personal_product(target_product_id)` → `'deleted' | 'archived'`.
+- Lectura: `listMyProducts()` agrega `category_id`, `product_brands(name)` y el `slug` del supermercado, y filtra `archived_at is null`.
+- Migración `055_update_personal_product_reference_price.sql`: `update_personal_product` suma `new_reference_price`, `new_reference_store_slug` y `new_reference_store_name`, opcionales, con las mismas validaciones que `create_personal_product` (051). En null, ese dato se borra. Se borra la firma de 6 parámetros para no dejar sobrecargas.
 
 ## 13. Casos de aceptación
 
 - Caso 1 (CA-01): el usuario tiene household y ese household tiene productos `source='manual'` → se ven con la etiqueta "Agregado por mí".
-- Caso 2 (CA-02): el household del usuario no tiene productos manuales (o el usuario no tiene household) → estado vacío con el texto del ticket.
+- Caso 2 (CA-02): el household del usuario no tiene productos manuales (o el usuario no tiene household ni productos propios por `owner_id`) → estado vacío con el texto del ticket.
 - Caso 3: falla la consulta → mensaje de error.
-- Caso 4: los productos madre curados globalmente (`household_id = null`, `source = 'manual'`) nunca aparecen acá, sin importar cuántos existan.
+- Caso 4: los productos madre curados globalmente (`household_id = null`, `owner_id = null`, `source = 'manual'`) nunca aparecen acá, sin importar cuántos existan.
+
+**HU-56, añadido:**
+
+- Caso 5 (CA-01/CA-02): nombre y/o categoría vacíos → "Guardar" no se habilita / error inline, no se llama al RPC.
+- Caso 6 (CA-03, sin household): usuario sin household crea un producto → queda con `owner_id` propio, `household_id` null, visible solo para él en "Mis productos" (vía `owner_id`, no vía `household_id`).
+- Caso 7 (CA-03, con household, compartiendo): usuario con household marca "Compartir con mi familia" → el producto queda con el `household_id` de su household, visible para todo el household.
+- Caso 8 (CA-03, con household, sin compartir): usuario con household NO marca el checkbox → el producto queda con `household_id` null, visible solo para él (por `owner_id`) aunque tenga household.
+- Caso 9 (CA-04): desde el estado "sin resultados" de "Buscar" (`features/catalog`), el enlace abre el mismo formulario que el botón de "Mis productos", y guarda igual.
+
+**HU-57, añadido:**
+
+- Caso 10 (CA-01): sin tienda ni precio → se guarda igual que en HU-56.
+- Caso 11 (CA-01): con un supermercado y un precio → la tarjeta muestra el precio y el nombre del supermercado.
+- Caso 12 (CA-01): con "Otra tienda" escrita → la tarjeta muestra ese nombre.
+- Caso 13 (CA-02): con precio → ícono "i" y aviso en la tarjeta; en el detalle, sección "Precio de referencia" con el aviso visible.
+- Caso 14: precio <= 0, no numérico o con centavos que no entran en la columna, o "Otra tienda" sin nombre → error inline al salir del campo, "Guardar" deshabilitado, no se llama al RPC.
+- Caso 15 (CA-03): crear con precio no agrega filas a `product_prices`, y el producto ni su precio aparecen en "Buscar" (prueba SQL de 051).
+
+**HU-58, añadido:**
+
+- Caso 16 (CA-01): cada tarjeta tiene "Editar" y "Eliminar".
+- Caso 17 (CA-01): editar abre el formulario precargado y guardar actualiza la tarjeta.
+- Caso 18 (CA-02): eliminar un producto en listas activas o recetas avisa cuántas antes de confirmar.
+- Caso 19: un producto sin uso se borra; uno en uso se archiva, y sus listas y recetas siguen intactas.
+- Caso 20: nadie fuera del dueño (o del household, si está compartido) puede editarlo ni eliminarlo, ni siquiera llamando a la base directo.
+- Caso 21: editar abre el formulario con la tienda y el precio guardados, y guardar los cambia o los borra (prueba SQL de 055).
 
 ## 14. Casos fuera de alcance
 
-- Crear un producto personalizado (HU-56/SCRUM-87).
-- Tienda y precio de referencia manual (HU-57).
-- Editar o eliminar (HU-58).
-- Soporte para "producto personal sin household" (requiere decisión de modelo de datos fuera de esta historia).
-- Cualquier cambio a `docs/documento-proyecto.md` §4.5.1 (la sección asume un patrón `owner_id` que la tabla no tiene; se deja como está, documentado acá para quien trabaje HU-56).
+- Tienda y precio de referencia manual (HU-57/SCRUM-88). *(Nota 2026-11-17: entra en alcance con SCRUM-88, ver bloques HU-57.)*
+- Editar o eliminar (HU-58/SCRUM-89). *(Nota 2026-11-17: entra en alcance con SCRUM-89, ver bloques HU-58.)*
+- Subir una foto real (placeholder por decisión del dueño de la historia, 2026-10-28 — ver §15).
+- "Re-decidir" qué pasa con un producto ya creado si el usuario cambia de household después (no existe una HU-34b equivalente para productos todavía).
+- Cualquier cambio a `docs/documento-proyecto.md §4.5.1` (la sección ya describía el patrón `owner_id` + `household_id` nullable que esta historia implementa — no hace falta corregirla, solo cerrarla).
+
+**HU-57, añadido:**
+
+- Editar la tienda o el precio de un producto ya creado (HU-58/SCRUM-89). *(Se suma en SCRUM-89, migración `055`.)*
+- Usar el precio manual en las sugerencias de dónde comprar (documento de proyecto §4.8, sin pantalla todavía).
+- Más de un precio por producto, o historial de precios manuales.
+
+**HU-58, añadido:**
+
+- Cambiar si el producto está compartido, en cualquier sentido.
+- Ver o recuperar productos archivados.
+- "Usado en un grupo" (no existen grupos todavía).
 
 ## 15. Notas de implementación
 
-- `docs/documento-proyecto.md` §4.5.1 dice que un producto personalizado sigue "el mismo patrón `owner_id` + `household_id` nullable que las listas", pero `product_catalog` real (confirmado contra la base: `id, name, category_id, household_id, source, created_at`) no tiene `owner_id`. La sección §6 del mismo documento, en cambio, define `household_id` como "NULL = catálogo global, con valor = producto propio" — que es lo que efectivamente se implementó (y lo que usó SCRUM-131 para los 12 productos madre curados). Esta historia sigue §6 y la implementación real, no §4.5.1. Queda para quien trabaje HU-56 decidir si hace falta `owner_id` para soportar productos personales sin household.
+- `docs/documento-proyecto.md §4.5.1` dice que un producto personalizado sigue "el mismo patrón `owner_id` + `household_id` nullable que las listas", pero `product_catalog` real (confirmado contra la base: `id, name, category_id, household_id, source, created_at`) no tenía `owner_id` hasta esta historia. La sección §6 del mismo documento, en cambio, define `household_id` como "NULL = catálogo global, con valor = producto propio" — que es lo que efectivamente implementó SCRUM-131 para los 12 productos madre curados. SCRUM-86 siguió §6 y la implementación real, no §4.5.1, y dejó anotado en su propio `plan.md` (tabla de decisiones) que agregar `owner_id` quedaba para quien trabajara HU-56.
+- **Actualización 2026-10-28 (SCRUM-87):** se decide sí agregar `owner_id`, cerrando esa deuda (decisión registrada también en `docs/documento-proyecto.md §6`, con fecha). Si el producto se comparte con el household y el usuario sale de él después, deja de verlo (el acceso a algo con `household_id` se calcula por membresía actual, mismo criterio que ya aplica `lists`) pero el producto no se borra; si nunca se compartió, su `owner_id` no depende de ningún household y nunca se pierde. `listMyProducts()` (SCRUM-86) se extiende de forma aditiva: cuando no hay household, además de poder devolver vacío, ahora también busca por `owner_id = auth.uid()`.
+- **HU-57 (SCRUM-88, 2026-11-17):** `docs/documento-proyecto.md §4.5.1` decía que el precio de referencia "reusa `product_prices`, solo que con `source: manual`". Contra la base real eso no cabe:
+  - `product_prices.store_id` solo admite los 3 supermercados (check de `stores.slug`), y el ejemplo del propio documento es una carnicería.
+  - `product_brand_id` es obligatorio, y la marca de un producto personal es opcional.
+  - La lectura de `product_prices` es pública (`using (true)`).
+  - `latest_prices` alimenta los rangos de "Buscar" y el detalle, y ahí se mezclaría con los del scraping (contra CA-03).
+
+  Se guarda en la variante y se corrige §4.5.1 y §6 del documento en el mismo PR. El comentario de Jira de SCRUM-88 (2026-10-29) ya anticipaba una columna o tabla separada.
+
+- **HU-58 (SCRUM-89, 2026-11-17):** borrar siempre no era posible. `list_items.product_catalog_variant_id` y `recipe_ingredients.product_catalog_id` apuntan al producto sin `on delete` (verificado contra la base): la base rechaza el borrado de un producto en uso.
+  - Borrar en cascada se llevaba los ítems de listas, con su historial de compras, y los ingredientes de recetas, también de otros miembros.
+  - Por eso se eligió el criterio "borrar si nada lo usa, archivar si algo lo usa".

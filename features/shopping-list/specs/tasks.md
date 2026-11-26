@@ -71,3 +71,71 @@ Deriva de [plan.md](plan.md). Cada tarea se valida antes de pasar a la siguiente
 - [x] 39. Validar CA-01..07 en el navegador; `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; revisores; body de la PR y guía de estudio.
 
 Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base nueva y se pueden adelantar.
+
+## SCRUM-114: aviso pasivo de faltante
+
+- [x] 40. SPEC (§16; huecos de HU-76 decididos con el responsable el 2026-10-29: pendientes y tachados, una línea por receta, nombre visible para la familia sin abrir la RLS de `recipes`), plan y tareas.
+- [x] 41. Migración `033_list_recipe_shortfalls.sql` (RPC `get_general_list_shortfalls`) y su prueba `supabase/tests/033_list_recipe_shortfalls.test.sql`.
+- [x] 42. Aplicar la `033` en Supabase (lo hace Roberto en el SQL Editor: ensayo con la prueba y `rollback`, después con su fila `033` según `supabase/README.md#migraciones`) y copiar `Functions.get_general_list_shortfalls` a `types/database.types.ts`. Bloquea la validación en el navegador (46), no el código.
+- [x] 43. Promover `formatRecipeQuantity` a `utils/` (`git mv`) con sus constantes a `constants/recipe-quantity.constants.ts` (+ barrel; recetas las importa de `@/constants`, sin reexport). Tests de recetas sin cambios y test propio en `utils/tests/formatRecipeQuantity.test.ts`.
+- [x] 44. Constantes, modelos, `toRecipeShortfalls`, `toShortfallNote`, `toShoppingListRow` y el reducer (`ITEM_UPSERTED`), con tests primero. Servicio (`getGeneralList` en paralelo, `addItemToGeneralList`) con su test.
+- [x] 45. Presentación: `ShoppingListShortfallNotes` y la fila (`aria-describedby`); test de la fila con Page Object.
+- [x] 46. `E2E.md` (E2E-LISTA-06) y su test; `docs/documento-proyecto.md` §4.9.1 y §6. `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm test`, E2E; validar §16.13 en el navegador (con una familia de dos miembros para la regla 29).
+  - Hecho (2026-10-29), con la `033` aplicada por Roberto: `tsc`, lint, build, `npm test` (1113 pruebas) y el E2E de la lista completo, 10 de 10 en chromium y mobile-chrome. En el navegador (escritorio y celular): dos recetas sobre la misma leche dan dos líneas ("+ 97000 ml necesarios para Tres leches", "+ 2500,5 ml necesarios para Flan"); al tachar, el producto se tacha y los avisos no; el botón de la fila los referencia con `aria-describedby` y la lista de avisos queda fuera de él.
+  - **Entorno:** con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=true` en `.env.local`, `/lista` redirige a iniciar sesión y todo el E2E de la lista falla (usa usuarios anónimos). Se corrió con `NEXT_PUBLIC_SESSION_GUARD_ENABLED=false npx playwright test e2e/features/shopping-list` y el puerto 3000 libre, para que Playwright levante `npm run dev` con esa variable.
+  - La regla 29 (familia) quedó cubierta por la prueba SQL; a mano con dos cuentas registradas queda para QA.
+- [ ] 47. (Revisores hechos el 2026-10-29: código sin bloqueantes, seguridad sin Críticos ni Altos; corregidos el reexport, la key de los avisos, el prefijo de id en un objeto y la prueba SQL con aislamiento entre familias, lista personal conservada y familia sin lista. Falta la revisión de Marcos.) Revisión con `code-reviewer` y `security-reviewer` (RPC `security definer`), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Marcos (toca su feature).
+
+## SCRUM-156
+
+- [x] Migración `035_keep_purchase_on_readd.sql` + `supabase/tests/035_keep_purchase_on_readd.test.sql` (ensayo con rollback en la base compartida).
+- [x] Pruebas SQL 015, 018 y 024 actualizadas a la regla nueva.
+- [x] `ItemCheckResult`, `CHECK_MERGED`, `mergeRecipeShortfalls`, reducer, `useShoppingList`, buscador del ViewModel.
+- [x] Unitarios: reducer, hook, servicio, `mergeRecipeShortfalls`.
+- [x] SPEC §5 regla 8, §12, §13, §14, §16.11 y §17; plan; documento-proyecto; SPEC de household y de recetas.
+- [ ] Aplicar 035 con su fila de historial, correr las pruebas SQL contra la base y revisar en el navegador.
+
+## SCRUM-115: resolver el faltante al tachar
+
+- [x] 48. SPEC (§18; huecos de HU-77 decididos con el responsable entre el 2026-10-29 y el 2026-11-01), plan y tareas. Depende de SCRUM-156 (mergeada).
+- [x] 49. Migración `037_resolve_recipe_shortfalls.sql` (incluye la foto para deshacer y `undo_shortfall_resolution_and_uncheck`) y su prueba `supabase/tests/037_resolve_recipe_shortfalls.test.sql`.
+- [x] 50. Aplicar la `037` (Roberto, SQL Editor: ensayo con la prueba y `rollback`, después con su fila `037`) y actualizar `types/database.types.ts`. Bloquea la validación en el navegador (55), no el código.
+- [x] 51. Constantes, modelos, `shortfall-resolution.reducer`, `toPresentationOptions`, con tests primero.
+- [x] 52. Servicios: `getGeneralListShortfalls(localDayStart)`, `resolveShortfall`, `getProductPresentations`, y la cobertura de recetas con la medianoche local; tests de servicio.
+- [x] 53. Hooks: `reload` y el aviso de tachado confirmado en `useShoppingList`, `useShortfallResolution` (sigue abierto si falta), `useUncheckWithUndo` y su composición en el ViewModel; tests.
+- [x] 54. Presentación: `ShortfallResolutionPanel`, `ShortfallPresentationList`, `UndoResolutionDialog`, montaje en `ShoppingListInner`; tests con Page Object.
+- [x] 55. `E2E.md` (E2E-LISTA-07) y su test; `docs/documento-proyecto.md`; `tsc`, lint, build, `npm test`, E2E; validar §18.13 en el navegador.
+  - Hecho (2026-11-01), con la `037` aplicada por Roberto (ensayo con la prueba y `rollback` primero, que pasó; después con su fila `037`): `tsc`, lint, build, `npm test` y el E2E de la lista completo, 12 de 12 en chromium y mobile-chrome (incluye E2E-LISTA-06 con la función en vivo y E2E-LISTA-07). En el navegador (escritorio y celular): el panel con el aviso, "Todavía falta" después de una unidad que no alcanza, las presentaciones ordenadas por precio sin marcar ninguna, y el diálogo de deshacer. La familia (regla 42) quedó cubierta por la prueba SQL; a mano con dos cuentas registradas queda para QA.
+- [ ] 56. (Revisores hechos el 2026-11-01: código sin bloqueantes —corregida la carrera entre refrescar avisos y recargar—; seguridad sin Críticos ni Altos —deshacer no reescribe una compra cerrada y la prueba SQL suma otra familia, fotos y cobertura ajenas, compra cerrada con las tres opciones, variante nula o la misma, medianoche nula o futura—. Falta la revisión de Marcos.) Revisión con `code-reviewer` y `security-reviewer` (tres funciones `security definer`), correcciones y pasos de prueba manual del PR antes de `waiting qa`. Revisión de Marcos.
+- [ ] 57. Correcciones de QA de la PR #82 (Marcos, 2026-11-02, `qa denied`):
+  - [x] BUG-1: el diálogo de deshacer prometía volver a como estaba en una fila de una compra cerrada, y la base solo destachaba. Migración `041_hide_closed_purchase_snapshots.sql` (la pantalla no recibe la foto de esas filas y destacha sin diálogo) con su prueba SQL.
+  - [x] Aviso "Otro miembro ya cambió este producto." cuando la base no aplica lo elegido o el deshacer (antes el panel se cerraba sin decir nada).
+  - [x] "Cambié a otra presentación" ofrece solo presentaciones en la unidad de los avisos de la fila.
+  - [ ] Aplicar la `041` (Roberto: ensayo con la prueba y `rollback`, después con su fila `041`), correr el E2E de la lista y volver a `waiting qa`.
+- [ ] 58. Correcciones del re-QA de la PR #82 (Marcos, 2026-11-07, `qa denied`):
+  - [x] BUG-2: después de cerrar la compra, sin recargar, el diálogo de deshacer seguía prometiendo volver a como estaba. Cerrar no recarga la pantalla y la fila conservaba la foto. Acción `PURCHASE_CLOSED` del reducer: al confirmar el cierre, las filas de esa compra pierden la foto (regla 45). Recargar la lista no alcanzaba: tocar la fila antes de que respondiera seguía abriendo el diálogo.
+  - [x] Tests: reducer (las filas de la compra cerrada pierden la foto, las demás no), `useShoppingListViewModel.test.ts` (cerrar marca la compra y sale del modo compra) y E2E-LISTA-08 (falla sin la corrección, pasa con ella).
+  - [ ] Volver a `waiting qa`.
+
+## SCRUM-103: chips de duración al tachar (HU-70b)
+
+- [x] 59. Migración `063_shelf_life_choice.sql` (columna, permiso, trigger, `get_inventory_suggestions` con el chip) y su prueba SQL.
+- [x] 60. Tipos de `list_items` en `types/database.types.ts`.
+- [x] 61. Constantes, servicio, `useShelfLifeChips` y `ShelfLifeChips`; montaje en la fila, el ViewModel y `ShoppingListInner`.
+- [x] 62. Pruebas unitarias (componente con Page Object, hook, servicio, ViewModel y pantalla) y E2E-LISTA-09.
+- [ ] 63. Avisar al equipo el número 063, aplicarla (después de la 061) y correr su prueba SQL.
+- [ ] 64. Confirmar con el PO los días de cada chip y qué hace "No vence".
+- [ ] 65. Validar a mano en modo compra, en celular y escritorio.
+- [x] 66. Revisar con `code-reviewer`, `security-reviewer` y `qa-checker`. Corregido: el chip reaparecía marcado al volver a tachar una fila (la base ya lo había borrado); el error y el "guardando" de una fila se veían en otra; constante de tabla repetida. Prueba SQL: update a una fila pendiente como `authenticated` y la última compra sin chip ignora el de una anterior. Seguridad sin hallazgos.
+- [x] 67. QA de la PR #121 (`qa denied`): BUG-1, en el celular los chips quedaban de ~47 px dentro de la columna del nombre. Ahora van en su propia línea a todo el ancho de la fila (`flex-wrap` en el `<li>` y `basis-full`); Además los chips pasan a otro renglón si no caben (`flex-wrap`) en vez de deslizarse: así se ven los cuatro sin buscar las opciones escondidas a la derecha. E2E-LISTA-09 comprueba que el grupo es al menos tan ancho como el texto de la fila y que los cuatro chips se ven enteros. OBS-1 (sin chips al recargar) es lo esperado: SPEC §19.11.
+
+## SCRUM-163: un producto personal sin compartir en la lista de la familia
+
+- [X] 1. La lista tolera una fila sin presentación ("Producto no disponible") + test del servicio.
+- [X] 2. Detalle: `isPersonal` + `hasHousehold()` → aviso en vez de agregar + tests del ViewModel y la vista.
+- [X] 3. Grupos: `personal` en la respuesta, normalizado en el servicio, línea en el resumen + tests.
+- [X] 4. Migración nueva de `add_group_to_general_list` + prueba SQL; prueba en seco (migración + prueba en una transacción con `rollback`): pasó, sin restos.
+- [X] 5. E2E-LISTA-10 (respuesta simulada con la forma real de la base).
+- [X] 6. Specs, `docs/documento-proyecto.md` §4.5.1.
+- [X] 6b. (Revisión de Marcos) Misma guarda en las sublistas por fecha + test; texto compartido en `constants/list-items.constants.ts`.
+- [X] 7. Visto bueno del equipo → migración aplicada como `066` (+ fila del historial, en una transacción); prueba SQL contra la base: pasó, sin restos → `waiting qa`.

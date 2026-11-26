@@ -1,3 +1,4 @@
+import { TERMS_ROUTE } from "@/constants";
 import type { InfoBlock } from "../models/InfoBlock.interface";
 import type { NavLink } from "../models/NavLink.interface";
 import type { PlatformFeature } from "../models/PlatformFeature.interface";
@@ -7,7 +8,7 @@ export const LANDING_ROUTE = {
   ABOUT: "/nosotros",
   HOME: "/",
   REGISTER: "/registro",
-  TERMS: "/terminos",
+  TERMS: TERMS_ROUTE,
 } as const;
 
 export const LANDING_SECTION_ID = {
@@ -28,6 +29,7 @@ export const BRAND_LOGO = {
 
 export const NAVBAR_TEXT = {
   GO_TO_APP: "Ir a mi lista",
+  LOGIN: "Iniciar sesión",
   NAV_LABEL: "Navegación principal",
   REGISTER: "Registrarse",
 } as const;
@@ -54,13 +56,27 @@ export const MORE_INFO_TEXT = {
   TITLE: "Tacha en detalle",
 } as const;
 
-// Marcador hasta tener el video de la demo (CA-03 a CA-05 de HU-07 pendientes).
+// Sección "Así se ve Tacha" (SCRUM-152): capturas reales de la app en vez del
+// marcador "Aquí va la demo, pendiente". Si algún día llega el video de la
+// demo (HU-07, CA-03 a CA-05), reemplaza a estas imágenes.
 export const DEMO_TEXT = {
-  PLACEHOLDER: "Aquí va la demo, pendiente",
+  DESCRIPTION: "La lista de la casa, con lo que falta comprar y lo que ya se tachó, en la computadora y en el celular.",
+  DESKTOP_ALT: "La lista general de Tacha en la computadora: productos pendientes con su cantidad y el menú de secciones a la izquierda.",
+  MOBILE_ALT: "La lista general de Tacha en el celular, con el menú de secciones abajo.",
+  TITLE: "Así se ve Tacha",
+} as const;
+
+export const DEMO_IMAGE = {
+  DESKTOP_HEIGHT_PX: 800,
+  DESKTOP_SRC: "/landing/demo-escritorio.png",
+  DESKTOP_WIDTH_PX: 1280,
+  MOBILE_HEIGHT_PX: 844,
+  MOBILE_SRC: "/landing/demo-movil.png",
+  MOBILE_WIDTH_PX: 390,
 } as const;
 
 export const ABOUT_TEXT = {
-  DESCRIPTION: "Conocé quiénes somos y hacia dónde vamos.",
+  DESCRIPTION: "Conoce quiénes somos y hacia dónde vamos.",
   MISSION:
     "Ayudar a los hogares costarricenses a organizar sus compras en equipo, con información real de precios, para que gasten menos tiempo y menos dinero.",
   MISSION_TITLE: "Misión",
@@ -102,7 +118,7 @@ export const ORGANIZATION_FACTS: readonly InfoBlock[] = [
 export const PLATFORM_FEATURES: readonly PlatformFeature[] = [
   {
     detail:
-      "Creás un hogar, invitás con un enlace a quienes viven con vos y todos trabajan sobre la misma lista. Cuando alguien tacha un producto en el súper, los demás lo ven al instante.",
+      "Creas un hogar, invitas con un enlace a quienes viven contigo y todos trabajan sobre la misma lista. Cuando alguien tacha un producto en el súper, los demás lo ven al instante.",
     id: "lista-compartida",
     summary: "Todos en la casa agregan y tachan productos en la misma lista, en tiempo real.",
     title: "Una lista para toda la casa",
@@ -111,7 +127,7 @@ export const PLATFORM_FEATURES: readonly PlatformFeature[] = [
     detail:
       "Tacha consulta los sitios oficiales de MaxiPali, Walmart y MasxMenos y guarda precios de referencia. Con eso te sugiere dónde te conviene comprar. Son aproximados: en tienda pueden variar.",
     id: "precios",
-    summary: "Compará precios aproximados de tres supermercados antes de salir.",
+    summary: "Compara precios aproximados de tres supermercados antes de salir.",
     title: "Precios por supermercado",
   },
   {
@@ -119,7 +135,7 @@ export const PLATFORM_FEATURES: readonly PlatformFeature[] = [
       "Cada compra guarda quién la hizo, en qué supermercado y cuánto costó. Con ese historial el hogar ve en qué se va la plata por producto, categoría o supermercado.",
     id: "gastos",
     summary: "Cada compra queda registrada: quién, dónde, cuándo y cuánto.",
-    title: "Sabé cuánto gastan",
+    title: "Descubre cuánto gastan",
   },
 ];
 
@@ -162,12 +178,12 @@ export const CAROUSEL_ICON_PATH = {
 
 export const FOOTER_TEXT = {
   ABOUT_LABEL: "Sobre Tacha",
-  CONTACT_DESCRIPTION: "Escribinos por mensaje directo en Instagram.",
+  CONTACT_DESCRIPTION: "Escríbenos por mensaje directo en Instagram.",
   CONTACT_TITLE: "Contacto",
   DESCRIPTION:
     "Listas de compras colaborativas para el hogar: una lista compartida, precios aproximados por supermercado y menos mandados repetidos.",
   LEGAL_LABEL: "Enlaces legales e institucionales",
-  SOCIAL_TITLE: "Seguinos",
+  SOCIAL_TITLE: "Síguenos",
 } as const;
 
 export const BACK_BUTTON_TEXT = {

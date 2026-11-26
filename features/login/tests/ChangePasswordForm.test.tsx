@@ -47,7 +47,7 @@ describe("ChangePasswordForm", () => {
   it("shows the mismatch error under the repeat field and the save failure as an alert", () => {
     renderForm({
       confirmPasswordError: "Las contraseñas no coinciden.",
-      submitError: "No pudimos actualizar tu contraseña. Intentá de nuevo en unos minutos.",
+      submitError: "No pudimos actualizar tu contraseña. Intenta de nuevo en unos minutos.",
     });
 
     expect(screen.getByText("Las contraseñas no coinciden.")).toBeInTheDocument();

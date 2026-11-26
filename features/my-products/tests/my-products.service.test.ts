@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CATALOG_CATEGORY_TEXT, CATALOG_SOURCE } from "@/constants";
+import { STORE_NAMES } from "@/constants/stores.constants";
 import { MY_PRODUCTS_DB } from "../constants/my-products.constants";
 import { listMyProducts } from "../services/my-products.service";
 
@@ -26,12 +27,70 @@ interface QueryResult {
 const createQueryBuilder = (result: QueryResult) => {
   const builder = {
     eq: () => builder,
+    is: () => builder,
     maybeSingle: () => Promise.resolve(result),
     order: () => Promise.resolve(result),
     select: () => builder,
   };
   return builder;
 };
+
+// Igual que createQueryBuilder, pero distingue por cuál columna se filtró
+// (HOUSEHOLD_ID u OWNER_ID): HU-56 consulta product_catalog dos veces en
+// paralelo (household_id y owner_id), ambas por la misma tabla, y cada una
+// necesita su propio resultado simulado.
+const createProductCatalogBuilder = (resultByColumn: Record<string, QueryResult>) => {
+  let matchedColumn: string | null = null;
+  const builder = {
+    eq: (column: string) => {
+      if (column in resultByColumn) matchedColumn = column;
+      return builder;
+    },
+    is: () => builder,
+    order: () =>
+      Promise.resolve(matchedColumn ? resultByColumn[matchedColumn] : { data: [], error: null }),
+    select: () => builder,
+  };
+  return builder;
+};
+
+const manualProductRow = (id: string, name: string) => ({
+  category_id: "category-1",
+  id,
+  name,
+  product_catalog_variants: [
+    {
+      base_quantity: 1000,
+      base_unit: "ml",
+      id: `${id}-variant`,
+      image_url: null,
+      product_brands: [],
+      reference_price: null,
+      reference_store_name: null,
+      stores: null,
+    },
+  ],
+});
+
+const toExpectedProduct = (id: string, name: string) => ({
+  category: CATALOG_CATEGORY_TEXT.UNASSIGNED,
+  productId: id,
+  productName: name,
+  variants: [
+    { baseQuantity: 1000, baseUnit: "ml", imageUrl: null, priceRangeByStore: {}, variantId: `${id}-variant` },
+  ],
+  editable: {
+    baseQuantity: 1000,
+    baseUnit: "ml",
+    brandName: null,
+    categoryId: "category-1",
+    name,
+    productId: id,
+    referencePrice: null,
+    referenceStoreName: null,
+    referenceStoreSlug: null,
+  },
+});
 
 const mockSession = (): void => {
   getSessionMock.mockResolvedValue({ data: { session: { user: { id: USER_ID } } }, error: null });
@@ -47,99 +106,277 @@ describe("listMyProducts", () => {
     fromMock.mockReset();
   });
 
-  it("resolves to an empty list without querying product_catalog when there is no session", async () => {
+  it("resolves to an empty list without querying anything when there is no session", async () => {
     mockNoSession();
 
     await expect(listMyProducts()).resolves.toEqual([]);
     expect(fromMock).not.toHaveBeenCalled();
   });
 
-  // Regla de negocio SPEC.md §5: sin household no hay dónde buscar.
-  it("resolves to an empty list without querying product_catalog when the user has no household", async () => {
+  // HU-56 (SPEC.md §5, §15): ya no se corta a [] sin household — siempre se
+  // busca también por owner_id.
+  it("queries product_catalog by owner_id even when the user has no household", async () => {
     mockSession();
     fromMock.mockImplementation((table: string) => {
       if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
         return createQueryBuilder({ data: null, error: null });
       }
-      throw new Error(`tabla inesperada: ${table}`);
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: [manualProductRow("product-1", "Tamal")], error: null },
+      });
+    });
+
+    await expect(listMyProducts()).resolves.toEqual([toExpectedProduct("product-1", "Tamal")]);
+    // household_members + product_catalog por owner_id (sin household no se
+    // consulta además por household_id: Promise.resolve([]) sin tocar la base).
+    expect(fromMock).toHaveBeenCalledTimes(2);
+  });
+
+  // Caso 6 de SPEC.md §13: visible solo para el usuario, no por household_id.
+  it("resolves to an empty list when the user has no household and no own products", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: [], error: null },
+      });
     });
 
     await expect(listMyProducts()).resolves.toEqual([]);
-    expect(fromMock).toHaveBeenCalledTimes(1);
   });
 
-  // CA-01: productos manuales del household, mapeados a CatalogProduct con sus variantes.
+  // CA-01 (SCRUM-86): productos manuales del household, mapeados con sus variantes.
   it("maps the household's manual products with their variants", async () => {
     mockSession();
     fromMock.mockImplementation((table: string) => {
       if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
         return createQueryBuilder({ data: { household_id: HOUSEHOLD_ID }, error: null });
       }
-      if (table === MY_PRODUCTS_DB.TABLE.PRODUCT_CATALOG) {
-        return createQueryBuilder({
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID]: { data: [manualProductRow("product-1", "Leche")], error: null },
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: [], error: null },
+      });
+    });
+
+    await expect(listMyProducts()).resolves.toEqual([toExpectedProduct("product-1", "Leche")]);
+  });
+
+  // Caso 7/8 de SPEC.md §13: un producto compartido (household_id) y uno sin
+  // compartir (owner_id) del mismo usuario se ven juntos, sin duplicarse —
+  // nunca tienen ambos campos a la vez (lo decide create_personal_product).
+  // HU-57 (SCRUM-88): precio y tienda de referencia; la tienda es el súper
+  // (stores.display_name) o la escrita a mano, nunca las dos.
+  it("maps the reference price and store of each variant", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: {
           data: [
             {
+              category_id: "category-1",
               id: "product-1",
-              name: "Leche",
+              name: "Chorizo",
               product_catalog_variants: [
-                { base_quantity: 1000, base_unit: "ml", id: "variant-1", image_url: null },
+                {
+                  base_quantity: 400,
+                  base_unit: "g",
+                  id: "variant-1",
+                  image_url: null,
+                  product_brands: [],
+                  reference_price: 3200,
+                  reference_store_name: "Carnicería Los Ángeles",
+                  stores: null,
+                },
+              ],
+            },
+            {
+              category_id: "category-1",
+              id: "product-2",
+              name: "Queso",
+              product_catalog_variants: [
+                {
+                  base_quantity: 500,
+                  base_unit: "g",
+                  id: "variant-2",
+                  image_url: null,
+                  product_brands: [],
+                  reference_price: null,
+                  reference_store_name: null,
+                  stores: { display_name: "MaxiPali" },
+                },
               ],
             },
           ],
           error: null,
-        });
+        },
+      });
+    });
+
+    const [chorizo, queso] = await listMyProducts();
+
+    expect(chorizo.variants[0]).toMatchObject({ referencePrice: 3200, referenceStoreName: "Carnicería Los Ángeles" });
+    expect(queso.variants[0].referencePrice).toBeUndefined();
+    expect(queso.variants[0].referenceStoreName).toBe("MaxiPali");
+  });
+
+  it("merges household and owner results, sorted alphabetically by product name", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: { household_id: HOUSEHOLD_ID }, error: null });
       }
-      throw new Error(`tabla inesperada: ${table}`);
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID]: { data: [manualProductRow("product-2", "Leche")], error: null },
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: [manualProductRow("product-1", "Arroz")], error: null },
+      });
     });
 
     await expect(listMyProducts()).resolves.toEqual([
-      {
-        category: CATALOG_CATEGORY_TEXT.UNASSIGNED,
-        productId: "product-1",
-        productName: "Leche",
-        variants: [
-          { baseQuantity: 1000, baseUnit: "ml", imageUrl: null, priceRangeByStore: {}, variantId: "variant-1" },
-        ],
-      },
+      toExpectedProduct("product-1", "Arroz"),
+      toExpectedProduct("product-2", "Leche"),
     ]);
   });
 
-  // Caso 4 de SPEC.md §13: nunca se filtra solo por source, siempre junto con el household_id.
-  it("filters product_catalog by both source and the user's household_id", async () => {
+  // Caso 4 de SPEC.md §13: nunca se filtra solo por source, siempre junto con household_id/owner_id.
+  it("filters each product_catalog query by source and by its own column", async () => {
     mockSession();
-    const productCatalogBuilder = createQueryBuilder({ data: [], error: null });
-    const eqSpy = vi.spyOn(productCatalogBuilder, "eq");
+    const householdBuilder = createProductCatalogBuilder({
+      [MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID]: { data: [], error: null },
+    });
+    const ownerBuilder = createProductCatalogBuilder({
+      [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: [], error: null },
+    });
+    const householdEqSpy = vi.spyOn(householdBuilder, "eq");
+    const ownerEqSpy = vi.spyOn(ownerBuilder, "eq");
+    let productCatalogCallCount = 0;
 
     fromMock.mockImplementation((table: string) => {
       if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
         return createQueryBuilder({ data: { household_id: HOUSEHOLD_ID }, error: null });
       }
-      return productCatalogBuilder;
+      productCatalogCallCount += 1;
+      return productCatalogCallCount === 1 ? householdBuilder : ownerBuilder;
     });
 
     await listMyProducts();
 
-    expect(eqSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.SOURCE, CATALOG_SOURCE.MANUAL);
-    expect(eqSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID, HOUSEHOLD_ID);
+    expect(householdEqSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.SOURCE, CATALOG_SOURCE.MANUAL);
+    expect(ownerEqSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.SOURCE, CATALOG_SOURCE.MANUAL);
   });
 
-  it("rethrows the Supabase error from the product_catalog query", async () => {
+  // HU-58 (SCRUM-89): un producto eliminado que seguía en uso queda archivado y no se lista.
+  it("excludes archived products from both queries", async () => {
     mockSession();
-    const supabaseError = { code: "500", message: "network error" };
+    const builders = [
+      createProductCatalogBuilder({ [MY_PRODUCTS_DB.COLUMN.HOUSEHOLD_ID]: { data: [], error: null } }),
+      createProductCatalogBuilder({ [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: [], error: null } }),
+    ];
+    const isSpies = builders.map((builder) => vi.spyOn(builder, "is"));
+    let productCatalogCallCount = 0;
+
     fromMock.mockImplementation((table: string) => {
       if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
         return createQueryBuilder({ data: { household_id: HOUSEHOLD_ID }, error: null });
       }
-      return createQueryBuilder({ data: null, error: supabaseError });
+      productCatalogCallCount += 1;
+      return builders[productCatalogCallCount - 1];
     });
 
-    await expect(listMyProducts()).rejects.toBe(supabaseError);
+    await listMyProducts();
+
+    isSpies.forEach((isSpy) => expect(isSpy).toHaveBeenCalledWith(MY_PRODUCTS_DB.COLUMN.ARCHIVED_AT, null));
+  });
+
+  // HU-58: la marca y la categoría salen de la fila, para abrir el formulario de edición precargado.
+  it("maps the brand and category the edit form needs", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: {
+          data: [
+            {
+              category_id: "category-9",
+              id: "product-1",
+              name: "Queso",
+              product_catalog_variants: [
+                {
+                  base_quantity: 250,
+                  base_unit: "g",
+                  id: "v-1",
+                  image_url: null,
+                  product_brands: [{ name: "Finca Eva" }],
+                  reference_price: 2850,
+                  reference_store_name: null,
+                  stores: { display_name: "MaxiPali", slug: "maxipali" },
+                },
+              ],
+            },
+          ],
+          error: null,
+        },
+      });
+    });
+
+    const [product] = await listMyProducts();
+
+    expect(product.editable).toEqual({
+      baseQuantity: 250,
+      baseUnit: "g",
+      brandName: "Finca Eva",
+      categoryId: "category-9",
+      name: "Queso",
+      productId: "product-1",
+      referencePrice: 2850,
+      referenceStoreName: null,
+      referenceStoreSlug: STORE_NAMES.MAXIPALI,
+    });
+  });
+
+  // HU-58: sin su variante no se inventan datos para el formulario: el producto no se lista.
+  it("skips a product without its variant instead of inventing its size", async () => {
+    mockSession();
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: {
+          data: [{ category_id: "category-1", id: "product-1", name: "Huérfano", product_catalog_variants: [] }],
+          error: null,
+        },
+      });
+    });
+
+    await expect(listMyProducts()).resolves.toEqual([]);
   });
 
   it("rethrows the Supabase error from the household_members query", async () => {
     mockSession();
     const supabaseError = { code: "500", message: "network error" };
     fromMock.mockImplementation(() => createQueryBuilder({ data: null, error: supabaseError }));
+
+    await expect(listMyProducts()).rejects.toBe(supabaseError);
+  });
+
+  it("rethrows the Supabase error from either product_catalog query", async () => {
+    mockSession();
+    const supabaseError = { code: "500", message: "network error" };
+    fromMock.mockImplementation((table: string) => {
+      if (table === MY_PRODUCTS_DB.TABLE.HOUSEHOLD_MEMBERS) {
+        return createQueryBuilder({ data: null, error: null });
+      }
+      return createProductCatalogBuilder({
+        [MY_PRODUCTS_DB.COLUMN.OWNER_ID]: { data: null, error: supabaseError },
+      });
+    });
 
     await expect(listMyProducts()).rejects.toBe(supabaseError);
   });

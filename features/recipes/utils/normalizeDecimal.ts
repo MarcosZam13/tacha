@@ -1,4 +1,4 @@
-import { DECIMAL_SEPARATOR } from "../constants/recipes.constants";
+import { DECIMAL_SEPARATOR } from "@/constants";
 
 /** " 0,5 " → "0.5": recorta y pasa la coma decimal a punto, que es lo que entiende Number(). */
 export const normalizeDecimal = (text: string): string =>

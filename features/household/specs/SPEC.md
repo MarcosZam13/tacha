@@ -313,8 +313,8 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 
 - **T1. Reglas para compartir** (`decide_personal_lists`, migración `024`):
   - pasan solo los ítems **pendientes** de la lista general personal;
-  - si la lista de la familia ya tiene esa variante, se suman en esa fila con la misma regla que agregar un producto (`add_units_to_list_item`, `015`): una fila pendiente suma la cantidad (en `bigint`, con tope en el máximo de `integer`: compartir nunca falla por desborde; no hay un tope de producto acordado); una tachada **sin** compra se reabre con la cantidad nueva;
-  - si la fila de destino está tachada **dentro de una compra** (`purchase_session_id`), no se toca: reabrirla borraría lo que compró otra persona. Ese pendiente se queda en la lista personal (opción A, aprobada el 2026-10-11). El resultado es `shared_partially` si pasó al menos otro pendiente, y `nothing_shared` si no pasó ninguno (aprobado el 2026-10-12);
+  - si la lista de la familia ya tiene esa variante, se suman en esa fila con la misma regla que agregar un producto (`add_units_to_list_item`, `015`): una fila pendiente suma la cantidad (en `bigint`, con tope en el máximo de `integer`: compartir nunca falla por desborde; no hay un tope de producto acordado); una tachada **sin** compra se reabría con la cantidad nueva hasta la migración 035; desde SCRUM-156 ninguna tachada se reabre: el pendiente entra como fila pendiente nueva;
+  - si la fila de destino está tachada **dentro de una compra** (`purchase_session_id`), no se toca: reabrirla borraría lo que compró otra persona. Hasta la migración 035 ese pendiente se quedaba en la lista personal (opción A, 2026-10-11) y el resultado podía ser `shared_partially` o `nothing_shared` (2026-10-12). **Desde SCRUM-156 (035)** lo tachado ya nunca se reabre: el pendiente entra como fila pendiente nueva junto a la comprada y el resultado es `shared`;
   - los requisitos de receta de cada pendiente pasan a la fila de destino; si ya había uno de la misma receta y unidad, se suman, con el tope de la tabla;
   - lo tachado se queda en la lista personal (son compras personales, HU-38).
 - **T2. Lista personal después de "Mantener":** en `/lista` se muestra como sección **de solo lectura** "Mi lista personal" (sus pendientes). Lo que se agrega va a la lista de la familia (CA-05). La base sigue dejando a la dueña editarla (sus políticas no cambiaron); poder hacerlo desde la interfaz queda para otra historia.
@@ -355,7 +355,7 @@ Hoy solo existe la lista **general**: las sublistas por fecha y las listas priva
 
    Por eso **eliminar a alguien no toca el enlace**. **Limitación aceptada:** mientras el enlace de la familia siga vigente (7 días desde que se generó), la persona eliminada puede volver a unirse con él si lo conserva. El administrador puede cortarlo cuando quiera con "Generar enlace nuevo" (SCRUM-56), que reemplaza el token. Un enlace por persona o una lista de bloqueados quedan fuera de esta historia ([§14](#14-casos-fuera-de-alcance)).
 2. **D2. Sin notificaciones** a la persona eliminada. La próxima vez que abra `/household` ve el estado sin familia, y `/lista` le muestra su lista personal.
-3. **D3. Textos aprobados:** "Eliminar integrante", "¿Eliminar a este integrante?", "Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán", "Cancelar", "Eliminar", "Integrante eliminado correctamente" y "No se pudo eliminar al integrante. Inténtalo de nuevo" (ver [§7](#7-errores) y [§8](#8-ui-esperada)). Se usan tal cual, incluida la palabra "household" que pidió la dueña de la historia.
+3. **D3. Textos aprobados:** "Eliminar integrante", "¿Eliminar a este integrante?", "Esta persona perderá acceso a los datos compartidos de esta familia. Sus datos personales no se eliminarán", "Cancelar", "Eliminar", "Integrante eliminado correctamente" y "No se pudo eliminar al integrante. Inténtalo de nuevo" (ver [§7](#7-errores) y [§8](#8-ui-esperada)). Se usan tal cual, incluida la palabra "household" que pidió la dueña de la historia.
 
 **Reglas:**
 
@@ -638,7 +638,7 @@ Componentes compartidos: `Input`, `Chip`, `Button` y `Spinner` de `@/components/
 En la sección "Integrantes de la familia" (SCRUM-60), solo para el administrador:
 
 - En cada fila que no es la suya, un botón **"Eliminar integrante"** (variante secundaria) al final de la fila.
-- Diálogo (`Modal`) con el título **"¿Eliminar a este integrante?"**, el nombre de la persona ("Miembro sin nombre" si no tiene) para que quede claro a quién se elimina, y el mensaje **"Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán"**. Botones **"Cancelar"** y **"Eliminar"** (variante destructiva).
+- Diálogo (`Modal`) con el título **"¿Eliminar a este integrante?"**, el nombre de la persona ("Miembro sin nombre" si no tiene) para que quede claro a quién se elimina, y el mensaje **"Esta persona perderá acceso a los datos compartidos de esta familia. Sus datos personales no se eliminarán"**. Botones **"Cancelar"** y **"Eliminar"** (variante destructiva).
 - Aviso después de eliminar, en la zona `role="status"`: **"Integrante eliminado correctamente"**.
 - Error, dentro del diálogo: **"No se pudo eliminar al integrante. Inténtalo de nuevo"**.
 
@@ -902,7 +902,7 @@ leave_household(new_admin_user_id uuid default null) returns text
 - `add_item_to_general_list`, `add_recipe_to_general_list`, `add_week_to_general_list` y `get_recipe_coverage`: su última versión, con la búsqueda de la lista reemplazada por esas dos funciones.
 - `household_members.personal_lists_decision text` (`'keep'`, `'share'` o nulo).
 - `get_personal_lists_decision_state() returns text`: `pending`, `nothing_to_decide`, `decided` o `not_member`. Sin cuenta registrada: `42501`.
-- `decide_personal_lists(lists_choice text) returns text`: `kept`, `shared` (pasaron todos los pendientes, o no había ninguno), `shared_partially` (pasó al menos uno y alguno se quedó en la lista personal porque la familia ya lo compró), `nothing_shared` (no pasó ninguno: la familia ya había comprado todos; la decisión se guarda igual), `already_decided` o `not_member`. Una opción inválida: `22023`. Sin cuenta registrada: `42501`.
+- `decide_personal_lists(lists_choice text) returns text`: `kept`, `shared` (pasaron todos los pendientes, o no había ninguno), `shared_partially` y `nothing_shared` (ya no se devuelven desde la migración 035, SCRUM-156: un pendiente nunca se queda en la lista personal por una compra de la familia), `already_decided` o `not_member`. Una opción inválida: `22023`. Sin cuenta registrada: `42501`.
 - Todas las funciones nuevas: `set search_path = ''`, nombres calificados, `revoke … from public, anon` y `grant … to authenticated`.
 
 ### SCRUM-60

@@ -13,4 +13,6 @@ export interface ShoppingListRowViewModel {
   item: ShoppingListItem;
   /** "Pedido N" cuando lo comprado difiere de lo pedido; null si no hay nada que aclarar. */
   requestedNote: NullableRef<string>;
+  /** Una línea por aviso de faltante (SCRUM-114): "+ 600 ml necesarios para Tres leches". */
+  shortfallNotes: string[];
 }

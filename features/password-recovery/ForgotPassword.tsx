@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@/features/landing/components/Logo";
 import { ForgotPasswordForm } from "./components/ForgotPasswordForm";
 import { ForgotPasswordSent } from "./components/ForgotPasswordSent";
 import { FORGOT_PASSWORD_STATUS } from "./constants/password-recovery.constants";
@@ -14,6 +15,10 @@ export const ForgotPassword = (): React.JSX.Element => {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 bg-tacha-bg px-4 py-8">
+      {/* Marca y salida al inicio: sin esto la pantalla queda sola, sin navbar. */}
+      <div className="self-start">
+        <Logo />
+      </div>
       {viewModel.status === FORGOT_PASSWORD_STATUS.SENT ? (
         <ForgotPasswordSent onUseAnotherEmail={viewModel.handleUseAnotherEmail} />
       ) : (

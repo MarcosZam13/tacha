@@ -1,5 +1,6 @@
 import type { SHOPPING_LIST_ACTION } from "../constants/shopping-list.constants";
 import type { ItemCheck } from "./ItemCheck.interface";
+import type { RecipeShortfall } from "./RecipeShortfall.interface";
 import type { ShoppingListItem } from "./ShoppingListItem.interface";
 
 /**
@@ -9,6 +10,7 @@ import type { ShoppingListItem } from "./ShoppingListItem.interface";
 export type ShoppingListAction =
   | { type: typeof SHOPPING_LIST_ACTION.ADD_FAILED; errorMessage: string }
   | { type: typeof SHOPPING_LIST_ACTION.BOUGHT_QUANTITY_CHANGED; itemId: string; quantityBought: number }
+  | { type: typeof SHOPPING_LIST_ACTION.CHECK_MERGED; itemId: string; mergedItemId: string; quantity: number }
   | { type: typeof SHOPPING_LIST_ACTION.CHECK_TOGGLE_STARTED; itemId: string }
   | { type: typeof SHOPPING_LIST_ACTION.CHECK_TOGGLED; check: ItemCheck; itemId: string }
   | { type: typeof SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED; errorMessage: string; itemId: string }
@@ -16,7 +18,12 @@ export type ShoppingListAction =
   | { type: typeof SHOPPING_LIST_ACTION.ITEM_UPSERTED; item: ShoppingListItem }
   | { type: typeof SHOPPING_LIST_ACTION.LOADED; items: ShoppingListItem[] }
   | { type: typeof SHOPPING_LIST_ACTION.LOAD_FAILED; errorMessage: string }
+  | { type: typeof SHOPPING_LIST_ACTION.PURCHASE_CLOSED; sessionId: string }
   | { type: typeof SHOPPING_LIST_ACTION.QUANTITY_CHANGE_STARTED; itemId: string }
   | { type: typeof SHOPPING_LIST_ACTION.QUANTITY_CHANGED; itemId: string; quantity: number }
   | { type: typeof SHOPPING_LIST_ACTION.QUANTITY_CHANGE_FAILED; errorMessage: string; itemId: string }
-  | { type: typeof SHOPPING_LIST_ACTION.REMOVE_FAILED; errorMessage: string };
+  | { type: typeof SHOPPING_LIST_ACTION.REMOVE_FAILED; errorMessage: string }
+  | {
+      type: typeof SHOPPING_LIST_ACTION.SHORTFALLS_REFRESHED;
+      shortfallsByItemId: Map<string, RecipeShortfall[]>;
+    };

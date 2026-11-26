@@ -9,9 +9,26 @@ import type { NullableRef } from "@/types/nullable.types";
 export interface CatalogProduct {
   /** Nombre de la categoría del producto (HU-52); viene de search_catalog y list_catalog_by_category. */
   category: string;
+  /**
+   * SCRUM-110: producto personal sin compartir (solo lo trae
+   * search_catalog_including_own). Un grupo compartido no puede tenerlo.
+   */
+  isPersonal?: boolean;
   productId: string;
   productName: string;
   variants: CatalogProductVariant[];
+}
+
+/**
+ * Un resultado del buscador aplanado a una variante concreta (lo que se añade
+ * a la lista general o a un grupo). Lo arma utils/toCatalogSearchResults.ts.
+ */
+export interface CatalogSearchResult {
+  /** SCRUM-110: viene del producto (ver CatalogProduct.isPersonal). */
+  isPersonal?: boolean;
+  productName: string;
+  sizeLabel: string;
+  variantId: string;
 }
 
 /** Fila de la tabla categories (lectura directa, sin RPC — HU-52). */
@@ -26,6 +43,14 @@ export interface CatalogProductVariant {
   imageUrl: NullableRef<string>;
   /** Rango de precio por tienda (clave: slug de la tienda). Solo trae tiendas con precio. */
   priceRangeByStore: Record<string, PriceRange>;
+  /**
+   * HU-57 (SCRUM-88): precio que el usuario anotó en su producto
+   * personalizado. Solo "Mis productos" lo trae; nunca viene del scraping ni
+   * se mezcla con priceRangeByStore (CA-03).
+   */
+  referencePrice?: number;
+  /** HU-57: tienda de referencia (súper o escrita a mano), con su nombre visible. */
+  referenceStoreName?: string;
   variantId: string;
 }
 
@@ -66,8 +91,12 @@ export interface CatalogCardData {
   imageUrl: NullableRef<string>;
   /** Letra que se muestra cuando la variante no tiene foto. */
   placeholderInitial: string;
+  /** HU-57: true si priceLabel es el precio de referencia que anotó el usuario (lleva el ícono "i"). */
+  isReferencePrice?: boolean;
   /** "₡800 – ₡1 200", un solo precio si coinciden, o el aviso de que no hay precio. */
   priceLabel: string;
+  /** HU-57: tienda de referencia del producto personalizado, como texto secundario. */
+  storeName?: string;
   /** "Leche — 1000 ml". Sin marca. */
   title: string;
 }
@@ -111,6 +140,16 @@ export interface CatalogBrand {
 export interface CatalogVariantDetail {
   brands: CatalogBrand[];
   imageUrl: NullableRef<string>;
+  /**
+   * SCRUM-163: producto personal sin compartir (owner_id no nulo). Si quien lo
+   * ve no es su dueño, la RLS (032) ni siquiera lo devuelve; uno compartido
+   * queda con owner_id null (032), así que true siempre es "mío y privado".
+   */
+  isPersonal: boolean;
+  /** HU-57: precio de referencia del usuario (solo productos personalizados); nunca del scraping. */
+  referencePrice: NullableRef<number>;
+  /** HU-57: tienda de referencia (súper o escrita a mano). */
+  referenceStoreName: NullableRef<string>;
   productName: string;
   sizeLabel: string;
   storePriceRanges: StorePriceRange[];

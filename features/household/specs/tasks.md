@@ -326,7 +326,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 - [ ] Conservar la lista de una sesión anónima al registrarse (ticket aparte, SCRUM-49).
 - [ ] Tarea técnica: que borrar la cuenta de quien creó la lista de la familia no la borre para todos ([plan.md](plan.md#riesgos)).
-- [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`).
+- [ ] Tarea técnica: tope de cantidad en `list_items` y en las funciones que agregan; no reabrir filas compradas por otro al agregar (HU-38 / `shopping-list`). *Lo de no reabrir quedó resuelto en SCRUM-156 (035): agregar algo tachado crea otra fila.*
 - [ ] Sublistas por fecha y listas privadas.
 - [ ] HU-35, HU-36 y HU-38.
 
@@ -364,7 +364,7 @@ Cada etapa termina en un commit que compila por sí solo y se revisa y aprueba a
 
 ### Etapa 5 — Pantalla (commit `feat`)
 
-- [x] 5.1 `HouseholdMembersSection` y sus props, con `toMemberInitials` para el avatar.
+- [x] 5.1 `HouseholdMembersSection` y sus props, con `toInitials` para el avatar.
 - [x] 5.2 Integración en `useHouseholdViewModel` y `Household.tsx`.
 - [x] 5.3 Page Object y tests (jsdom): `HouseholdMembers.page.ts`, `HouseholdMembers.test.tsx` y `toMemberInitials.test.ts`.
 - [x] 5.4 `npx tsc --noEmit`, `npm run lint`, `npm test` y `npm run build` (2026-10-17): los cuatro sin errores; Vitest completo, 796 tests en 86 archivos.

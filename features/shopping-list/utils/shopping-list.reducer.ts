@@ -1,6 +1,7 @@
 import { SHOPPING_LIST_ACTION } from "../constants/shopping-list.constants";
 import type { ShoppingListAction } from "../models/ShoppingListAction.type";
 import type { ShoppingListState } from "../models/ShoppingListState.interface";
+import { mergeRecipeShortfalls } from "./mergeRecipeShortfalls";
 
 // Arranca cargando: el efecto que trae la lista nunca tiene que hacer un
 // dispatch síncrono para "empezar a cargar" (nextjs-enterprise-patterns §3).
@@ -39,13 +40,22 @@ export const shoppingListReducer = (
       return { ...state, isLoading: false, loadErrorMessage: action.errorMessage };
 
     case SHOPPING_LIST_ACTION.ITEM_UPSERTED: {
-      // La base ya aplicó el merge; acá solo se refleja: si la variante ya
-      // tenía fila se reemplaza (nueva cantidad), si no, se agrega al final.
-      const isAlreadyListed = state.items.some(
-        (item) => item.variantId === action.item.variantId,
-      );
+      // La base ya aplicó el merge y devuelve la fila que quedó; acá solo se
+      // refleja, por id. Si esa fila ya estaba en pantalla se reemplaza (nueva
+      // cantidad); si no, es nueva y va al final, aunque haya una tachada de la
+      // misma variante: esa conserva su compra (regla 8, SCRUM-156).
+      // Por id y no por variante: si otro miembro tachó la pendiente después de
+      // cargar la lista, la base devuelve otra fila y no hay que pisar esa.
+      // Añadir no toca los registros de recetas ni la foto de "¿Qué hiciste?",
+      // así que la fila conserva sus avisos y su foto (SCRUM-114/115); los
+      // avisos en vivo se vuelven a pedir después (SHORTFALLS_REFRESHED).
+      const isAlreadyListed = state.items.some((item) => item.id === action.item.id);
       const items = isAlreadyListed
-        ? state.items.map((item) => (item.variantId === action.item.variantId ? action.item : item))
+        ? state.items.map((item) =>
+            item.id === action.item.id
+              ? { ...action.item, recipeShortfalls: item.recipeShortfalls, shortfallSnapshot: item.shortfallSnapshot }
+              : item,
+          )
         : [...state.items, action.item];
       return { ...state, addErrorMessage: null, items };
     }
@@ -98,8 +108,91 @@ export const shoppingListReducer = (
       return {
         ...state,
         checkErrorMessage: null,
-        items: state.items.map((item) => (item.id === action.itemId ? { ...item, ...action.check } : item)),
+        // Destachar borra en la base la foto de "¿Qué hiciste?" (trigger de la 037).
+        items: state.items.map((item) =>
+          item.id === action.itemId
+            ? {
+                ...item,
+                ...action.check,
+                shortfallSnapshot: action.check.checkedAt === null ? null : item.shortfallSnapshot,
+              }
+            : item,
+        ),
         pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+      };
+
+    case SHOPPING_LIST_ACTION.CHECK_MERGED: {
+      // Destachar juntó la fila con la pendiente de la misma variante
+      // (SCRUM-156): la destachada desaparece y la pendiente queda con la
+      // cantidad que confirmó la base y los avisos de las dos.
+      const mergedAwayItem = state.items.find((item) => item.id === action.itemId);
+      const isMergedItemListed = state.items.some((item) => item.id === action.mergedItemId);
+      // Sin tiempo real, la pendiente puede no estar en pantalla (la agregó otro
+      // miembro después de cargar la lista). Entonces la destachada toma su
+      // lugar con el id y la cantidad de la base: es la misma variante, así que
+      // nombre y tamaño son los mismos.
+      if (!isMergedItemListed) {
+        return {
+          ...state,
+          checkErrorMessage: null,
+          items: state.items.map((item) =>
+            item.id === action.itemId
+              ? {
+                  ...item,
+                  checkedAt: null,
+                  id: action.mergedItemId,
+                  purchaseSessionId: null,
+                  quantity: action.quantity,
+                  quantityBought: null,
+                  shortfallSnapshot: null,
+                }
+              : item,
+          ),
+          pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+        };
+      }
+      return {
+        ...state,
+        checkErrorMessage: null,
+        items: state.items
+          .filter((item) => item.id !== action.itemId)
+          .map((item) =>
+            item.id === action.mergedItemId
+              ? {
+                  ...item,
+                  quantity: action.quantity,
+                  recipeShortfalls: mergeRecipeShortfalls(
+                    item.recipeShortfalls,
+                    mergedAwayItem?.recipeShortfalls ?? [],
+                  ),
+                }
+              : item,
+          ),
+        pendingItemIds: state.pendingItemIds.filter((itemId) => itemId !== action.itemId),
+      };
+    }
+
+    case SHOPPING_LIST_ACTION.SHORTFALLS_REFRESHED:
+      // El faltante es una cuenta en vivo (SCRUM-115, regla 33): después de un
+      // cambio en la lista se vuelve a pedir y reemplaza los avisos de todas
+      // las filas. Una fila que no viene en la respuesta ya no tiene aviso.
+      return {
+        ...state,
+        items: state.items.map((item) => ({
+          ...item,
+          recipeShortfalls: action.shortfallsByItemId.get(item.id) ?? [],
+        })),
+      };
+
+    case SHOPPING_LIST_ACTION.PURCHASE_CLOSED:
+      // Lo mismo que hace la base desde la 041: una fila de una compra cerrada no tiene foto de
+      // deshacer, así que destacharla no abre el diálogo (regla 45). Cerrar no recarga la
+      // pantalla, y sin esto la fila conservaba la foto de cuando la compra estaba abierta.
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.purchaseSessionId === action.sessionId ? { ...item, shortfallSnapshot: null } : item,
+        ),
       };
 
     case SHOPPING_LIST_ACTION.CHECK_TOGGLE_FAILED:

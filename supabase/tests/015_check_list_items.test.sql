@@ -14,7 +14,9 @@
 -- Caso principal: un producto comprado ayer (3 unidades) y una receta que
 -- pide 2 unidades de ese producto. Antes de 015 la receta veía las 3 unidades
 -- compradas como "ya en la lista" y no pedía nada; con 015 lo comprado no
--- cuenta, la fila vuelve a Pendientes con 1 unidad y falta 1 unidad.
+-- cuenta y falta 1 unidad. Hasta 035 la fila comprada volvía a Pendientes con
+-- 1 unidad; desde 035 (SCRUM-156) se queda tachada con su compra y la receta
+-- pide esa unidad en una fila pendiente nueva.
 -- ============================================================================
 
 begin;
@@ -155,23 +157,25 @@ begin
     where (missing.item ->> 'quantity')::numeric = base_quantity
   ), format('lo comprado no cuenta: falta 1 unidad (%s). Resultado: %s', base_quantity, recipe_result);
 
+  -- Desde 035 (SCRUM-156) la fila comprada no se reabre: conserva su compra.
   select * into test_item from public.list_items where id = test_item_id;
-  assert test_item.checked_at is null and test_item.checked_by is null, 'la fila vuelve a Pendientes';
-  assert test_item.quantity_requested = 1, 'la cantidad es la que pide la receta, no la suma con lo comprado';
+  assert test_item.checked_at is not null and test_item.checked_by is not null,
+    'la fila comprada sigue tachada (035)';
 
-  -- Lo mismo desde el buscador: tachada → reabre con cantidad 1.
-  perform public.change_item_quantity(test_item_id, 1);
-  perform public.set_list_item_checked(test_item_id, true);
+  select * into test_item from public.list_items li
+  where li.list_id = test_item.list_id
+    and li.product_catalog_variant_id = test_item.product_catalog_variant_id
+    and li.checked_at is null;
+  assert test_item.quantity_requested = 1,
+    'la receta pide 1 en una fila pendiente nueva, no la suma con lo comprado (035)';
+
+  -- Desde el buscador, con esa pendiente: suma como siempre.
   test_item := public.add_item_to_general_list(current_setting('tacha_test.variant_id')::uuid);
-  assert test_item.checked_at is null and test_item.quantity_requested = 1, 'añadir algo tachado lo reabre con 1';
+  assert test_item.checked_at is null and test_item.quantity_requested = 2, 'añadir algo pendiente suma 1';
 
-  -- Y si está pendiente, suma como siempre.
-  test_item := public.add_item_to_general_list(current_setting('tacha_test.variant_id')::uuid);
-  assert test_item.quantity_requested = 2, 'añadir algo pendiente suma 1';
-
-  -- Destachar deja las dos columnas en null.
-  perform public.set_list_item_checked(test_item_id, true);
-  test_item := public.set_list_item_checked(test_item_id, false);
+  -- Destachar deja las dos columnas en null (la comprada sigue tachada: no hay con qué juntar).
+  perform public.set_list_item_checked(test_item.id, true);
+  test_item := public.set_list_item_checked(test_item.id, false);
   assert test_item.checked_at is null and test_item.checked_by is null, 'destachar limpia cuándo y quién';
 end $$;
 

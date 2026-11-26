@@ -1,6 +1,6 @@
+import { HTTP_STATUS } from "@/constants";
 import { getSupabaseClient } from "@/services/supabase.client";
 import {
-  HTTP_STATUS,
   REGISTER_RESULT,
   REGISTRO_ROUTE,
   RESEND_RESULT,

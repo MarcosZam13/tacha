@@ -10,7 +10,17 @@ import type { StoreSlug } from "@/constants/stores.constants";
 export const PRODUCT_SEARCH = {
   DEBOUNCE_MS: 300,
   MAX_QUERY_LENGTH: 80,
+  // Cuántos resultados muestra el desplegable (SCRUM-149). Con más, se pide afinar la búsqueda.
+  MAX_VISIBLE_RESULTS: 8,
   MIN_QUERY_LENGTH: 2,
+} as const;
+
+// Teclas que maneja el desplegable de resultados (SCRUM-149), por su KeyboardEvent.key.
+export const PRODUCT_SEARCH_KEY = {
+  ARROW_DOWN: "ArrowDown",
+  ARROW_UP: "ArrowUp",
+  ENTER: "Enter",
+  ESCAPE: "Escape",
 } as const;
 
 // Espejo del check de product_catalog_variants.base_unit en la base.
@@ -44,6 +54,9 @@ export const CATALOG_DB = {
   RPC: {
     LIST_CATALOG_BY_CATEGORY: "list_catalog_by_category",
     SEARCH_CATALOG: "search_catalog",
+    // SCRUM-110 (migración 056): como search_catalog, pero también trae mis
+    // productos y los de mi familia. search_catalog no cambia (SCRUM-131).
+    SEARCH_CATALOG_INCLUDING_OWN: "search_catalog_including_own",
   },
   TABLE: {
     VARIANTS: "product_catalog_variants",
@@ -53,7 +66,7 @@ export const CATALOG_DB = {
   // SHOPPING_LIST_DB.ITEM_DETAIL_SELECT, con el slug de tienda agregado
   // (catalog-product-detail sí necesita elegir el ícono por tienda).
   VARIANT_DETAIL_SELECT:
-    "base_quantity, base_unit, image_url, product_catalog(name), product_brands(name, logo_url), latest_prices(price, stores(slug, display_name))",
+    "base_quantity, base_unit, image_url, reference_price, reference_store_name, stores(display_name), product_catalog(name, owner_id), product_brands(name, logo_url), latest_prices(price, stores(slug, display_name))",
 } as const;
 
 // Espejo del check de product_catalog.source: "manual" son los productos que
@@ -88,9 +101,20 @@ export const CATALOG_CARD_TEXT = {
   NO_PRICE: "Sin precio disponible",
 } as const;
 
+// HU-57 (SCRUM-88): precio de referencia que el usuario anota en su producto
+// personalizado. Lo usan la tarjeta de "Mis productos" y el detalle del
+// producto; nunca se mezcla con los precios del scraping (CA-03).
+export const REFERENCE_PRICE_TEXT = {
+  INFO: "Precio ingresado por ti: no está verificado ni se actualiza automáticamente.",
+  TITLE: "Precio de referencia",
+} as const;
+
 export const PRODUCT_SEARCH_TEXT = {
   LABEL: "Buscar producto",
+  // Debajo de los resultados cuando hay más de los que se muestran (SCRUM-149).
+  MORE_RESULTS_HINT: `Se muestran los primeros ${PRODUCT_SEARCH.MAX_VISIBLE_RESULTS}. Escribe más para afinar la búsqueda.`,
   NO_RESULTS: "No encontramos productos con ese nombre.",
+  RESULTS_LABEL: "Resultados de la búsqueda",
   PLACEHOLDER: "Busca un producto, ej. leche",
   SEARCH_ERROR: "No se pudo buscar en el catálogo. Intenta de nuevo.",
 } as const;

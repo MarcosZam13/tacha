@@ -273,7 +273,7 @@ export const HOUSEHOLD_REMOVE_MEMBER_TEXT = {
   CANCEL: "Cancelar",
   CONFIRM: "Eliminar",
   DIALOG_MESSAGE:
-    "Esta persona perderá acceso a los datos compartidos de este household. Sus datos personales no se eliminarán",
+    "Esta persona perderá acceso a los datos compartidos de esta familia. Sus datos personales no se eliminarán",
   DIALOG_TITLE: "¿Eliminar a este integrante?",
   ERROR: "No se pudo eliminar al integrante. Inténtalo de nuevo",
   SUCCESS: "Integrante eliminado correctamente",

@@ -27,6 +27,8 @@ export interface RecipeDeletionViewModel {
   onDeleteRequest: (recipe: RecipeDeletionTarget) => void;
   /** Nombre de la receta elegida; null con el diálogo cerrado. */
   recipeName: NullableRef<string>;
+  /** Aviso de que se borra para toda la familia; null si es personal. */
+  sharedNotice: NullableRef<string>;
 }
 
 /**

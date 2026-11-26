@@ -7,5 +7,5 @@ export const RECAPTCHA = {
 } as const;
 
 export const RECAPTCHA_ERROR_MESSAGE = {
-  LOAD_FAILED: "No pudimos cargar el reCAPTCHA. Recargá la página.",
+  LOAD_FAILED: "No pudimos cargar el reCAPTCHA. Recarga la página.",
 } as const;

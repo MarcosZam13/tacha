@@ -1,6 +1,6 @@
+import { formatRecipeQuantity } from "@/utils/formatRecipeQuantity";
 import { RECIPE_ADD_TO_LIST_TEXT } from "../constants/recipes.constants";
 import type { AddRecipeToListMissingItem, AddRecipeToListResponse } from "../models/recipe-list-addition.interfaces";
-import { formatRecipeQuantity } from "./formatRecipeQuantity";
 
 const toMissingItemText = (item: AddRecipeToListMissingItem): string =>
   `${item.productName} (${formatRecipeQuantity(item.quantity, item.unit)})`;

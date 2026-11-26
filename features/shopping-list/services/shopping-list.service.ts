@@ -1,16 +1,22 @@
 import type { QueryData } from "@supabase/supabase-js";
+import { LIST_ITEM_TEXT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
+import { startOfLocalDay } from "@/utils/startOfLocalDay";
 import { LIST_TYPE, SHOPPING_LIST_DB } from "../constants/shopping-list.constants";
 import type { ItemQuantityStepType } from "../constants/shopping-list.constants";
-import type { CatalogSearchResult } from "../models/CatalogSearchResult.interface";
+import type { CatalogSearchResult } from "@/types/catalog.types";
 import type { ItemCheck } from "../models/ItemCheck.interface";
+import type { ItemCheckResult } from "../models/ItemCheckResult.interface";
 import type { ItemDetail } from "../models/ItemDetail.interface";
+import type { RecipeShortfall } from "../models/RecipeShortfall.interface";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
-import { startOfLocalDay } from "../utils/startOfLocalDay";
+import type { ShortfallSnapshot } from "../models/shortfall-resolution.types";
+import { toRecipeShortfalls } from "../utils/toRecipeShortfalls";
+import { toShortfallSnapshots } from "../utils/toShortfallSnapshots";
 
 /** Las columnas de tachado de una fila de list_items → su ItemCheck. */
 const toItemCheck = (listItem: {
@@ -41,17 +47,33 @@ const selectListWithTodayItems = () =>
 
 type ListWithTodayItemsRow = QueryData<ReturnType<typeof selectListWithTodayItems>>[number];
 
-const toShoppingListItems = (list: ListWithTodayItemsRow): ShoppingListItem[] =>
+/**
+ * Las filas de una lista → ShoppingListItem. Los avisos de faltante y las
+ * fotos de "¿Qué hiciste?" vienen aparte (RPC de la 037), por id de fila;
+ * una fila sin avisos lleva [] y sin foto, null.
+ */
+const toShoppingListItems = (
+  list: ListWithTodayItemsRow,
+  shortfallsByItemId: Map<string, RecipeShortfall[]> = new Map(),
+  snapshotsByItemId: Map<string, ShortfallSnapshot> = new Map(),
+): ShoppingListItem[] =>
   list.list_items.map((listItem) => {
-    const variant = listItem.product_catalog_variants;
+    // SCRUM-163: los tipos generados dicen que la presentación siempre llega
+    // (la FK es not null), pero la RLS de la 032 la devuelve null si quien mira
+    // no puede ver el producto (un personal de otro miembro). Esa fila se
+    // muestra como "no disponible" en vez de tumbar toda la lista.
+    const variant: NullableRef<typeof listItem.product_catalog_variants> = listItem.product_catalog_variants;
     return {
       ...toItemCheck(listItem),
       id: listItem.id,
-      productName: variant.product_catalog.name,
+      productName: variant ? variant.product_catalog.name : LIST_ITEM_TEXT.UNAVAILABLE_PRODUCT,
       quantity: listItem.quantity_requested,
+      recipeShortfalls: shortfallsByItemId.get(listItem.id) ?? [],
+      shortfallSnapshot: snapshotsByItemId.get(listItem.id) ?? null,
       // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
-      sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
-      variantId: variant.id,
+      // Sin presentación legible no hay tamaño que mostrar: la fila queda solo con el nombre.
+      sizeLabel: variant ? formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType) : "",
+      variantId: listItem.product_catalog_variant_id,
     };
   });
 
@@ -66,28 +88,69 @@ const findGeneralListId = async (): Promise<NullableRef<string>> => {
 };
 
 /**
+ * Los avisos de faltante de receta o plan de la lista general, por id de
+ * fila. Desde SCRUM-115 la base los calcula en vivo (SPEC §18, regla 33): lo
+ * que hay del producto en la lista (pendiente y tachado hoy) contra lo que
+ * piden las recetas. La RPC elige la lista igual que find_general_list_id,
+ * ya filtra qué es un aviso y trae el nombre de la receta aunque sea de otro
+ * miembro de la familia (SPEC §16, regla 29). Se exporta para volver a
+ * pedirlos después de un cambio en la lista sin recargarla entera.
+ */
+export const getGeneralListShortfalls = async (
+  localDayStart: string = startOfLocalDay(new Date()),
+): Promise<Map<string, RecipeShortfall[]>> => {
+  const { data: shortfallRows, error } = await getSupabaseClient().rpc(
+    SHOPPING_LIST_DB.RPC.GET_GENERAL_LIST_RECIPE_SHORTFALLS,
+    { local_day_start: localDayStart },
+  );
+  if (error) throw error;
+
+  return toRecipeShortfalls(shortfallRows);
+};
+
+// A qué vuelve cada fila resuelta en "¿Qué hiciste?" (SCRUM-115, regla 46).
+const getGeneralListShortfallSnapshots = async (localDayStart: string): Promise<Map<string, ShortfallSnapshot>> => {
+  const { data: snapshotRows, error } = await getSupabaseClient().rpc(
+    SHOPPING_LIST_DB.RPC.GET_GENERAL_LIST_SHORTFALL_SNAPSHOTS,
+    { local_day_start: localDayStart },
+  );
+  if (error) throw error;
+
+  return toShortfallSnapshots(snapshotRows);
+};
+
+/**
  * Trae la lista general con sus items de hoy: la de la familia si el usuario
  * es miembro de una, si no la personal. Si todavía no existe (nadie añadió
  * nada) devuelve [] — la lista se crea en la base al añadir el primer
- * producto, no al abrir la pantalla.
+ * producto, no al abrir la pantalla. Los avisos de faltante y las fotos de
+ * "¿Qué hiciste?" se piden en paralelo; si fallan, falla la carga: sin ellos
+ * la pantalla diría que no falta nada sin saberlo (SPEC §16.6).
  */
 export const getGeneralList = async (): Promise<ShoppingListItem[]> => {
   await ensureSession();
 
-  const generalListId = await findGeneralListId();
+  // La misma medianoche para las tres consultas: el mismo "hoy".
+  const localDayStart = startOfLocalDay(new Date());
+  const [generalListId, shortfallsByItemId, snapshotsByItemId] = await Promise.all([
+    findGeneralListId(),
+    getGeneralListShortfalls(localDayStart),
+    getGeneralListShortfallSnapshots(localDayStart),
+  ]);
   if (!generalListId) return [];
 
   const { data: generalList, error } = await selectListWithTodayItems().eq("id", generalListId).maybeSingle();
   if (error) throw error;
   if (!generalList) return [];
 
-  return toShoppingListItems(generalList);
+  return toShoppingListItems(generalList, shortfallsByItemId, snapshotsByItemId);
 };
 
 /**
  * La lista personal que el usuario eligió mantener al unirse a una familia
  * (SCRUM-59, D4): solo si existe y no es la lista que ya muestra la pantalla.
- * Sin familia, la lista general es la personal, así que devuelve [].
+ * Sin familia, la lista general es la personal, así que devuelve []. Sus
+ * filas no llevan avisos de faltante (SPEC §16, regla 30).
  */
 export const getKeptPersonalList = async (): Promise<ShoppingListItem[]> => {
   const session = await ensureSession();
@@ -123,6 +186,9 @@ export const addItemToGeneralList = async (
     purchaseSessionId: listItem.purchaseSessionId,
     quantity: listItem.quantity,
     quantityBought: listItem.quantityBought,
+    // Añadir desde el buscador nunca deja aviso; si la fila ya tenía, el reducer los conserva.
+    recipeShortfalls: [],
+    shortfallSnapshot: null,
     sizeLabel: searchResult.sizeLabel,
     variantId: listItem.variantId,
   };
@@ -140,10 +206,11 @@ export const changeItemQuantity: (itemId: string, quantityStep: ItemQuantityStep
  * Tacha o destacha un item. Se manda el estado deseado, no "invertir": si dos
  * pestañas mandan "tachar", el resultado es el mismo. La hora y el usuario los
  * pone la base (trigger de la migración 015). Destachar también borra la
- * compra y lo comprado (trigger extendido en 016). Devuelve el tachado que
- * quedó en la base.
+ * compra y lo comprado (trigger extendido en 016). Si al destachar ya hay una
+ * pendiente de la misma presentación, la base las junta y devuelve la
+ * pendiente (035, SCRUM-156): por eso devuelve también el id y la cantidad.
  */
-export const setItemChecked = async (itemId: string, isChecked: boolean): Promise<ItemCheck> => {
+export const setItemChecked = async (itemId: string, isChecked: boolean): Promise<ItemCheckResult> => {
   await ensureSession();
 
   const { data: listItem, error } = await getSupabaseClient().rpc(
@@ -152,7 +219,7 @@ export const setItemChecked = async (itemId: string, isChecked: boolean): Promis
   );
   if (error) throw error;
 
-  return toItemCheck(listItem);
+  return { check: toItemCheck(listItem), itemId: listItem.id, quantity: listItem.quantity_requested };
 };
 
 /**

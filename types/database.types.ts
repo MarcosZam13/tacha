@@ -13,32 +13,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -57,6 +32,56 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      category_shelf_life: {
+        Row: {
+          category_id: string
+          shelf_life_days: number
+        }
+        Insert: {
+          category_id: string
+          shelf_life_days: number
+        }
+        Update: {
+          category_id?: string
+          shelf_life_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_shelf_life_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: true
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          source?: string
         }
         Relationships: []
       }
@@ -168,6 +193,7 @@ export type Database = {
       list_item_recipe_requirements: {
         Row: {
           created_at: string
+          dismissed_at: string | null
           id: string
           list_item_id: string
           quantity_missing: number
@@ -177,6 +203,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dismissed_at?: string | null
           id?: string
           list_item_id: string
           quantity_missing: number
@@ -186,6 +213,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dismissed_at?: string | null
           id?: string
           list_item_id?: string
           quantity_missing?: number
@@ -210,8 +238,175 @@ export type Database = {
           },
         ]
       }
+      list_item_shortfall_snapshots: {
+        Row: {
+          created_at: string
+          list_item_id: string
+          previous_quantity_requested: number
+          previous_variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          list_item_id: string
+          previous_quantity_requested: number
+          previous_variant_id: string
+        }
+        Update: {
+          created_at?: string
+          list_item_id?: string
+          previous_quantity_requested?: number
+          previous_variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_item_shortfall_snapshots_list_item_id_fkey"
+            columns: ["list_item_id"]
+            isOneToOne: true
+            referencedRelation: "list_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_item_shortfall_snapshots_previous_variant_id_fkey"
+            columns: ["previous_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_adjustments: {
+        Row: {
+          adjusted_by: string | null
+          expected_out_at: string | null
+          list_id: string
+          product_catalog_id: string
+          purchased_at: string
+          shelf_life_choice: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          expected_out_at?: string | null
+          list_id: string
+          product_catalog_id: string
+          purchased_at: string
+          shelf_life_choice?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          expected_out_at?: string | null
+          list_id?: string
+          product_catalog_id?: string
+          purchased_at?: string
+          shelf_life_choice?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_manual_items: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          added_day: string | null
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          shelf_life_choice: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          list_id: string
+          product_catalog_variant_id: string
+          shelf_life_choice?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          list_id?: string
+          product_catalog_variant_id?: string
+          shelf_life_choice?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_manual_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_manual_items_product_catalog_variant_id_fkey"
+            columns: ["product_catalog_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_suggestion_dismissals: {
+        Row: {
+          dismissed_by: string | null
+          dismissed_until: string
+          list_id: string
+          product_catalog_id: string
+          updated_at: string
+        }
+        Insert: {
+          dismissed_by?: string | null
+          dismissed_until: string
+          list_id: string
+          product_catalog_id: string
+          updated_at?: string
+        }
+        Update: {
+          dismissed_by?: string | null
+          dismissed_until?: string
+          list_id?: string
+          product_catalog_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_suggestion_dismissals_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_suggestion_dismissals_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -221,8 +416,10 @@ export type Database = {
           purchase_session_id: string | null
           quantity_bought: number | null
           quantity_requested: number
+          shelf_life_choice: string | null
         }
         Insert: {
+          assigned_to?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string
@@ -232,8 +429,10 @@ export type Database = {
           purchase_session_id?: string | null
           quantity_bought?: number | null
           quantity_requested?: number
+          shelf_life_choice?: string | null
         }
         Update: {
+          assigned_to?: string | null
           checked_at?: string | null
           checked_by?: string | null
           created_at?: string
@@ -243,6 +442,7 @@ export type Database = {
           purchase_session_id?: string | null
           quantity_bought?: number | null
           quantity_requested?: number
+          shelf_life_choice?: string | null
         }
         Relationships: [
           {
@@ -268,28 +468,60 @@ export type Database = {
           },
         ]
       }
+      list_settings: {
+        Row: {
+          assignee_enabled: boolean
+          list_id: string
+        }
+        Insert: {
+          assignee_enabled?: boolean
+          list_id: string
+        }
+        Update: {
+          assignee_enabled?: boolean
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_settings_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: true
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lists: {
         Row: {
           created_at: string
+          event_date: string | null
           household_id: string | null
           id: string
+          name: string | null
           owner_id: string
+          spent_total: number | null
           status: string
           type: string
         }
         Insert: {
           created_at?: string
+          event_date?: string | null
           household_id?: string | null
           id?: string
+          name?: string | null
           owner_id?: string
+          spent_total?: number | null
           status?: string
           type: string
         }
         Update: {
           created_at?: string
+          event_date?: string | null
           household_id?: string | null
           id?: string
+          name?: string | null
           owner_id?: string
+          spent_total?: number | null
           status?: string
           type?: string
         }
@@ -339,6 +571,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "meal_plans_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "meal_plans_recipe_id_fkey"
             columns: ["recipe_id"]
             isOneToOne: false
@@ -381,27 +620,33 @@ export type Database = {
       }
       product_catalog: {
         Row: {
+          archived_at: string | null
           category_id: string | null
           created_at: string
           household_id: string | null
           id: string
           name: string
+          owner_id: string | null
           source: string
         }
         Insert: {
+          archived_at?: string | null
           category_id?: string | null
           created_at?: string
           household_id?: string | null
           id?: string
           name: string
+          owner_id?: string | null
           source?: string
         }
         Update: {
+          archived_at?: string | null
           category_id?: string | null
           created_at?: string
           household_id?: string | null
           id?: string
           name?: string
+          owner_id?: string | null
           source?: string
         }
         Relationships: [
@@ -487,6 +732,9 @@ export type Database = {
           image_url: string | null
           name: string
           product_catalog_id: string
+          reference_price: number | null
+          reference_store_id: string | null
+          reference_store_name: string | null
         }
         Insert: {
           base_quantity: number
@@ -496,6 +744,9 @@ export type Database = {
           image_url?: string | null
           name: string
           product_catalog_id: string
+          reference_price?: number | null
+          reference_store_id?: string | null
+          reference_store_name?: string | null
         }
         Update: {
           base_quantity?: number
@@ -505,10 +756,129 @@ export type Database = {
           image_url?: string | null
           name?: string
           product_catalog_id?: string
+          reference_price?: number | null
+          reference_store_id?: string | null
+          reference_store_name?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "product_catalog_variants_product_catalog_id_fkey"
+            columns: ["product_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_catalog_variants_reference_store_id_fkey"
+            columns: ["reference_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_group_items: {
+        Row: {
+          group_id: string
+          id: string
+          position: number
+          product_catalog_variant_id: string
+          quantity: number
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          position: number
+          product_catalog_variant_id: string
+          quantity: number
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          position?: number
+          product_catalog_variant_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_group_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "product_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_group_items_product_catalog_variant_id_fkey"
+            columns: ["product_catalog_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_groups: {
+        Row: {
+          created_at: string
+          household_id: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          household_id?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_groups_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_mother_rules: {
+        Row: {
+          created_at: string
+          exclude_keywords: string[]
+          id: string
+          match_keywords: string[]
+          product_catalog_id: string
+          vtex_category_prefix: string | null
+        }
+        Insert: {
+          created_at?: string
+          exclude_keywords?: string[]
+          id?: string
+          match_keywords?: string[]
+          product_catalog_id: string
+          vtex_category_prefix?: string | null
+        }
+        Update: {
+          created_at?: string
+          exclude_keywords?: string[]
+          id?: string
+          match_keywords?: string[]
+          product_catalog_id?: string
+          vtex_category_prefix?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_mother_rules_product_catalog_id_fkey"
             columns: ["product_catalog_id"]
             isOneToOne: false
             referencedRelation: "product_catalog"
@@ -683,6 +1053,7 @@ export type Database = {
           image_url: string | null
           name: string
           owner_id: string
+          photo_path: string | null
         }
         Insert: {
           base_servings: number
@@ -692,6 +1063,7 @@ export type Database = {
           image_url?: string | null
           name: string
           owner_id?: string
+          photo_path?: string | null
         }
         Update: {
           base_servings?: number
@@ -701,8 +1073,17 @@ export type Database = {
           image_url?: string | null
           name?: string
           owner_id?: string
+          photo_path?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recipes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       search_cache: {
         Row: {
@@ -768,6 +1149,30 @@ export type Database = {
           },
         ]
       }
+      spending_adjustments: {
+        Row: {
+          amount: number
+          effective_at: string
+          id: string
+          owner_id: string
+          scope: string
+        }
+        Insert: {
+          amount: number
+          effective_at: string
+          id?: string
+          owner_id: string
+          scope: string
+        }
+        Update: {
+          amount?: number
+          effective_at?: string
+          id?: string
+          owner_id?: string
+          scope?: string
+        }
+        Relationships: []
+      }
       spending_budgets: {
         Row: {
           amount: number
@@ -783,6 +1188,21 @@ export type Database = {
           amount?: number
           owner_id?: string
           period?: string
+        }
+        Relationships: []
+      }
+      spending_time_zones: {
+        Row: {
+          owner_id: string
+          time_zone: string
+        }
+        Insert: {
+          owner_id: string
+          time_zone: string
+        }
+        Update: {
+          owner_id?: string
+          time_zone?: string
         }
         Relationships: []
       }
@@ -846,10 +1266,39 @@ export type Database = {
       }
     }
     Functions: {
-      accept_household_invite: { Args: { invite_token: string }; Returns: string }
+      accept_household_invite: {
+        Args: { invite_token: string }
+        Returns: string
+      }
+      add_item_to_date_list: {
+        Args: { target_list_id: string; target_variant_id: string }
+        Returns: {
+          assigned_to: string | null
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      add_group_to_general_list: {
+        Args: { target_group_id: string }
+        Returns: Json
+      }
       add_item_to_general_list: {
         Args: { target_variant_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -891,6 +1340,41 @@ export type Database = {
         Args: { week_from: string; week_to: string }
         Returns: Json
       }
+      add_plan_week_to_list: {
+        Args: {
+          from_household: boolean
+          target_list_id?: string
+          week_from: string
+          week_to: string
+        }
+        Returns: Json
+      }
+      add_week_to_list: {
+        Args: { target_list_id?: string; week_from: string; week_to: string }
+        Returns: Json
+      }
+      add_inventory_item: {
+        Args: { target_choice?: string; target_variant_id: string }
+        Returns: undefined
+      }
+      adjust_inventory_item: {
+        Args: { target_choice: string; target_variant_id: string }
+        Returns: undefined
+      }
+      assert_local_day_start: {
+        Args: { local_day_start: string }
+        Returns: undefined
+      }
+      assign_household_meal_slot: {
+        Args: {
+          cook_user_id?: string
+          slot_date: string
+          slot_meal_type: string
+          slot_servings_multiplier: number
+          target_recipe_id: string
+        }
+        Returns: string
+      }
       assign_meal_slot: {
         Args: {
           cook_is_self: boolean
@@ -904,6 +1388,7 @@ export type Database = {
       change_bought_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -924,6 +1409,7 @@ export type Database = {
       change_item_quantity: {
         Args: { quantity_delta: number; target_item_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -944,6 +1430,7 @@ export type Database = {
       check_list_item_in_session: {
         Args: { target_item_id: string; target_session_id: string }
         Returns: {
+          assigned_to: string | null
           checked_at: string | null
           checked_by: string | null
           created_at: string
@@ -980,6 +1467,31 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      clear_household_meal_slot: {
+        Args: { slot_date: string; slot_meal_type: string }
+        Returns: undefined
+      }
+      copy_recipe: { Args: { target_recipe_id: string }; Returns: string }
+      create_date_list: {
+        Args: { list_event_date: string; list_name: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          spent_total: number | null
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_household: { Args: { household_name: string }; Returns: string }
       create_household_invite: {
         Args: never
@@ -988,9 +1500,69 @@ export type Database = {
           token: string
         }[]
       }
+      create_product_group: {
+        Args: {
+          group_name: string
+          item_list: Json
+          share_with_household: boolean
+        }
+        Returns: string
+      }
+      create_personal_product: {
+        Args: {
+          base_quantity: number
+          base_unit: string
+          brand_name?: string
+          category_id: string
+          product_name: string
+          reference_price?: number
+          reference_store_name?: string
+          reference_store_slug?: string
+          share_with_household?: boolean
+        }
+        Returns: string
+      }
+      current_household_id: { Args: never; Returns: string }
+      date_list_status_from_items: {
+        Args: { target_list_id: string }
+        Returns: string
+      }
       decide_personal_lists: { Args: { lists_choice: string }; Returns: string }
+      delete_personal_product: { Args: { target_product_id: string }; Returns: string }
+      dismiss_inventory_suggestion: {
+        Args: { target_variant_id: string }
+        Returns: undefined
+      }
       ensure_general_list_id: { Args: never; Returns: string }
       find_general_list_id: { Args: never; Returns: string }
+      get_general_list_recipe_shortfalls: {
+        Args: { local_day_start: string }
+        Returns: {
+          list_item_id: string
+          quantity_missing: number
+          quantity_unit: string
+          recipe_id: string
+          recipe_name: string
+        }[]
+      }
+      get_general_list_shortfall_snapshots: {
+        Args: { local_day_start: string }
+        Returns: {
+          list_item_id: string
+          previous_base_quantity: number
+          previous_base_unit: string
+          previous_quantity_requested: number
+        }[]
+      }
+      get_general_list_shortfalls: {
+        Args: never
+        Returns: {
+          list_item_id: string
+          quantity_missing: number
+          quantity_unit: string
+          recipe_name: string
+        }[]
+      }
       get_household_invite: {
         Args: never
         Returns: {
@@ -1001,22 +1573,95 @@ export type Database = {
       get_household_members: {
         Args: never
         Returns: {
-          display_name: string | null
+          display_name: string
           is_current_user: boolean
           role: string
           user_id: string
+        }[]
+      }
+      get_household_meal_plan: {
+        Args: { plan_from: string; plan_to: string }
+        Returns: {
+          cook_is_current_user: boolean
+          cook_name: string
+          cook_user_id: string
+          meal_type: string
+          recipe_base_servings: number
+          recipe_id: string
+          recipe_name: string
+          servings_multiplier: number
+          slot_date: string
+          slot_id: string
         }[]
       }
       get_household_members_page: {
-        Args: { page_offset?: number; page_size?: number; search_query?: string }
+        Args: {
+          page_offset?: number
+          page_size?: number
+          search_query?: string
+        }
         Returns: {
-          display_name: string | null
+          display_name: string
           is_current_user: boolean
           role: string
           user_id: string
         }[]
       }
+      get_inventory_suggestions: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string
+          last_purchased_at: string
+          product_catalog_variant_id: string
+          product_name: string
+        }[]
+      }
+      get_list_assignee_candidates: {
+        Args: { target_list_id: string }
+        Returns: {
+          display_name: string
+          is_current_user: boolean
+          user_id: string
+        }[]
+      }
+      get_my_inventory: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string | null
+          last_purchased_at: string
+          product_catalog_variant_id: string
+          product_name: string
+        }[]
+      }
+      get_period_finance: { Args: { target_scope: string }; Returns: Json }
+      get_personal_product_usage: {
+        Args: { target_product_id: string }
+        Returns: {
+          active_list_count: number
+          group_count: number
+          recipe_count: number
+        }[]
+      }
       get_personal_lists_decision_state: { Args: never; Returns: string }
+      get_product_purchases: {
+        Args: { target_product_key: string | null; target_variant_id: string | null }
+        Returns: {
+          appearance_count: number
+          closed_at: string
+          id: string
+          store_name: string | null
+          total_amount: number | null
+          variant_names: string[]
+        }[]
+      }
+      get_purchased_products: {
+        Args: { page_limit: number; page_offset: number; search_text: string }
+        Returns: Json
+      }
       get_recent_staging: {
         Args: { row_limit?: number; store_slug: string }
         Returns: {
@@ -1030,6 +1675,35 @@ export type Database = {
         }[]
       }
       get_recipe_coverage: { Args: { target_recipe_id: string }; Returns: Json }
+      get_recipe_coverage_today: {
+        Args: { local_day_start: string; target_recipe_id: string }
+        Returns: Json
+      }
+      get_spending_period_bounds: {
+        Args: { target_scope: string }
+        Returns: {
+          period_end: string
+          period_start: string
+        }[]
+      }
+      inventory_estimates: {
+        Args: never
+        Returns: {
+          base_quantity: number
+          base_unit: string
+          expected_out_at: string | null
+          is_dismissed: boolean
+          is_pending: boolean
+          last_purchased_at: string
+          product_catalog_id: string
+          product_catalog_variant_id: string
+          product_name: string
+        }[]
+      }
+      is_recipe_photo_in_use: {
+        Args: { target_photo_path: string }
+        Returns: boolean
+      }
       leave_household: { Args: { new_admin_user_id?: string }; Returns: string }
       list_catalog_by_category: {
         Args: { filter_category_id?: string; filter_household_id?: string }
@@ -1039,6 +1713,30 @@ export type Database = {
           product_catalog_id: string
           variants: Json
         }[]
+      }
+      lock_visible_list_item: {
+        Args: { target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_inventory_item_used_up: {
+        Args: { target_variant_id: string }
+        Returns: undefined
       }
       normalize_pending_staging: {
         Args: { batch_size?: number }
@@ -1076,27 +1774,16 @@ export type Database = {
           variant_id: string
         }[]
       }
-      remove_household_member: { Args: { member_user_id: string }; Returns: string }
-      save_recipe: {
-        Args: {
-          ingredient_list: Json
-          recipe_base_servings: number
-          recipe_name: string
-          target_recipe_id?: string
-        }
+      remove_household_member: {
+        Args: { member_user_id: string }
         Returns: string
       }
-      search_catalog: {
-        Args: { household_id?: string; search_term?: string }
-        Returns: {
-          category: string
-          name: string
-          product_catalog_id: string
-          variants: Json
-        }[]
-      }
-      set_list_item_checked: {
-        Args: { is_checked: boolean; target_item_id: string }
+      resolve_list_item_shortfall: {
+        Args: {
+          resolution: string
+          target_item_id: string
+          target_variant_id?: string
+        }
         Returns: {
           checked_at: string | null
           checked_by: string | null
@@ -1115,8 +1802,168 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      save_recipe: {
+        Args: {
+          ingredient_list: Json
+          recipe_base_servings: number
+          recipe_name: string
+          target_recipe_id?: string
+        }
+        Returns: string
+      }
+      search_catalog: {
+        Args: { household_id?: string; search_term?: string }
+        Returns: {
+          category: string
+          name: string
+          product_catalog_id: string
+          variants: Json
+        }[]
+      }
+      search_catalog_including_own: {
+        Args: { household_id?: string; search_term?: string }
+        Returns: {
+          category: string
+          is_personal: boolean
+          name: string
+          product_catalog_id: string
+          variants: Json
+        }[]
+      }
+      set_date_list_cancelled: {
+        Args: { is_cancelled: boolean; target_list_id: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          spent_total: number | null
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_date_list_total: {
+        Args: { new_total: number; target_list_id: string }
+        Returns: {
+          created_at: string
+          event_date: string | null
+          household_id: string | null
+          id: string
+          name: string | null
+          owner_id: string
+          spent_total: number | null
+          status: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_list_assignee_enabled: {
+        Args: { enabled: boolean; target_list_id: string }
+        Returns: {
+          assignee_enabled: boolean
+          list_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_list_item_assignee: {
+        Args: { new_assignee: string; target_item_id: string }
+        Returns: {
+          assigned_to: string | null
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_list_item_checked: {
+        Args: { is_checked: boolean; target_item_id: string }
+        Returns: {
+          assigned_to: string | null
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_period_total: {
+        Args: { target_scope: string; target_total: number }
+        Returns: {
+          amount: number
+          effective_at: string
+          id: string
+          owner_id: string
+          scope: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "spending_adjustments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      set_purchase_session_total: {
+        Args: { new_total: number; target_session_id: string }
+        Returns: {
+          closed_at: string | null
+          household_id: string | null
+          id: string
+          list_id: string | null
+          owner_id: string
+          started_at: string
+          store_id: string
+          total_amount: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "purchase_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_recipe_photo: {
+        Args: { new_photo_path?: string; target_recipe_id: string }
+        Returns: string
+      }
       set_spending_budget: {
         Args: { budget_amount: number; budget_period: string }
         Returns: {
@@ -1131,6 +1978,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_spending_time_zone: {
+        Args: { new_time_zone: string }
+        Returns: {
+          owner_id: string
+          time_zone: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "spending_time_zones"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      share_recipe: { Args: { target_recipe_id: string }; Returns: string[] }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       start_purchase_session: {
         Args: { local_day_start: string; target_store_id: string }
         Returns: {
@@ -1149,6 +2012,40 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      undo_shortfall_resolution_and_uncheck: {
+        Args: { target_item_id: string }
+        Returns: {
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          list_id: string
+          product_catalog_variant_id: string
+          purchase_session_id: string | null
+          quantity_bought: number | null
+          quantity_requested: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "list_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_personal_product: {
+        Args: {
+          new_base_quantity: number
+          new_base_unit: string
+          new_brand_name?: string
+          new_category_id: string
+          new_product_name: string
+          new_reference_price?: number
+          new_reference_store_name?: string
+          new_reference_store_slug?: string
+          target_product_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
@@ -1278,9 +2175,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

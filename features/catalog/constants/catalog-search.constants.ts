@@ -27,7 +27,9 @@ export const CATALOG_TEXT = {
   // HU-52: categoría activa sin ningún producto. Distinto de NO_RESULTS
   // (PRODUCT_SEARCH_TEXT, búsqueda por texto) porque la causa es otra.
   EMPTY_CATEGORY: "No encontramos productos en esta categoría.",
-  EMPTY_SUGGESTION: "Si no existe, puedes crearlo en \"Mis productos\".",
+  // CA-04 (SCRUM-87): ya no manda a otra pantalla, el botón de abajo abre el
+  // mismo CreateProductForm aquí mismo.
+  EMPTY_SUGGESTION: "Si no existe, puedes agregarlo tú mismo.",
   IDLE_HINT: `Escribe al menos ${PRODUCT_SEARCH.MIN_QUERY_LENGTH} letras para buscar.`,
   SEARCHING: "Buscando…",
 } as const;

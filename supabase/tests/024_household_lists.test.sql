@@ -159,8 +159,8 @@ begin
     'políticas de list_items';
   assert (select array_agg(p.policyname::text order by p.policyname) from pg_policies p
           where p.schemaname = 'public' and p.tablename = 'list_item_recipe_requirements')
-         = array['adds requirements of own recipes to visible items', 'reads requirements of visible items',
-                 'updates requirements of own recipes on visible items'],
+         = array['adds requirements of visible recipes to visible items', 'reads requirements of visible items',
+                 'updates requirements of visible recipes on visible items'],
     'políticas de list_item_recipe_requirements';
 end $$;
 
@@ -482,9 +482,10 @@ end $$;
 -- 7. B decide "compartir": sus pendientes pasan a la lista de la familia sin
 --    duplicar variantes, con su requisito de receta; lo tachado se queda en
 --    su lista personal (CA-04, T1). v3 suma hasta el tope de integer sin
---    desbordar. v4 ya lo compró A: no se toca su compra y el pendiente de B se
---    queda en su lista personal ('shared_partially'). Una opción inválida se
---    rechaza.
+--    desbordar. v4 ya lo compró A: no se toca su compra y, desde 035
+--    (SCRUM-156), el pendiente de B entra como fila pendiente nueva (antes se
+--    quedaba en su lista personal y devolvía 'shared_partially'). Una opción
+--    inválida se rechaza.
 -- ----------------------------------------------------------------------------
 
 select set_config(
@@ -509,8 +510,8 @@ begin
     5
   );
 
-  assert public.decide_personal_lists('share') = 'shared_partially',
-    'B comparte, pero v4 (comprado por A) se queda en su lista personal';
+  assert public.decide_personal_lists('share') = 'shared',
+    'B comparte todo, también v4 aunque A lo tenga comprado (035)';
 
   assert (select count(*) from public.list_items li
           where li.list_id = current_setting('tacha_test.household_list_1')::uuid
@@ -544,10 +545,18 @@ begin
             and r.quantity_missing = 1) = 1,
     'el requisito de la receta de B pasa a la fila de la familia';
 
-  assert (select array_agg(li.product_catalog_variant_id) from public.list_items li
-          where li.list_id = current_setting('tacha_test.list_b')::uuid
-            and li.checked_at is null) = array[current_setting('tacha_test.v4')::uuid],
-    'a B solo le queda pendiente v4 en su lista personal';
+  assert (select count(*) from public.list_items li
+          where li.list_id = current_setting('tacha_test.household_list_1')::uuid
+            and li.product_catalog_variant_id = current_setting('tacha_test.v4')::uuid
+            and li.checked_at is null
+            and li.quantity_requested = 1) = 1,
+    'v4 de B entra como pendiente nueva junto a la compra de A (035)';
+
+  assert not exists (
+    select 1 from public.list_items li
+    where li.list_id = current_setting('tacha_test.list_b')::uuid
+      and li.checked_at is null
+  ), 'a B no le queda nada pendiente en su lista personal';
   assert (select count(*) from public.list_items li
           where li.list_id = current_setting('tacha_test.list_b')::uuid
             and li.product_catalog_variant_id = current_setting('tacha_test.v2')::uuid
@@ -577,9 +586,9 @@ begin
 end $$;
 
 -- ----------------------------------------------------------------------------
--- 7b. D decide "compartir", pero su único pendiente (v4) ya lo compró A: no
---     pasa nada ('nothing_shared'), la compra de A sigue intacta y v4 se queda
---     en la lista personal de D. La decisión queda guardada igual.
+-- 7b. D decide "compartir" su único pendiente (v4), que A ya compró. Desde 035
+--     (SCRUM-156) se suma a la pendiente de v4 que dejó B y la compra de A
+--     sigue intacta (antes no pasaba nada y devolvía 'nothing_shared').
 -- ----------------------------------------------------------------------------
 
 select set_config(
@@ -590,15 +599,19 @@ select set_config(
 
 do $$
 begin
-  assert public.decide_personal_lists('share') = 'nothing_shared',
-    'D no pasa ningún producto: todos ya estaban comprados por la familia';
+  assert public.decide_personal_lists('share') = 'shared',
+    'D comparte su v4 aunque A ya lo haya comprado (035)';
 
-  assert (select count(*) from public.list_items li
-          where li.list_id = current_setting('tacha_test.list_d')::uuid
+  assert (select li.quantity_requested from public.list_items li
+          where li.list_id = current_setting('tacha_test.household_list_1')::uuid
             and li.product_catalog_variant_id = current_setting('tacha_test.v4')::uuid
-            and li.quantity_requested = 2
-            and li.checked_at is null) = 1,
-    'v4 x2 se queda pendiente en la lista personal de D';
+            and li.checked_at is null) = 3,
+    'v4: la pendiente que dejó B (1) + 2 de D';
+  assert not exists (
+    select 1 from public.list_items li
+    where li.list_id = current_setting('tacha_test.list_d')::uuid
+      and li.checked_at is null
+  ), 'a D no le queda nada pendiente en su lista personal';
   assert (select count(*) from public.list_items li
           where li.list_id = current_setting('tacha_test.household_list_1')::uuid
             and li.product_catalog_variant_id = current_setting('tacha_test.v4')::uuid
@@ -670,15 +683,15 @@ reset role;
 do $$
 begin
   assert (select count(*) from public.list_items li
-          where li.list_id = current_setting('tacha_test.household_list_1')::uuid) = 4,
-    'la lista de la familia sigue con sus productos (v1, v2 y v4 de A, y v3)';
+          where li.list_id = current_setting('tacha_test.household_list_1')::uuid) = 5,
+    'la lista de la familia sigue con sus productos (v1, v2 y v4 comprado de A, v3, y v4 pendiente de B y D desde 035)';
 end $$;
 
 -- ----------------------------------------------------------------------------
 -- 9. La familia 2 se elimina (sale C, su único miembro): su lista se va con
 --    ella; las recetas y los planes que la nombraban quedan personales. Un
 --    plan de la familia que choca con un espacio personal se borra (gana el
---    personal) y de dos planes de la familia en el mismo espacio queda uno.
+--    personal). Dos de la familia en el mismo espacio ya no pueden existir (062).
 -- ----------------------------------------------------------------------------
 
 do $$
@@ -696,10 +709,7 @@ begin
     (user_c, household_2, date '2026-10-22', 'lunch', recipe_c, 1),
     (user_c, null, date '2026-10-22', 'lunch', recipe_c, 2),
     -- Sin choque: queda personal.
-    (user_c, household_2, date '2026-10-23', 'dinner', recipe_c, 1),
-    -- Dos de la familia en el mismo espacio: queda uno.
-    (user_c, household_2, date '2026-10-24', 'breakfast', recipe_c, 1),
-    (user_c, household_2, date '2026-10-24', 'breakfast', recipe_c, 1.5);
+    (user_c, household_2, date '2026-10-23', 'dinner', recipe_c, 1);
 
   perform set_config('tacha_test.recipe_c', recipe_c::text, true);
 end $$;
@@ -750,10 +760,6 @@ begin
           where p.recipe_id = current_setting('tacha_test.recipe_c')::uuid
             and p.date = date '2026-10-23' and p.meal_type = 'dinner') = 1,
     'el plan de la familia sin choque sigue existiendo, ahora personal';
-  assert (select count(*) from public.meal_plans p
-          where p.recipe_id = current_setting('tacha_test.recipe_c')::uuid
-            and p.date = date '2026-10-24' and p.meal_type = 'breakfast') = 1,
-    'de dos planes de la familia en el mismo espacio queda uno';
   assert not exists (select 1 from public.lists l
                      where l.household_id is not null
                        and not exists (select 1 from public.households h where h.id = l.household_id)),

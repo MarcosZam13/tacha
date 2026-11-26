@@ -66,7 +66,7 @@ describe("ContactSection", () => {
 
     await page.submit();
 
-    expect(page.getAlerts()[0]).toHaveTextContent("Confirmá que no sos un robot.");
+    expect(page.getAlerts()[0]).toHaveTextContent("Confirma que no eres un robot.");
     expect(submitContactMessageMock).not.toHaveBeenCalled();
   });
 
@@ -78,7 +78,7 @@ describe("ContactSection", () => {
 
     await page.submit();
 
-    expect(page.getText("Ingresá un correo válido.")).toBeInTheDocument();
+    expect(page.getText("Ingresa un correo válido.")).toBeInTheDocument();
     expect(submitContactMessageMock).not.toHaveBeenCalled();
   });
 

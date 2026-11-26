@@ -3,6 +3,8 @@
 // constants/list-items.constants.ts (SCRUM-85): catalog-product-detail
 // también agrega productos y cambia su cantidad. Se reexportan aquí para no
 // tocar los imports que ya existían en esta feature.
+import { Info, Trash2 } from "lucide-react";
+
 export { ITEM_QUANTITY } from "@/constants/list-items.constants";
 export type { ItemQuantityStepType } from "@/constants/list-items.constants";
 
@@ -28,16 +30,26 @@ export const SHOPPING_LIST_DB = {
   // valida al compilar, que es lo mismo que buscaría la constante.
   // id: para distinguir la lista personal de la de la familia (SCRUM-59).
   GENERAL_LIST_SELECT:
-    "id, list_items(id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+    "id, list_items(id, product_catalog_variant_id, quantity_requested, checked_at, purchase_session_id, quantity_bought, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   // Detalle de una variante: sus marcas y el último precio de cada marca en
   // cada tienda (la vista latest_prices ya se queda con el más reciente).
   ITEM_DETAIL_SELECT: "product_brands(name), latest_prices(price, stores(display_name))",
+  // Desde una variante, todas las presentaciones de su producto madre con sus
+  // precios (SCRUM-115, "Cambié a otra presentación"). Una sola petición.
+  PRESENTATIONS_SELECT:
+    "product_catalog(product_catalog_variants(id, base_quantity, base_unit, latest_prices(price)))",
   RPC: {
     CHANGE_BOUGHT_QUANTITY: "change_bought_quantity",
     CHECK_LIST_ITEM_IN_SESSION: "check_list_item_in_session",
     // La lista general de quien llama: la de su familia o la personal (024, SCRUM-59).
     FIND_GENERAL_LIST_ID: "find_general_list_id",
+    // Avisos de faltante en vivo de la lista general, con el nombre de la receta (037, SCRUM-115).
+    GET_GENERAL_LIST_RECIPE_SHORTFALLS: "get_general_list_recipe_shortfalls",
+    // A qué vuelve cada fila resuelta en "¿Qué hiciste?" al destachar (037).
+    GET_GENERAL_LIST_SHORTFALL_SNAPSHOTS: "get_general_list_shortfall_snapshots",
+    RESOLVE_LIST_ITEM_SHORTFALL: "resolve_list_item_shortfall",
     SET_LIST_ITEM_CHECKED: "set_list_item_checked",
+    UNDO_SHORTFALL_RESOLUTION_AND_UNCHECK: "undo_shortfall_resolution_and_uncheck",
   },
   TABLE: {
     LISTS: "lists",
@@ -46,10 +58,19 @@ export const SHOPPING_LIST_DB = {
   },
 } as const;
 
+// Prefijos de ids del DOM. SHORTFALL_NOTES: el bloque de avisos de una fila
+// (SCRUM-114), que el botón de tachar referencia con aria-describedby; lleva
+// el id de la fila para ser único.
+export const SHOPPING_LIST_DOM_ID_PREFIX = {
+  SHORTFALL_NOTES: "shortfall-notes-",
+} as const;
+
 // Acciones del reducer de la lista (utils/shopping-list.reducer.ts).
 export const SHOPPING_LIST_ACTION = {
   ADD_FAILED: "addFailed",
   BOUGHT_QUANTITY_CHANGED: "boughtQuantityChanged",
+  // Destachar juntó la fila con la pendiente de la misma presentación (SCRUM-156).
+  CHECK_MERGED: "checkMerged",
   CHECK_TOGGLED: "checkToggled",
   CHECK_TOGGLE_FAILED: "checkToggleFailed",
   CHECK_TOGGLE_STARTED: "checkToggleStarted",
@@ -57,10 +78,14 @@ export const SHOPPING_LIST_ACTION = {
   ITEM_UPSERTED: "itemUpserted",
   LOADED: "loaded",
   LOAD_FAILED: "loadFailed",
+  // La compra se cerró: sus filas ya no se pueden deshacer (SCRUM-115, regla 45, 041).
+  PURCHASE_CLOSED: "purchaseClosed",
   QUANTITY_CHANGED: "quantityChanged",
   QUANTITY_CHANGE_FAILED: "quantityChangeFailed",
   QUANTITY_CHANGE_STARTED: "quantityChangeStarted",
   REMOVE_FAILED: "removeFailed",
+  // Los avisos en vivo se volvieron a pedir después de un cambio en la lista (SCRUM-115).
+  SHORTFALLS_REFRESHED: "shortfallsRefreshed",
 } as const;
 
 export const SHOPPING_LIST_TEXT = {
@@ -84,14 +109,26 @@ export const SHOPPING_LIST_TEXT = {
   KEPT_PERSONAL_QUANTITY_PREFIX: "×",
   KEPT_PERSONAL_SECTION: "Mi lista personal",
   LOAD_ERROR: "No se pudo cargar tu lista. Intenta de nuevo.",
+  // Entrada a "Mis grupos" (SCRUM-109, HU-72 CA-01).
+  MANAGE_GROUPS: "Gestionar mis grupos",
+  // Entrada a "Mi inventario" (SCRUM-105, HU-71b CA-01) mientras no exista el menú "Más".
+  MY_INVENTORY: "Mi inventario",
   OPEN_DETAIL: "Ver detalle",
-  OPEN_DETAIL_ICON: "i",
   PENDING_SECTION: "Pendientes",
   REMOVE_ERROR: "No se pudo eliminar el producto. Intenta de nuevo.",
   REMOVE_ITEM: "Eliminar",
-  REMOVE_ITEM_ICON: "✕",
   REMOVED_TOAST: "Producto eliminado",
+  // Aviso de faltante (SCRUM-114): "+ 600 ml necesarios para Tres leches".
+  SHORTFALL_NOTE_FOR: "necesarios para",
+  SHORTFALL_NOTE_PREFIX: "+",
   UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",
+} as const;
+
+// Íconos de las acciones secundarias de la fila (SCRUM-147). Reemplazan los
+// caracteres "i" y "✕"; el nombre accesible sigue saliendo de SHOPPING_LIST_TEXT.
+export const SHOPPING_LIST_ICON = {
+  OPEN_DETAIL: Info,
+  REMOVE_ITEM: Trash2,
 } as const;

@@ -3,6 +3,7 @@ import { PURCHASE_SESSION_TEXT } from "../constants/purchase-session.constants";
 import { ITEM_QUANTITY } from "../constants/shopping-list.constants";
 import type { ShoppingListItem } from "../models/ShoppingListItem.interface";
 import type { ShoppingListRowViewModel } from "../models/ShoppingListRowViewModel.interface";
+import { toShortfallNote } from "./toShortfallNote";
 
 interface ToShoppingListRowParams {
   /** La compra activa (modo compra) o null. */
@@ -37,5 +38,7 @@ export const toShoppingListRow = ({ activeSessionId, isPending, item }: ToShoppi
       boughtQuantity !== null && boughtQuantity !== item.quantity
         ? `${PURCHASE_SESSION_TEXT.REQUESTED} ${item.quantity}`
         : null,
+    // En pendientes y en tachados: hasta SCRUM-115 el faltante sigue registrado (SPEC regla 28).
+    shortfallNotes: item.recipeShortfalls.map(toShortfallNote),
   };
 };

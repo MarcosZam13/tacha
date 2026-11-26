@@ -19,7 +19,7 @@ export const MyPage = () => {
 ## Comportamiento
 
 - **Household sin filas en `household_store_preferences`:** todas las tiendas aparecen visibles (default = true)
-- **Al cambiar toggle:** hace upsert en la BD (no falla si es la primera vez). **Hoy falla con `42501`:** la escritura está cerrada desde la migración 009 (SCRUM-123) hasta que exista la política de membresía (SCRUM-127)
+- **Al cambiar toggle:** hace upsert en la BD (no falla si es la primera vez). Desde la migración 034 (SCRUM-127) solo un miembro del household puede leer y escribir sus filas. **Hoy el componente igual falla con `42501`:** el hook manda la anon key en `Authorization` y la base lo trata como visitante. Para guardar, el hook tiene que usar el cliente de Supabase con la sesión.
 - **Sin householdId:** no renderiza nada (es configuración de household, no tiene sentido sin household)
 
 ## Queries SQL para reutilización (otros módulos)
@@ -49,7 +49,7 @@ order by s.slug asc;
 
 ### Actualizar preferencia (upsert)
 
-> Bloqueado desde el cliente hasta SCRUM-127: sin política de escritura, RLS lo rechaza con `42501`.
+> Solo lo puede hacer un miembro del household con su sesión (migración 034, SCRUM-127). Un visitante o alguien de otro household recibe `42501`.
 
 ```sql
 insert into household_store_preferences (household_id, store_id, visible)

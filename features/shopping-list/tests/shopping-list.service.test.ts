@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getGeneralList, getKeptPersonalList } from "../services/shopping-list.service";
+import { getGeneralList, getKeptPersonalList, setItemChecked } from "../services/shopping-list.service";
 
 // Sin Supabase real: un cliente falso. Cada método de la consulta devuelve la
 // misma consulta (como el builder de supabase-js) y maybeSingle la resuelve.
@@ -30,6 +30,7 @@ const LIST_ITEM_ROW = {
   checked_at: null,
   created_at: "2026-10-11T10:00:00Z",
   id: "item-1",
+  product_catalog_variant_id: "variant-1",
   product_catalog_variants: {
     base_quantity: 1000,
     base_unit: "ml",
@@ -41,6 +42,35 @@ const LIST_ITEM_ROW = {
   quantity_requested: 2,
 };
 
+// Una fila de get_general_list_recipe_shortfalls (037) sobre LIST_ITEM_ROW.
+const SHORTFALL_ROW = {
+  list_item_id: "item-1",
+  quantity_missing: 600,
+  quantity_unit: "ml",
+  recipe_id: "recipe-tres-leches",
+  recipe_name: "Tres leches",
+};
+// Una fila de get_general_list_shortfall_snapshots (037): item-1 vuelve a 1 × 1000 ml.
+const SNAPSHOT_ROW = {
+  list_item_id: "item-1",
+  previous_base_quantity: 1000,
+  previous_base_unit: "ml",
+  previous_quantity_requested: 1,
+};
+
+// getGeneralList llama dos RPC en paralelo: cada una responde por su nombre.
+const mockGeneralListRpcs = (
+  generalListResponse: { data: string | null; error: unknown },
+  shortfallsResponse: { data: (typeof SHORTFALL_ROW)[] | null; error: unknown } = { data: [], error: null },
+  snapshotsResponse: { data: (typeof SNAPSHOT_ROW)[] | null; error: unknown } = { data: [], error: null },
+): void => {
+  rpcMock.mockImplementation((rpcName: string) => {
+    if (rpcName === "get_general_list_recipe_shortfalls") return Promise.resolve(shortfallsResponse);
+    if (rpcName === "get_general_list_shortfall_snapshots") return Promise.resolve(snapshotsResponse);
+    return Promise.resolve(generalListResponse);
+  });
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
   for (const method of [query.eq, query.is, query.or, query.order, query.select]) {
@@ -50,7 +80,7 @@ beforeEach(() => {
 
 describe("getGeneralList", () => {
   it("asks the database which list to show and reads that one (CA-05)", async () => {
-    rpcMock.mockResolvedValue({ data: HOUSEHOLD_LIST_ID, error: null });
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null });
     maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
 
     const items = await getGeneralList();
@@ -59,12 +89,78 @@ describe("getGeneralList", () => {
     expect(rpcMock).toHaveBeenCalledWith("find_general_list_id");
     expect(eqMock).toHaveBeenCalledWith("id", HOUSEHOLD_LIST_ID);
     expect(items).toEqual([
-      expect.objectContaining({ id: "item-1", productName: "Leche", quantity: 2, variantId: "variant-1" }),
+      expect.objectContaining({
+        id: "item-1",
+        productName: "Leche",
+        quantity: 2,
+        recipeShortfalls: [],
+        shortfallSnapshot: null,
+        variantId: "variant-1",
+      }),
     ]);
   });
 
+  // SCRUM-163: un producto personal de otro miembro llega sin presentación (RLS
+  // de la 032). La lista no se cae: esa fila sale "no disponible".
+  it("keeps loading when a row arrives without its product (SCRUM-163)", async () => {
+    const hiddenRow = { ...LIST_ITEM_ROW, id: "item-2", product_catalog_variant_id: "variant-hidden", product_catalog_variants: null };
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW, hiddenRow] }, error: null });
+
+    const items = await getGeneralList();
+
+    expect(items).toHaveLength(2);
+    expect(items[0]).toEqual(expect.objectContaining({ productName: "Leche", sizeLabel: "1000 ml" }));
+    expect(items[1]).toEqual(
+      expect.objectContaining({ id: "item-2", productName: "Producto no disponible", sizeLabel: "", variantId: "variant-hidden" }),
+    );
+  });
+
+  it("attaches the recipe shortfalls to their rows (SCRUM-114)", async () => {
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null }, { data: [SHORTFALL_ROW], error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
+
+    const [item] = await getGeneralList();
+
+    // Nombre literal a propósito: fija el contrato con la base (migración 037).
+    expect(rpcMock).toHaveBeenCalledWith("get_general_list_recipe_shortfalls", {
+      local_day_start: expect.any(String),
+    });
+    expect(item.recipeShortfalls).toEqual([{ quantityMissing: 600, recipeName: "Tres leches", unit: "ml" }]);
+  });
+
+  it("fails the load when the shortfalls cannot be read, instead of showing a list without them", async () => {
+    const supabaseError = { code: "PGRST000", message: "error" };
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null }, { data: null, error: supabaseError });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
+
+    await expect(getGeneralList()).rejects.toBe(supabaseError);
+  });
+
+  it("attaches what each resolved row goes back to (SCRUM-115)", async () => {
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null }, undefined, { data: [SNAPSHOT_ROW], error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [LIST_ITEM_ROW] }, error: null });
+
+    const [item] = await getGeneralList();
+
+    expect(item.shortfallSnapshot).toEqual({ previousQuantity: 1, previousSizeLabel: "1000 ml" });
+  });
+
+  it("asks for the shortfalls and the snapshots with the same local midnight", async () => {
+    mockGeneralListRpcs({ data: HOUSEHOLD_LIST_ID, error: null });
+    maybeSingleMock.mockResolvedValue({ data: { id: HOUSEHOLD_LIST_ID, list_items: [] }, error: null });
+
+    await getGeneralList();
+
+    const dayStarts = rpcMock.mock.calls
+      .filter(([rpcName]) => rpcName !== "find_general_list_id")
+      .map(([, rpcArgs]) => (rpcArgs as { local_day_start: string }).local_day_start);
+    expect(dayStarts).toHaveLength(2);
+    expect(new Set(dayStarts).size).toBe(1);
+  });
+
   it("returns an empty list without reading when there is no list yet", async () => {
-    rpcMock.mockResolvedValue({ data: null, error: null });
+    mockGeneralListRpcs({ data: null, error: null });
 
     await expect(getGeneralList()).resolves.toEqual([]);
     expect(maybeSingleMock).not.toHaveBeenCalled();
@@ -72,7 +168,7 @@ describe("getGeneralList", () => {
 
   it("rethrows the Supabase error", async () => {
     const supabaseError = { code: "42501", message: "Se requiere una sesión para usar la lista" };
-    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+    mockGeneralListRpcs({ data: null, error: supabaseError });
 
     await expect(getGeneralList()).rejects.toBe(supabaseError);
   });
@@ -88,6 +184,9 @@ describe("getKeptPersonalList", () => {
     expect(eqMock).toHaveBeenCalledWith("owner_id", "user-ana");
     expect(isMock).toHaveBeenCalledWith("household_id", null);
     expect(items).toHaveLength(1);
+    // Sin avisos de faltante: no es la lista a la que se agregan recetas (SCRUM-114, regla 30).
+    expect(items[0].recipeShortfalls).toEqual([]);
+    expect(rpcMock).not.toHaveBeenCalledWith("get_general_list_recipe_shortfalls", expect.anything());
   });
 
   it("returns nothing without a household: the personal list is the main one", async () => {
@@ -110,5 +209,29 @@ describe("getKeptPersonalList", () => {
     maybeSingleMock.mockResolvedValue({ data: null, error: supabaseError });
 
     await expect(getKeptPersonalList()).rejects.toBe(supabaseError);
+  });
+});
+
+describe("setItemChecked", () => {
+  it("returns the check, the id and the quantity of the row the database left (SCRUM-156)", async () => {
+    // Destachar con otra pendiente de la misma presentación: la base devuelve la pendiente.
+    rpcMock.mockResolvedValue({
+      data: { ...LIST_ITEM_ROW, id: "item-pending", quantity_requested: 4 },
+      error: null,
+    });
+
+    await expect(setItemChecked("item-bought", false)).resolves.toEqual({
+      check: { checkedAt: null, purchaseSessionId: null, quantityBought: null },
+      itemId: "item-pending",
+      quantity: 4,
+    });
+    expect(rpcMock).toHaveBeenCalledWith("set_list_item_checked", { is_checked: false, target_item_id: "item-bought" });
+  });
+
+  it("rethrows the Supabase error", async () => {
+    const supabaseError = { code: "P0002", message: "El producto no está en tu lista" };
+    rpcMock.mockResolvedValue({ data: null, error: supabaseError });
+
+    await expect(setItemChecked("item-ajeno", true)).rejects.toBe(supabaseError);
   });
 });

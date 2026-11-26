@@ -1,4 +1,5 @@
 import type { NullableRef } from "@/types/nullable.types";
+import type { RecipeCopyViewModel } from "./recipe-sharing.interfaces";
 import type { RecipeCoverageViewModel } from "./recipe-coverage.interfaces";
 import type { RecipeDeletionViewModel } from "./recipe-deletion.interfaces";
 import type { RecipeListAdditionViewModel } from "./recipe-list-addition.interfaces";
@@ -12,13 +13,15 @@ import type { RecipeListAdditionViewModel } from "./recipe-list-addition.interfa
  */
 export interface RecipeRow {
   base_servings: number;
+  household_id: NullableRef<string>;
   id: string;
-  image_url: NullableRef<string>;
   name: string;
+  photo_path: NullableRef<string>;
   recipe_ingredients: {
     id: string;
     position: number;
-    product_catalog: { name: string };
+    /** null si quien consulta ya no puede ver el producto (de una familia anterior). */
+    product_catalog: NullableRef<{ name: string }>;
   }[];
 }
 
@@ -28,12 +31,15 @@ export interface RecipeSummary {
   editPath: string;
   hasIngredients: boolean;
   id: string;
-  imageUrl: NullableRef<string>;
+  /** De la familia; si no, personal. */
+  isShared: boolean;
   /** El id es el del ingrediente de la receta: dos productos pueden llamarse igual. */
   mainIngredients: { id: string; name: string }[];
   /** "+2 más" si hay más ingredientes que el límite; null si se ven todos. */
   moreIngredientsLabel: NullableRef<string>;
   name: string;
+  /** Enlace temporal de la foto; null si no tiene o no se pudo pedir. */
+  photoUrl: NullableRef<string>;
   /** Letra que se muestra cuando la receta no tiene foto. */
   placeholderInitial: string;
   servingsLabel: string;
@@ -41,6 +47,8 @@ export interface RecipeSummary {
 
 /** Lo que useRecipeCatalogViewModel le entrega a RecipeCatalog.tsx, ya calculado. */
 export interface RecipeCatalogViewModel {
+  /** "Guardar copia personal" agrupado aparte: lo usan las tarjetas de la familia. */
+  copy: RecipeCopyViewModel;
   /** "Ver qué falta" agrupado aparte: lo usan el botón y el panel de cada tarjeta. */
   coverage: RecipeCoverageViewModel;
   /** Eliminación agrupada aparte: solo la usan el diálogo y el botón de cada tarjeta. */

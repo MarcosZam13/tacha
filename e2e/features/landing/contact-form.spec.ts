@@ -58,7 +58,7 @@ test.describe("Contacto desde la página de inicio", () => {
     await fillContactForm(page, VALID_FORM);
     await region.getByRole("button", { name: "Enviar mensaje" }).click();
 
-    await expect(region.getByRole("alert")).toHaveText("Confirmá que no sos un robot.");
+    await expect(region.getByRole("alert")).toHaveText("Confirma que no eres un robot.");
     expect(requests).toHaveLength(0);
   });
 
@@ -72,7 +72,7 @@ test.describe("Contacto desde la página de inicio", () => {
     await region.getByRole("button", { name: "Enviar mensaje" }).click();
 
     await expect(region.getByRole("alert")).toHaveText(
-      "No pudimos enviar tu mensaje. Intentá de nuevo en unos minutos.",
+      "No pudimos enviar tu mensaje. Intenta de nuevo en unos minutos.",
     );
     await expect(region.getByLabel("Nombre")).toHaveValue("Ana");
   });

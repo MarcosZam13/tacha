@@ -3,22 +3,38 @@
 export const APP_ROUTE = {
   CATALOG: "/catalogo",
   CATALOG_MY_PRODUCTS: "/catalogo/mis-productos",
+  CHANGE_PASSWORD: "/perfil/contrasena",
+  DATE_LISTS: "/fechas",
   FINANCE: "/finanzas",
+  FINANCE_HISTORY: "/finanzas/historial",
+  FINANCE_HISTORY_PRODUCTS: "/finanzas/historial/productos",
   HOUSEHOLD: "/household",
   LIST: "/lista",
+  // "Mis grupos" (SCRUM-109): pantalla secundaria de General, no ítem del menú (DESIGN.md §3.1).
+  LIST_GROUPS: "/lista/grupos",
+  // "Mi inventario" (SCRUM-105): pantalla secundaria de General, como Mis grupos. Va al menú "Más" cuando exista.
+  LIST_INVENTORY: "/lista/inventario",
+  // Crear un grupo (SCRUM-110): página y no modal, mismo patrón que /recetas/nueva.
+  LIST_GROUP_NEW: "/lista/grupos/nuevo",
+  LIST_SETTINGS: "/perfil/configuracion",
   MEAL_PLANNER: "/recetas/planificador",
+  PROFILE: "/perfil",
   RECIPES: "/recetas",
   RECIPE_NEW: "/recetas/nueva",
 } as const;
 
 export type AppRouteType = (typeof APP_ROUTE)[keyof typeof APP_ROUTE];
 
-// Rutas públicas de la cuenta: el login, pedir el enlace de recuperación y fijar la nueva
-// contraseña. Las usan el enlace del login, el guard de sesión y la feature de recuperación.
+// Rutas de la cuenta: el login, el registro, pedir el enlace de recuperación y fijar la nueva
+// contraseña. Son públicas salvo COMPLETE_SIGN_UP (SCRUM-43), que necesita la sesión recién creada
+// por el proveedor; cuáles se ven sin sesión lo decide PUBLIC_ROUTES del guard.
 export const AUTH_ROUTE = {
+  COMPLETE_SIGN_UP: "/registro/completar",
   FORGOT_PASSWORD: "/recuperar-contrasena",
   LOGIN: "/login",
+  REGISTER: "/registro",
   RESET_PASSWORD: "/actualizar-contrasena",
+  SOCIAL_SIGN_UP: "/registro/social",
 } as const;
 
 export type AuthRouteType = (typeof AUTH_ROUTE)[keyof typeof AUTH_ROUTE];

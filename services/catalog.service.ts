@@ -1,6 +1,6 @@
 import { CATALOG_DB, POSTGRES_ERROR_CODE } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
-import { getSupabaseClient } from "@/services/supabase.client";
+import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
 import type { NullableRef } from "@/types/nullable.types";
 import type {
   CatalogProduct,
@@ -11,6 +11,7 @@ import type {
   StorePrice,
 } from "@/types/catalog.types";
 import { formatSizeLabel } from "@/utils/formatSizeLabel";
+import { sortBySearchRelevance } from "@/utils/sortBySearchRelevance";
 import { toStorePriceRanges } from "@/utils/toStorePriceRanges";
 
 /**
@@ -33,6 +34,8 @@ const toPriceRangeByStore = (
 const toCatalogProducts = (
   products: ReadonlyArray<{
     category: string;
+    // Solo lo devuelve search_catalog_including_own (SCRUM-110).
+    is_personal?: boolean;
     name: string;
     product_catalog_id: string;
     variants: unknown;
@@ -40,16 +43,24 @@ const toCatalogProducts = (
 ): CatalogProduct[] =>
   products.map((product) => ({
     category: product.category,
+    isPersonal: product.is_personal,
     productId: product.product_catalog_id,
     productName: product.name,
     // variants es jsonb: la base no le da tipo, lo fija el contrato de la RPC.
-    variants: (product.variants as unknown as CatalogSearchVariantRow[]).map((variant) => ({
-      baseQuantity: variant.base_quantity,
-      baseUnit: variant.base_unit,
-      imageUrl: variant.image_url,
-      priceRangeByStore: toPriceRangeByStore(variant.price_ranges),
-      variantId: variant.variant_id,
-    })),
+    variants: [...(product.variants as unknown as CatalogSearchVariantRow[])]
+      // La RPC las arma con json_agg sin orden: de menor a mayor tamaño. Sin agrupar por unidad, para
+      // que "leche" no muestre primero todas las de gramos (en polvo) y deje fuera las de ml.
+      .sort(
+        (first, second) =>
+          first.base_quantity - second.base_quantity || first.base_unit.localeCompare(second.base_unit),
+      )
+      .map((variant) => ({
+        baseQuantity: variant.base_quantity,
+        baseUnit: variant.base_unit,
+        imageUrl: variant.image_url,
+        priceRangeByStore: toPriceRangeByStore(variant.price_ranges),
+        variantId: variant.variant_id,
+      })),
   }));
 
 /**
@@ -63,7 +74,30 @@ export const searchCatalog = async (searchTerm: string): Promise<CatalogProduct[
   });
   if (error) throw error;
 
-  return toCatalogProducts(products);
+  // La RPC ordena por nombre; acá va primero lo que más se parece a lo buscado (SCRUM-158).
+  return sortBySearchRelevance(toCatalogProducts(products), searchTerm, (product) => product.productName);
+};
+
+/**
+ * Como searchCatalog(), pero también devuelve mis productos personalizados y
+ * los compartidos por mi familia (nunca los archivados), cada uno marcado con
+ * `isPersonal` si es personal sin compartir. Lo usa el editor de grupos
+ * (SCRUM-110); "Buscar" y la lista siguen usando searchCatalog().
+ *
+ * ensureSession() primero: la función solo la puede ejecutar authenticated
+ * (los anónimos de Supabase también lo son), y entrando directo a
+ * /lista/grupos/nuevo todavía puede no haber sesión.
+ */
+export const searchCatalogIncludingOwn = async (searchTerm: string): Promise<CatalogProduct[]> => {
+  await ensureSession();
+
+  const { data: products, error } = await getSupabaseClient().rpc(CATALOG_DB.RPC.SEARCH_CATALOG_INCLUDING_OWN, {
+    search_term: searchTerm,
+  });
+  if (error) throw error;
+
+  // Mismo orden que searchCatalog: el editor de grupos mostraba "Crema de leche" antes que "Leche".
+  return sortBySearchRelevance(toCatalogProducts(products), searchTerm, (product) => product.productName);
 };
 
 /**
@@ -101,6 +135,9 @@ export const getCategories = async (): Promise<Category[]> => {
  * Lectura directa (mismo patrón que getItemDetail de SCRUM-64, sin RPC
  * nueva): no se toca search_catalog ni su contrato (SPEC.md §10).
  *
+ * HU-57 (SCRUM-88): también trae el precio y la tienda de referencia de un
+ * producto personalizado, que el detalle muestra en su propio bloque.
+ *
  * Devuelve null si no se encontró: no existe, se borró, o el id de la URL no
  * es un uuid (mismo patrón que getRecipeForEditing, SCRUM-95) — las tres dan
  * el mismo resultado, que la pantalla traduce al CA-07 "producto no
@@ -127,7 +164,12 @@ export const getCatalogVariantDetail = async (
   return {
     brands: variant.product_brands.map((brand) => ({ logoUrl: brand.logo_url, name: brand.name })),
     imageUrl: variant.image_url,
+    isPersonal: variant.product_catalog.owner_id !== null,
     productName: variant.product_catalog.name,
+    // HU-57: aparte de storePriceRanges a propósito, nunca mezclado (CA-03).
+    // La tienda es una u otra, nunca las dos (check de la migración 051).
+    referencePrice: variant.reference_price,
+    referenceStoreName: variant.reference_store_name ?? variant.stores?.display_name ?? null,
     // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
     sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
     storePriceRanges: toStorePriceRanges(storePrices),
