@@ -35,7 +35,7 @@ export const CONTACT_LABEL = {
   SUBMIT: "Enviar mensaje",
   SUBMITTING: "Enviando...",
   SUCCESS: "¡Gracias! Recibimos tu mensaje y te vamos a responder al correo que nos dejaste.",
-  TITLE: "Contactanos",
+  TITLE: "Contáctanos",
 } as const;
 
 export const CONTACT_ERROR_MESSAGE = {

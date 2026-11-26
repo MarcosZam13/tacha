@@ -33,7 +33,7 @@ Incluye:
 
 **HU-56 (SCRUM-87) — añadido:**
 
-- Botón "+ Agregar producto" en la cabecera de "Mis productos" (CA-01), que abre un formulario corto: nombre, marca, categoría (select, ver §12), tamaño/presentación (unidad base + cantidad base) y un checkbox opcional "Compartir con mi household" (visible solo si el usuario pertenece a uno — ver §5).
+- Botón "+ Agregar producto" en la cabecera de "Mis productos" (CA-01), que abre un formulario corto: nombre, marca, categoría (select, ver §12), tamaño/presentación (unidad base + cantidad base) y un checkbox opcional "Compartir con mi familia" (visible solo si el usuario pertenece a uno — ver §5).
 - Validación de obligatorios (nombre, categoría) antes de habilitar "Guardar" (CA-02).
 - El producto se guarda con `owner_id` del usuario que lo crea, y `household_id` solo si marcó compartir (CA-03) — ver §5 y §15 para la justificación completa.
 - El componente del formulario (`CreateProductForm`) se construye directo en `components/create-product-form/` (compartido desde el día 1, no dentro de esta feature), porque CA-04 ya confirma un segundo consumidor real (`features/catalog/`) dentro de esta misma historia.
@@ -115,7 +115,7 @@ No incluye:
 **HU-56 (SCRUM-87) — añadido:**
 
 - Al crear, el producto siempre queda personal por defecto: `owner_id = auth.uid()`, `household_id = null`, sin importar si el usuario pertenece a un household o no (CA-03, "personal por defecto"). `household_id` **nunca** se asigna automáticamente por el solo hecho de pertenecer a un household — mismo criterio que ya usa el proyecto para las listas personales al unirse a un household (HU-34b: `decide_personal_lists`, verificado que existe de verdad en la base). Compartir es una decisión explícita, nunca un efecto automático de la membresía.
-- Si el usuario marca el checkbox "Compartir con mi household" y pertenece a uno, `household_id` se guarda con el household actual, en el mismo momento de crear. Si no pertenece a ninguno, el checkbox no se muestra.
+- Si el usuario marca el checkbox "Compartir con mi familia" y pertenece a uno, `household_id` se guarda con el household actual, en el mismo momento de crear. Si no pertenece a ninguno, el checkbox no se muestra.
 - Después de creado, `household_id` no cambia solo: entrar o salir de un household después no mueve ni comparte retroactivamente un producto ya creado (una "re-decisión" tipo HU-34b para productos queda fuera de esta historia — ver §14).
 - `listMyProducts()` se extiende (de forma aditiva, sin tocar su contrato para quien ya la usa) para que, cuando no haya household, también busque por `owner_id = auth.uid()` en vez de resolver siempre a lista vacía.
 - Nombre y categoría son obligatorios (CA-02). Marca y la opción de compartir son opcionales. El tamaño (unidad + cantidad base) es obligatorio para poder crear la variante: `product_catalog_variants.base_unit`/`base_quantity` son `not null` en el esquema real (verificado).
@@ -199,7 +199,7 @@ No incluye:
 - Tarjeta: foto o inicial, "{producto} — {tamaño}", precio (o "Sin precio disponible"), y la etiqueta "Agregado por mí" como badge visible.
 - Estado vacío: mensaje de CA-02, centrado, mismo estilo que `CatalogEmptyState`.
 
-**HU-56:** botón "+ Agregar producto" en la cabecera, junto al título. Formulario corto (nombre, marca, categoría —select—, unidad + cantidad de tamaño, checkbox "Compartir con mi household" si aplica), con acciones "Guardar"/"Cancelar". Mismo componente reusado desde el enlace de CA-04 en `features/catalog/`.
+**HU-56:** botón "+ Agregar producto" en la cabecera, junto al título. Formulario corto (nombre, marca, categoría —select—, unidad + cantidad de tamaño, checkbox "Compartir con mi familia" si aplica), con acciones "Guardar"/"Cancelar". Mismo componente reusado desde el enlace de CA-04 en `features/catalog/`.
 
 **HU-57:**
 
@@ -331,7 +331,7 @@ No incluye:
 
 - Caso 5 (CA-01/CA-02): nombre y/o categoría vacíos → "Guardar" no se habilita / error inline, no se llama al RPC.
 - Caso 6 (CA-03, sin household): usuario sin household crea un producto → queda con `owner_id` propio, `household_id` null, visible solo para él en "Mis productos" (vía `owner_id`, no vía `household_id`).
-- Caso 7 (CA-03, con household, compartiendo): usuario con household marca "Compartir con mi household" → el producto queda con el `household_id` de su household, visible para todo el household.
+- Caso 7 (CA-03, con household, compartiendo): usuario con household marca "Compartir con mi familia" → el producto queda con el `household_id` de su household, visible para todo el household.
 - Caso 8 (CA-03, con household, sin compartir): usuario con household NO marca el checkbox → el producto queda con `household_id` null, visible solo para él (por `owner_id`) aunque tenga household.
 - Caso 9 (CA-04): desde el estado "sin resultados" de "Buscar" (`features/catalog`), el enlace abre el mismo formulario que el botón de "Mis productos", y guarda igual.
 

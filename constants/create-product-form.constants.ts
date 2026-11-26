@@ -131,7 +131,7 @@ export const CREATE_PRODUCT_FORM_TEXT = {
   QUANTITY_LABEL: "Cantidad",
   SAVE: "Guardar",
   SAVING: "Guardando…",
-  SHARE_LABEL: "Compartir con mi household",
+  SHARE_LABEL: "Compartir con mi familia",
   STORE_CUSTOM_OPTION: "Otra tienda",
   STORE_LABEL: "Tienda (opcional)",
   STORE_NAME_LABEL: "Nombre de la tienda",

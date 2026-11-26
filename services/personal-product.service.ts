@@ -167,7 +167,7 @@ const getStoredSession = async (): Promise<NullableRef<Session>> => {
 
 /**
  * true si el usuario actual pertenece a algún household. Decide si
- * CreateProductForm muestra el checkbox "Compartir con mi household"
+ * CreateProductForm muestra el checkbox "Compartir con mi familia"
  * (SPEC.md §5: "si no pertenece a ninguno, el checkbox no se muestra").
  * Sin sesión (todavía no se abrió el formulario ni se creó ninguna anónima):
  * false, sin consultar la base.
