@@ -474,7 +474,7 @@ describe("MyInventory: agregar a mano (SCRUM-107)", () => {
     await openPanelAndPickLeche(page);
     await page.changeProduct();
 
-    expect(within(page.getAddPanel()).getByRole("textbox", { name: PRODUCT_SEARCH_TEXT.LABEL })).toBeTruthy();
+    expect(within(page.getAddPanel()).getByRole("combobox", { name: PRODUCT_SEARCH_TEXT.LABEL })).toBeTruthy();
     expect(within(page.getAddPanel()).queryByRole("button", { name: MY_INVENTORY_TEXT.ADD_CONFIRM })).toBeNull();
   });
 
