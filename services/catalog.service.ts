@@ -47,13 +47,20 @@ const toCatalogProducts = (
     productId: product.product_catalog_id,
     productName: product.name,
     // variants es jsonb: la base no le da tipo, lo fija el contrato de la RPC.
-    variants: (product.variants as unknown as CatalogSearchVariantRow[]).map((variant) => ({
-      baseQuantity: variant.base_quantity,
-      baseUnit: variant.base_unit,
-      imageUrl: variant.image_url,
-      priceRangeByStore: toPriceRangeByStore(variant.price_ranges),
-      variantId: variant.variant_id,
-    })),
+    variants: [...(product.variants as unknown as CatalogSearchVariantRow[])]
+      // La RPC las arma con json_agg sin orden: de menor a mayor tamaño. Sin agrupar por unidad, para
+      // que "leche" no muestre primero todas las de gramos (en polvo) y deje fuera las de ml.
+      .sort(
+        (first, second) =>
+          first.base_quantity - second.base_quantity || first.base_unit.localeCompare(second.base_unit),
+      )
+      .map((variant) => ({
+        baseQuantity: variant.base_quantity,
+        baseUnit: variant.base_unit,
+        imageUrl: variant.image_url,
+        priceRangeByStore: toPriceRangeByStore(variant.price_ranges),
+        variantId: variant.variant_id,
+      })),
   }));
 
 /**
