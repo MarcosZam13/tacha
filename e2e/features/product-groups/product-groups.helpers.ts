@@ -11,7 +11,7 @@ export const getManageGroupsLink = (page: Page): Locator => page.getByRole("link
 export const getGroupsTitle = (page: Page): Locator => page.getByRole("heading", { level: 1, name: "Mis grupos" });
 
 export const getGroupsEmptyState = (page: Page): Locator =>
-  page.getByText("Agrupá los productos que siempre comprás juntos");
+  page.getByText("Agrupa los productos que siempre compras juntos");
 
 export const getBackToListLink = (page: Page): Locator => page.getByRole("link", { name: "Volver a la lista" });
 

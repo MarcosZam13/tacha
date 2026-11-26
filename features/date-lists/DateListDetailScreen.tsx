@@ -25,7 +25,7 @@ export const DateListDetailScreen = ({ listId }: DateListDetailScreenProps): Rea
   const { detail } = viewModel;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <Link href={APP_ROUTE.DATE_LISTS} className="font-body text-sm text-tacha-teal hover:underline">
         {DATE_LIST_TEXT.BACK}
       </Link>

@@ -34,22 +34,22 @@ export type SocialSignUpResultType = Exclude<
 export const SOCIAL_SIGN_UP_LABEL = {
   CHECKING: "Validando tu cuenta",
   PAGE_TITLE: "Registro con proveedor externo",
-  START_ERROR: "No pudimos conectar con el proveedor. Intentá de nuevo.",
+  START_ERROR: "No pudimos conectar con el proveedor. Intenta de nuevo.",
 } as const;
 
 const FAILED_SIGN_UP_FEEDBACK: SocialSignUpFeedback = {
   linkHref: AUTH_ROUTE.REGISTER,
   linkLabel: "Volver al registro",
   message:
-    "Intentá de nuevo y revisá que tu cuenta del proveedor tenga un correo y que permitas compartirlo.",
+    "Intenta de nuevo y revisa que tu cuenta del proveedor tenga un correo y que permitas compartirlo.",
   title: "No pudimos completar el registro",
 };
 
 const EMAIL_EXISTS_FEEDBACK: SocialSignUpFeedback = {
   linkHref: AUTH_ROUTE.LOGIN,
   linkLabel: "Iniciar sesión",
-  message: "Este correo ya está registrado. Iniciá sesión en lugar de registrarte de nuevo.",
-  title: "Ya tenés una cuenta",
+  message: "Este correo ya está registrado. Inicia sesión en lugar de registrarte de nuevo.",
+  title: "Ya tienes una cuenta",
 };
 
 // Sin aviso mientras se valida ni al éxito: ahí se muestra el spinner hasta redirigir.

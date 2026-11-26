@@ -21,14 +21,14 @@ export const NEW_PASSWORD_LABEL = {
 // PASSWORD_REQUIRED, PASSWORD_TOO_SHORT, PASSWORD_TOO_WEAK y CONFIRM_REQUIRED no se muestran: el medidor
 // lista los requisitos y el botón de guardar queda deshabilitado. La validación pura los usa para decir qué falla.
 export const NEW_PASSWORD_ERROR_MESSAGE = {
-  CONFIRM_REQUIRED: "Repetí la nueva contraseña.",
+  CONFIRM_REQUIRED: "Repite la nueva contraseña.",
   PASSWORDS_MISMATCH: "Las contraseñas no coinciden.",
   PASSWORD_REQUIRED: "La nueva contraseña es obligatoria.",
   PASSWORD_TOO_SHORT: `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`,
-  PASSWORD_TOO_WEAK: "Elegí una contraseña más segura.",
+  PASSWORD_TOO_WEAK: "Elige una contraseña más segura.",
   REJECTED: "La contraseña no cumple los requisitos de seguridad.",
   SAME_PASSWORD: "La nueva contraseña debe ser distinta de la actual.",
-  UNEXPECTED: "No pudimos actualizar tu contraseña. Intentá de nuevo en unos minutos.",
+  UNEXPECTED: "No pudimos actualizar tu contraseña. Intenta de nuevo en unos minutos.",
 } as const;
 
 // Lo que devuelve el servicio de cambio de contraseña.

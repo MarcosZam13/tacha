@@ -8,7 +8,7 @@ export const TERMS_TEXT = {
 export const TERMS_SECTIONS: readonly TermsSection[] = [
   {
     id: "aceptacion",
-    paragraphs: ["Al crear una cuenta o usar Tacha aceptás estos términos. Si no estás de acuerdo, no uses la plataforma."],
+    paragraphs: ["Al crear una cuenta o usar Tacha aceptas estos términos. Si no estás de acuerdo, no uses la plataforma."],
     title: "Aceptación",
   },
   {
@@ -28,7 +28,7 @@ export const TERMS_SECTIONS: readonly TermsSection[] = [
     id: "hogares",
     paragraphs: [
       "Quien administra un hogar puede invitar y quitar integrantes.",
-      "Lo que agregás a una lista compartida lo ven todos los integrantes del hogar.",
+      "Lo que agregas a una lista compartida lo ven todos los integrantes del hogar.",
     ],
     title: "Hogares compartidos",
   },
@@ -50,7 +50,7 @@ export const TERMS_SECTIONS: readonly TermsSection[] = [
     id: "datos",
     paragraphs: [
       "Guardamos solo los datos necesarios para que la app funcione: nombre, correo, listas y compras. No los vendemos ni los compartimos con terceros.",
-      "Podés pedir que eliminemos tu cuenta escribiéndonos por Instagram.",
+      "Puedes pedir que eliminemos tu cuenta escribiéndonos por Instagram.",
     ],
     title: "Datos personales",
   },

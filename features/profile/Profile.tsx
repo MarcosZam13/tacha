@@ -18,7 +18,7 @@ export const Profile = (): React.JSX.Element => {
   const { isLoading, savedName, ...formViewModel } = useProfileViewModel();
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-8 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-8 px-4 py-8 md:mx-0 md:px-10">
       <header className="flex items-center gap-4">
         <ProfileAvatar
           avatarUrl={formViewModel.avatarUrl}

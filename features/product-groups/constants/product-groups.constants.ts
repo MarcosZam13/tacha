@@ -77,7 +77,7 @@ export const PRODUCT_GROUPS_TEXT = {
   CREATE_FIRST_GROUP: "Crear tu primer grupo",
   CREATE_GROUP: "+ Crear grupo",
   // Texto literal del CA-02 de HU-72.
-  EMPTY_SUGGESTION: "Agrupá los productos que siempre comprás juntos",
+  EMPTY_SUGGESTION: "Agrupa los productos que siempre compras juntos",
   ERROR: "No pudimos cargar tus grupos. Intenta de nuevo.",
   LOADING: "Cargando tus grupos",
   RETRY: "Reintentar",

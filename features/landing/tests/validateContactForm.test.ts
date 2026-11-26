@@ -27,7 +27,7 @@ describe("validateContactForm", () => {
     ["without an at sign", "ana.correo.com"],
     ["with spaces inside", "ana maria@correo.com"],
   ])("rejects an email %s", (_label, email) => {
-    expect(validateContactForm({ ...VALID_VALUES, email }).email).toBe("Ingresá un correo válido.");
+    expect(validateContactForm({ ...VALID_VALUES, email }).email).toBe("Ingresa un correo válido.");
   });
 
   it("accepts an email with outer spaces and capitals, because it is normalized", () => {

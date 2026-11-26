@@ -74,7 +74,7 @@ export const MY_INVENTORY_TEXT = {
   ADJUST: "Ajustar fecha",
   // Aviso para el lector de pantalla después de un chip: "Leche: fecha actualizada.".
   ADJUSTED_SUFFIX: ": fecha actualizada.",
-  BACK_TO_LIST: "← Volver a la lista",
+  BACK_TO_LIST: "Volver a la lista",
   // CA-04: sin pedir que se llene a mano.
   EMPTY: "Todavía no hay nada en tu inventario. Se llena solo cuando tachas productos al comprar.",
   ERROR: "No se pudo cargar tu inventario. Intenta de nuevo.",

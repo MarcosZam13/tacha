@@ -17,10 +17,10 @@ export const PROFILE_TEXT = {
 export const PROFILE_ERROR_MESSAGE = {
   NAME_REQUIRED: "El nombre es obligatorio.",
   NAME_TOO_LONG: "El nombre no puede tener más de 60 caracteres.",
-  PHOTO_TOO_LARGE: "La foto pesa más de 2 MB. Elegí una más liviana.",
+  PHOTO_TOO_LARGE: "La foto pesa más de 2 MB. Elige una más liviana.",
   PHOTO_TYPE_NOT_ALLOWED: "La foto tiene que ser JPEG, PNG o WebP.",
-  PHOTO_UPLOAD_FAILED: "No pudimos subir la foto. No se cambió nada, intentá de nuevo.",
-  UNEXPECTED: "No pudimos guardar tus cambios. Intentá de nuevo en unos minutos.",
+  PHOTO_UPLOAD_FAILED: "No pudimos subir la foto. No se cambió nada, intenta de nuevo.",
+  UNEXPECTED: "No pudimos guardar tus cambios. Intenta de nuevo en unos minutos.",
 } as const;
 
 export const PROFILE_SUCCESS_MESSAGE = "Cambios guardados.";

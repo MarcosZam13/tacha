@@ -54,7 +54,7 @@ test.describe("Completar el registro social", () => {
     await page.goto(LIST_PATH);
 
     await expect(page).toHaveURL(COMPLETE_SIGN_UP_PATH);
-    await expect(page.getByRole("heading", { name: "Completá tu registro" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Completa tu registro" })).toBeVisible();
   });
 
   test("E2E-SOCIAL-07 — Sin aceptar los términos no se completa el registro", async ({ page }) => {
@@ -83,6 +83,6 @@ test.describe("Completar el registro social", () => {
     await page.getByRole("button", { name: "← Volver" }).click();
 
     await expect(page).toHaveURL(COMPLETE_SIGN_UP_PATH);
-    await expect(page.getByRole("heading", { name: "Completá tu registro" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Completa tu registro" })).toBeVisible();
   });
 });

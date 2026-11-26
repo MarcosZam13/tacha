@@ -8,7 +8,7 @@ test.describe("Entrada al login desde las páginas públicas", () => {
   test("E2E-LOGIN-ENTRADA-02 — Desde el registro se llega al login", async ({ page }) => {
     await page.goto("/registro");
 
-    await page.getByRole("link", { name: "Iniciá sesión" }).click();
+    await page.getByRole("link", { name: "Inicia sesión" }).click();
 
     await expect(page).toHaveURL(/\/login$/);
   });

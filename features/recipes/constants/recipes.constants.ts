@@ -190,7 +190,7 @@ export const RECIPE_FORM_ERROR = {
 } as const;
 
 export const RECIPE_EDITOR_TEXT = {
-  BACK_TO_CATALOG: "← Volver a recetas",
+  BACK_TO_CATALOG: "Volver a recetas",
   CANCEL: "Cancelar",
   DUPLICATE_INGREDIENT: "Ese producto ya está en la receta.",
   EDIT_TITLE: "Editar receta",

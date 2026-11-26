@@ -14,13 +14,13 @@ export const ProductDetailHeader = ({
 }: ProductDetailHeaderProps): React.JSX.Element => (
   <header className="flex flex-col gap-3">
     {imageUrl ? (
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-tacha-card">
-        <Image src={imageUrl} alt={productName} fill unoptimized className="object-cover" />
+      <div className="relative aspect-[4/3] w-full max-w-md overflow-hidden rounded-tacha-card border border-tacha-border bg-white">
+        <Image src={imageUrl} alt={productName} fill unoptimized className="object-contain p-4" />
       </div>
     ) : (
       <div
         aria-hidden="true"
-        className="flex aspect-[4/3] w-full items-center justify-center rounded-tacha-card bg-tacha-chipbg font-display text-7xl text-tacha-teal"
+        className="flex aspect-[4/3] w-full max-w-md items-center justify-center rounded-tacha-card bg-tacha-chipbg font-display text-7xl text-tacha-teal"
       >
         {placeholderInitial}
       </div>

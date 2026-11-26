@@ -31,7 +31,7 @@ export const MyProducts = (): React.JSX.Element => {
   const createProductForm = useCreateProductForm(() => viewModel.reload());
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:mx-0 md:px-10">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-display text-3xl font-bold text-tacha-text">
           {CATALOG_TABS_TEXT.SECTION_TITLE}

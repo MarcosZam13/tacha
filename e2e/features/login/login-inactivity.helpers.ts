@@ -26,7 +26,7 @@ export const warmUpRoutes = async (request: APIRequestContext): Promise<void> =>
 };
 
 // El texto del aviso es parte del contrato del escenario (E2E.md): se escribe acá, no se importa.
-const INACTIVITY_NOTICE_TEXT = "Tu sesión se cerró por inactividad. Iniciá sesión de nuevo.";
+const INACTIVITY_NOTICE_TEXT = "Tu sesión se cerró por inactividad. Inicia sesión de nuevo.";
 
 export const getInactivityNotice = (page: Page): Locator => page.getByText(INACTIVITY_NOTICE_TEXT);
 

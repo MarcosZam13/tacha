@@ -81,7 +81,7 @@ export const MY_PRODUCT_DELETE_TEXT = {
 
 export const MY_PRODUCTS_TEXT = {
   BADGE_LABEL: "Agregado por mí",
-  EMPTY_SUGGESTION: "Agregá productos que no encontrás en el catálogo",
+  EMPTY_SUGGESTION: "Agrega productos que no encuentras en el catálogo",
   ERROR: "No pudimos cargar tus productos. Intenta de nuevo.",
   LOADING: "Cargando…",
 } as const;

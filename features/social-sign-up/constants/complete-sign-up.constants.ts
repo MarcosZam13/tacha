@@ -42,15 +42,15 @@ export type CompleteSignUpSaveResultType =
   (typeof COMPLETE_SIGN_UP_SAVE_RESULT)[keyof typeof COMPLETE_SIGN_UP_SAVE_RESULT];
 
 export const COMPLETE_SIGN_UP_LABEL = {
-  DESCRIPTION: "Confirmá cómo querés que te llamemos en Tacha.",
+  DESCRIPTION: "Confirma cómo quieres que te llamemos en Tacha.",
   LOADING: "Cargando tus datos",
   NAME: "Nombre",
   NO_ACCOUNT_LINK: "Volver al registro",
-  NO_ACCOUNT_MESSAGE: "No encontramos un registro en curso. Volvé a registrarte con Google o Facebook.",
+  NO_ACCOUNT_MESSAGE: "No encontramos un registro en curso. Vuelve a registrarte con Google o Facebook.",
   PAGE_TITLE: "Completar registro",
   SUBMIT: "Continuar",
   SUBMITTING: "Guardando...",
-  TITLE: "Completá tu registro",
+  TITLE: "Completa tu registro",
 } as const;
 
 // La puerta de las pantallas privadas (SCRUM-43): CHECKING mientras llega la sesión,
@@ -75,5 +75,5 @@ export const COMPLETE_SIGN_UP_GATE_TIMEOUT_MS = 5_000;
 export const COMPLETE_SIGN_UP_ERROR = {
   NAME_REQUIRED: "El nombre es obligatorio.",
   NAME_TOO_LONG: `El nombre no puede tener más de ${USER_NAME_MAX_LENGTH} caracteres.`,
-  SAVE_FAILED: "No pudimos guardar tu nombre. Intentá de nuevo.",
+  SAVE_FAILED: "No pudimos guardar tu nombre. Intenta de nuevo.",
 } as const;

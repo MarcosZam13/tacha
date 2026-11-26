@@ -22,7 +22,7 @@ Nivel más bajo que alcanza: qué entra al inventario y en qué orden se prueba 
 
 ### E2E-MINV-03: se entra desde General y se vuelve a la lista
 - **Cubre:** CA-01 (entrada).
-- **Pasos:** abrir `/lista`; tocar "Mi inventario"; tocar "← Volver a la lista".
+- **Pasos:** abrir `/lista`; tocar "Mi inventario"; tocar "Volver a la lista".
 - **Resultado esperado:** la URL pasa a `/lista/inventario` con Leche en "Vence pronto", y vuelve a `/lista`.
 
 ### E2E-MINV-04: se entra con "Ver mi inventario" desde "¿Se te acabó?"
