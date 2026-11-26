@@ -48,6 +48,31 @@ describe("searchCatalog", () => {
     expect(rpcMock).toHaveBeenCalledWith("search_catalog", { search_term: "leche" });
     expect(products.map((product) => product.productName)).toEqual(["Leche", "Leche condensada", "Crema de leche"]);
   });
+
+  it("orders each product's presentations from smallest to largest (json_agg has no order)", async () => {
+    const variant = (id: string, quantity: number) => ({
+      base_quantity: quantity,
+      base_unit: "g",
+      image_url: null,
+      price_ranges: [],
+      variant_id: id,
+    });
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          category: "Abarrotes",
+          name: "Arroz",
+          product_catalog_id: "product-1",
+          variants: [variant("v-4000", 4000), variant("v-1800", 1800), variant("v-227", 227)],
+        },
+      ],
+      error: null,
+    });
+
+    const [rice] = await searchCatalog("arroz");
+
+    expect(rice.variants.map((item) => item.baseQuantity)).toEqual([227, 1800, 4000]);
+  });
 });
 
 describe("listCatalogByCategory", () => {
