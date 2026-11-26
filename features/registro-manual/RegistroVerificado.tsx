@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@/features/landing/components/Logo";
 import { ReenvioCorreoForm } from "./components/ReenvioCorreoForm";
 import { VERIFICATION_LABEL, VERIFICATION_LINK_STATUS } from "./constants/registro.constants";
 import { useRegistroVerificadoViewModel } from "./hooks/useRegistroVerificadoViewModel";
@@ -13,6 +14,10 @@ export const RegistroVerificado = (): React.JSX.Element => {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 bg-tacha-bg px-4 py-8">
+      {/* Marca y salida al inicio: sin esto la pantalla queda sola, sin navbar. */}
+      <div className="self-start">
+        <Logo />
+      </div>
       {linkStatus === VERIFICATION_LINK_STATUS.CONFIRMED ? (
         <section className="flex flex-col gap-2 font-body">
           <h1 className="font-display text-3xl font-bold text-tacha-text">

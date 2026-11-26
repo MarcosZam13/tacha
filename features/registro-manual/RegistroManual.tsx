@@ -12,6 +12,7 @@ import {
   TERMS_CONTENT_PLACEHOLDER,
   TERMS_LABEL,
 } from "./constants/registro.constants";
+import { Logo } from "@/features/landing/components/Logo";
 import { useRegistroManualViewModel } from "./hooks/useRegistroManualViewModel";
 import { VerificacionPendiente } from "./components/VerificacionPendiente";
 
@@ -41,6 +42,10 @@ export const RegistroManual = (): React.JSX.Element => {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 bg-tacha-bg px-4 py-8">
+      {/* Marca y salida al inicio: sin esto la pantalla queda sola, sin navbar. */}
+      <div className="self-start">
+        <Logo />
+      </div>
       <h1 className="font-display text-3xl font-bold text-tacha-text">{REGISTRO_LABEL.TITLE}</h1>
       {/* SCRUM-144: antes no había camino de /registro a /login. */}
       <p className="-mt-4 font-body text-sm text-tacha-textsec">
