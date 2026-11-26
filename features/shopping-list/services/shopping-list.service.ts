@@ -1,4 +1,5 @@
 import type { QueryData } from "@supabase/supabase-js";
+import { LIST_ITEM_TEXT } from "@/constants";
 import type { CatalogBaseUnitType } from "@/constants";
 import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list-items.service";
 import { ensureSession, getSupabaseClient } from "@/services/supabase.client";
@@ -57,17 +58,22 @@ const toShoppingListItems = (
   snapshotsByItemId: Map<string, ShortfallSnapshot> = new Map(),
 ): ShoppingListItem[] =>
   list.list_items.map((listItem) => {
-    const variant = listItem.product_catalog_variants;
+    // SCRUM-163: los tipos generados dicen que la presentación siempre llega
+    // (la FK es not null), pero la RLS de la 032 la devuelve null si quien mira
+    // no puede ver el producto (un personal de otro miembro). Esa fila se
+    // muestra como "no disponible" en vez de tumbar toda la lista.
+    const variant: NullableRef<typeof listItem.product_catalog_variants> = listItem.product_catalog_variants;
     return {
       ...toItemCheck(listItem),
       id: listItem.id,
-      productName: variant.product_catalog.name,
+      productName: variant ? variant.product_catalog.name : LIST_ITEM_TEXT.UNAVAILABLE_PRODUCT,
       quantity: listItem.quantity_requested,
       recipeShortfalls: shortfallsByItemId.get(listItem.id) ?? [],
       shortfallSnapshot: snapshotsByItemId.get(listItem.id) ?? null,
       // base_unit es text en la base; el check de la columna garantiza que es una de las 3 unidades.
-      sizeLabel: formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType),
-      variantId: variant.id,
+      // Sin presentación legible no hay tamaño que mostrar: la fila queda solo con el nombre.
+      sizeLabel: variant ? formatSizeLabel(variant.base_quantity, variant.base_unit as CatalogBaseUnitType) : "",
+      variantId: listItem.product_catalog_variant_id,
     };
   });
 

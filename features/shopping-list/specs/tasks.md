@@ -128,3 +128,14 @@ Tareas 1, 2, 6 (reducer) y la parte de búsqueda de 5 y 7 no dependen de la base
 - [ ] 65. Validar a mano en modo compra, en celular y escritorio.
 - [x] 66. Revisar con `code-reviewer`, `security-reviewer` y `qa-checker`. Corregido: el chip reaparecía marcado al volver a tachar una fila (la base ya lo había borrado); el error y el "guardando" de una fila se veían en otra; constante de tabla repetida. Prueba SQL: update a una fila pendiente como `authenticated` y la última compra sin chip ignora el de una anterior. Seguridad sin hallazgos.
 - [x] 67. QA de la PR #121 (`qa denied`): BUG-1, en el celular los chips quedaban de ~47 px dentro de la columna del nombre. Ahora van en su propia línea a todo el ancho de la fila (`flex-wrap` en el `<li>` y `basis-full`); Además los chips pasan a otro renglón si no caben (`flex-wrap`) en vez de deslizarse: así se ven los cuatro sin buscar las opciones escondidas a la derecha. E2E-LISTA-09 comprueba que el grupo es al menos tan ancho como el texto de la fila y que los cuatro chips se ven enteros. OBS-1 (sin chips al recargar) es lo esperado: SPEC §19.11.
+
+## SCRUM-163: un producto personal sin compartir en la lista de la familia
+
+- [X] 1. La lista tolera una fila sin presentación ("Producto no disponible") + test del servicio.
+- [X] 2. Detalle: `isPersonal` + `hasHousehold()` → aviso en vez de agregar + tests del ViewModel y la vista.
+- [X] 3. Grupos: `personal` en la respuesta, normalizado en el servicio, línea en el resumen + tests.
+- [X] 4. Migración nueva de `add_group_to_general_list` + prueba SQL; prueba en seco (migración + prueba en una transacción con `rollback`): pasó, sin restos.
+- [X] 5. E2E-LISTA-10 (respuesta simulada con la forma real de la base).
+- [X] 6. Specs, `docs/documento-proyecto.md` §4.5.1.
+- [X] 6b. (Revisión de Marcos) Misma guarda en las sublistas por fecha + test; texto compartido en `constants/list-items.constants.ts`.
+- [X] 7. Visto bueno del equipo → migración aplicada como `066` (+ fila del historial, en una transacción); prueba SQL contra la base: pasó, sin restos → `waiting qa`.

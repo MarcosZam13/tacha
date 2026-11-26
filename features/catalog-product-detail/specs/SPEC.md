@@ -128,3 +128,6 @@ Casos adicionales:
 - **Fotos de producto, en cambio, sí están completas:** las 55 variantes del catálogo tienen `image_url`. CA-01 (foto grande) no depende de un caso límite de "sin foto" para la mayoría de productos probados manualmente, aunque el marcador con inicial (regla 5.5) sigue siendo necesario por contrato.
 - **Cobertura de marcas por variante:** la mayoría de variantes tiene entre 1 y 4 marcas registradas (comprobado con datos reales), así que CA-02 (listado de marcas) tiene datos reales con los que probarse, no solo el caso de una sola marca.
 - **Aviso de un ticket futuro (SCRUM-133, "Reset del catálogo", todavía sin iniciar):** existe un ticket planeado para resetear y resembrar el catálogo. No cambia nada del contrato de esta historia, pero quien haga QA manual de SCRUM-85 después de que SCRUM-133 se implemente debería esperar otros productos/ids de ejemplo, no necesariamente los mismos 40 productos de hoy.
+
+## SCRUM-163 (fix): producto personal y lista de la familia
+Si el producto es personal sin compartir (`isPersonal`) y el usuario está en una familia, "Agregar a mi lista" se reemplaza por un aviso (`role="note"`): su lista es la de la familia y el resto no podría ver el producto. Sin familia, nada cambia. Reglas, alternativas descartadas y casos en `features/shopping-list/specs/SPEC.md` §20.

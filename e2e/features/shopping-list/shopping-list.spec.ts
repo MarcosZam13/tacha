@@ -19,6 +19,7 @@ import {
   getUndoDialog,
   recordShelfLifeSaves,
   startPurchaseAt,
+  stubHouseholdListWithHiddenRow,
 } from "./shopping-list.helpers";
 
 // Escenarios: features/shopping-list/specs/E2E.md. Cada test arranca con un
@@ -330,5 +331,20 @@ test.describe("Lista general: ¿Qué hiciste? al tachar", () => {
     await expect(getListSection(page, CHECKED_SECTION)).toHaveCount(0);
     const uncheckedRow = getRowWithShortfall(pendingSection, recipeName);
     await expect(uncheckedRow.getByText("1", { exact: true })).toBeVisible();
+  });
+});
+
+// SCRUM-163: un producto personal de otro miembro no tumba la lista de la familia.
+test.describe("Lista de la familia con un producto que no se puede ver", () => {
+  test("E2E-LISTA-10 — La lista carga y muestra la fila como no disponible", async ({ page }) => {
+    const visibleProductName = "Arroz";
+    await stubHouseholdListWithHiddenRow(page, visibleProductName);
+
+    await page.goto(LIST_PATH);
+
+    const pendingSection = getListSection(page, PENDING_SECTION);
+    await expect(getListRow(page, visibleProductName)).toBeVisible();
+    await expect(pendingSection.getByText("Producto no disponible", { exact: true })).toBeVisible();
+    await expect(page.getByText("No se pudo cargar tu lista. Intenta de nuevo.")).toHaveCount(0);
   });
 });

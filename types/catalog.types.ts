@@ -140,6 +140,12 @@ export interface CatalogBrand {
 export interface CatalogVariantDetail {
   brands: CatalogBrand[];
   imageUrl: NullableRef<string>;
+  /**
+   * SCRUM-163: producto personal sin compartir (owner_id no nulo). Si quien lo
+   * ve no es su dueño, la RLS (032) ni siquiera lo devuelve; uno compartido
+   * queda con owner_id null (032), así que true siempre es "mío y privado".
+   */
+  isPersonal: boolean;
   /** HU-57: precio de referencia del usuario (solo productos personalizados); nunca del scraping. */
   referencePrice: NullableRef<number>;
   /** HU-57: tienda de referencia (súper o escrita a mano). */

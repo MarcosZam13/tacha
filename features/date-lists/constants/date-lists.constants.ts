@@ -50,7 +50,7 @@ export const EVENT_DATE_FORMAT = {
 
 export const DATE_LIST_DB = {
   DETAIL_SELECT:
-    "id, name, event_date, status, spent_total, list_items(id, checked_at, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
+    "id, name, event_date, status, spent_total, list_items(id, product_catalog_variant_id, checked_at, quantity_requested, created_at, product_catalog_variants(id, base_unit, base_quantity, product_catalog(name)))",
   LIST_SELECT: "id, name, event_date, status, spent_total",
   RPC: {
     ADD_ITEM: "add_item_to_date_list",

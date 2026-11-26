@@ -131,7 +131,7 @@ describe("ProductGroups", () => {
   describe("Agregar a lista", () => {
     it("adds the group and shows the summary with a link to the list", async () => {
       listProductGroupsMock.mockResolvedValue([PERSONAL_GROUP, SHARED_GROUP]);
-      addGroupToListMock.mockResolvedValue({ added: ["Leche", "Café"], skipped: [] });
+      addGroupToListMock.mockResolvedValue({ added: ["Leche", "Café"], personal: [], skipped: [] });
       render(<ProductGroups />);
       const page = createProductGroupsPage();
       await waitFor(() => expect(page.queryCardNames()).toHaveLength(2));

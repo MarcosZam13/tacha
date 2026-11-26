@@ -14,6 +14,16 @@ export const PRODUCT_DETAIL_STATUS = {
   READY: "ready",
 } as const;
 
+// SCRUM-163: si un producto personal puede ir a la lista general del usuario.
+export const HOUSEHOLD_LIST_BLOCK = {
+  ALLOWED: "allowed",
+  BLOCKED: "blocked",
+  // Todavía no se sabe si el usuario está en una familia: no se ofrece agregar.
+  CHECKING: "checking",
+} as const;
+
+export type HouseholdListBlockType = (typeof HOUSEHOLD_LIST_BLOCK)[keyof typeof HOUSEHOLD_LIST_BLOCK];
+
 export type ProductDetailStatusType =
   (typeof PRODUCT_DETAIL_STATUS)[keyof typeof PRODUCT_DETAIL_STATUS];
 
@@ -32,6 +42,10 @@ export const PRODUCT_DETAIL_TEXT = {
   NO_BRANDS: "No tenemos marcas registradas para este producto.",
   NO_PRICES: "No tenemos precios disponibles para este producto todavía.",
   NOT_FOUND: "No encontramos ese producto.",
+  // SCRUM-163: el producto es personal sin compartir y la lista general es la
+  // de la familia: los demás miembros no lo podrían ver.
+  PERSONAL_IN_HOUSEHOLD_LIST:
+    "Este producto es solo tuyo y tu lista es la de tu familia: el resto no podría verlo. Para usarlo en la lista, créalo de nuevo marcando «Compartir con mi familia».",
   PRICES_TITLE: "Precio aproximado por supermercado",
   QUANTITY_LABEL: "Cantidad",
   RETRY: "Reintentar",

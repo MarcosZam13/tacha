@@ -116,3 +116,6 @@ Reglas:
 Fuera de alcance: modo compra en sublistas, sumar las sublistas en Finanzas, historial de cambios del total.
 
 Datos: migración 050. Columna `lists.spent_total` (numeric, nula) con un `check` que solo la permite en listas `date` y con monto válido, y la RPC `set_date_list_total`. `lists` no tiene política de `update`, así que el cliente no puede escribir la columna directo; solo por la RPC.
+
+## 11. SCRUM-163 (fix): fila con un producto que no se puede leer
+Si una fila llega sin presentación (producto personal de otro miembro, RLS de la 032), la sublista la muestra como "Producto no disponible" en vez de no cargar. Hoy la app no deja llegar a ese caso en una sublista. Detalle en `features/shopping-list/specs/SPEC.md` §20.

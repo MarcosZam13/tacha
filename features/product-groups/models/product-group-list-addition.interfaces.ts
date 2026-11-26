@@ -7,6 +7,11 @@ import type { ProductGroupListAdditionTarget } from "./product-group-list-additi
 /** Lo que devuelve add_group_to_general_list (057): nombres agregados y saltados. */
 export interface AddGroupToListResponse {
   added: string[];
+  /**
+   * SCRUM-163: personales sin compartir que no entran a la lista de la
+   * familia (el resto no los podría ver). [] si la lista no es de una familia.
+   */
+  personal: string[];
   /** Archivados o que el usuario ya no puede ver (con un nombre genérico). */
   skipped: string[];
 }

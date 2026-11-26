@@ -5,9 +5,10 @@ import { addVariantToGeneralList, changeListItemQuantity } from "@/services/list
 import type { CatalogVariantDetail } from "@/types/catalog.types";
 import type { NullableRef } from "@/types/nullable.types";
 import { formatPriceRange } from "@/utils/formatPriceRange";
-import { PRODUCT_DETAIL_STATUS, PRODUCT_DETAIL_TEXT } from "../constants/catalog-product-detail.constants";
+import { HOUSEHOLD_LIST_BLOCK, PRODUCT_DETAIL_STATUS, PRODUCT_DETAIL_TEXT } from "../constants/catalog-product-detail.constants";
 import type { ProductDetailViewModel } from "../models/ProductDetailViewModel.interface";
 import { toAddErrorMessage } from "../utils/toAddErrorMessage";
+import { useHouseholdListBlock } from "./useHouseholdListBlock";
 
 /** La respuesta se guarda junto al variantId que la pidió, para no mostrar
  * la respuesta de un producto viejo si variantId cambia antes de que llegue
@@ -64,6 +65,8 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
   // Una respuesta de otro variantId no cuenta: mientras llega la de este, se está cargando.
   const currentResponse = response?.variantId === variantId ? response : null;
   const detail = currentResponse?.detail ?? null;
+  // SCRUM-163: un producto personal sin compartir no entra a la lista de la familia.
+  const householdListBlock = useHouseholdListBlock(detail?.isPersonal ?? false, variantId);
 
   const onRetry = (): void => {
     setResponse(null);
@@ -79,6 +82,7 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
   };
 
   const onAddToList = (): void => {
+    if (householdListBlock !== HOUSEHOLD_LIST_BLOCK.ALLOWED) return;
     setIsAdding(true);
     setAddErrorMessage(null);
     setWasJustAdded(false);
@@ -114,7 +118,10 @@ export const useProductDetailViewModel = (variantId: string): ProductDetailViewM
 
   return {
     addErrorMessage,
+    addToListBlockedMessage:
+      householdListBlock === HOUSEHOLD_LIST_BLOCK.BLOCKED ? PRODUCT_DETAIL_TEXT.PERSONAL_IN_HOUSEHOLD_LIST : null,
     brands: detail?.brands ?? [],
+    canAddToList: householdListBlock === HOUSEHOLD_LIST_BLOCK.ALLOWED,
     canDecreaseQuantity: quantity > ITEM_QUANTITY.MIN,
     errorMessage: currentResponse?.errorMessage ?? null,
     hasReferencePrice: detail !== null && (detail.referencePrice !== null || detail.referenceStoreName !== null),

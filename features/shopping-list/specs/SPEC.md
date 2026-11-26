@@ -683,3 +683,48 @@ En una línea propia debajo de la fila recién tachada, a todo el ancho de la fi
 - [x] El chip de la última compra manda sobre la categoría y el historial; "No vence" con una compra no se sugiere y con dos usa el historial. (prueba SQL de la `063`)
 - [x] Destachar borra el chip; una fila pendiente no lo guarda; no se puede escribir el chip de una fila de otra lista. (prueba SQL de la `063`)
 - [x] Error al guardar: vuelve a lo de antes y muestra el mensaje. (`useShelfLifeChips.test.ts`)
+
+## 20. SCRUM-163 (fix): un producto personal sin compartir en la lista de la familia
+
+### Objetivo
+Que un producto personal sin compartir nunca deje a los demás miembros sin poder cargar la lista de la familia.
+
+### Problema
+Desde la migración 032 (SCRUM-87), un producto personal sin compartir (`product_catalog.owner_id` no nulo) solo lo ve su dueño. Si está en la lista de la familia, para los demás miembros la fila llega con `product_catalog_variants: null` (RLS). El armado de la lista (`toShoppingListItems`) leía `variant.product_catalog.name` sin revisar `null`, así que la carga completa fallaba: "No se pudo cargar tu lista. Intenta de nuevo." y ninguna fila. Verificado contra la base (la lista real de una familia leída como el otro miembro) y en el navegador.
+
+Caminos por los que entra: "Agregar a mi lista" en el detalle de un producto personal (SCRUM-85/87/88) y "Agregar a lista" de un grupo personal (SCRUM-111). La búsqueda de la lista y la de recetas no muestran productos personales (`search_catalog`), así que no son caminos.
+
+### Reglas
+1. **La lista no se cae por una fila que no puede leer.** Esa fila se muestra como **"Producto no disponible"**, sin tamaño, y el resto carga normal (mismo criterio que Finanzas, D37). Cantidad, tachar y eliminar siguen funcionando (usan el id de la fila); el detalle de esa fila muestra su propio error. La misma guarda está en las sublistas por fecha (`features/date-lists/services/date-lists.service.ts`): hoy la app no deja llegar a ese caso ahí (su buscador usa `search_catalog`), pero si pasa, la sublista no se cae. El texto vive en `constants/list-items.constants.ts` (`LIST_ITEM_TEXT`).
+2. **Detalle del producto:** si el producto es personal sin compartir y el usuario está en una familia, en vez de "Agregar a mi lista" se muestra un aviso (`role="note"`): «Este producto es solo tuyo y tu lista es la de tu familia: el resto no podría verlo. Para usarlo en la lista, créalo de nuevo marcando «Compartir con mi familia».». Sin familia, se agrega como siempre. Mientras se consulta si hay familia, no se ofrece agregar (un toque en ese lapso lo metería en la lista de la familia). Si la consulta falla, no se bloquea: la regla 1 ya evita que la lista se caiga.
+3. **Grupos:** si la lista general es la de una familia, `add_group_to_general_list` salta los productos personales sin compartir y los devuelve en `personal`; el resumen dice «No se agregaron porque son solo tuyos y tu lista es la de tu familia: X.». Lo demás del grupo se agrega. Sin familia, nada cambia.
+
+### Fuera de alcance
+- Compartir un producto ya creado: ninguna historia lo pide (HU-56 CA-03 lo decide al crear; HU-58 solo editar y eliminar; `features/my-products/specs/SPEC.md` §14). Sería una historia nueva.
+- La fila que ya existía en la base antes del arreglo: se ve "Producto no disponible" para los demás miembros.
+
+### Alternativas descartadas
+Criterios: privacidad (un producto personal solo lo ve su dueño mientras no lo comparta, SCRUM-87); coherencia (la lista de la familia solo tiene productos que toda la familia puede ver: regla 7 de grupos, SCRUM-110, y recetas compartidas, SCRUM-162); alcance (nada que no pida una historia); impacto en otros (no cambiar funciones o políticas compartidas si se resuelve en el código del ticket).
+
+| Alternativa | Por qué se descartó |
+|---|---|
+| Ampliar la RLS de `product_catalog`: visible si está en una lista que el usuario puede ver | Rompe la privacidad: la familia vería también marca, tienda y precio de referencia del dueño (viven en la variante, SCRUM-88). Contradice la regla 7 de grupos y SCRUM-162. La búsqueda de grupos (`search_catalog_including_own`, invoker) mostraría el producto ajeno y `create_product_group` (definer) lo rechazaría al guardar. Se evalúa en cada lectura del catálogo: riesgo de rendimiento |
+| Función `security definer` que devuelva la lista con los nombres | La misma fuga de privacidad por otro camino |
+| Compartir el producto automáticamente al agregarlo a la lista de la familia | Cambia el dueño sin que el usuario lo decida y es irreversible: un compartido queda con `owner_id` null, cualquier miembro lo edita o elimina y no existe "dejar de compartir" (032). Va contra "compartir es una decisión explícita" |
+| Permitir compartir un producto ya creado (diálogo "¿compartir y agregar?") | Fuera de alcance (ver arriba) |
+| Bloquear en `add_item_to_general_list` / `add_units_to_list_item` | `add_units_to_list_item` la usan recetas (013), tachado (015), plan semanal (022), listas de familia (024) y grupos (057): toca a todo el equipo. No arregla la fila existente. Los únicos caminos de entrada son el detalle y los grupos |
+| Ocultar en silencio la fila | El miembro no sabría que hay algo en la lista y el dueño sí: dos listas distintas sin aviso |
+| Borrar la fila o limpiar datos | Borra lo que agregó el dueño y no evita que vuelva a pasar |
+| Solo arreglar la lista, sin cerrar los caminos | Se seguirían creando filas "no disponibles": la regla 1 es la red de seguridad, no la solución |
+
+### Contratos
+- `GENERAL_LIST_SELECT` agrega `list_items.product_catalog_variant_id` (el `variantId` de una fila sin presentación sale de ahí).
+- `add_group_to_general_list` (migración nueva de SCRUM-163; número al aplicarla): misma firma; la respuesta agrega `personal: text[]`. El cliente toma `personal` ausente como `[]` (compatible con la 057).
+- `getCatalogVariantDetail` lee `product_catalog.owner_id` → `CatalogVariantDetail.isPersonal`. La familia se consulta con `hasHousehold()` (`services/personal-product.service.ts`), solo si el producto es personal.
+
+### Casos de aceptación
+- Caso 163-1: un miembro abre la lista de la familia con una fila de un producto personal ajeno → la lista carga y esa fila dice "Producto no disponible" (E2E-LISTA-10; `tests/shopping-list.service.test.ts`).
+- Caso 163-2: en una familia, el detalle de mi producto personal muestra el aviso y no el botón de agregar (`features/catalog-product-detail/tests/`).
+- Caso 163-3: sin familia, el detalle de mi producto personal deja agregarlo; mientras se consulta la familia no se ofrece agregar; si la consulta falla, se ofrece (idem).
+- Caso 163-4: en una familia, agregar mi grupo personal con un producto personal agrega el resto y nombra el personal; ningún miembro ve una fila sin producto (`supabase/tests/066_skip_personal_products_in_household_list.test.sql`; `features/product-groups/tests/`).
+- Caso 163-5: sin familia, el grupo con mi producto personal se agrega completo (prueba SQL).

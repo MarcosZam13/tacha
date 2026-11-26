@@ -56,7 +56,7 @@ export const CATALOG_DB = {
   // SHOPPING_LIST_DB.ITEM_DETAIL_SELECT, con el slug de tienda agregado
   // (catalog-product-detail sí necesita elegir el ícono por tienda).
   VARIANT_DETAIL_SELECT:
-    "base_quantity, base_unit, image_url, reference_price, reference_store_name, stores(display_name), product_catalog(name), product_brands(name, logo_url), latest_prices(price, stores(slug, display_name))",
+    "base_quantity, base_unit, image_url, reference_price, reference_store_name, stores(display_name), product_catalog(name, owner_id), product_brands(name, logo_url), latest_prices(price, stores(slug, display_name))",
 } as const;
 
 // Espejo del check de product_catalog.source: "manual" son los productos que
