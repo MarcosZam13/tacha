@@ -81,13 +81,13 @@ export const createMyInventoryPage = () => {
     await user.click(await findOpenAddButton());
   };
   const searchProduct = async (text: string): Promise<void> => {
-    await user.type(within(getAddPanel()).getByRole("textbox", { name: PRODUCT_SEARCH_TEXT.LABEL }), text);
+    await user.type(within(getAddPanel()).getByRole("combobox", { name: PRODUCT_SEARCH_TEXT.LABEL }), text);
   };
-  // Las opciones del buscador son botones con el nombre y el tamaño en dos span ("Leche" "1000 ml").
+  // Las opciones del buscador (combobox, SCRUM-149) tienen el nombre y el tamaño en dos span ("Leche" "1000 ml").
   const searchOptionName = (productName: string, sizeLabel: string): RegExp =>
     new RegExp(`^${productName}\\s*${sizeLabel}$`, "u");
   const findSearchOption = (productName: string, sizeLabel: string): Promise<HTMLElement> =>
-    within(getAddPanel()).findByRole("button", { name: searchOptionName(productName, sizeLabel) });
+    within(getAddPanel()).findByRole("option", { name: searchOptionName(productName, sizeLabel) });
   const chooseSearchOption = async (productName: string, sizeLabel: string): Promise<void> => {
     await user.click(await findSearchOption(productName, sizeLabel));
   };

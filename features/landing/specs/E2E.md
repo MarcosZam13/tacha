@@ -37,6 +37,11 @@ Nivel más bajo que alcanza: las reglas de los campos (`validateContactForm`), l
 - **Pasos:** abrir `/nosotros`; completar Nombre, Correo y Mensaje; marcar el reCAPTCHA; tocar "Enviar mensaje".
 - **Resultado esperado:** se ve la confirmación y la petición lleva `source: "about"`.
 
+### E2E-LOGIN-ENTRADA-02: desde el registro se llega al login
+- **Cubre:** SCRUM-144 (incluido en SCRUM-158).
+- **Pasos:** abrir `/registro` y tocar "Iniciá sesión", debajo del título.
+- **Resultado esperado:** se abre `/login`.
+
 ## Navbar (SCRUM-159)
 
 Los tests están en `e2e/features/landing/public-navbar.spec.ts`. Que el botón se oculte con una sesión registrada lo prueba `PublicNavbarCta.test.tsx`: es lógica del ViewModel y no necesita un navegador.

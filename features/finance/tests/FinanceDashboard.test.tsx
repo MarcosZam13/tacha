@@ -266,7 +266,8 @@ describe("FinanceDashboard: separate errors (SPEC §7)", () => {
 describe("Navigation", () => {
   it("has a «Finanzas» item that leads to /finanzas", () => {
     expect(APP_ROUTE.FINANCE).toBe("/finanzas");
-    expect(APP_NAV_ITEMS).toContainEqual({ href: "/finanzas", label: "Finanzas" });
+    // objectContaining: desde SCRUM-158 cada ítem también trae su ícono.
+    expect(APP_NAV_ITEMS).toContainEqual(expect.objectContaining({ href: "/finanzas", label: "Finanzas" }));
   });
 });
 

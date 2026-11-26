@@ -40,8 +40,8 @@ export const fillNewRecipe = async (page: Page, recipeName: string): Promise<voi
   await page.goto(`${RECIPES_PATH}/nueva`);
   await page.getByRole("textbox", { name: /^Nombre/ }).fill(recipeName);
   await page.getByRole("spinbutton", { name: /^Porciones base/ }).fill("4");
-  await page.getByRole("textbox", { name: "Buscar producto" }).fill("leche");
-  await page.locator("section ul li button").first().click();
+  await page.getByRole("combobox", { name: "Buscar producto" }).fill("leche");
+  await page.getByRole("option").first().click();
   await page.getByRole("textbox", { name: /^Cantidad/ }).fill("500");
 };
 

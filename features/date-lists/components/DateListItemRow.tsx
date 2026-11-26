@@ -1,8 +1,8 @@
 import { QuantityStepper } from "@/components/quantity-stepper/QuantityStepper";
-import { Button, Checkbox } from "@/components/ui";
-import { BUTTON_VARIANT } from "@/constants";
+import { Checkbox, IconButton } from "@/components/ui";
+import { ICON_BUTTON_TONE } from "@/constants";
 import { ITEM_QUANTITY } from "@/constants/list-items.constants";
-import { DATE_LIST_TEXT } from "../constants/date-lists.constants";
+import { DATE_LIST_ITEM_ICON, DATE_LIST_TEXT } from "../constants/date-lists.constants";
 import type { DateListItem } from "../models/DateList.interface";
 
 interface DateListItemRowProps {
@@ -16,7 +16,11 @@ interface DateListItemRowProps {
   onToggle: (isChecked: boolean) => void;
 }
 
-/** Un producto de la sublista. Ya tachado no se le cambia la cantidad: se destacha primero. */
+/**
+ * Un producto de la sublista. Ya tachado no se le cambia la cantidad: se destacha primero.
+ * Como la fila de la lista general (SCRUM-158): nombre en máximo dos líneas (completo en `title`)
+ * y eliminar como ícono rojo sin borde, con "Eliminar" como nombre accesible.
+ */
 export const DateListItemRow = ({
   assigneeSlot,
   isDisabled,
@@ -34,7 +38,10 @@ export const DateListItemRow = ({
       onChange={onToggle}
     />
     <div className="flex min-w-0 flex-1 flex-col">
-      <span className={`block font-body text-sm text-tacha-text ${item.isChecked ? "line-through" : ""}`}>
+      <span
+        title={item.productName}
+        className={`line-clamp-2 font-body text-sm text-tacha-text ${item.isChecked ? "line-through" : ""}`}
+      >
         {item.productName}
       </span>
       <span className="block font-body text-xs text-tacha-textsec">{item.sizeLabel}</span>
@@ -51,8 +58,12 @@ export const DateListItemRow = ({
         quantity={item.quantity}
       />
     )}
-    <Button isDisabled={isDisabled} variant={BUTTON_VARIANT.SECONDARY} onClick={onRemove}>
-      {DATE_LIST_TEXT.REMOVE_ITEM}
-    </Button>
+    <IconButton
+      icon={DATE_LIST_ITEM_ICON.REMOVE_ITEM}
+      label={DATE_LIST_TEXT.REMOVE_ITEM}
+      tone={ICON_BUTTON_TONE.DANGER}
+      isDisabled={isDisabled}
+      onClick={onRemove}
+    />
   </li>
 );

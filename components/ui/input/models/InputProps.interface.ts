@@ -1,6 +1,20 @@
 import type { FormFieldStateType } from "@/constants";
 import type { NullableUndefined } from "@/types/nullable.types";
 
+/**
+ * Atributos de combobox (SCRUM-149): el buscador de productos usa este mismo
+ * campo con un desplegable de resultados. Opcionales; un Input común no los usa.
+ */
+export interface InputComboboxAttributes {
+  "aria-activedescendant"?: string;
+  "aria-autocomplete": "list";
+  "aria-controls": string;
+  "aria-expanded": boolean;
+  onFocus: () => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  role: "combobox";
+}
+
 export interface InputProps {
   label: string;
   value: string;
@@ -18,6 +32,7 @@ export interface InputProps {
    */
   inputMode?: "text" | "decimal" | "numeric";
   isRequired?: boolean;
+  combobox?: InputComboboxAttributes;
 }
 
 export interface InputFieldState {

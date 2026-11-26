@@ -70,6 +70,10 @@ Tomados directamente de `mockup-web-v2.html` (ya construido) — reusar tal cual
 - **Color:** el ícono toma el color del texto del padre (`currentColor`). Para pintarlo se pinta el botón: `text-tacha-teal`, `text-tacha-danger`.
 - **Ícono + texto** cuando hay espacio (menú de escritorio, botones principales). **Solo ícono** cuando no lo hay (acciones de una fila, pestañas de móvil con etiqueta corta), y entonces el botón lleva `aria-label`. El nombre accesible de un botón no cambia al agregarle un ícono: los tests buscan por ese nombre.
 - **Destructivo:** eliminar o salir usan `tacha-danger` (texto, ícono o fondo del `Button` `destructive`). Contraste ≥ 4.5:1 sobre `bg` y `surface` en los dos modos.
+- **Botón de solo ícono:** `IconButton` (`components/ui/icon-button/`, SCRUM-158). Sin borde, para acciones secundarias (ver detalle, eliminar); `tone="danger"` para las destructivas. El nombre accesible es su `label`, en un `sr-only`. Mide 44 × 44 px en celular y 36 × 36 desde `md`.
+- **Cantidad:** `QuantityStepper` es un solo control con borde (`−` número `+`), la acción principal de la fila; detalle y eliminar van como `IconButton` al lado (SCRUM-147).
+- **Fila de lista en celular (SCRUM-148):** nombre y tamaño arriba, a todo el ancho y en máximo dos líneas (el nombre completo en `title`); los controles en una fila debajo. Desde `md` vuelve a ser una sola línea.
+- **Buscador de productos (SCRUM-149):** los resultados salen en un panel flotante pegado al campo (patrón combobox + listbox), con alto máximo, como mucho `PRODUCT_SEARCH.MAX_VISIBLE_RESULTS` (8) y un aviso para afinar si hay más. Flechas, Enter y Escape funcionan desde el campo.
 - Espaciado generoso, agrupación por categoría con separación real (no solo un borde).
 - Ambos modos (claro/oscuro) con el mismo nivel de cuidado — pedirle a Stitch ambas variantes, no solo claro con oscuro "invertido".
 

@@ -3,6 +3,8 @@
 // constants/list-items.constants.ts (SCRUM-85): catalog-product-detail
 // también agrega productos y cambia su cantidad. Se reexportan aquí para no
 // tocar los imports que ya existían en esta feature.
+import { Info, Trash2 } from "lucide-react";
+
 export { ITEM_QUANTITY } from "@/constants/list-items.constants";
 export type { ItemQuantityStepType } from "@/constants/list-items.constants";
 
@@ -112,11 +114,9 @@ export const SHOPPING_LIST_TEXT = {
   // Entrada a "Mi inventario" (SCRUM-105, HU-71b CA-01) mientras no exista el menú "Más".
   MY_INVENTORY: "Mi inventario",
   OPEN_DETAIL: "Ver detalle",
-  OPEN_DETAIL_ICON: "i",
   PENDING_SECTION: "Pendientes",
   REMOVE_ERROR: "No se pudo eliminar el producto. Intenta de nuevo.",
   REMOVE_ITEM: "Eliminar",
-  REMOVE_ITEM_ICON: "✕",
   REMOVED_TOAST: "Producto eliminado",
   // Aviso de faltante (SCRUM-114): "+ 600 ml necesarios para Tres leches".
   SHORTFALL_NOTE_FOR: "necesarios para",
@@ -124,4 +124,11 @@ export const SHOPPING_LIST_TEXT = {
   UNDO_REMOVE: "Deshacer",
   QUANTITY_ERROR: "No se pudo cambiar la cantidad. Intenta de nuevo.",
   TITLE: "Lista general",
+} as const;
+
+// Íconos de las acciones secundarias de la fila (SCRUM-147). Reemplazan los
+// caracteres "i" y "✕"; el nombre accesible sigue saliendo de SHOPPING_LIST_TEXT.
+export const SHOPPING_LIST_ICON = {
+  OPEN_DETAIL: Info,
+  REMOVE_ITEM: Trash2,
 } as const;

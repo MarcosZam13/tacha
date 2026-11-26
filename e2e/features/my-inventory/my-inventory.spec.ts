@@ -119,8 +119,8 @@ test.describe("Mi inventario: agregar a mano", () => {
 
     await page.getByRole("button", { name: "+ Agregar a mi inventario" }).click();
     const panel = page.getByRole("group", { name: "Agregar a mi inventario" });
-    await panel.getByRole("textbox", { name: "Buscar producto" }).fill("le");
-    await panel.getByRole("button", { name: /^Leche\s*1000 ml$/u }).click();
+    await panel.getByRole("combobox", { name: "Buscar producto" }).fill("le");
+    await page.getByRole("option", { name: /^Leche\s*1000 ml$/u }).click();
     await panel.getByRole("button", { name: "2-4 semanas" }).click();
     const hasPageHorizontalScroll = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

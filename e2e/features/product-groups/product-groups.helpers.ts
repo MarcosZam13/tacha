@@ -42,14 +42,14 @@ export const getGroupCard = (page: Page, groupName: string): Locator =>
   page.getByRole("listitem").filter({ has: page.getByRole("heading", { level: 2, name: groupName }) });
 
 /**
- * Busca un producto y elige su primera presentación. La opción es el botón
- * cuyo nombre de producto es exactamente ese ("Leche", no "Leche condensada").
+ * Busca un producto y elige su primera presentación. La opción del desplegable
+ * (SCRUM-149) es la que tiene ese nombre exacto ("Leche", no "Leche condensada").
  * Devuelve el texto de la fila que se agrega ("Leche — 1 L").
  */
 export const addFirstOptionOf = async (page: Page, searchTerm: string, productName: string): Promise<string> => {
-  await page.getByLabel("Buscar producto").fill(searchTerm);
+  await page.getByRole("combobox", { name: "Buscar producto" }).fill(searchTerm);
   const option = page
-    .getByRole("button")
+    .getByRole("option")
     .filter({ has: page.getByText(productName, { exact: true }) })
     .first();
   await option.waitFor();

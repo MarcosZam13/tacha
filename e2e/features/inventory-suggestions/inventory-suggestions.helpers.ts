@@ -91,7 +91,7 @@ export const openListWithSuggestions = async (
 
 export const getSuggestionsRegion = (page: Page): Locator => page.getByRole("region", { name: "¿Se te acabó?" });
 
-export const getSearchBox = (page: Page): Locator => page.getByRole("textbox", { name: "Buscar producto" });
+export const getSearchBox = (page: Page): Locator => page.getByRole("combobox", { name: "Buscar producto" });
 
 export const getEmptyListMessage = (page: Page): Locator =>
   page.getByText("Tu lista está vacía. Busca un producto para empezar.");

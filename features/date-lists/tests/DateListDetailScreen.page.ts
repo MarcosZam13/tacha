@@ -20,6 +20,7 @@ export const createDateListDetailPage = () => {
     getCheckbox: (productName: string) =>
       screen.getByRole("checkbox", { name: `${DATE_LIST_TEXT.CHECK_ITEM} ${productName}` }),
     getCheckboxes: () => screen.getAllByRole("checkbox"),
+    getRemoveButtons: () => screen.getAllByRole("button", { name: DATE_LIST_TEXT.REMOVE_ITEM }),
     clickEditTotal: () => user.click(screen.getByRole("button", { name: DATE_LIST_TEXT.TOTAL_EDIT })),
     clickSaveTotal: () => user.click(screen.getByRole("button", { name: DATE_LIST_TEXT.TOTAL_SAVE })),
     // Intl separa los miles con un espacio duro; sin normalizar, se compara tal como se dibuja.

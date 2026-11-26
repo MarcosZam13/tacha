@@ -10,7 +10,17 @@ import type { StoreSlug } from "@/constants/stores.constants";
 export const PRODUCT_SEARCH = {
   DEBOUNCE_MS: 300,
   MAX_QUERY_LENGTH: 80,
+  // Cuántos resultados muestra el desplegable (SCRUM-149). Con más, se pide afinar la búsqueda.
+  MAX_VISIBLE_RESULTS: 8,
   MIN_QUERY_LENGTH: 2,
+} as const;
+
+// Teclas que maneja el desplegable de resultados (SCRUM-149), por su KeyboardEvent.key.
+export const PRODUCT_SEARCH_KEY = {
+  ARROW_DOWN: "ArrowDown",
+  ARROW_UP: "ArrowUp",
+  ENTER: "Enter",
+  ESCAPE: "Escape",
 } as const;
 
 // Espejo del check de product_catalog_variants.base_unit en la base.
@@ -101,7 +111,10 @@ export const REFERENCE_PRICE_TEXT = {
 
 export const PRODUCT_SEARCH_TEXT = {
   LABEL: "Buscar producto",
+  // Debajo de los resultados cuando hay más de los que se muestran (SCRUM-149).
+  MORE_RESULTS_HINT: `Se muestran los primeros ${PRODUCT_SEARCH.MAX_VISIBLE_RESULTS}. Escribe más para afinar la búsqueda.`,
   NO_RESULTS: "No encontramos productos con ese nombre.",
+  RESULTS_LABEL: "Resultados de la búsqueda",
   PLACEHOLDER: "Busca un producto, ej. leche",
   SEARCH_ERROR: "No se pudo buscar en el catálogo. Intenta de nuevo.",
 } as const;
