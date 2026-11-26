@@ -1,5 +1,6 @@
-import type { InventoryGroupViewModel } from "../../models/MyInventoryViewModel.interface";
+import type { InventoryGroupViewModel, InventoryItemActions } from "../../models/MyInventoryViewModel.interface";
 
 export interface InventoryGroupSectionProps {
   group: InventoryGroupViewModel;
+  actions: InventoryItemActions;
 }

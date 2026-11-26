@@ -1,9 +1,13 @@
-// Constantes de "Mi inventario" (SCRUM-105, HU-71b).
+// Constantes de "Mi inventario" (SCRUM-105, HU-71b; SCRUM-106, HU-71c).
 
 export const MY_INVENTORY_DB = {
   RPC: {
+    // Ajusta la fecha con un chip, contando desde ahora (migración 067).
+    ADJUST_INVENTORY_ITEM: "adjust_inventory_item",
     // Lo que todavía se cree que hay en casa (migración 065).
     GET_MY_INVENTORY: "get_my_inventory",
+    // "Ya se acabó": sale del inventario y pasa a sugerencias (migración 067).
+    MARK_INVENTORY_ITEM_USED_UP: "mark_inventory_item_used_up",
   },
 } as const;
 
@@ -51,6 +55,14 @@ export const INVENTORY_DAYS_LIMIT = {
 } as const;
 
 export const MY_INVENTORY_TEXT = {
+  // Si "Ya se acabó" o el chip no se pudo guardar (SCRUM-106).
+  ACTION_ERROR: "No se pudo guardar. Intenta de nuevo.",
+  // Separa la acción del producto en el nombre accesible: "Ajustar fecha: Leche".
+  ACTION_LABEL_SEPARATOR: ":",
+  // Abre los chips de HU-70b debajo del producto (SCRUM-106, CA-02).
+  ADJUST: "Ajustar fecha",
+  // Aviso para el lector de pantalla después de un chip: "Leche: fecha actualizada.".
+  ADJUSTED_SUFFIX: ": fecha actualizada.",
   BACK_TO_LIST: "← Volver a la lista",
   // CA-04: sin pedir que se llene a mano.
   EMPTY: "Todavía no hay nada en tu inventario. Se llena solo cuando tachas productos al comprar.",
@@ -60,7 +72,12 @@ export const MY_INVENTORY_TEXT = {
   REMAINING_DAYS_PREFIX: "Te quedan",
   REMAINING_DAYS_SUFFIX: "días",
   REMAINING_ONE_DAY: "Te queda 1 día",
+  REFRESH_ERROR: "Se guardó, pero no se pudo actualizar la pantalla. Recarga la página.",
   REMAINING_TODAY: "Se acaba hoy",
   RETRY: "Reintentar",
   TITLE: "Mi inventario",
+  // SCRUM-106, CA-01. El lector de pantalla lee también el producto: "Ya se acabó: Leche".
+  USED_UP: "Ya se acabó",
+  // Aviso para el lector de pantalla después de "Ya se acabó": "Leche ya no está en tu inventario.".
+  USED_UP_SUFFIX: " ya no está en tu inventario.",
 } as const;

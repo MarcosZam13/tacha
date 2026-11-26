@@ -39,7 +39,7 @@ Hasta 200 productos, cada uno con la presentación de la última compra, su nomb
 | Vence pronto | 0 a 7 |
 | Este mes | 8 a 30 |
 | Más adelante | más de 30 (decidido con el equipo el 2026-11-25: no cabe en los otros tres) |
-| Sin fecha estimada | sin fecha: "No vence" con una sola compra |
+| Sin fecha estimada | sin fecha: "No vence" con una sola compra, o ajustado a "No vence" (SCRUM-106) |
 
 5. **Cuánto le queda (CA-02):** "Se acaba hoy", "Te queda 1 día", "Te quedan N días". En "Sin fecha estimada", solo el producto.
 6. **Orden:** los grupos en el orden de la tabla; dentro de cada uno, lo que se acaba antes primero y después por nombre.
@@ -106,8 +106,8 @@ Si la consulta falla se muestra el error con "Reintentar". La base: sin sesión,
 
 ## 14. Casos fuera de alcance
 
-- "Ya se acabó" y ajustar la fecha desde esta pantalla: SCRUM-106 (HU-71c).
-- Agregar algo a mano: SCRUM-107 (HU-71d). Con esas dos llega la tabla de inventario.
+- "Ya se acabó" y ajustar la fecha desde esta pantalla: SCRUM-106 (HU-71c), §16.
+- Agregar algo a mano: SCRUM-107 (HU-71d).
 - El menú "Más": sprint de UI/UX.
 - Que el historial sobreviva a borrar lo tachado (OBS-2 de la PR #120): igual que las sugerencias.
 
@@ -115,3 +115,68 @@ Si la consulta falla se muestra el error con "Reintentar". La base: sin sesión,
 
 - **Una sola función con el cálculo.** Antes, cada cambio de las sugerencias (061, 063, 064) copiaba el cálculo entero. Ahora `inventory_estimates` lo tiene una vez; las sugerencias y el inventario solo filtran.
 - **Cortes de 7 y 30 días y el cuarto grupo "Más adelante":** confirmados con el equipo el 2026-11-25.
+
+## 16. SCRUM-106: "Ya se acabó" y ajustar la fecha
+
+Historia: HU-71c ([SCRUM-106](https://tacha.atlassian.net/browse/SCRUM-106)). Migración `067_adjust_inventory_items.sql`.
+
+### Objetivo
+
+Que el inventario sea más preciso sin empezar de cero: decir que algo se acabó antes de lo esperado, o cambiar cuánto creo que me dura.
+
+### Reglas de negocio
+
+1. **"Ya se acabó" (CA-01).** Cada producto tiene el botón. Al tocarlo sale de la pantalla en el momento, sin confirmar. En la base, el producto se acaba "ahora": pasa a "¿Se te acabó?" para reponerlo, salvo que ya esté pendiente en la lista (entonces no está en ninguno de los dos, como en §5 regla 3). Si falla, el producto vuelve con "No se pudo guardar. Intenta de nuevo.".
+2. **Ajustar la fecha (CA-02).** "Ajustar fecha" abre debajo del producto los mismos chips de HU-70b (SCRUM-103): "Vence en pocos días", "2-4 semanas", "1-3 meses" y "No vence / no aplica". Un toque guarda, sin selector de fecha. Se cuenta **desde ahora**, porque responde "¿cuánto me queda?": 4, 21 o 60 días; "No vence" deja el producto en "Sin fecha estimada". La pantalla vuelve a pedir el inventario y el producto queda en su grupo nuevo. Si falla, los chips siguen abiertos con el error.
+3. **No toca el historial ni Finanzas (CA-03).** Lo que el usuario dice se guarda aparte, en `inventory_adjustments`. No cambia `list_items` (las compras, el chip al tachar, quién compró y cuándo) ni nada de Finanzas.
+4. **Una compra nueva vuelve a empezar.** El ajuste queda atado a la última compra del producto. Si se vuelve a comprar, el ajuste deja de aplicar y vuelve el cálculo de §5 con la compra nueva. Lo mismo si se desmarca esa compra: vuelve el cálculo con la compra anterior (un producto marcado "Ya se acabó" puede volver al inventario).
+5. **Reemplaza la ✕.** Las dos acciones borran lo pospuesto con la ✕ de ese producto (SCRUM-104): lo que el usuario dice ahora vale más que el "todavía lo tengo" de antes. Si después toca la ✕ en "¿Se te acabó?", vuelve al inventario, como cualquier producto pospuesto.
+6. **En familia,** el ajuste es de la lista general compartida: lo ven todos los miembros, igual que la ✕. Quien tiene la pantalla abierta lo ve al recargar (no hay tiempo real).
+8. **Tope de sugerencias.** "¿Se te acabó?" muestra hasta 20, de lo que se acabó hace más a lo que se acabó hace menos (065). Lo marcado "Ya se acabó" se acaba ahora, así que con más de 20 sugerencias queda al final, fuera de las 20. Se acepta: con ese volumen, la fila ya tiene de sobra para reponer.
+9. **Si se guardó pero falla la recarga** después de un chip, la lista queda en pantalla y esa fila dice "Se guardó, pero no se pudo actualizar la pantalla. Recarga la página.".
+7. **Volver a ajustar** reemplaza el ajuste anterior (una fila por lista y producto).
+
+### Errores de la base
+
+| Caso | Código |
+|---|---|
+| Sin sesión | `42501` |
+| Sin presentación, presentación que no está en la lista general de quien llama, producto sin compras o chip no válido | `22023` |
+| Sin lista general | `P0002` |
+
+La pantalla muestra el mismo texto para todos: "No se pudo guardar. Intenta de nuevo.".
+
+### Contratos externos
+
+- `mark_inventory_item_used_up(target_variant_id uuid)` → nada.
+- `adjust_inventory_item(target_variant_id uuid, target_choice text)` → nada. `target_choice`: `few_days`, `two_to_four_weeks`, `one_to_three_months` o `no_expiry`.
+- `inventory_estimates()`: misma firma; el ajuste de la última compra manda sobre el cálculo. `get_my_inventory` y `get_inventory_suggestions` no cambian.
+
+### Accesibilidad
+
+- Los botones dicen la acción y el nombre accesible incluye el producto: "Ajustar fecha: Leche", "Ya se acabó: Leche". Empieza con el texto visible.
+- "Ajustar fecha" tiene `aria-expanded` y `aria-controls` hacia los chips.
+- Los chips son el mismo grupo de SCRUM-103 ("¿Cuánto te va a durar Leche?") y caben sin mover la página de lado.
+- El foco no se pierde: después de "Ya se acabó" va al título (la fila ya no existe); después de un chip, a "Ajustar fecha" de ese producto en su grupo nuevo. Cada acción se avisa en una región `status` oculta ("Leche ya no está en tu inventario.", "Leche: fecha actualizada.").
+- Los botones miden al menos 40 px de alto, para tocarlos en el celular sin errar.
+
+### Casos de aceptación
+
+- [x] CA-01: "Ya se acabó" saca el producto en el momento y pasa a sugerencias. (`MyInventory.test.tsx`, E2E-MINV-05, prueba SQL de la `067`)
+- [x] CA-02: los chips de HU-70b ajustan la fecha desde ahora, sin selector de fecha. (`MyInventory.test.tsx`, E2E-MINV-06, prueba SQL)
+- [x] CA-03: no cambia `list_items`. (prueba SQL, paso 3)
+
+### Mapa de pruebas
+
+| Caso | Clasificación | Por qué | Archivo | Escenario E2E |
+|---|---|---|---|---|
+| Botones, chips, errores y deshabilitado | Unitario | Estados del ViewModel | `features/my-inventory/tests/MyInventory.test.tsx` | — |
+| Llamadas a la base | Unitario | Contrato del servicio | `features/my-inventory/tests/my-inventory.service.test.ts` | — |
+| "Ya se acabó" en un navegador | E2E | Pantalla real | `e2e/features/my-inventory/my-inventory.spec.ts` | E2E-MINV-05 |
+| Chips en el celular y cambio de grupo | E2E | Ancho real y navegación | mismo | E2E-MINV-06 |
+| Cálculo, permisos, familia, compra nueva | SQL | La regla vive en la base | `supabase/tests/067_adjust_inventory_items.test.sql` | — |
+
+### Fuera de alcance
+
+- Deshacer un ajuste (se puede volver a ajustar, o tocar la ✕ en "¿Se te acabó?").
+- Agregar algo a mano: SCRUM-107.

@@ -6,6 +6,7 @@ import {
   getGroup,
   getGroupTitles,
   stubInventory,
+  stubInventoryWithActions,
 } from "./my-inventory.helpers";
 
 // Escenarios: features/my-inventory/specs/E2E.md. Supabase se responde desde
@@ -61,6 +62,52 @@ test.describe("Mi inventario", () => {
     await page.getByRole("link", { name: "← Volver a la lista" }).click();
 
     await expect(page).toHaveURL(LIST_PATH);
+  });
+});
+
+test.describe("Mi inventario: Ya se acabó y ajustar la fecha", () => {
+  test("E2E-MINV-05 — Ya se acabó saca el producto de la pantalla", async ({ page }) => {
+    const calls = await stubInventoryWithActions(
+      page,
+      [createInventoryRow("Leche", 3), createInventoryRow("Café", 20)],
+      [createInventoryRow("Café", 20)],
+    );
+    await page.goto(INVENTORY_PATH);
+
+    await page.getByRole("button", { name: "Ya se acabó: Leche" }).click();
+
+    await expect(page.getByText("Leche", { exact: true })).toHaveCount(0);
+    await expect(getGroup(page, "Este mes")).toContainText("Café");
+    expect(calls.usedUp).toEqual([{ target_variant_id: "e2e-variant-Leche" }]);
+  });
+
+  test("E2E-MINV-06 — Ajustar fecha con un chip mueve el producto de grupo", async ({ page }) => {
+    const calls = await stubInventoryWithActions(page, [createInventoryRow("Leche", 3)], [createInventoryRow("Leche", 21)]);
+    await page.goto(INVENTORY_PATH);
+
+    await page.getByRole("button", { name: "Ajustar fecha: Leche" }).click();
+    const chips = page.getByRole("group", { name: "¿Cuánto te va a durar Leche?" });
+    await expect(chips.getByRole("button")).toHaveText([
+      "Vence en pocos días",
+      "2-4 semanas",
+      "1-3 meses",
+      "No vence / no aplica",
+    ]);
+    // Los cuatro chips se ven sin mover la página de lado (también en el celular).
+    for (const chip of await chips.getByRole("button").all()) {
+      await expect(chip).toBeInViewport();
+    }
+    const hasPageHorizontalScroll = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(hasPageHorizontalScroll).toBe(false);
+
+    await chips.getByRole("button", { name: "2-4 semanas" }).click();
+
+    await expect(getGroupTitles(page)).toHaveText(["Este mes"]);
+    await expect(getGroup(page, "Este mes")).toContainText("Te quedan 21 días");
+    await expect(chips).toHaveCount(0);
+    expect(calls.adjust).toEqual([{ target_choice: "two_to_four_weeks", target_variant_id: "e2e-variant-Leche" }]);
   });
 });
 
